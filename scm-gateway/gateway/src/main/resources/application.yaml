@@ -1,0 +1,92 @@
+server:
+  port: 8761
+
+spring:
+  application:
+    name: gateway-service
+  profiles:
+    active: dev
+  config:
+    import:
+      - optional:nacos:${spring.application.name}.yaml?server-addr=${spring.cloud.nacos.server-addr}
+      - optional:nacos:common.yaml?server-addr=${spring.cloud.nacos.server-addr}
+  cloud:
+    nacos:
+      server-addr: ${NACOS_SERVER:127.0.0.1:8848}
+      config:
+        enabled: true
+        namespace: ${NACOS_NAMESPACE:public}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lowerCaseServiceId: true
+      routes:
+        - id: auth-service
+          uri: lb://auth-service
+          predicates:
+            - Path=/auth/**
+          filters:
+            - StripPrefix=1
+        - id: system-service
+          uri: lb://system-service
+          predicates:
+            - Path=/system/**
+          filters:
+            - StripPrefix=1
+        - id: common-service
+          uri: lb://common-service
+          predicates:
+            - Path=/common/**
+          filters:
+            - StripPrefix=1
+      default-filters:
+        - StripPrefix=1
+
+security:
+  signature:
+    enabled: true
+    default-version: HMAC-SHA256-V2
+    allowed-clock-skew: 5m
+    nonce-ttl: 5m
+    nonce-key-prefix: api:nonce:
+    whitelist:
+      - /public/**
+      - /actuator/**
+    app-secrets:
+      # SECURITY: Secrets MUST be provided via environment variables in production
+      # Remove default values to enforce secure configuration
+      web-app: ${API_SECRET_WEB_APP:}
+      internal-service: ${API_SECRET_INTERNAL_SERVICE:}
+  ip-access:
+    enabled: true
+    whitelist-only: false
+    cache-max-size: 20000
+    cache-ttl: 1m
+    block-message: Request blocked by gateway policy
+    forwarded-headers:
+      - X-Forwarded-For
+      - X-Real-IP
+    trusted-proxies:
+      - 10.0.0.0/8
+      - 192.168.0.0/16
+  identity:
+    enabled: true
+    identity-token-header: X-Identity-Token
+    user-id-header: X-User-Id
+    username-header: X-User-Name
+    device-id-header: X-Device-Id
+    roles-header: X-User-Roles
+    user-id-claim: userId
+    username-claim: username
+    device-id-claim: deviceId
+    # SECURITY: MUST be set via environment variable, no default value
+    signature-secret: ${IDENTITY_SIGNATURE_SECRET:}
+  mtls:
+    keystore-path: ${KEYSTORE_PATH:classpath:certs/gateway-keystore.p12}
+    # SECURITY: Password MUST be provided via environment variable
+    keystore-password: ${KEYSTORE_PASSWORD:}
+    truststore-path: ${TRUSTSTORE_PATH:classpath:certs/truststore.p12}
+    # SECURITY: Password MUST be provided via environment variable
+    truststore-password: ${TRUSTSTORE_PASSWORD:}
