@@ -39,6 +39,10 @@ public class SysUser implements Serializable {
     )
     private UUID id;
 
+    @Schema(description = "租户ID（NULL=平台管理员）")
+    @TableField("tenant_id")
+    private UUID tenantId;
+
     @Schema(description = "用户名")
     @TableField("username")
     private String username;
@@ -82,6 +86,14 @@ public class SysUser implements Serializable {
     @Schema(description = "账户类型:1-内部员工,2-外部审计,3-系统管理员")
     @TableField("account_type")
     private Integer accountType;
+
+    @Schema(description = "用户类型:PLATFORM_ADMIN-平台管理员,TENANT_ADMIN-租户管理员,TENANT_USER-租户用户")
+    @TableField("user_type")
+    private String userType;
+
+    @Schema(description = "数据权限范围:ALL-全部,DEPT-本部门,DEPT_AND_SUB-本部门及下级,SELF-仅本人,CUSTOM-自定义")
+    @TableField("data_scope")
+    private String dataScope;
 
     @Schema(description = "连续登录失败次数")
     @TableField("login_attempts")

@@ -38,6 +38,10 @@ public class SysDataPermissionRule implements Serializable {
     @TableId(value = "id", type = IdType.ASSIGN_UUID)
     private UUID id;
 
+    @Schema(description = "租户ID")
+    @TableField("tenant_id")
+    private UUID tenantId;
+
     @Schema(description = "规则名称")
     private String ruleName;
 

@@ -6,12 +6,14 @@ import com.frog.common.exception.BusinessException;
 import com.frog.common.util.UUIDv7Util;
 import com.frog.common.dto.permission.ApiPermissionDTO;
 import com.frog.common.dto.permission.PermissionDTO;
+import com.frog.common.web.util.SecurityUtils;
 import com.frog.system.domain.entity.SysPermission;
 import com.frog.system.mapper.SysPermissionMapper;
 import com.frog.system.mapper.SysRolePermissionMapper;
 import com.frog.system.mapper.SysTempPermissionMapper;
 import com.frog.system.service.ISysPermissionService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -32,11 +34,13 @@ import java.util.stream.Collectors;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, SysPermission>
         implements ISysPermissionService {
     private final SysPermissionMapper sysPermissionMapper;
     private final SysTempPermissionMapper tempPermissionMapper;
     private final SysRolePermissionMapper rolePermissionMapper;
+    private final com.frog.common.security.PermissionChecker permissionChecker;
 
     /**
      * 检查用户是否有指定权限
@@ -161,18 +165,51 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
             allEntries = true
     )
     public void addPermission(PermissionDTO permissionDTO) {
-        // 检查权限编码是否存在
+        // 1. 检查操作权限
+        UUID operatorId = SecurityUtils.getCurrentUserUuid().orElse(null);
+        permissionChecker.requirePermission(operatorId, "permission:add");
+
+        // 2. 区分平台权限和租户权限的创建
+        UUID tenantId = null;
+        String permissionScope = permissionDTO.getPermissionScope();
+
+        if ("PLATFORM".equals(permissionScope)) {
+            // 创建平台权限 - 只有平台管理员可以创建
+            if (!com.frog.common.tenant.TenantValidationUtil.isPlatformAdmin()) {
+                throw new BusinessException("PERMISSION_DENIED", "只有平台管理员可以创建平台权限");
+            }
+            // 平台权限的 tenant_id 为 NULL
+            tenantId = null;
+        } else {
+            // 创建租户权限 - 验证租户上下文
+            tenantId = com.frog.common.tenant.TenantValidationUtil.getRequiredTenantId();
+            // 自动设置为租户权限
+            permissionDTO.setPermissionScope("TENANT");
+        }
+
+        // 3. 检查权限编码是否存在
         LambdaQueryWrapper<SysPermission> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(SysPermission::getPermissionCode, permissionDTO.getPermissionCode());
         if (sysPermissionMapper.selectCount(wrapper) > 0) {
             throw new BusinessException("权限编码已存在");
         }
 
+        // 4. 准备实体
         SysPermission permission = new SysPermission();
         copyPropertiesFromDTO(permissionDTO, permission);
         permission.setId(UUIDv7Util.generate());
+        permission.setTenantId(tenantId); // 平台权限为 NULL，租户权限为当前租户ID
 
+        // 5. 数据库操作
         sysPermissionMapper.insert(permission);
+
+        // 6. 记录租户操作日志
+        if (tenantId != null) {
+            com.frog.common.tenant.TenantValidationUtil.logTenantOperation("CREATE", "PERMISSION", permission.getId());
+        }
+
+        log.info("权限创建成功: {} ({}), 操作人: {}", permission.getPermissionCode(),
+                permission.getPermissionScope(), SecurityUtils.getCurrentUsername());
     }
 
     /**
@@ -184,20 +221,48 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
             allEntries = true
     )
     public void updatePermission(PermissionDTO permissionDTO) {
+        // 1. 检查操作权限
+        UUID operatorId = SecurityUtils.getCurrentUserUuid().orElse(null);
+        permissionChecker.requirePermission(operatorId, "permission:update");
+
+        // 2. 查询数据
         SysPermission existPermission = sysPermissionMapper.selectById(permissionDTO.getId());
         if (existPermission == null) {
             throw new BusinessException("权限不存在");
         }
 
-        // 不能修改父节点为自己或自己的子节点
+        // 3. 业务校验
         if (permissionDTO.getParentId() != null && permissionDTO.getParentId().equals(permissionDTO.getId())) {
             throw new BusinessException("父节点不能是自己");
         }
 
+        // 4. 验证数据归属（区分平台权限和租户权限）
+        if ("PLATFORM".equals(existPermission.getPermissionScope())) {
+            // 修改平台权限 - 只有平台管理员可以修改
+            if (!com.frog.common.tenant.TenantValidationUtil.isPlatformAdmin()) {
+                throw new BusinessException("PERMISSION_DENIED", "只有平台管理员可以修改平台权限");
+            }
+        } else {
+            // 修改租户权限 - 验证租户上下文和数据归属
+            UUID tenantId = com.frog.common.tenant.TenantValidationUtil.getRequiredTenantId();
+            com.frog.common.tenant.TenantValidationUtil.validateDataOwnership(existPermission.getTenantId());
+        }
+
+        // 5. 执行业务逻辑
         SysPermission permission = new SysPermission();
         copyPropertiesFromDTO(permissionDTO, permission);
+        permission.setTenantId(existPermission.getTenantId()); // 保持 tenant_id 不变
+        permission.setPermissionScope(existPermission.getPermissionScope()); // 保持 permission_scope 不变
 
         sysPermissionMapper.updateById(permission);
+
+        // 6. 记录日志
+        if (existPermission.getTenantId() != null) {
+            com.frog.common.tenant.TenantValidationUtil.logTenantOperation("UPDATE", "PERMISSION", permissionDTO.getId());
+        }
+
+        log.info("权限更新成功: {} ({}), 操作人: {}", permission.getPermissionCode(),
+                permission.getPermissionScope(), SecurityUtils.getCurrentUsername());
     }
 
     /**
@@ -216,12 +281,29 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
             allEntries = true
     )
     public void deletePermission(UUID id) {
+        // 1. 检查操作权限
+        UUID operatorId = SecurityUtils.getCurrentUserUuid().orElse(null);
+        permissionChecker.requirePermission(operatorId, "permission:delete");
+
+        // 2. 查询数据
         SysPermission permission = sysPermissionMapper.selectById(id);
         if (permission == null) {
             throw new BusinessException("权限不存在");
         }
 
-        // 1. 检查是否有子权限
+        // 3. 验证数据归属（区分平台权限和租户权限）
+        if ("PLATFORM".equals(permission.getPermissionScope())) {
+            // 删除平台权限 - 只有平台管理员可以删除
+            if (!com.frog.common.tenant.TenantValidationUtil.isPlatformAdmin()) {
+                throw new BusinessException("PERMISSION_DENIED", "只有平台管理员可以删除平台权限");
+            }
+        } else {
+            // 删除租户权限 - 验证租户上下文和数据归属
+            UUID tenantId = com.frog.common.tenant.TenantValidationUtil.getRequiredTenantId();
+            com.frog.common.tenant.TenantValidationUtil.validateDataOwnership(permission.getTenantId());
+        }
+
+        // 4. 检查是否有子权限
         LambdaQueryWrapper<SysPermission> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(SysPermission::getParentId, id);
         Long childCount = sysPermissionMapper.selectCount(wrapper);
@@ -229,19 +311,28 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
             throw new BusinessException("该权限下还有子权限，不能删除");
         }
 
-        // 2. 检查是否有角色使用该权限
+        // 5. 检查是否有角色使用该权限
         Integer roleCount = rolePermissionMapper.countRolesByPermissionId(id);
         if (roleCount > 0) {
             throw new BusinessException("该权限已被 " + roleCount + " 个角色使用，不能删除");
         }
 
-        // 3. 检查是否有用户拥有该临时权限（有效的临时授权）
+        // 6. 检查是否有用户拥有该临时权限（有效的临时授权）
         Integer tempPermCount = tempPermissionMapper.countActiveByPermissionId(id);
         if (tempPermCount != null && tempPermCount > 0) {
             throw new BusinessException("该权限正被 " + tempPermCount + " 个用户作为临时权限使用，不能删除");
         }
 
+        // 7. 执行删除
         sysPermissionMapper.deleteById(id);
+
+        // 8. 记录日志
+        if (permission.getTenantId() != null) {
+            com.frog.common.tenant.TenantValidationUtil.logTenantOperation("DELETE", "PERMISSION", id);
+        }
+
+        log.info("权限删除成功: {} ({}), 操作人: {}", permission.getPermissionCode(),
+                permission.getPermissionScope(), SecurityUtils.getCurrentUsername());
     }
 
     private void copyPropertiesFromDTO(PermissionDTO permissionDTO, SysPermission permission) {

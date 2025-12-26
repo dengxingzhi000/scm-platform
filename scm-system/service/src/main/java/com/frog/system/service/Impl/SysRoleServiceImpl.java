@@ -40,21 +40,37 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
     private final SysRolePermissionMapper rolePermissionMapper;
     private final SysRoleDeptMapper roleDeptMapper;
     private final SysRoleDataRuleMapper roleDataRuleMapper;
+    private final com.frog.common.security.PermissionChecker permissionChecker;
 
     /**
      * 分页查询角色列表
+     * <p>
+     * 多租户过滤规则：
+     * - 平台管理员：查看所有平台角色 + 所有租户角色
+     * - 租户管理员/用户：查看所有平台角色 + 当前租户角色
      */
     public Page<RoleDTO> listRoles(Integer pageNum, Integer pageSize, String roleName) {
         Page<SysRole> page = new Page<>(pageNum, pageSize);
 
         LambdaQueryWrapper<SysRole> wrapper = new LambdaQueryWrapper<>();
-        wrapper.like(roleName != null && !roleName.isEmpty(), SysRole::getRoleName, roleName)
-                .orderByAsc(SysRole::getSortOrder)
+        wrapper.like(roleName != null && !roleName.isEmpty(), SysRole::getRoleName, roleName);
+
+        // 1. 租户过滤：平台角色 + 当前租户角色
+        if (!com.frog.common.tenant.TenantValidationUtil.isPlatformAdmin()) {
+            // 租户用户：只能看到平台角色和本租户角色
+            UUID tenantId = com.frog.common.tenant.TenantValidationUtil.getRequiredTenantId();
+            wrapper.and(w -> w.isNull(SysRole::getTenantId) // 平台角色
+                    .or()
+                    .eq(SysRole::getTenantId, tenantId)); // 当前租户角色
+        }
+        // 平台管理员不需要额外过滤，可以看到所有角色
+
+        wrapper.orderByAsc(SysRole::getSortOrder)
                 .orderByDesc(SysRole::getCreateTime);
 
         Page<SysRole> rolePage = roleMapper.selectPage(page, wrapper);
 
-        // 转换为 DTO
+        // 2. 转换为 DTO
         Page<RoleDTO> roleDTOPage = new Page<>(pageNum, pageSize, rolePage.getTotal());
         List<RoleDTO> roleDTOs = rolePage.getRecords().stream()
                 .map(this::convertToRoleDTO)
@@ -65,16 +81,31 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
     }
 
     /**
-     * 查询所有角色
+     * 查询所有角色（不分页）
+     * <p>
+     * 多租户过滤规则：
+     * - 平台管理员：查看所有平台角色 + 所有租户角色
+     * - 租户管理员/用户：查看所有平台角色 + 当前租户角色
      */
     @Cacheable(
             value = "roles",
-            key = "'all'"
+            key = "'all:' + (#root.method.name) + ':' + T(com.frog.common.tenant.TenantContextHolder).getTenantId().orElse('platform')"
     )
     public List<RoleDTO> listAllRoles() {
         LambdaQueryWrapper<SysRole> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(SysRole::getStatus, 1)
-                .orderByAsc(SysRole::getSortOrder);
+        wrapper.eq(SysRole::getStatus, 1);
+
+        // 1. 租户过滤：平台角色 + 当前租户角色
+        if (!com.frog.common.tenant.TenantValidationUtil.isPlatformAdmin()) {
+            // 租户用户：只能看到平台角色和本租户角色
+            UUID tenantId = com.frog.common.tenant.TenantValidationUtil.getRequiredTenantId();
+            wrapper.and(w -> w.isNull(SysRole::getTenantId) // 平台角色
+                    .or()
+                    .eq(SysRole::getTenantId, tenantId)); // 当前租户角色
+        }
+        // 平台管理员不需要额外过滤，可以看到所有角色
+
+        wrapper.orderByAsc(SysRole::getSortOrder);
 
         List<SysRole> roles = roleMapper.selectList(wrapper);
         return roles.stream()
@@ -117,26 +148,55 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
             allEntries = true
     )
     public void addRole(RoleDTO roleDTO) {
-        // 检查角色编码是否存在
+        // 1. 检查操作权限
+        UUID operatorId = SecurityUtils.getCurrentUserUuid().orElse(null);
+        permissionChecker.requirePermission(operatorId, "role:add");
+
+        // 2. 区分平台角色和租户角色的创建
+        UUID tenantId = null;
+        if ("PLATFORM_ROLE".equals(roleDTO.getRoleType())) {
+            // 创建平台角色 - 只有平台管理员可以创建
+            if (!com.frog.common.tenant.TenantValidationUtil.isPlatformAdmin()) {
+                throw new BusinessException("PERMISSION_DENIED", "只有平台管理员可以创建平台角色");
+            }
+            // 平台角色的 tenant_id 为 NULL
+            tenantId = null;
+        } else {
+            // 创建租户角色 - 验证租户上下文
+            tenantId = com.frog.common.tenant.TenantValidationUtil.getRequiredTenantId();
+            // 自动设置为租户角色
+            roleDTO.setRoleType("TENANT_ROLE");
+        }
+
+        // 3. 检查角色编码是否存在
         if (roleMapper.existsByRoleCode(roleDTO.getRoleCode())) {
             throw new BusinessException("角色编码已存在");
         }
 
+        // 4. 准备实体
         SysRole role = new SysRole();
         BeanUtils.copyProperties(roleDTO, role);
+        role.setTenantId(tenantId); // 平台角色为 NULL，租户角色为当前租户ID
 
+        // 5. 数据库操作
         roleMapper.insert(role);
 
-        // 分配权限
+        // 6. 分配权限
         if (roleDTO.getPermissionIds() != null && !roleDTO.getPermissionIds().isEmpty()) {
             rolePermissionMapper.batchInsertRolePermissions(role.getId(), roleDTO.getPermissionIds(),
                     SecurityUtils.getCurrentUserUuid().orElse(null));
         }
 
-        // Publish sync event for redundancy update
+        // 7. 发布同步事件
         dataSyncEventPublisher.publishRoleCreated(role);
 
-        log.info("Role created: {}, by: {}", role.getRoleCode(), SecurityUtils.getCurrentUsername());
+        // 8. 记录租户操作日志
+        if (tenantId != null) {
+            com.frog.common.tenant.TenantValidationUtil.logTenantOperation("CREATE", "ROLE", role.getId());
+        }
+
+        log.info("角色创建成功: {} ({}), 操作人: {}", role.getRoleCode(),
+                role.getRoleType(), SecurityUtils.getCurrentUsername());
     }
 
     /**
@@ -148,26 +208,52 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
             allEntries = true
     )
     public void updateRole(RoleDTO roleDTO) {
+        // 1. 检查操作权限
+        UUID operatorId = SecurityUtils.getCurrentUserUuid().orElse(null);
+        permissionChecker.requirePermission(operatorId, "role:update");
+
+        // 2. 查询数据
         SysRole existRole = roleMapper.selectById(roleDTO.getId());
         if (existRole == null) {
             throw new BusinessException("角色不存在");
         }
 
-        // 不能修改超级管理员角色
+        // 3. 业务校验
         if (existRole.getId().equals(UUID.fromString("019a0aee-3b74-7bfc-b34f-48b5428d4875"))) {
             throw new BusinessException("不能修改超级管理员角色");
         }
 
+        // 4. 验证数据归属（区分平台角色和租户角色）
+        if ("PLATFORM_ROLE".equals(existRole.getRoleType())) {
+            // 修改平台角色 - 只有平台管理员可以修改
+            if (!com.frog.common.tenant.TenantValidationUtil.isPlatformAdmin()) {
+                throw new BusinessException("PERMISSION_DENIED", "只有平台管理员可以修改平台角色");
+            }
+        } else {
+            // 修改租户角色 - 验证租户上下文和数据归属
+            UUID tenantId = com.frog.common.tenant.TenantValidationUtil.getRequiredTenantId();
+            com.frog.common.tenant.TenantValidationUtil.validateDataOwnership(existRole.getTenantId());
+        }
+
+        // 5. 执行业务逻辑
         SysRole role = new SysRole();
         BeanUtils.copyProperties(roleDTO, role);
+        role.setTenantId(existRole.getTenantId()); // 保持 tenant_id 不变
+        role.setRoleType(existRole.getRoleType()); // 保持 role_type 不变
 
         roleMapper.updateById(role);
 
-        // Publish sync event for redundancy update
+        // 6. 发布同步事件
         SysRole updatedRole = roleMapper.selectById(role.getId());
         dataSyncEventPublisher.publishRoleUpdated(updatedRole);
 
-        log.info("Role updated: {}, by: {}", role.getRoleCode(), SecurityUtils.getCurrentUsername());
+        // 7. 记录日志
+        if (existRole.getTenantId() != null) {
+            com.frog.common.tenant.TenantValidationUtil.logTenantOperation("UPDATE", "ROLE", roleDTO.getId());
+        }
+
+        log.info("角色更新成功: {} ({}), 操作人: {}", role.getRoleCode(),
+                role.getRoleType(), SecurityUtils.getCurrentUsername());
     }
 
     /**
@@ -186,38 +272,61 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
             allEntries = true
     )
     public void deleteRole(UUID id) {
+        // 1. 检查操作权限
+        UUID operatorId = SecurityUtils.getCurrentUserUuid().orElse(null);
+        permissionChecker.requirePermission(operatorId, "role:delete");
+
+        // 2. 查询数据
         SysRole role = roleMapper.selectById(id);
         if (role == null) {
             throw new BusinessException("角色不存在");
         }
 
-        // 不能删除超级管理员角色
+        // 3. 业务校验
         if (role.getId().equals(UUID.fromString("019a0aee-3b74-7bfc-b34f-48b5428d4875"))) {
             throw new BusinessException("不能删除超级管理员角色");
         }
 
-        // 检查是否有用户使用该角色
+        // 4. 验证数据归属（区分平台角色和租户角色）
+        if ("PLATFORM_ROLE".equals(role.getRoleType())) {
+            // 删除平台角色 - 只有平台管理员可以删除
+            if (!com.frog.common.tenant.TenantValidationUtil.isPlatformAdmin()) {
+                throw new BusinessException("PERMISSION_DENIED", "只有平台管理员可以删除平台角色");
+            }
+        } else {
+            // 删除租户角色 - 验证租户上下文和数据归属
+            UUID tenantId = com.frog.common.tenant.TenantValidationUtil.getRequiredTenantId();
+            com.frog.common.tenant.TenantValidationUtil.validateDataOwnership(role.getTenantId());
+        }
+
+        // 5. 检查是否有用户使用该角色
         Integer userCount = userRoleMapper.countUsersByRoleId(id);
         if (userCount > 0) {
             throw new BusinessException("该角色下还有 " + userCount + " 个用户，不能删除");
         }
 
-        // 1. 删除角色权限关联 (sys_role_permission)
+        // 6. 删除角色权限关联 (sys_role_permission)
         rolePermissionMapper.deleteRolePermissions(id);
 
-        // 2. 删除角色部门关联 (sys_role_dept) - 自定义数据权限范围
+        // 7. 删除角色部门关联 (sys_role_dept) - 自定义数据权限范围
         roleDeptMapper.deleteRoleDepts(id);
 
-        // 3. 删除角色数据权限规则关联 (sys_role_data_rule)
+        // 8. 删除角色数据权限规则关联 (sys_role_data_rule)
         roleDataRuleMapper.deleteRoleDataRules(id);
 
-        // 4. 删除角色记录
+        // 9. 删除角色记录
         roleMapper.deleteById(id);
 
-        // 5. 发布同步事件用于冗余数据更新
+        // 10. 发布同步事件用于冗余数据更新
         dataSyncEventPublisher.publishRoleDeleted(id);
 
-        log.info("Role deleted: {}, by: {}", role.getRoleCode(), SecurityUtils.getCurrentUsername());
+        // 11. 记录日志
+        if (role.getTenantId() != null) {
+            com.frog.common.tenant.TenantValidationUtil.logTenantOperation("DELETE", "ROLE", id);
+        }
+
+        log.info("角色删除成功: {} ({}), 操作人: {}", role.getRoleCode(),
+                role.getRoleType(), SecurityUtils.getCurrentUsername());
     }
 
     /**
@@ -229,22 +338,45 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
             allEntries = true
     )
     public void grantPermissions(UUID roleId, List<UUID> permissionIds) {
+        // 1. 检查操作权限
+        UUID operatorId = SecurityUtils.getCurrentUserUuid().orElse(null);
+        permissionChecker.requirePermission(operatorId, "role:grant-permission");
+
+        // 2. 查询数据
         SysRole role = roleMapper.selectById(roleId);
         if (role == null) {
             throw new BusinessException("角色不存在");
         }
 
-        // 删除原有权限
+        // 3. 验证数据归属（区分平台角色和租户角色）
+        if ("PLATFORM_ROLE".equals(role.getRoleType())) {
+            // 为平台角色授权 - 只有平台管理员可以操作
+            if (!com.frog.common.tenant.TenantValidationUtil.isPlatformAdmin()) {
+                throw new BusinessException("PERMISSION_DENIED", "只有平台管理员可以为平台角色授权");
+            }
+        } else {
+            // 为租户角色授权 - 验证租户上下文和数据归属
+            UUID tenantId = com.frog.common.tenant.TenantValidationUtil.getRequiredTenantId();
+            com.frog.common.tenant.TenantValidationUtil.validateDataOwnership(role.getTenantId());
+        }
+
+        // 4. 删除原有权限
         rolePermissionMapper.deleteRolePermissions(roleId);
 
-        // 分配新权限
+        // 5. 分配新权限
         if (permissionIds != null && !permissionIds.isEmpty()) {
             rolePermissionMapper.batchInsertRolePermissions(roleId, permissionIds,
                     SecurityUtils.getCurrentUserUuid().orElse(null));
         }
 
-        log.info("Permissions granted to role: {}, permissions count: {}, by: {}",
-                role.getRoleCode(), permissionIds != null ? permissionIds.size() : 0,
+        // 6. 记录日志
+        if (role.getTenantId() != null) {
+            com.frog.common.tenant.TenantValidationUtil.logTenantOperation("GRANT_PERMISSIONS", "ROLE", roleId);
+        }
+
+        log.info("权限授予成功: role={} ({}), 权限数: {}, 操作人: {}",
+                role.getRoleCode(), role.getRoleType(),
+                permissionIds != null ? permissionIds.size() : 0,
                 SecurityUtils.getCurrentUsername());
     }
 

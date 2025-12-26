@@ -51,6 +51,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     private final CrossDatabaseQueryService crossDbService;
     private final PasswordEncoder passwordEncoder;
     private final DataSyncEventPublisher dataSyncEventPublisher;
+    private final com.frog.common.security.PermissionChecker permissionChecker;
 
     @Value("${spring.security.default-password}")
     private String defaultPassword;
@@ -58,21 +59,48 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     /**
      * 分页查询用户列表
      * <p>
-     * 使用只读事务，自动路由到从库
+     * 使用只读事务，自动路由到从库，自动应用数据权限过滤
      */
     @Transactional(readOnly = true)
     public Page<UserDTO> listUsers(Integer pageNum, Integer pageSize,
                                    String username, Integer status) {
+        // 1. 验证租户上下文
+        UUID tenantId = com.frog.common.tenant.TenantValidationUtil.getRequiredTenantId();
+
+        // 2. 获取当前用户的数据权限范围
+        UUID operatorId = SecurityUtils.getCurrentUserUuid().orElse(null);
+        String dataScope = permissionChecker.getUserDataScope(operatorId);
+
+        // 3. 构建查询条件
         Page<SysUser> page = new Page<>(pageNum, pageSize);
-
         LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<>();
-        wrapper.like(username != null && !username.isEmpty(), SysUser::getUsername, username)
-                .eq(status != null, SysUser::getStatus, status)
-                .orderByDesc(SysUser::getCreateTime);
 
+        // 基本过滤条件
+        wrapper.like(username != null && !username.isEmpty(), SysUser::getUsername, username)
+                .eq(status != null, SysUser::getStatus, status);
+
+        // 4. 应用数据权限过滤（通过 TenantInterceptor 自动过滤 tenant_id）
+        if (!"ALL".equals(dataScope)) {
+            List<UUID> accessibleDeptIds = permissionChecker.getAccessibleDepartmentIds(operatorId, tenantId);
+
+            if ("SELF".equals(dataScope)) {
+                // 只能查看自己创建的用户
+                wrapper.eq(SysUser::getCreateBy, operatorId);
+            } else if (!accessibleDeptIds.isEmpty()) {
+                // DEPT, DEPT_AND_SUB, CUSTOM - 根据部门过滤
+                wrapper.in(SysUser::getDeptId, accessibleDeptIds);
+            } else {
+                // 没有可访问的部门，返回空结果
+                return new Page<>(pageNum, pageSize, 0);
+            }
+        }
+
+        wrapper.orderByDesc(SysUser::getCreateTime);
+
+        // 5. 执行查询
         Page<SysUser> userPage = userMapper.selectPage(page, wrapper);
 
-        // 转换为 DTO
+        // 6. 转换为 DTO
         Page<UserDTO> userDTOPage = new Page<>(pageNum, pageSize, userPage.getTotal());
         List<UserDTO> userDTOs = userPage.getRecords().stream()
                 .map(this::convertToDTO)
@@ -205,12 +233,19 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
             allEntries = true
     )
     public void addUser(UserDTO userDTO) {
-        // 1. Validation
+        // 1. 验证租户上下文
+        UUID tenantId = com.frog.common.tenant.TenantValidationUtil.getRequiredTenantId();
+
+        // 2. 检查操作权限
+        UUID operatorId = SecurityUtils.getCurrentUserUuid().orElse(null);
+        permissionChecker.requirePermission(operatorId, "user:add");
+
+        // 3. 验证用户名唯一性
         if (userMapper.existsByUsername(userDTO.getUsername())) {
             throw new BusinessException(ResultCode.USER_EXIST.getCode(), ResultCode.USER_EXIST.getMessage());
         }
 
-        // 2. Password encoding
+        // 4. 密码编码
         String encodedPassword;
         if (userDTO.getPassword() != null && !userDTO.getPassword().isEmpty()) {
             encodedPassword = passwordEncoder.encode(userDTO.getPassword());
@@ -218,27 +253,31 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
             encodedPassword = passwordEncoder.encode(defaultPassword);
         }
 
-        // 3. Prepare entity
+        // 5. 准备实体（自动填充 tenant_id）
         SysUser user = new SysUser();
         BeanUtils.copyProperties(userDTO, user);
         user.setPassword(encodedPassword);
         user.setId(UUIDv7Util.generate());
+        user.setTenantId(tenantId); // 自动填充租户ID
         user.setPasswordExpireTime(LocalDateTime.now().plusDays(90));
         user.setForceChangePassword(true);
 
-        // 4. Database operations
+        // 6. 数据库操作
         userMapper.insert(user);
 
-        // 通过 CrossDatabaseQueryService 跨库操作：插入用户角色关联（db_permission）
+        // 7. 跨库操作：插入用户角色关联（db_permission）
         if (userDTO.getRoleIds() != null && !userDTO.getRoleIds().isEmpty()) {
             crossDbService.batchInsertUserRoles(user.getId(), userDTO.getRoleIds(),
                     SecurityUtils.getCurrentUserUuid().orElse(null));
         }
 
-        // 5. Publish sync event for redundancy update
+        // 8. 发布同步事件
         dataSyncEventPublisher.publishUserCreated(user);
 
-        log.info("User created: {}, by: {}", user.getUsername(), SecurityUtils.getCurrentUsername());
+        // 9. 记录租户操作日志
+        com.frog.common.tenant.TenantValidationUtil.logTenantOperation("CREATE", "USER", user.getId());
+
+        log.info("用户创建成功: {}, 操作人: {}", user.getUsername(), SecurityUtils.getCurrentUsername());
     }
 
     /**
@@ -250,19 +289,36 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
             key = "#userDTO.id"
     )
     public void updateUser(UserDTO userDTO) {
+        // 1. 验证租户上下文
+        UUID tenantId = com.frog.common.tenant.TenantValidationUtil.getRequiredTenantId();
+
+        // 2. 检查操作权限
+        UUID operatorId = SecurityUtils.getCurrentUserUuid().orElse(null);
+        permissionChecker.requirePermission(operatorId, "user:update");
+
+        // 3. 查询数据
         SysUser existUser = userMapper.selectById(userDTO.getId());
         if (existUser == null) {
             throw new BusinessException(ResultCode.USER_NOT_FOUND.getCode(), ResultCode.USER_NOT_FOUND.getMessage());
         }
 
+        // 4. 验证数据归属（tenant_id）
+        com.frog.common.tenant.TenantValidationUtil.validateDataOwnership(existUser.getTenantId());
+
+        // 5. 检查数据权限（是否可操作该用户）
+        String dataScope = permissionChecker.getUserDataScope(operatorId);
+        if (!permissionChecker.canOperateResource(operatorId, existUser.getCreateBy(),
+                existUser.getDeptId(), dataScope)) {
+            throw new BusinessException("DATA_ACCESS_DENIED", "无权操作该用户数据");
+        }
+
+        // 6. 执行业务逻辑
         SysUser user = new SysUser();
         BeanUtils.copyProperties(userDTO, user);
-
-        user.setPassword(null);
-
+        user.setPassword(null); // 不允许通过此接口修改密码
         userMapper.updateById(user);
 
-        // 通过 CrossDatabaseQueryService 跨库操作：更新用户角色关联（db_permission）
+        // 7. 跨库操作：更新用户角色关联（db_permission）
         if (userDTO.getRoleIds() != null) {
             crossDbService.deleteUserRoles(user.getId());
             if (!userDTO.getRoleIds().isEmpty()) {
@@ -271,11 +327,14 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
             }
         }
 
-        // Publish sync event for redundancy update
+        // 8. 发布同步事件
         SysUser updatedUser = userMapper.selectById(user.getId());
         dataSyncEventPublisher.publishUserUpdated(updatedUser);
 
-        log.info("User updated: {}, by: {}", user.getUsername(), SecurityUtils.getCurrentUsername());
+        // 9. 记录日志
+        com.frog.common.tenant.TenantValidationUtil.logTenantOperation("UPDATE", "USER", userDTO.getId());
+
+        log.info("用户更新成功: {}, 操作人: {}", user.getUsername(), SecurityUtils.getCurrentUsername());
     }
 
     /**
@@ -287,11 +346,30 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
             key = "#id"
     )
     public void deleteUser(UUID id) {
+        // 1. 验证租户上下文
+        UUID tenantId = com.frog.common.tenant.TenantValidationUtil.getRequiredTenantId();
+
+        // 2. 检查操作权限
+        UUID operatorId = SecurityUtils.getCurrentUserUuid().orElse(null);
+        permissionChecker.requirePermission(operatorId, "user:delete");
+
+        // 3. 查询数据
         SysUser user = userMapper.selectById(id);
         if (user == null) {
             throw new BusinessException(ResultCode.USER_NOT_FOUND.getCode(), ResultCode.USER_NOT_FOUND.getMessage());
         }
 
+        // 4. 验证数据归属（tenant_id）
+        com.frog.common.tenant.TenantValidationUtil.validateDataOwnership(user.getTenantId());
+
+        // 5. 检查数据权限
+        String dataScope = permissionChecker.getUserDataScope(operatorId);
+        if (!permissionChecker.canOperateResource(operatorId, user.getCreateBy(),
+                user.getDeptId(), dataScope)) {
+            throw new BusinessException("DATA_ACCESS_DENIED", "无权删除该用户数据");
+        }
+
+        // 6. 业务校验
         if (user.getId().equals(UUID.fromString("019a0aee-3b74-7bfc-b34f-48b5428d4875"))) {
             throw new BusinessException(ResultCode.USER_CANNOT_DELETE_ADMIN.getCode(),
                     ResultCode.USER_CANNOT_DELETE_ADMIN.getMessage());
@@ -302,12 +380,16 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
                     ResultCode.USER_CANNOT_DELETE_SELF.getMessage());
         }
 
+        // 7. 执行删除
         userMapper.deleteById(id);
 
-        // Publish sync event for redundancy update
+        // 8. 发布同步事件
         dataSyncEventPublisher.publishUserDeleted(id);
 
-        log.info("User deleted: {}, by: {}", user.getUsername(), SecurityUtils.getCurrentUsername());
+        // 9. 记录日志
+        com.frog.common.tenant.TenantValidationUtil.logTenantOperation("DELETE", "USER", id);
+
+        log.info("用户删除成功: {}, 操作人: {}", user.getUsername(), SecurityUtils.getCurrentUsername());
     }
 
     /**
@@ -408,19 +490,46 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
             key = "#userId"
     )
     public void grantRoles(UUID userId, List<UUID> roleIds) {
+        // 1. 验证租户上下文
+        UUID tenantId = com.frog.common.tenant.TenantValidationUtil.getRequiredTenantId();
+
+        // 2. 检查操作权限
+        UUID operatorId = SecurityUtils.getCurrentUserUuid().orElse(null);
+        permissionChecker.requirePermission(operatorId, "user:grant-role");
+
+        // 3. 查询数据
         SysUser user = userMapper.selectById(userId);
         if (user == null) {
-            return;
+            throw new BusinessException(ResultCode.USER_NOT_FOUND.getCode(), ResultCode.USER_NOT_FOUND.getMessage());
         }
 
-        // 通过 CrossDatabaseQueryService 跨库操作：更新用户角色关联（db_permission）
+        // 4. 验证数据归属（tenant_id）
+        com.frog.common.tenant.TenantValidationUtil.validateDataOwnership(user.getTenantId());
+
+        // 5. 检查角色等级（只能分配不高于自己的角色）
+        if (roleIds != null && !roleIds.isEmpty()) {
+            Integer operatorMaxRoleLevel = crossDbService.getUserMaxRoleLevel(operatorId);
+            for (UUID roleId : roleIds) {
+                Integer roleLevel = crossDbService.getRoleLevel(roleId);
+                permissionChecker.requireRoleAssignmentPermission(operatorId, operatorMaxRoleLevel, roleLevel);
+
+                // 验证角色归属（只能分配本租户或平台角色）
+                UUID roleTenantId = crossDbService.getRoleTenantId(roleId);
+                com.frog.common.tenant.TenantValidationUtil.validateRoleAccess(roleTenantId);
+            }
+        }
+
+        // 6. 执行业务逻辑：更新用户角色关联（跨库操作 db_permission）
         crossDbService.deleteUserRoles(userId);
 
         if (roleIds != null && !roleIds.isEmpty()) {
             crossDbService.batchInsertUserRoles(userId, roleIds, SecurityUtils.getCurrentUserUuid().orElse(null));
         }
 
-        log.info("Roles granted to user: {}, roles: {}, by: {}",
+        // 7. 记录日志
+        com.frog.common.tenant.TenantValidationUtil.logTenantOperation("GRANT_ROLES", "USER", userId);
+
+        log.info("角色授予成功: user={}, roles={}, 操作人: {}",
                 user.getUsername(), roleIds, SecurityUtils.getCurrentUsername());
     }
 

@@ -1,0 +1,187 @@
+server:
+  port: 8106
+  ssl:
+    enabled: true
+    key-store: classpath:certs/auth-keystore.p12
+    key-store-password: changeit
+    key-store-type: PKCS12
+    key-alias: auth-service
+    # 要求客户端证书
+    client-auth: need
+    trust-store: classpath:certs/truststore.p12
+    trust-store-password: changeit
+    trust-store-type: PKCS12
+
+spring:
+  application:
+    name: auth-service
+  config:
+    import:
+      - optional:nacos:${spring.application.name}.yaml?server-addr=${spring.cloud.nacos.server-addr}
+      - optional:nacos:common.yaml?server-addr=${spring.cloud.nacos.server-addr}
+  cloud:
+    nacos:
+      server-addr: ${NACOS_SERVER:127.0.0.1:8848}
+      config:
+        enabled: true
+        namespace: ${NACOS_NAMESPACE:public}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+    sentinel:
+      transport:
+        dashboard: 192.168.18.133:8080
+        port: 8719
+      datasource:
+        flow:
+          nacos:
+            server-addr: ${spring.cloud.nacos.server-addr}
+            data-id: ${spring.application.name}-sentinel-flow
+            group-id: SENTINEL_GROUP
+            data-type: json
+            rule-type: flow
+        degrade:
+          nacos:
+            server-addr: ${spring.cloud.nacos.server-addr}
+            data-id: ${spring.application.name}-sentinel-degrade
+            group-id: SENTINEL_GROUP
+            data-type: json
+            rule-type: degrade
+    feign:
+      enabled: true
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:mysql://192.168.18.133:3306/new-near-sync?useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&transformedBitIsBoolean=true&allowMultiQueries=true&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: 123456
+  data:
+    redis:
+      host: 192.168.18.133
+      port: 6379
+      password: ""
+      database: 0
+      timeout: 5000ms
+      lettuce:
+        pool:
+          max-active: 200
+          max-wait: -1ms
+          max-idle: 10
+          min-idle: 5
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
+  group-configs:
+    - group: 'default'
+      paths-to-match: '/**'
+      packages-to-scan: com.xiaominfo.knife4j.demo.web
+
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        # 失败率阈值50%触发熔断
+        failureRateThreshold: 50
+        # 慢调用阈值(超过2秒算慢调用)
+        slowCallDurationThreshold: 2s
+        slowCallRateThreshold: 50
+        # 半开状态允许3次调用测试
+        permittedNumberOfCallsInHalfOpenState: 3
+        # 滑动窗口大小(最近10次调用)
+        slidingWindowSize: 10
+        # 等待时间60秒后进入半开状态
+        waitDurationInOpenState: 60s
+        # 自动从半开转换到开启
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+    instances:
+      userService:
+        baseConfig: default
+      authService:
+        baseConfig: default
+        failureRateThreshold: 60  # 认证服务容错率更高
+
+  retry:
+    configs:
+      default:
+        maxAttempts: 3
+        waitDuration: 1s
+        # 指数退避
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
+        retryExceptions:
+          - java.net.SocketTimeoutException
+          - feign.RetryableException
+    instances:
+      userService:
+        baseConfig: default
+
+  ratelimiter:
+    configs:
+      default:
+        # 每秒最多100个请求
+        limitForPeriod: 100
+        limitRefreshPeriod: 1s
+        timeoutDuration: 0s
+    instances:
+      userService:
+        baseConfig: default
+        limitForPeriod: 50
+
+  bulkhead:
+    configs:
+      default:
+        # 最大并发调用数
+        maxConcurrentCalls: 10
+        # 最大等待时间
+        maxWaitDuration: 1s
+    instances:
+      userService:
+        baseConfig: default
+
+# Feign集成
+feign:
+  circuitbreaker:
+    enabled: true
+    alphanumericIds:
+      enabled: true
+  client:
+    config:
+      default:
+        connectTimeout: 3000
+        readTimeout: 10000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+      env: ${spring.profiles.active}
+
+dubbo:
+  application:
+    name: ${spring.application.name}
+  registry:
+    address: nacos://${spring.cloud.nacos.server-addr}
+  consumer:
+    timeout: 3000
+
+webauthn:
+  rp:
+    challenge-expiry-seconds: 120          # 认证挑战过期时间（默认 2 分钟）
+    registration-challenge-expiry-seconds: 300  # 注册挑战过期时间（默认 5 分钟）
+    credential-inactive-days: 90           # 凭证不活跃阈值（默认 90 天）
+    auth-attempt-retention-days: 30        # 认证日志保留时间（默认 30 天）

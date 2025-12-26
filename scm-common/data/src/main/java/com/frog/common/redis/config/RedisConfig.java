@@ -71,14 +71,34 @@ public class RedisConfig {
     public CacheManager twoLevelCacheManager(RedisTemplate<String, Object> redisTemplate) {
         Duration defaultTtl = Duration.ofHours(1);
         Map<String, Duration> ttls = new HashMap<>();
+        // 用户基本信息缓存
         ttls.put("user", Duration.ofMinutes(30));
         ttls.put("userInfo", Duration.ofMinutes(30));
+        ttls.put("userDetails", Duration.ofMinutes(30));
+
+        // 权限和角色缓存
         ttls.put("userRoles", Duration.ofHours(1));
         ttls.put("userPermissions", Duration.ofHours(1));
+        ttls.put("userDataScope", Duration.ofHours(1));
+        ttls.put("userMaxRoleLevel", Duration.ofHours(1));
+        ttls.put("roleLevel", Duration.ofHours(2));
         ttls.put("permissionTree", Duration.ofHours(2));
         ttls.put("permissionMapping", Duration.ofMinutes(5));
         ttls.put("roles", Duration.ofHours(1));
         ttls.put("role", Duration.ofHours(1));
+        ttls.put("rolePermissions", Duration.ofHours(1));
+        ttls.put("apiPermissions", Duration.ofHours(2));
+
+        // 部门相关缓存
+        ttls.put("userDeptId", Duration.ofMinutes(30));
+        ttls.put("deptPath", Duration.ofHours(2));
+        ttls.put("deptTree", Duration.ofHours(1));
+        ttls.put("deptChildren", Duration.ofHours(1));
+        ttls.put("accessibleDeptIds", Duration.ofHours(1));
+
+        // 临时角色缓存
+        ttls.put("userTemporaryRoles", Duration.ofMinutes(15));
+
         long localMaxSize = 10_000L;
         return new TwoLevelCacheManager(redisTemplate, defaultTtl, ttls, localMaxSize);
     }
