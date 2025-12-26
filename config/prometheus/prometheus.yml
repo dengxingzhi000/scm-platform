@@ -1,0 +1,95 @@
+# Prometheus 配置文件
+# 采集 SCM Platform 各服务的指标
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'scm-platform'
+    environment: 'dev'
+
+# 告警规则配置
+rule_files:
+  # - "alerts/*.yml"
+
+# 数据采集配置
+scrape_configs:
+  # Prometheus 自身
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Spring Boot Actuator 端点
+  - job_name: 'scm-gateway'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:8761']
+        labels:
+          service: 'gateway'
+
+  - job_name: 'scm-system'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:8081']
+        labels:
+          service: 'system'
+
+  - job_name: 'scm-product'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:8201']
+        labels:
+          service: 'product'
+
+  - job_name: 'scm-inventory'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:8202']
+        labels:
+          service: 'inventory'
+
+  - job_name: 'scm-order'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:8203']
+        labels:
+          service: 'order'
+
+  - job_name: 'scm-warehouse'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:8204']
+        labels:
+          service: 'warehouse'
+
+  - job_name: 'scm-logistics'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:8205']
+        labels:
+          service: 'logistics'
+
+  - job_name: 'scm-supplier'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:8206']
+        labels:
+          service: 'supplier'
+
+  # 中间件监控
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+
+  - job_name: 'elasticsearch'
+    static_configs:
+      - targets: ['elasticsearch:9200']
+
+  # Node Exporter (系统指标)
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node-exporter:9100']

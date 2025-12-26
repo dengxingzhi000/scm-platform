@@ -1,0 +1,146 @@
+server:
+  port: 8202
+
+spring:
+  application:
+    name: scm-inventory
+
+  # Nacos 服务发现与配置中心
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_SERVER:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:}
+        group: DEFAULT_GROUP
+      config:
+        server-addr: ${NACOS_SERVER:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:}
+        group: DEFAULT_GROUP
+        file-extension: yml
+
+  # 数据源配置
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/db_inventory
+    username: ${DB_USERNAME:admin}
+    password: ${DB_PASSWORD:admin}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+
+  # Redis 配置
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: 1  # 使用 database 1 用于库存服务
+      timeout: 5000ms
+      lettuce:
+        pool:
+          max-active: 20
+          max-idle: 10
+          min-idle: 5
+          max-wait: 3000ms
+
+# MyBatis-Plus 配置
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+  global-config:
+    db-config:
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# Seata 分布式事务配置
+seata:
+  enabled: true
+  application-id: ${spring.application.name}
+  tx-service-group: ${spring.application.name}-tx-group
+
+  # 使用 Nacos 作为配置中心
+  config:
+    type: nacos
+    nacos:
+      server-addr: ${NACOS_SERVER:localhost:8848}
+      namespace: ${NACOS_NAMESPACE:}
+      group: SEATA_GROUP
+      data-id: seataServer.properties
+      username: nacos
+      password: nacos
+
+  # 使用 Nacos 作为注册中心
+  registry:
+    type: nacos
+    nacos:
+      application: seata-server
+      server-addr: ${NACOS_SERVER:localhost:8848}
+      namespace: ${NACOS_NAMESPACE:}
+      group: SEATA_GROUP
+      cluster: default
+      username: nacos
+      password: nacos
+
+  # 客户端配置
+  client:
+    rm:
+      async-commit-buffer-limit: 10000
+      report-retry-count: 5
+      table-meta-check-enable: true
+      report-success-enable: false
+      saga-branch-register-enable: false
+      saga-json-parser: fastjson
+      lock:
+        retry-interval: 10
+        retry-times: 30
+        retry-policy-branch-rollback-on-conflict: true
+    tm:
+      commit-retry-count: 5
+      rollback-retry-count: 5
+      degrade-check: false
+      degrade-check-period: 2000
+      degrade-check-allow-times: 10
+    undo:
+      data-validation: true
+      log-serialization: jackson
+      log-table: undo_log
+      only-care-update-columns: true
+    log:
+      exceptionRate: 100
+
+# Actuator 健康检查
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,seata
+  endpoint:
+    health:
+      show-details: always
+
+# XXL-Job 配置
+xxl:
+  job:
+    admin:
+      addresses: ${XXL_JOB_ADMIN:http://localhost:8088/xxl-job-admin}
+    executor:
+      appname: scm-inventory-executor
+      address:
+      ip:
+      port: 9998
+      logpath: /data/applogs/xxl-job/jobhandler
+      logretentiondays: 30
+    accessToken: default_token
+
+# 日志配置
+logging:
+  level:
+    root: INFO
+    com.frog.inventory: DEBUG
+    io.seata: INFO
+    com.xxl.job: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"

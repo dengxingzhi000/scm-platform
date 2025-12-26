@@ -1,7 +1,5 @@
 package com.frog.system.api;
 
-import com.frog.common.dto.user.UserDTO;
-import com.frog.common.dto.user.UserInfo;
 import com.frog.common.web.domain.SecurityUser;
 
 import java.time.LocalDateTime;

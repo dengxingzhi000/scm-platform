@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.annotation.*;
 
 import java.time.LocalDateTime;
 import java.io.Serializable;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -41,6 +42,10 @@ public class SysRole implements Serializable {
     @TableId(value = "id", type = IdType.NONE)
     private UUID id;
 
+    @Schema(description = "租户ID（NULL=平台角色）")
+    @TableField("tenant_id")
+    private UUID tenantId;
+
     @Schema(description = "角色编码")
     private String roleCode;
 
@@ -62,6 +67,18 @@ public class SysRole implements Serializable {
     @Schema(description = "业务范围(JSONB)")
     @TableField(typeHandler = JacksonTypeHandler.class)
     private Map<String, Object> businessScope;
+
+    @Schema(description = "角色类型:PLATFORM_ROLE-平台角色,TENANT_ROLE-租户角色")
+    @TableField("role_type")
+    private String roleType;
+
+    @Schema(description = "角色分类:BUSINESS-业务角色,FUNCTIONAL-职能角色,CUSTOM-自定义角色")
+    @TableField("role_category")
+    private String roleCategory;
+
+    @Schema(description = "自定义部门ID列表(当data_scope=CUSTOM时使用)")
+    @TableField(value = "custom_dept_ids", typeHandler = JacksonTypeHandler.class)
+    private List<UUID> customDeptIds;
 
     @Schema(description = "状态")
     private Integer status;

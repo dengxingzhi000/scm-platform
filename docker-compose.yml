@@ -1,0 +1,399 @@
+version: '3.8'
+
+# SCM Platform - 完整开发环境
+# 包含所有必需的中间件服务
+# 使用说明: docker-compose up -d
+
+services:
+  # ============================================================
+  # 服务注册与配置中心
+  # ============================================================
+  nacos:
+    image: nacos/nacos-server:v2.3.0
+    container_name: scm-nacos
+    environment:
+      MODE: standalone
+      SPRING_DATASOURCE_PLATFORM: mysql
+      MYSQL_SERVICE_HOST: mysql-nacos
+      MYSQL_SERVICE_DB_NAME: nacos
+      MYSQL_SERVICE_PORT: 3306
+      MYSQL_SERVICE_USER: nacos
+      MYSQL_SERVICE_PASSWORD: nacos
+      NACOS_AUTH_ENABLE: true
+      NACOS_AUTH_TOKEN: SecretKey012345678901234567890123456789012345678901234567890123456789
+      NACOS_AUTH_IDENTITY_KEY: nacos
+      NACOS_AUTH_IDENTITY_VALUE: nacos
+    ports:
+      - "8848:8848"
+      - "9848:9848"
+      - "9849:9849"
+    volumes:
+      - nacos_data:/home/nacos/data
+      - nacos_logs:/home/nacos/logs
+    depends_on:
+      - mysql-nacos
+    networks:
+      - scm-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8848/nacos"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  mysql-nacos:
+    image: mysql:8.0
+    container_name: scm-mysql-nacos
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: nacos
+      MYSQL_USER: nacos
+      MYSQL_PASSWORD: nacos
+    volumes:
+      - mysql_nacos_data:/var/lib/mysql
+    networks:
+      - scm-network
+
+  # ============================================================
+  # PostgreSQL - 主数据库
+  # ============================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: scm-postgres
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: postgres
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/db:/docker-entrypoint-initdb.d:ro
+    networks:
+      - scm-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================
+  # Redis - 缓存与分布式锁
+  # ============================================================
+  redis:
+    image: redis:7.2-alpine
+    container_name: scm-redis
+    command: redis-server --requirepass redis123 --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - scm-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================
+  # Kafka - 消息队列（高吞吐）
+  # ============================================================
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    container_name: scm-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+      - zookeeper_logs:/var/lib/zookeeper/log
+    networks:
+      - scm-network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: scm-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    networks:
+      - scm-network
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # ============================================================
+  # RabbitMQ - 消息队列（可靠性）
+  # ============================================================
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: scm-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin123
+    ports:
+      - "5672:5672"   # AMQP
+      - "15672:15672" # Management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - scm-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # ============================================================
+  # Elasticsearch - 搜索引擎
+  # ============================================================
+  elasticsearch:
+    image: elasticsearch:8.11.4
+    container_name: scm-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    networks:
+      - scm-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  kibana:
+    image: kibana:8.11.4
+    container_name: scm-kibana
+    depends_on:
+      - elasticsearch
+    ports:
+      - "5601:5601"
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    networks:
+      - scm-network
+
+  # ============================================================
+  # Seata - 分布式事务协调器
+  # ============================================================
+  seata-server:
+    image: seataio/seata-server:2.2.0
+    container_name: scm-seata
+    ports:
+      - "8091:8091"
+      - "7091:7091"
+    environment:
+      SEATA_IP: seata-server
+      SEATA_PORT: 8091
+      SEATA_CONFIG_NAME: file:/root/seata-config/registry
+      SEATA_ENV: dev
+    volumes:
+      - ./config/seata:/root/seata-config
+      - seata_logs:/root/logs/seata
+    networks:
+      - scm-network
+
+  # ============================================================
+  # XXL-Job - 分布式任务调度
+  # ============================================================
+  xxl-job-admin:
+    image: xuxueli/xxl-job-admin:2.4.3
+    container_name: scm-xxl-job
+    ports:
+      - "8088:8080"
+    environment:
+      PARAMS: >
+        --spring.datasource.url=jdbc:mysql://mysql-xxljob:3306/xxl_job?useUnicode=true&characterEncoding=UTF-8&autoReconnect=true&serverTimezone=Asia/Shanghai
+        --spring.datasource.username=root
+        --spring.datasource.password=root
+    volumes:
+      - xxljob_data:/data/applogs
+    depends_on:
+      - mysql-xxljob
+    networks:
+      - scm-network
+
+  mysql-xxljob:
+    image: mysql:8.0
+    container_name: scm-mysql-xxljob
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: xxl_job
+    volumes:
+      - mysql_xxljob_data:/var/lib/mysql
+      - ./config/xxl-job/tables_xxl_job.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - scm-network
+
+  # ============================================================
+  # Sentinel Dashboard - 流量控制
+  # ============================================================
+  sentinel:
+    image: bladex/sentinel-dashboard:1.8.7
+    container_name: scm-sentinel
+    ports:
+      - "8858:8858"
+    networks:
+      - scm-network
+
+  # ============================================================
+  # 监控 - Prometheus + Grafana
+  # ============================================================
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: scm-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+    networks:
+      - scm-network
+
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: scm-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_INSTALL_PLUGINS: redis-datasource
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./config/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./config/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    depends_on:
+      - prometheus
+    networks:
+      - scm-network
+
+  # ============================================================
+  # 链路追踪 - SkyWalking
+  # ============================================================
+  skywalking-oap:
+    image: apache/skywalking-oap-server:9.7.0
+    container_name: scm-skywalking-oap
+    depends_on:
+      - elasticsearch
+    environment:
+      SW_STORAGE: elasticsearch
+      SW_STORAGE_ES_CLUSTER_NODES: elasticsearch:9200
+      SW_CORE_GRPC_PORT: 11800
+      SW_CORE_REST_PORT: 12800
+    ports:
+      - "11800:11800"  # gRPC
+      - "12800:12800"  # REST
+    networks:
+      - scm-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:12800/internal/l7check || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  skywalking-ui:
+    image: apache/skywalking-ui:9.7.0
+    container_name: scm-skywalking-ui
+    depends_on:
+      - skywalking-oap
+    environment:
+      SW_OAP_ADDRESS: http://skywalking-oap:12800
+      SW_ZIPKIN_ADDRESS: http://skywalking-oap:9412
+    ports:
+      - "8090:8080"
+    networks:
+      - scm-network
+
+  # ============================================================
+  # Canal - MySQL binlog 同步到 Elasticsearch
+  # ============================================================
+  canal-server:
+    image: canal/canal-server:v1.1.7
+    container_name: scm-canal
+    ports:
+      - "11111:11111"
+    environment:
+      canal.auto.scan: "false"
+      canal.destinations: product
+      canal.instance.master.address: postgres:5432
+      canal.instance.dbUsername: admin
+      canal.instance.dbPassword: admin123
+    volumes:
+      - ./config/canal:/home/admin/canal-server/conf
+      - canal_logs:/home/admin/canal-server/logs
+    depends_on:
+      - postgres
+    networks:
+      - scm-network
+
+# ============================================================
+# 网络配置
+# ============================================================
+networks:
+  scm-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.25.0.0/16
+
+# ============================================================
+# 持久化卷
+# ============================================================
+volumes:
+  # 数据库
+  postgres_data:
+  mysql_nacos_data:
+  mysql_xxljob_data:
+
+  # 缓存与消息队列
+  redis_data:
+  kafka_data:
+  zookeeper_data:
+  zookeeper_logs:
+  rabbitmq_data:
+
+  # 搜索引擎
+  es_data:
+
+  # 服务注册与配置
+  nacos_data:
+  nacos_logs:
+
+  # 分布式事务与调度
+  seata_logs:
+  xxljob_data:
+
+  # 监控
+  prometheus_data:
+  grafana_data:
+
+  # 其他
+  canal_logs:

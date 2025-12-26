@@ -34,6 +34,10 @@ public class SysDept implements Serializable {
     @TableId(value = "id", type = IdType.NONE)
     private UUID id;
 
+    @Schema(description = "租户ID")
+    @TableField("tenant_id")
+    private UUID tenantId;
+
     @Schema(description = "父部门 ID")
     @TableField("parent_id")
     private UUID parentId;
@@ -49,6 +53,14 @@ public class SysDept implements Serializable {
     @Schema(description = "部门类型:1-业务部门,2-管理部门,3-支持部门")
     @TableField("dept_type")
     private Integer deptType;
+
+    @Schema(description = "部门层级（1=一级部门）")
+    @TableField("dept_level")
+    private Integer deptLevel;
+
+    @Schema(description = "部门路径（用于快速查询上下级部门，如 /uuid1/uuid2/uuid3）")
+    @TableField("dept_path")
+    private String deptPath;
 
     @Schema(description = "部门负责人 ID")
     @TableField("leader_id")

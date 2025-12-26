@@ -35,6 +35,10 @@ public class SysUserRole implements Serializable {
     @TableId(value = "id", type = IdType.ASSIGN_UUID)
     private UUID id;
 
+    @Schema(description = "租户ID（冗余字段，来自用户表）")
+    @TableField("tenant_id")
+    private UUID tenantId;
+
     @Schema(description = "用户 ID")
     private UUID userId;
 

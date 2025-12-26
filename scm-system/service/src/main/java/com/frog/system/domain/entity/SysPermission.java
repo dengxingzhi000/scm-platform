@@ -37,6 +37,10 @@ public class SysPermission implements Serializable {
     @TableId(value = "id", type = IdType.NONE)
     private UUID id;
 
+    @Schema(description = "租户ID（NULL=平台级权限，所有租户共享）")
+    @TableField("tenant_id")
+    private UUID tenantId;
+
     @Schema(description = "父级 ID")
     private UUID parentId;
 
@@ -48,6 +52,10 @@ public class SysPermission implements Serializable {
 
     @Schema(description = "类型:1-目录,2-菜单,3-按钮,4-API,5-数据")
     private Integer permissionType;
+
+    @Schema(description = "权限归属:PLATFORM-平台级权限(所有租户共享),TENANT-租户级权限(租户自定义)")
+    @TableField("permission_scope")
+    private String permissionScope;
 
     @Schema(description = "路由地址")
     private String routePath;

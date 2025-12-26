@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.frog</groupId>
+        <artifactId>scm-product</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>scm-product-api</artifactId>
+    <packaging>jar</packaging>
+    <name>SCM Product API</name>
+    <description>Product service Dubbo RPC API definitions</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.frog</groupId>
+            <artifactId>scm-common-core</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+    </dependencies>
+
+</project>

@@ -34,6 +34,10 @@ public class SysRoleDataRule implements Serializable {
     @TableId(value = "id", type = IdType.ASSIGN_UUID)
     private UUID id;
 
+    @Schema(description = "租户ID（冗余字段）")
+    @TableField("tenant_id")
+    private UUID tenantId;
+
     @Schema(description = "角色 ID")
     private UUID roleId;
 

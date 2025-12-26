@@ -1,18 +1,17 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
     <parent>
-        <groupId>com</groupId>
-        <artifactId>NewNearSync</artifactId>
-        <version>1.0-SNAPSHOT</version>
-        <relativePath>../../pom.xml</relativePath>
+        <groupId>com.frog</groupId>
+        <artifactId>scm-common</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <groupId>com.frog.common</groupId>
-    <artifactId>data</artifactId>
+    <artifactId>scm-common-data</artifactId>
     <packaging>jar</packaging>
 
-    <name>data</name>
+    <name>SCM Common Data</name>
     <url>http://maven.apache.org</url>
 
     <properties>
@@ -26,11 +25,7 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
-        <!-- spring aop -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-aop</artifactId>
-        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
@@ -39,20 +34,10 @@
         <!-- spring end -->
 
         <!-- common start -->
-        <dependency>
-            <groupId>com.frog.common</groupId>
-            <artifactId>core</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
 
         <!-- REFACTORED (Phase 3): Security interfaces moved to dedicated module
              SecurityContext interface is now in common/security-api
              This allows core to be ultra-lightweight (no Spring dependencies) -->
-        <dependency>
-            <groupId>com.frog.common</groupId>
-            <artifactId>security-api</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
         <!-- common end -->
 
         <!-- database start -->
@@ -67,11 +52,6 @@
             <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
         </dependency>
         <!-- 动态多数据源 -->
-        <dependency>
-            <groupId>com.baomidou</groupId>
-            <artifactId>dynamic-datasource-spring-boot3-starter</artifactId>
-            <version>4.3.1</version>
-        </dependency>
         <dependency>
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-jsqlparser</artifactId>

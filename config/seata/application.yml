@@ -1,0 +1,75 @@
+# Seata Server 配置文件
+# 用于 AT/TCC 模式的分布式事务协调
+
+server:
+  port: 7091
+
+spring:
+  application:
+    name: seata-server
+
+logging:
+  level:
+    io.seata: info
+
+# Seata 服务端配置
+seata:
+  config:
+    # 配置中心类型
+    type: nacos
+    nacos:
+      server-addr: nacos:8848
+      namespace: ""
+      group: SEATA_GROUP
+      username: nacos
+      password: nacos
+      data-id: seataServer.properties
+
+  registry:
+    # 注册中心类型
+    type: nacos
+    nacos:
+      application: seata-server
+      server-addr: nacos:8848
+      group: SEATA_GROUP
+      namespace: ""
+      cluster: default
+      username: nacos
+      password: nacos
+
+  # 存储模式
+  store:
+    # 模式：file、db、redis
+    mode: db
+    db:
+      datasource: druid
+      db-type: postgresql
+      driver-class-name: org.postgresql.Driver
+      url: jdbc:postgresql://postgres:5432/seata
+      user: admin
+      password: admin123
+      min-conn: 5
+      max-conn: 100
+      global-table: global_table
+      branch-table: branch_table
+      lock-table: lock_table
+      distributed-lock-table: distributed_lock
+      query-limit: 100
+      max-wait: 5000
+
+  # 事务配置
+  server:
+    recovery:
+      # 定期清理超时的分布式事务
+      committing-retry-period: 1000
+      asyn-committing-retry-period: 1000
+      rollbacking-retry-period: 1000
+      timeout-retry-period: 1000
+    undo:
+      log-save-days: 7
+      log-delete-period: 86400000
+    max-commit-retry-timeout: -1
+    max-rollback-retry-timeout: -1
+    rollback-retry-timeout-unlock-enable: false
+    enable-check-auth: true
+    retry-dead-threshold: 130000

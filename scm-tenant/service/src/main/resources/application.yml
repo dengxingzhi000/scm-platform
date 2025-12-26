@@ -1,0 +1,50 @@
+server:
+  port: 8212
+
+spring:
+  application:
+    name: scm-tenant
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:scm-dev}
+      config:
+        server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:scm-dev}
+        file-extension: yaml
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:db_tenant}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  type-aliases-package: com.frog.tenant.domain.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: false
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+
+# XXL-Job Configuration
+xxl:
+  job:
+    admin:
+      addresses: ${XXL_JOB_ADMIN_ADDR:http://localhost:8088/xxl-job-admin}
+    executor:
+      appname: scm-tenant-executor
+      port: 9998
+      logpath: ${user.home}/logs/scm-tenant/xxl-job
+      logretentiondays: 30
+    accessToken: ${XXL_JOB_ACCESS_TOKEN:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  metrics:
+    export:
+      prometheus:
+        enabled: true
