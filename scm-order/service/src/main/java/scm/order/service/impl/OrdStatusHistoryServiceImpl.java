@@ -1,22 +1,26 @@
 package scm.order.service.impl;
 
--order/service.service.impl;
-
-import scm-order/service.domain.entity.OrdStatusHistory;
-import scm-order/service.mapper.OrdStatusHistoryMapper;
-import scm-order/service.service.IOrdStatusHistoryService;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import scm.order.domain.entity.OrdStatusHistory;
+import scm.order.mapper.OrdStatusHistoryMapper;
+import scm.order.service.IOrdStatusHistoryService;
 
-/**
- * <p>
- * 订单状态流转历史 服务实现类
- * </p>
- *
- * @author deng
- * @since 2025-12-25
- */
+import java.util.List;
+
+@Slf4j
 @Service
-public class OrdStatusHistoryServiceImpl extends ServiceImpl<OrdStatusHistoryMapper, OrdStatusHistory> implements scm.IOrdStatusHistoryService {
+public class OrdStatusHistoryServiceImpl extends ServiceImpl<OrdStatusHistoryMapper, OrdStatusHistory> implements IOrdStatusHistoryService {
 
+    @Override
+    public List<OrdStatusHistory> listByOrderId(Long orderId) {
+        log.debug("查询订单状态历史: orderId={}", orderId);
+        LambdaQueryWrapper<OrdStatusHistory> wrapper = Wrappers.lambdaQuery();
+        wrapper.eq(OrdStatusHistory::getOrderId, orderId)
+                .orderByDesc(OrdStatusHistory::getTransitionedAt);
+        return list(wrapper);
+    }
 }

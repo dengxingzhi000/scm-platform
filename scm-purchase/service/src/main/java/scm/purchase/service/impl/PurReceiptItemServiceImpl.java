@@ -1,23 +1,32 @@
-package scm.purchase.service.impl
+package scm.purchase.service.impl;
 
--purchase/service/src/main/java.service.impl;
-
-import scm-purchase/service/src/main/java.domain.entity.PurReceiptItem;
-import scm-purchase/service/src/main/java.mapper.PurReceiptItemMapper;
-import scm-purchase/service/src/main/java.service.IPurReceiptItemService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import scm.purchase.domain.entity.PurReceiptItem;
+import scm.purchase.mapper.PurReceiptItemMapper;
 import scm.purchase.service.IPurReceiptItemService;
 
-/**
- * <p>
- * 采购入库明细表 服务实现类
- * </p>
- *
- * @author deng
- * @since 2025-12-25
- */
+import java.util.List;
+
+@Slf4j
 @Service
 public class PurReceiptItemServiceImpl extends ServiceImpl<PurReceiptItemMapper, PurReceiptItem> implements IPurReceiptItemService {
 
+    @Override
+    public List<PurReceiptItem> listByReceiptId(String receiptId) {
+        return lambdaQuery()
+                .eq(PurReceiptItem::getReceiptId, receiptId)
+                .orderByAsc(PurReceiptItem::getCreateTime)
+                .list();
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean deleteByReceiptId(String receiptId) {
+        return lambdaUpdate()
+                .eq(PurReceiptItem::getReceiptId, receiptId)
+                .remove();
+    }
 }

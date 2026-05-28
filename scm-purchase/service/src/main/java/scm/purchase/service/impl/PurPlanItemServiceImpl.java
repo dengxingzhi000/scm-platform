@@ -1,23 +1,32 @@
-package scm.purchase.service.impl
+package scm.purchase.service.impl;
 
--purchase/service/src/main/java.service.impl;
-
-import scm-purchase/service/src/main/java.domain.entity.PurPlanItem;
-import scm-purchase/service/src/main/java.mapper.PurPlanItemMapper;
-import scm-purchase/service/src/main/java.service.IPurPlanItemService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import scm.purchase.domain.entity.PurPlanItem;
+import scm.purchase.mapper.PurPlanItemMapper;
 import scm.purchase.service.IPurPlanItemService;
 
-/**
- * <p>
- * 采购计划明细表 服务实现类
- * </p>
- *
- * @author deng
- * @since 2025-12-25
- */
+import java.util.List;
+
+@Slf4j
 @Service
 public class PurPlanItemServiceImpl extends ServiceImpl<PurPlanItemMapper, PurPlanItem> implements IPurPlanItemService {
 
+    @Override
+    public List<PurPlanItem> listByPlanId(String planId) {
+        return lambdaQuery()
+                .eq(PurPlanItem::getPlanId, planId)
+                .orderByAsc(PurPlanItem::getCreateTime)
+                .list();
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean deleteByPlanId(String planId) {
+        return lambdaUpdate()
+                .eq(PurPlanItem::getPlanId, planId)
+                .remove();
+    }
 }
