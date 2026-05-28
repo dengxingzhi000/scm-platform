@@ -35,10 +35,10 @@ jobs:
             ${{ runner.os }}-maven-
 
       - name: Build with Maven
-        run: mvn clean install -DskipTests -B -V
+        run: mvn clean install -DskipTests -B -V -f com.scm.parent/pom.xml
 
       - name: Run Tests
-        run: mvn test -B
+        run: mvn test -B -f com.scm.parent/pom.xml
 
       - name: Generate Test Coverage Report
         run: mvn jacoco:report
@@ -46,7 +46,7 @@ jobs:
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
-          files: ./target/site/jacoco/jacoco.xml
+          files: '**/target/site/jacoco/jacoco.xml'
           flags: unittests
           name: codecov-scm-platform
 
@@ -90,6 +90,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+            -f com.scm.parent/pom.xml \
             -Dsonar.projectKey=scm-platform \
             -Dsonar.organization=your-org \
             -Dsonar.host.url=https://sonarcloud.io
@@ -113,6 +114,7 @@ jobs:
       - name: Run OWASP Dependency Check
         run: |
           mvn org.owasp:dependency-check-maven:check \
+            -f com.scm.parent/pom.xml \
             -DfailBuildOnCVSS=7 \
             -DsuppressionsLocation=owasp-suppressions.xml
         continue-on-error: true
@@ -133,6 +135,7 @@ jobs:
     strategy:
       matrix:
         service:
+          - scm-auth
           - scm-gateway
           - scm-system
           - scm-product
