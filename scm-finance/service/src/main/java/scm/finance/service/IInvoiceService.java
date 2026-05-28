@@ -3,14 +3,15 @@ package scm.finance.service;
 import scm.finance.domain.entity.Invoice;
 import com.baomidou.mybatisplus.extension.service.IService;
 
-/**
- * <p>
- * 发票表 服务类
- * </p>
- *
- * @author deng
- * @since 2025-12-26
- */
+import java.util.List;
+
 public interface IInvoiceService extends IService<Invoice> {
 
+    List<Invoice> listByPartyId(String partyId);
+
+    Invoice issueInvoice(String id, String issuerName);
+
+    Invoice voidInvoice(String id);
+
+    Invoice redFlushInvoice(String id);
 }

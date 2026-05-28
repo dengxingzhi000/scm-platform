@@ -1,16 +1,18 @@
 package scm.finance.service;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import scm.finance.domain.entity.SettlementOrder;
 import com.baomidou.mybatisplus.extension.service.IService;
 
-/**
- * <p>
- * 结算单表 服务类
- * </p>
- *
- * @author deng
- * @since 2025-12-26
- */
+import java.math.BigDecimal;
+
 public interface ISettlementOrderService extends IService<SettlementOrder> {
 
+    SettlementOrder createSettlement(SettlementOrder order);
+
+    SettlementOrder confirmSettlement(String id, String approverId, String approverName);
+
+    SettlementOrder recordPayment(String id, BigDecimal amount);
+
+    Page<SettlementOrder> listByStatus(Integer status, int page, int size);
 }

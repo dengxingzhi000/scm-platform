@@ -3,14 +3,13 @@ package scm.product.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import scm.product.domain.entity.ProdCategory;
 
-/**
- * <p>
- * 商品分类表 服务类
- * </p>
- *
- * @author author
- * @since 2025-12-25
- */
+import java.util.List;
+
 public interface IProdCategoryService extends IService<ProdCategory> {
 
+    List<ProdCategory> listByParentId(String parentId);
+
+    List<ProdCategory> getCategoryTree();
+
+    List<ProdCategory> searchByName(String name);
 }

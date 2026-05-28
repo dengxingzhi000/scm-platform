@@ -13,4 +13,7 @@ import scm.order.domain.entity.OrdPayment;
  */
 public interface IOrdPaymentService extends IService<OrdPayment> {
 
+    OrdPayment createPayment(OrdPayment payment);
+
+    boolean updatePaymentStatus(Long paymentId, Integer status);
 }
