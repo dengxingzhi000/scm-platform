@@ -7,17 +7,17 @@ spring:
   cloud:
     nacos:
       discovery:
-        server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
-        namespace: ${NACOS_NAMESPACE:scm-dev}
+        server-addr: ${NACOS_SERVER:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:}
       config:
-        server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
-        namespace: ${NACOS_NAMESPACE:scm-dev}
+        server-addr: ${NACOS_SERVER:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:}
         file-extension: yaml
   datasource:
     driver-class-name: org.postgresql.Driver
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:db_notify}
-    username: ${DB_USER:postgres}
-    password: ${DB_PASSWORD:postgres}
+    username: ${DB_USERNAME:admin}
+    password: ${DB_PASSWORD:admin123}
   mail:
     host: ${MAIL_HOST:smtp.example.com}
     port: ${MAIL_PORT:587}

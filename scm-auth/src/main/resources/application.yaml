@@ -28,7 +28,7 @@ spring:
         group: ${NACOS_GROUP:DEFAULT_GROUP}
     sentinel:
       transport:
-        dashboard: 192.168.18.133:8080
+        dashboard: ${SENTINEL_DASHBOARD:localhost:8080}
         port: 8719
       datasource:
         flow:
@@ -47,12 +47,12 @@ spring:
             rule-type: degrade
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://${DB_HOST:192.168.18.133}:5432/db_auth?currentSchema=public
+    url: jdbc:postgresql://${DB_HOST:localhost}:5432/db_auth?currentSchema=public
     username: ${DB_USERNAME:admin}
     password: ${DB_PASSWORD:123456}
   data:
     redis:
-      host: 192.168.18.133
+      host: ${REDIS_HOST:localhost}
       port: 6379
       password: ""
       database: 0
