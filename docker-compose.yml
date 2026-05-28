@@ -335,6 +335,16 @@ services:
   # ============================================================
   # Canal - MySQL binlog 同步到 Elasticsearch
   # ============================================================
+  # NOTE: Canal is a MySQL binlog replication tool and CANNOT work with PostgreSQL.
+  # This project uses PostgreSQL as its primary database, so Canal is non-functional here.
+  # For CDC (Change Data Capture) with PostgreSQL, consider using Debezium instead:
+  #   - Debezium PostgreSQL connector reads WAL (Write-Ahead Log) natively
+  #   - Integrate with Kafka Connect for real-time data streaming
+  #   - See: https://debezium.io/documentation/reference/stable/connectors/postgresql.html
+  #
+  # If you only need MySQL CDC (e.g., for Nacos/XXL-Job MySQL instances), Canal can remain
+  # but reconfigure canal.instance.master.address to point to a MySQL instance.
+  # ============================================================
   canal-server:
     image: canal/canal-server:v1.1.7
     container_name: scm-canal

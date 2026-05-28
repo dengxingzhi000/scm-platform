@@ -1,5 +1,7 @@
 package com.frog.common.tenant;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -8,6 +10,8 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.util.Base64;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -30,6 +34,11 @@ public class TenantFilter implements Filter {
     private static final String HEADER_TENANT_ID = "X-Tenant-Id";
     private static final String HEADER_TENANT_ID_ALT = "Tenant-Id";
     private static final String PARAM_TENANT_ID = "tenantId";
+    private static final String HEADER_AUTHORIZATION = "Authorization";
+    private static final String BEARER_PREFIX = "Bearer ";
+    private static final int MAX_TOKEN_PAYLOAD_SIZE = 4096;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
@@ -81,10 +90,10 @@ public class TenantFilter implements Filter {
             tenantIdStr = request.getParameter(PARAM_TENANT_ID);
         }
 
-        // 4. TODO: 从 JWT Token 中提取（需要配合 JwtAuthenticationFilter）
-        // if (tenantIdStr == null || tenantIdStr.trim().isEmpty()) {
-        //     tenantIdStr = extractFromJwtToken(request);
-        // }
+        // 4. 从 JWT Token 中提取
+        if (tenantIdStr == null || tenantIdStr.trim().isEmpty()) {
+            tenantIdStr = extractFromJwtToken(request);
+        }
 
         // 转换为 UUID
         if (tenantIdStr != null && !tenantIdStr.trim().isEmpty()) {
@@ -100,16 +109,41 @@ public class TenantFilter implements Filter {
     }
 
     /**
-     * 从JWT Token中提取租户ID（示例）
-     * 需要配合实际的JWT解析逻辑
+     * 从JWT Token中提取租户ID
+     * 轻量级实现：Base64解码JWT payload，提取 tenant_id claim
+     * 不做签名验证（签名验证由 JwtAuthenticationFilter 负责）
      */
-    // private String extractFromJwtToken(HttpServletRequest request) {
-    //     String token = request.getHeader("Authorization");
-    //     if (token != null && token.startsWith("Bearer ")) {
-    //         String jwt = token.substring(7);
-    //         // TODO: 解析JWT，获取 tenant_id claim
-    //         return JwtUtil.getClaim(jwt, "tenant_id");
-    //     }
-    //     return null;
-    // }
+    private String extractFromJwtToken(HttpServletRequest request) {
+        String authHeader = request.getHeader(HEADER_AUTHORIZATION);
+        if (authHeader == null || !authHeader.startsWith(BEARER_PREFIX)) {
+            return null;
+        }
+
+        String token = authHeader.substring(BEARER_PREFIX.length()).trim();
+        String[] parts = token.split("\\.");
+        if (parts.length < 2) {
+            return null;
+        }
+
+        try {
+            String payloadJson = new String(Base64.getUrlDecoder().decode(parts[1]));
+
+            if (payloadJson.length() > MAX_TOKEN_PAYLOAD_SIZE) {
+                log.warn("JWT payload exceeds max size, skipping tenant extraction");
+                return null;
+            }
+
+            Map<String, Object> claims = objectMapper.readValue(payloadJson,
+                    new TypeReference<Map<String, Object>>() {});
+
+            Object tenantId = claims.get("tenant_id");
+            if (tenantId != null) {
+                return tenantId.toString();
+            }
+        } catch (Exception e) {
+            log.debug("Failed to extract tenant_id from JWT: {}", e.getMessage());
+        }
+
+        return null;
+    }
 }

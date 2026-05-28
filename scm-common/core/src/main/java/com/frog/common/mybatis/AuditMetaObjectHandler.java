@@ -5,6 +5,8 @@ import com.frog.common.tenant.TenantContextHolder;
 import com.frog.common.util.UUIDv7Util;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.reflection.MetaObject;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -107,25 +109,48 @@ public class AuditMetaObjectHandler implements MetaObjectHandler {
 
     /**
      * 获取当前登录用户ID
-
-     * TODO: 从 Spring Security / JWT / Session 中获取当前用户ID
-     * 这里提供默认实现，实际项目需要根据具体认证方式调整
+     * 从 SecurityContextHolder 中获取认证信息，支持 SecurityUser（通过反射）和 Subject 回退
      */
     private UUID getCurrentUserId() {
-        // 方案1：从 SecurityContextHolder 获取（Spring Security）
-        // Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        // if (authentication != null && authentication.getPrincipal() instanceof UserDetails) {
-        //     UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        //     return UUID.fromString(userDetails.getUsername()); // 假设username是UUID
-        // }
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null || !authentication.isAuthenticated()) {
+                return null;
+            }
 
-        // 方案2：从自定义的 ThreadLocal 获取
-        // return UserContextHolder.getUserId();
+            Object principal = authentication.getPrincipal();
+            if (principal == null) {
+                return null;
+            }
 
-        // 方案3：从 JWT Token 中获取
-        // return JwtUtil.getCurrentUserId();
+            // SecurityUser.getUserId() via reflection (avoids circular dependency with scm-common-security-core)
+            try {
+                var method = principal.getClass().getMethod("getUserId");
+                Object value = method.invoke(principal);
+                if (value instanceof UUID uuid) {
+                    return uuid;
+                }
+                if (value != null) {
+                    return UUID.fromString(value.toString());
+                }
+            } catch (NoSuchMethodException ignored) {
+                // principal does not have getUserId()
+            } catch (Exception e) {
+                log.debug("Failed to invoke getUserId() via reflection: {}", e.getMessage());
+            }
 
-        // 临时返回null（实际项目需要实现）
+            // Fallback: try subject as UUID (e.g. JWT subject claim)
+            String name = authentication.getName();
+            if (name != null && !name.isBlank() && !"anonymousUser".equals(name)) {
+                try {
+                    return UUID.fromString(name);
+                } catch (IllegalArgumentException ignored) {
+                    // name is not a UUID
+                }
+            }
+        } catch (Exception e) {
+            log.debug("Failed to get current user ID from SecurityContext: {}", e.getMessage());
+        }
         return null;
     }
 }

@@ -8,9 +8,13 @@ import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
 import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.schema.Column;
+import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.Statement;
+import net.sf.jsqlparser.statement.delete.Delete;
+import net.sf.jsqlparser.statement.insert.Insert;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.Select;
+import net.sf.jsqlparser.statement.update.Update;
 import org.apache.ibatis.executor.statement.StatementHandler;
 import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.mapping.MappedStatement;
@@ -102,10 +106,15 @@ public class TenantInterceptor implements Interceptor {
             Statement statement = CCJSqlParserUtil.parse(originalSql);
 
             // 根据SQL类型处理
-            if (statement instanceof Select) {
-                handleSelect((Select) statement, tenantId);
+            if (statement instanceof Select select) {
+                handleSelect(select, tenantId);
+            } else if (statement instanceof Update update) {
+                handleUpdate(update, tenantId);
+            } else if (statement instanceof Delete delete) {
+                handleDelete(delete, tenantId);
+            } else if (statement instanceof Insert insert) {
+                handleInsert(insert, tenantId);
             }
-            // TODO: 处理 UPDATE, DELETE, INSERT
 
             // 重新设置SQL
             String newSql = statement.toString();
@@ -134,9 +143,7 @@ public class TenantInterceptor implements Interceptor {
         }
 
         // 构建 tenant_id = 'xxx' 条件
-        EqualsTo tenantCondition = new EqualsTo();
-        tenantCondition.setLeftExpression(new Column(TENANT_COLUMN));
-        tenantCondition.setRightExpression(new StringValue(tenantId.toString()));
+        EqualsTo tenantCondition = buildTenantCondition(tenantId);
 
         // 添加到WHERE条件
         Expression where = plainSelect.getWhere();
@@ -146,6 +153,92 @@ public class TenantInterceptor implements Interceptor {
             AndExpression andExpression = new AndExpression(where, tenantCondition);
             plainSelect.setWhere(andExpression);
         }
+    }
+
+    /**
+     * 处理 UPDATE 语句 - 添加 tenant_id 到 WHERE 条件
+     */
+    private void handleUpdate(Update update, UUID tenantId) {
+        Table table = update.getTable();
+        if (table != null && isExcludeTable(table.toString())) {
+            log.debug("Table {} is excluded from tenant filter", table);
+            return;
+        }
+
+        EqualsTo tenantCondition = buildTenantCondition(tenantId);
+
+        Expression where = update.getWhere();
+        if (where == null) {
+            update.setWhere(tenantCondition);
+        } else {
+            AndExpression andExpression = new AndExpression(where, tenantCondition);
+            update.setWhere(andExpression);
+        }
+    }
+
+    /**
+     * 处理 DELETE 语句 - 添加 tenant_id 到 WHERE 条件
+     */
+    private void handleDelete(Delete delete, UUID tenantId) {
+        Table table = delete.getTable();
+        if (table != null && isExcludeTable(table.toString())) {
+            log.debug("Table {} is excluded from tenant filter", table);
+            return;
+        }
+
+        EqualsTo tenantCondition = buildTenantCondition(tenantId);
+
+        Expression where = delete.getWhere();
+        if (where == null) {
+            delete.setWhere(tenantCondition);
+        } else {
+            AndExpression andExpression = new AndExpression(where, tenantCondition);
+            delete.setWhere(andExpression);
+        }
+    }
+
+    /**
+     * 处理 INSERT 语句 - 添加 tenant_id 列和值
+     */
+    private void handleInsert(Insert insert, UUID tenantId) {
+        Table table = insert.getTable();
+        if (table != null && isExcludeTable(table.toString())) {
+            log.debug("Table {} is excluded from tenant filter", table);
+            return;
+        }
+
+        // 检查是否已存在 tenant_id 列
+        if (insert.getColumns() != null) {
+            for (Column col : insert.getColumns()) {
+                if (TENANT_COLUMN.equalsIgnoreCase(col.getColumnName())) {
+                    log.debug("tenant_id column already exists in INSERT statement");
+                    return;
+                }
+            }
+        }
+
+        // 添加 tenant_id 列
+        insert.addColumn(new Column(TENANT_COLUMN));
+
+        // 添加对应的值
+        Expression tenantValue = new StringValue(tenantId.toString());
+        if (insert.getValues() != null) {
+            insert.getValues().addExpressions(tenantValue);
+        } else {
+            net.sf.jsqlparser.expression.operators.relational.ExpressionList values =
+                    new net.sf.jsqlparser.expression.operators.relational.ExpressionList(tenantValue);
+            insert.setValues(values);
+        }
+    }
+
+    /**
+     * 构建 tenant_id = 'xxx' 条件表达式
+     */
+    private EqualsTo buildTenantCondition(UUID tenantId) {
+        EqualsTo condition = new EqualsTo();
+        condition.setLeftExpression(new Column(TENANT_COLUMN));
+        condition.setRightExpression(new StringValue(tenantId.toString()));
+        return condition;
     }
 
     /**
