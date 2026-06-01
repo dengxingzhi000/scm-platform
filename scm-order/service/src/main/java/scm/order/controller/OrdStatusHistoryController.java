@@ -1,20 +1,20 @@
-﻿package scm.order.controller;
+package scm.order.controller;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import scm.order.domain.entity.OrdStatusHistory;
 import scm.order.service.IOrdStatusHistoryService;
 
 import java.util.List;
 
+@RequiredArgsConstructor
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/status-history")
 public class OrdStatusHistoryController {
 
-    @Autowired
-    private IOrdStatusHistoryService statusHistoryService;
+    private final IOrdStatusHistoryService statusHistoryService;
 
     @GetMapping("/{id}")
     public OrdStatusHistory getById(@PathVariable String id) {

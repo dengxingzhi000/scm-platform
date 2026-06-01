@@ -1,8 +1,8 @@
 package scm.product.search;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.*;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 import org.springframework.test.context.ActiveProfiles;
@@ -33,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author SCM Platform Team
  * @since 2025-12-26
  */
+@RequiredArgsConstructor
 @Slf4j
 @SpringBootTest
 @ActiveProfiles("test")
@@ -40,11 +41,9 @@ import static org.junit.jupiter.api.Assertions.*;
 @DisplayName("商品搜索集成测试")
 public class ProductSearchIntegrationTest {
 
-    @Autowired
-    private ProductSearchService productSearchService;
+    private final ProductSearchService productSearchService;
 
-    @Autowired
-    private ProductSearchRepository productSearchRepository;
+    private final ProductSearchRepository productSearchRepository;
 
     private static final String TEST_CATEGORY_ID = "cat_test_001";
     private static final String TEST_BRAND_ID = "brand_test_001";

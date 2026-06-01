@@ -23,8 +23,8 @@ public class InvoiceServiceImpl extends ServiceImpl<InvoiceMapper, Invoice> impl
     @Override
     public List<Invoice> listByPartyId(String partyId) {
         log.debug("按往来方查询发票: partyId={}", partyId);
-        LambdaQueryWrapper<Invoice> wrapper = Wrappers.lambdaQuery()
-                .eq(StringUtils.hasText(partyId), Invoice::getPartyId, partyId)
+        LambdaQueryWrapper<Invoice> wrapper = Wrappers.lambdaQuery();
+        wrapper.eq(StringUtils.hasText(partyId), Invoice::getPartyId, partyId)
                 .eq(Invoice::getDeleted, false)
                 .orderByDesc(Invoice::getInvoiceDate);
         return list(wrapper);

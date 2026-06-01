@@ -7,8 +7,8 @@ import com.frog.inventory.domain.entity.Inventory;
 import com.frog.inventory.lock.DistributedLock;
 import com.frog.inventory.mapper.InvInventoryMapper;
 import com.frog.inventory.service.IInvReservationService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,18 +26,16 @@ import java.util.concurrent.TimeUnit;
  * @author SCM Platform Team
  * @since 2025-12-26
  */
+@RequiredArgsConstructor
 @Slf4j
 @Service
 public class InvReservationServiceImpl implements IInvReservationService {
 
-  @Autowired
-  private RedisTemplate<String, Object> redisTemplate;
+  private final RedisTemplate<String, Object> redisTemplate;
 
-  @Autowired
-  private InvInventoryMapper inventoryMapper;
+  private final InvInventoryMapper inventoryMapper;
 
-  @Autowired
-  private DistributedLock distributedLock;
+  private final DistributedLock distributedLock;
 
   private static final String RESERVATION_KEY_PREFIX = "inventory:reservation:";
   private static final String RESERVATION_INDEX_PREFIX = "inventory:reservation:index:";

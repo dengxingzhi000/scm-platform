@@ -2,21 +2,21 @@ package scm.logistics.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frog.common.response.ApiResponse;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import scm.logistics.domain.entity.TmsWaybill;
 import scm.logistics.service.ITmsWaybillService;
 
 import java.util.List;
 
+@RequiredArgsConstructor
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/tms-waybill")
 public class TmsWaybillController {
 
-    @Autowired
-    private ITmsWaybillService waybillService;
+    private final ITmsWaybillService waybillService;
 
     @GetMapping("/{id}")
     public ApiResponse<TmsWaybill> getById(
@@ -69,9 +69,9 @@ public class TmsWaybillController {
             @PathVariable String id,
             @RequestParam Integer status,
             @RequestParam(required = false) String operator) {
-        log.info("更新运单状�? id={}, status={}", id, status);
+        log.info("更新运单状�? id={}, status={}", id, status);
         boolean success = waybillService.updateStatus(id, status, operator);
-        return success ? ApiResponse.success() : ApiResponse.fail(500, "更新运单状态失�?);
+        return success ? ApiResponse.success() : ApiResponse.fail(500, "更新运单状态失败");
     }
 
     @PostMapping("/{id}/cancel")

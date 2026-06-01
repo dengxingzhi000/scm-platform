@@ -15,7 +15,7 @@ import lombok.experimental.Accessors;
 
 /**
  * <p>
- * 库存快照表（每日快照�?
+ * 库存快照表（每日快照？
  * </p>
  *
  * @author deng

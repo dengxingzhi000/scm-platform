@@ -1,8 +1,8 @@
-﻿package scm.order.controller;
+package scm.order.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import scm.order.domain.entity.OrdOrder;
 import scm.order.domain.entity.OrdOrderItem;
@@ -10,13 +10,13 @@ import scm.order.service.IOrdOrderService;
 
 import java.util.List;
 
+@RequiredArgsConstructor
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/orders")
 public class OrdOrderController {
 
-    @Autowired
-    private IOrdOrderService orderService;
+    private final IOrdOrderService orderService;
 
     @GetMapping("/{id}")
     public OrdOrder getById(@PathVariable String id) {

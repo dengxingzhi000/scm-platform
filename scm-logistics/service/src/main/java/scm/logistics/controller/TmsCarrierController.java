@@ -2,8 +2,8 @@ package scm.logistics.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frog.common.response.ApiResponse;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import scm.logistics.domain.entity.TmsCarrier;
 import scm.logistics.service.ITmsCarrierService;
@@ -12,13 +12,13 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+@RequiredArgsConstructor
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/tms-carrier")
 public class TmsCarrierController {
 
-    @Autowired
-    private ITmsCarrierService carrierService;
+    private final ITmsCarrierService carrierService;
 
     @GetMapping("/{id}")
     public ApiResponse<TmsCarrier> getById(
@@ -53,7 +53,7 @@ public class TmsCarrierController {
 
     @PostMapping
     public ApiResponse<TmsCarrier> create(@RequestBody TmsCarrier carrier) {
-        log.info("新增物流�? carrierCode={}, carrierName={}", carrier.getCarrierCode(), carrier.getCarrierName());
+        log.info("新增物流�? carrierCode={}, carrierName={}", carrier.getCarrierCode(), carrier.getCarrierName());
         carrier.setId(UUID.randomUUID().toString());
         carrier.setDeleted(false);
         carrier.setCreateTime(LocalDateTime.now());
@@ -64,7 +64,7 @@ public class TmsCarrierController {
 
     @PutMapping("/{id}")
     public ApiResponse<TmsCarrier> update(@PathVariable String id, @RequestBody TmsCarrier carrier) {
-        log.info("修改物流�? id={}", id);
+        log.info("修改物流�? id={}", id);
         carrier.setId(id);
         carrier.setUpdateTime(LocalDateTime.now());
         carrierService.updateById(carrier);
@@ -73,7 +73,7 @@ public class TmsCarrierController {
 
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@PathVariable String id) {
-        log.info("删除物流�? id={}", id);
+        log.info("删除物流�? id={}", id);
         TmsCarrier carrier = new TmsCarrier();
         carrier.setId(id);
         carrier.setDeleted(true);
@@ -84,7 +84,7 @@ public class TmsCarrierController {
 
     @PutMapping("/{id}/enable")
     public ApiResponse<Void> toggleEnabled(@PathVariable String id, @RequestParam boolean enabled) {
-        log.info("设置物流商状�? id={}, enabled={}", id, enabled);
+        log.info("设置物流商状�? id={}, enabled={}", id, enabled);
         TmsCarrier carrier = new TmsCarrier();
         carrier.setId(id);
         carrier.setEnabled(enabled);

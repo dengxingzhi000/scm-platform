@@ -1,20 +1,20 @@
 package scm.purchase.controller;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import scm.purchase.domain.entity.PurPlanItem;
 import scm.purchase.service.IPurPlanItemService;
 
 import java.util.List;
 
+@RequiredArgsConstructor
 @Slf4j
 @RestController
 @RequestMapping("/pur-plan-item")
 public class PurPlanItemController {
 
-    @Autowired
-    private IPurPlanItemService purPlanItemService;
+    private final IPurPlanItemService purPlanItemService;
 
     @GetMapping("/{id}")
     public PurPlanItem getById(@PathVariable String id) {

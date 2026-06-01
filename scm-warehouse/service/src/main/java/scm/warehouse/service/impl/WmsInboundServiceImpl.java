@@ -4,8 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -18,13 +18,13 @@ import scm.warehouse.service.IWmsInboundService;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@RequiredArgsConstructor
 @Slf4j
 @Service
 public class WmsInboundServiceImpl extends ServiceImpl<WmsInboundMapper, WmsInbound>
         implements IWmsInboundService {
 
-    @Autowired
-    private IWmsInboundItemService inboundItemService;
+    private final IWmsInboundItemService inboundItemService;
 
     @Override
     public Page<WmsInbound> pageList(int page, int size, String warehouseId, Integer inboundType, Integer status) {

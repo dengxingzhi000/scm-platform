@@ -13,7 +13,7 @@ import lombok.experimental.Accessors;
 
 /**
  * <p>
- * 用户�?UUID主键)
+ * 用户表UUID主键)
  * </p>
  *
  * @author author
@@ -23,13 +23,10 @@ import lombok.experimental.Accessors;
 @EqualsAndHashCode(callSuper = false)
 @Accessors(chain = true)
 @TableName("sys_user")
-"
-)
 public class SysUser implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    ")
     @TableId(
             value = "id",
             type = IdType.NONE
@@ -42,14 +39,12 @@ public class SysUser implements Serializable {
     @TableField("username")
     private String username;
 
-    ")
     @TableField("password")
     private String password;
 
     @TableField("real_name")
     private String realName;
 
-    ")
     @TableField("id_card")
     private String idCard;
 

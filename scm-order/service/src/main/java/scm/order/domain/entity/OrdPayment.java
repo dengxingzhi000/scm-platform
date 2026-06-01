@@ -1,4 +1,4 @@
-﻿package scm.order.domain.entity;
+package scm.order.domain.entity;
 
 import java.math.BigDecimal;
 import com.baomidou.mybatisplus.annotation.TableName;

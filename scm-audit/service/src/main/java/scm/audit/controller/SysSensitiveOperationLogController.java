@@ -1,21 +1,21 @@
 package scm.audit.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import scm.audit.domain.entity.SysSensitiveOperationLog;
 import scm.audit.service.impl.SysSensitiveOperationLogServiceImpl;
 
 import java.util.List;
 
+@RequiredArgsConstructor
 @Slf4j
 @RestController
 @RequestMapping("/sys-sensitive-operation-log")
 public class SysSensitiveOperationLogController {
 
-    @Autowired
-    private SysSensitiveOperationLogServiceImpl sensitiveOperationLogService;
+    private final SysSensitiveOperationLogServiceImpl sensitiveOperationLogService;
 
     @PostMapping
     public SysSensitiveOperationLog create(@RequestBody SysSensitiveOperationLog entity) {

@@ -1,19 +1,19 @@
 package scm.finance.controller;
 
 import com.frog.common.response.ApiResponse;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import scm.finance.domain.entity.ReconciliationRecord;
 import scm.finance.service.IReconciliationRecordService;
 
+@RequiredArgsConstructor
 @Slf4j
 @RestController
 @RequestMapping("/reconciliation-record")
 public class ReconciliationRecordController {
 
-    @Autowired
-    private IReconciliationRecordService reconciliationRecordService;
+    private final IReconciliationRecordService reconciliationRecordService;
 
     @GetMapping("/{id}")
     public ApiResponse<ReconciliationRecord> getById(@PathVariable String id) {

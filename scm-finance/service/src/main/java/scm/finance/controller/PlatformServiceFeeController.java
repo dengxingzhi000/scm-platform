@@ -2,8 +2,8 @@ package scm.finance.controller;
 
 import com.frog.common.response.ApiResponse;
 import com.frog.common.util.UUIDv7Util;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import scm.finance.domain.entity.PlatformServiceFee;
 import scm.finance.service.IPlatformServiceFeeService;
@@ -12,13 +12,13 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@RequiredArgsConstructor
 @Slf4j
 @RestController
 @RequestMapping("/platform-service-fee")
 public class PlatformServiceFeeController {
 
-    @Autowired
-    private IPlatformServiceFeeService platformServiceFeeService;
+    private final IPlatformServiceFeeService platformServiceFeeService;
 
     @GetMapping("/{id}")
     public ApiResponse<PlatformServiceFee> getById(@PathVariable String id) {
@@ -33,7 +33,7 @@ public class PlatformServiceFeeController {
         fee.setCreateTime(LocalDateTime.now());
         fee.setUpdateTime(LocalDateTime.now());
         platformServiceFeeService.save(fee);
-        log.info("平台服务费创建成�? id={}, feeType={}", fee.getId(), fee.getFeeType());
+        log.info("平台服务费创建成�? id={}, feeType={}", fee.getId(), fee.getFeeType());
         return ApiResponse.success(fee);
     }
 
@@ -42,14 +42,14 @@ public class PlatformServiceFeeController {
         fee.setId(id);
         fee.setUpdateTime(LocalDateTime.now());
         platformServiceFeeService.updateById(fee);
-        log.info("平台服务费更新成�? id={}", id);
+        log.info("平台服务费更新成�? id={}", id);
         return ApiResponse.success(fee);
     }
 
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@PathVariable String id) {
         platformServiceFeeService.removeById(id);
-        log.info("平台服务费删除成�? id={}", id);
+        log.info("平台服务费删除成�? id={}", id);
         return ApiResponse.success();
     }
 

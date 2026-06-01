@@ -12,7 +12,7 @@ import lombok.experimental.Accessors;
 
 /**
  * <p>
- * 租户配置�?
+ * 租户配置表
  * </p>
  *
  * @author deng

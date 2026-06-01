@@ -1,20 +1,20 @@
 package scm.purchase.controller;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import scm.purchase.domain.entity.PurPriceComparisonItem;
 import scm.purchase.service.IPurPriceComparisonItemService;
 
 import java.util.List;
 
+@RequiredArgsConstructor
 @Slf4j
 @RestController
 @RequestMapping("/pur-price-comparison-item")
 public class PurPriceComparisonItemController {
 
-    @Autowired
-    private IPurPriceComparisonItemService purPriceComparisonItemService;
+    private final IPurPriceComparisonItemService purPriceComparisonItemService;
 
     @GetMapping("/{id}")
     public PurPriceComparisonItem getById(@PathVariable String id) {

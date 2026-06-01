@@ -2,21 +2,21 @@ package scm.logistics.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frog.common.response.ApiResponse;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import scm.logistics.domain.entity.TmsTracking;
 import scm.logistics.service.ITmsTrackingService;
 
 import java.util.List;
 
+@RequiredArgsConstructor
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/tms-tracking")
 public class TmsTrackingController {
 
-    @Autowired
-    private ITmsTrackingService trackingService;
+    private final ITmsTrackingService trackingService;
 
     @GetMapping("/{id}")
     public ApiResponse<TmsTracking> getById(

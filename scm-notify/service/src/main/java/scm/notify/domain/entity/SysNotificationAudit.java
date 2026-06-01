@@ -32,7 +32,6 @@ public class SysNotificationAudit implements Serializable {
     @TableField("reference_id")
     private String referenceId;
 
-    ")
     @TableField("user_id")
     private String userId;
 
@@ -60,7 +59,6 @@ public class SysNotificationAudit implements Serializable {
     @TableField("content")
     private String content;
 
-    ")
     @TableField("variables")
     private String variables;
 

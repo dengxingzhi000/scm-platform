@@ -1,21 +1,21 @@
 package scm.purchase.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import scm.purchase.domain.entity.PurContract;
 import scm.purchase.service.IPurContractService;
 
 import java.util.List;
 
+@RequiredArgsConstructor
 @Slf4j
 @RestController
 @RequestMapping("/pur-contract")
 public class PurContractController {
 
-    @Autowired
-    private IPurContractService purContractService;
+    private final IPurContractService purContractService;
 
     @GetMapping("/{id}")
     public PurContract getById(@PathVariable String id) {

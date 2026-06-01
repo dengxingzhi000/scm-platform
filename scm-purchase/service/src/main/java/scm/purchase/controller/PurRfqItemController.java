@@ -1,20 +1,20 @@
 package scm.purchase.controller;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import scm.purchase.domain.entity.PurRfqItem;
 import scm.purchase.service.IPurRfqItemService;
 
 import java.util.List;
 
+@RequiredArgsConstructor
 @Slf4j
 @RestController
 @RequestMapping("/pur-rfq-item")
 public class PurRfqItemController {
 
-    @Autowired
-    private IPurRfqItemService purRfqItemService;
+    private final IPurRfqItemService purRfqItemService;
 
     @GetMapping("/{id}")
     public PurRfqItem getById(@PathVariable String id) {

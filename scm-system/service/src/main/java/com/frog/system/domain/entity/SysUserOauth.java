@@ -30,7 +30,7 @@ public class SysUserOauth {
 
     private String provider;
 
-    ")
+    @TableField("oauth_openid")
     private String oauthOpenid;
 
     private String oauthUnionId;
@@ -47,7 +47,6 @@ public class SysUserOauth {
 
     private LocalDateTime tokenExpireTime;
 
-    ")
     @TableField(typeHandler = JacksonTypeHandler.class)
     private Map<String, Object> rawUserInfo;
 
@@ -63,7 +62,7 @@ public class SysUserOauth {
     private Boolean deleted;
 
     /**
-     * OAuth 提供商枚�?
+     * OAuth 提供商枚三
      */
     @Getter
     public enum Provider {

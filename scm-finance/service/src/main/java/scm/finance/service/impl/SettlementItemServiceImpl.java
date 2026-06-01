@@ -19,8 +19,8 @@ public class SettlementItemServiceImpl extends ServiceImpl<SettlementItemMapper,
     @Override
     public List<SettlementItem> listBySettlementId(String settlementId) {
         log.debug("查询结算明细: settlementId={}", settlementId);
-        LambdaQueryWrapper<SettlementItem> wrapper = Wrappers.lambdaQuery()
-                .eq(SettlementItem::getSettlementId, settlementId)
+        LambdaQueryWrapper<SettlementItem> wrapper = Wrappers.lambdaQuery();
+        wrapper.eq(SettlementItem::getSettlementId, settlementId)
                 .orderByDesc(SettlementItem::getDocumentDate);
         return list(wrapper);
     }

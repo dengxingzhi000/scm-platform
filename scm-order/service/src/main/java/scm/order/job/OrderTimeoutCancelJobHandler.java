@@ -10,7 +10,6 @@ import com.xxl.job.core.handler.annotation.XxlJob;
 import io.seata.spring.annotation.GlobalTransactional;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -30,9 +29,11 @@ import java.util.List;
 @Slf4j
 @Component
 public class OrderTimeoutCancelJobHandler {
+    private final OrdOrderMapper orderMapper;
 
-    @Autowired
-    private OrdOrderMapper orderMapper;
+    public OrderTimeoutCancelJobHandler(OrdOrderMapper orderMapper) {
+        this.orderMapper = orderMapper;
+    }
 
     @DubboReference(version = "1.0.0", group = "scm", check = false)
     private InventoryDubboService inventoryService;

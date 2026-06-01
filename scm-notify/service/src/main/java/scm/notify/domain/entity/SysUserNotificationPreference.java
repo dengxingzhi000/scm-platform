@@ -12,7 +12,7 @@ import lombok.experimental.Accessors;
 
 /**
  * <p>
- * 用户通知偏好�?
+ * 用户通知偏好�?
  * </p>
  *
  * @author deng
@@ -29,7 +29,6 @@ public class SysUserNotificationPreference implements Serializable {
     @TableId(value = "id", type = IdType.NONE)
     private String id;
 
-    ")
     @TableField("user_id")
     private String userId;
 

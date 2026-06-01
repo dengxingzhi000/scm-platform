@@ -2,8 +2,8 @@ package scm.supplier.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frog.common.response.ApiResponse;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import scm.supplier.domain.entity.SupSupplierEvaluation;
 import scm.supplier.service.ISupSupplierEvaluationService;
@@ -13,13 +13,13 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+@RequiredArgsConstructor
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/supplier-evaluations")
 public class SupSupplierEvaluationController {
 
-    @Autowired
-    private ISupSupplierEvaluationService evaluationService;
+    private final ISupSupplierEvaluationService evaluationService;
 
     @GetMapping("/{id}")
     public ApiResponse<SupSupplierEvaluation> getById(@PathVariable String id) {

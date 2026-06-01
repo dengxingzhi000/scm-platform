@@ -1,21 +1,21 @@
 package scm.notify.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import scm.notify.domain.entity.SysNotificationAudit;
 import scm.notify.service.impl.SysNotificationAuditServiceImpl;
 
 import java.util.List;
 
+@RequiredArgsConstructor
 @Slf4j
 @RestController
 @RequestMapping("/sys-notification-audit")
 public class SysNotificationAuditController {
 
-    @Autowired
-    private SysNotificationAuditServiceImpl notificationAuditService;
+    private final SysNotificationAuditServiceImpl notificationAuditService;
 
     @PostMapping
     public SysNotificationAudit create(@RequestBody SysNotificationAudit entity) {

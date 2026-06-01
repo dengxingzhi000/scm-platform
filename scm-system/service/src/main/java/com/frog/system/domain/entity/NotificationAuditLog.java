@@ -58,7 +58,6 @@ public class NotificationAuditLog {
     @TableField("content")
     private String content;
 
-    ")
     @TableField(value = "variables", typeHandler = JacksonTypeHandler.class)
     private Map<String, Object> variables;
 
@@ -95,8 +94,8 @@ public class NotificationAuditLog {
         WECHAT("WECHAT", "微信"),
         DINGTALK("DINGTALK", "钉钉"),
         FEISHU("FEISHU", "飞书"),
-        PUSH("PUSH", "推�?);
-
+        PUSH("PUSH", "推送");
+    
         private final String code;
         private final String desc;
 
@@ -107,14 +106,14 @@ public class NotificationAuditLog {
     }
 
     /**
-     * 发送状态枚�?
+     * 发送状态枚�?
      */
     @Getter
     public enum Status {
-        PENDING("PENDING", "待发�?),
-        SENT("SENT", "已发�?),
-        FAILED("FAILED", "发送失�?),
-        CANCELLED("CANCELLED", "已取�?);
+        PENDING("PENDING", "待发送"),
+        SENT("SENT", "已发送"),
+        FAILED("FAILED", "发送失败"),
+        CANCELLED("CANCELLED", "已取消");
 
         private final String code;
         private final String desc;

@@ -1,8 +1,8 @@
 package scm.finance.controller;
 
 import com.frog.common.response.ApiResponse;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import scm.finance.domain.entity.FreightRule;
 import scm.finance.service.IFreightRuleService;
@@ -10,13 +10,13 @@ import scm.finance.service.IFreightRuleService;
 import java.math.BigDecimal;
 import java.util.List;
 
+@RequiredArgsConstructor
 @Slf4j
 @RestController
 @RequestMapping("/freight-rule")
 public class FreightRuleController {
 
-    @Autowired
-    private IFreightRuleService freightRuleService;
+    private final IFreightRuleService freightRuleService;
 
     @GetMapping("/{id}")
     public ApiResponse<FreightRule> getById(@PathVariable String id) {

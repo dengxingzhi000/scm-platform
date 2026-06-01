@@ -22,8 +22,8 @@ public class PlatformServiceFeeServiceImpl extends ServiceImpl<PlatformServiceFe
     @Override
     public List<PlatformServiceFee> listPendingFees() {
         log.debug("查询待付款平台服务费");
-        LambdaQueryWrapper<PlatformServiceFee> wrapper = Wrappers.lambdaQuery()
-                .eq(PlatformServiceFee::getStatus, 0)
+        LambdaQueryWrapper<PlatformServiceFee> wrapper = Wrappers.lambdaQuery();
+        wrapper.eq(PlatformServiceFee::getStatus, 0)
                 .orderByDesc(PlatformServiceFee::getCreateTime);
         return list(wrapper);
     }

@@ -3,8 +3,8 @@ package scm.warehouse.controller;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frog.common.response.ApiResponse;
 import com.frog.common.util.UUIDv7Util;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import scm.warehouse.domain.entity.WmsLocation;
 import scm.warehouse.service.IWmsLocationService;
@@ -12,13 +12,13 @@ import scm.warehouse.service.IWmsLocationService;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@RequiredArgsConstructor
 @Slf4j
 @RestController
 @RequestMapping("/wms-location")
 public class WmsLocationController {
 
-    @Autowired
-    private IWmsLocationService locationService;
+    private final IWmsLocationService locationService;
 
     @PostMapping
     public ApiResponse<WmsLocation> create(@RequestBody WmsLocation location) {

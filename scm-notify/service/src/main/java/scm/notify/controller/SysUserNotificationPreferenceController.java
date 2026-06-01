@@ -1,21 +1,21 @@
 package scm.notify.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import scm.notify.domain.entity.SysUserNotificationPreference;
 import scm.notify.service.impl.SysUserNotificationPreferenceServiceImpl;
 
 import java.util.List;
 
+@RequiredArgsConstructor
 @Slf4j
 @RestController
 @RequestMapping("/sys-user-notification-preference")
 public class SysUserNotificationPreferenceController {
 
-    @Autowired
-    private SysUserNotificationPreferenceServiceImpl userNotificationPreferenceService;
+    private final SysUserNotificationPreferenceServiceImpl userNotificationPreferenceService;
 
     @PostMapping
     public SysUserNotificationPreference create(@RequestBody SysUserNotificationPreference entity) {

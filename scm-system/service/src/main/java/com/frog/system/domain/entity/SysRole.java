@@ -16,7 +16,7 @@ import lombok.experimental.Accessors;
 
 /**
  * <p>
- * 角色�?
+ * 角色表
  * </p>
  *
  * @author author
@@ -40,14 +40,13 @@ public class SysRole {
 
     private String roleDesc;
 
-    ")
+    @TableField("role_level")
     private Integer roleLevel;
 
     private Integer dataScope;
 
     private BigDecimal maxApprovalAmount;
 
-    ")
     @TableField(typeHandler = JacksonTypeHandler.class)
     private Map<String, Object> businessScope;
 

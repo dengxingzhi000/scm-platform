@@ -2,8 +2,8 @@ package scm.finance.controller;
 
 import com.frog.common.response.ApiResponse;
 import com.frog.common.util.UUIDv7Util;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import scm.finance.domain.entity.SettlementItem;
 import scm.finance.service.ISettlementItemService;
@@ -11,13 +11,13 @@ import scm.finance.service.ISettlementItemService;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@RequiredArgsConstructor
 @Slf4j
 @RestController
 @RequestMapping("/settlement-item")
 public class SettlementItemController {
 
-    @Autowired
-    private ISettlementItemService settlementItemService;
+    private final ISettlementItemService settlementItemService;
 
     @GetMapping("/{id}")
     public ApiResponse<SettlementItem> getById(@PathVariable String id) {

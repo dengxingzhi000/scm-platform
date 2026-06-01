@@ -14,7 +14,7 @@ import java.util.UUID;
 
 /**
  * <p>
- * 部门�?前端控制�?
+ * 部门表前端控制器
  * </p>
  *
  * @author author

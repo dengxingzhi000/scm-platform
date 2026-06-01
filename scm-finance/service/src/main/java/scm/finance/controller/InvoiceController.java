@@ -2,8 +2,8 @@ package scm.finance.controller;
 
 import com.frog.common.response.ApiResponse;
 import com.frog.common.util.UUIDv7Util;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import scm.finance.domain.entity.Invoice;
 import scm.finance.service.IInvoiceService;
@@ -11,13 +11,13 @@ import scm.finance.service.IInvoiceService;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@RequiredArgsConstructor
 @Slf4j
 @RestController
 @RequestMapping("/invoice")
 public class InvoiceController {
 
-    @Autowired
-    private IInvoiceService invoiceService;
+    private final IInvoiceService invoiceService;
 
     @GetMapping("/{id}")
     public ApiResponse<Invoice> getById(@PathVariable String id) {

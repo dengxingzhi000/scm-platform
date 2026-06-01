@@ -9,9 +9,9 @@ import com.frog.order.api.OrderDubboService;
 import com.frog.order.domain.entity.Order;
 import com.frog.order.mapper.OrdOrderMapper;
 import scm.order.service.impl.OrderTccServiceImpl;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.*;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -35,6 +35,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author SCM Platform Team
  * @since 2025-12-26
  */
+@RequiredArgsConstructor
 @Slf4j
 @SpringBootTest
 @ActiveProfiles("test")
@@ -42,17 +43,13 @@ import static org.junit.jupiter.api.Assertions.*;
 @DisplayName("Seata TCC 模式集成测试")
 public class SeataTccModeIntegrationTest {
 
-    @Autowired
-    private OrderTccServiceImpl orderTccService;
+    private final OrderTccServiceImpl orderTccService;
 
-    @Autowired
-    private OrdOrderMapper orderMapper;
+    private final OrdOrderMapper orderMapper;
 
-    @Autowired
-    private InvInventoryMapper inventoryMapper;
+    private final InvInventoryMapper inventoryMapper;
 
-    @Autowired
-    private InvTccReservationMapper reservationMapper;
+    private final InvTccReservationMapper reservationMapper;
 
     private static final Long TEST_SKU_ID = 9002L;
     private static final Long TEST_USER_ID = 2001L;

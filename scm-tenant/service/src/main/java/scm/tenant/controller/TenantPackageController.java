@@ -1,21 +1,20 @@
 package scm.tenant.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import scm.tenant.domain.entity.TenantPackage;
 import scm.tenant.service.impl.TenantPackageServiceImpl;
 
 import java.util.List;
 
+@RequiredArgsConstructor
 @Slf4j
 @RestController
 @RequestMapping("/tenant-package")
 public class TenantPackageController {
-
-    @Autowired
-    private TenantPackageServiceImpl tenantPackageService;
+    private final TenantPackageServiceImpl tenantPackageService;
 
     @PostMapping
     public TenantPackage create(@RequestBody TenantPackage entity) {
@@ -43,7 +42,6 @@ public class TenantPackageController {
 
     @GetMapping("/active")
     public List<TenantPackage> listActive() {
-        log.info("[API] 查询启用的租户套�?);
         return tenantPackageService.listActive();
     }
 

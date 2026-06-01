@@ -1,20 +1,20 @@
 package scm.purchase.controller;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import scm.purchase.domain.entity.PurQuotationItem;
 import scm.purchase.service.IPurQuotationItemService;
 
 import java.util.List;
 
+@RequiredArgsConstructor
 @Slf4j
 @RestController
 @RequestMapping("/pur-quotation-item")
 public class PurQuotationItemController {
 
-    @Autowired
-    private IPurQuotationItemService purQuotationItemService;
+    private final IPurQuotationItemService purQuotationItemService;
 
     @GetMapping("/{id}")
     public PurQuotationItem getById(@PathVariable String id) {

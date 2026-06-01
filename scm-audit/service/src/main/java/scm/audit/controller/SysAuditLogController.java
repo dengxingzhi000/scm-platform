@@ -1,21 +1,21 @@
 package scm.audit.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import scm.audit.domain.entity.SysAuditLog;
 import scm.audit.service.impl.SysAuditLogServiceImpl;
 
 import java.util.List;
 
+@RequiredArgsConstructor
 @Slf4j
 @RestController
 @RequestMapping("/sys-audit-log")
 public class SysAuditLogController {
 
-    @Autowired
-    private SysAuditLogServiceImpl auditLogService;
+    private final SysAuditLogServiceImpl auditLogService;
 
     @PostMapping
     public SysAuditLog create(@RequestBody SysAuditLog entity) {

@@ -1,21 +1,21 @@
 package scm.tenant.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import scm.tenant.domain.entity.Tenant;
 import scm.tenant.service.impl.TenantServiceImpl;
 
 import java.util.List;
 
+@RequiredArgsConstructor
 @Slf4j
 @RestController
 @RequestMapping("/tenant")
 public class TenantController {
 
-    @Autowired
-    private TenantServiceImpl tenantService;
+    private final TenantServiceImpl tenantService;
 
     @PostMapping
     public Tenant create(@RequestBody Tenant entity) {

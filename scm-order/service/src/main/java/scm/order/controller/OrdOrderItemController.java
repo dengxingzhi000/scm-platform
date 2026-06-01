@@ -1,20 +1,20 @@
-﻿package scm.order.controller;
+package scm.order.controller;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import scm.order.domain.entity.OrdOrderItem;
 import scm.order.service.IOrdOrderItemService;
 
 import java.util.List;
 
+@RequiredArgsConstructor
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/order-items")
 public class OrdOrderItemController {
 
-    @Autowired
-    private IOrdOrderItemService orderItemService;
+    private final IOrdOrderItemService orderItemService;
 
     @GetMapping("/{id}")
     public OrdOrderItem getById(@PathVariable String id) {

@@ -48,10 +48,16 @@
             <artifactId>jackson-databind</artifactId>
         </dependency>
 
-        <!-- Spring Boot 4.0 Kafka auto-configuration (provides KafkaProperties) -->
+        <!-- Spring Kafka core -->
         <dependency>
             <groupId>org.springframework.kafka</groupId>
             <artifactId>spring-kafka</artifactId>
+        </dependency>
+
+        <!-- Spring Boot 4.x Kafka auto-configuration (provides KafkaProperties) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-kafka</artifactId>
         </dependency>
 
         <dependency>

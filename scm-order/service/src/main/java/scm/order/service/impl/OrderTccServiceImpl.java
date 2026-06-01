@@ -2,15 +2,17 @@ package scm.order.service.impl;
 
 import com.frog.inventory.api.InventoryTccService;
 import com.frog.order.api.OrderDubboService;
+import com.frog.order.api.dto.OrderVO;
+import com.frog.order.api.request.CreateOrderRequest;
 import scm.order.domain.entity.OrdOrder;
 import scm.order.mapper.OrdOrderMapper;
 
 import io.seata.core.context.RootContext;
 import io.seata.spring.annotation.GlobalTransactional;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -31,12 +33,12 @@ import java.util.Random;
  * @author SCM Platform Team
  * @since 2025-12-26
  */
+@RequiredArgsConstructor
 @Slf4j
 @Service
 public class OrderTccServiceImpl {
 
-    @Autowired
-    private OrdOrderMapper orderMapper;
+    private final OrdOrderMapper orderMapper;
 
     @DubboReference(version = "1.0.0", group = "scm", check = false)
     private InventoryTccService inventoryTccService;
@@ -59,7 +61,7 @@ public class OrderTccServiceImpl {
             rollbackFor = Exception.class,
             timeoutMills = 30000
     )
-    public OrderDubboService.OrderVO createOrderWithTcc(OrderDubboService.CreateOrderRequest request) {
+    public OrderVO createOrderWithTcc(CreateOrderRequest request) {
         String xid = RootContext.getXID();
         log.info("🌐 [订单-TCC] 开始创建订单: UserId={}, SkuId={}, Qty={}, XID={}",
                 request.getUserId(), request.getSkuId(), request.getQuantity(), xid);
@@ -103,7 +105,7 @@ public class OrderTccServiceImpl {
             }
 
             // 3. 转换为 VO 返回
-            OrderDubboService.OrderVO vo = new OrderDubboService.OrderVO();
+            OrderVO vo = new OrderVO();
             BeanUtils.copyProperties(order, vo);
 
             long duration = System.currentTimeMillis() - startTime;

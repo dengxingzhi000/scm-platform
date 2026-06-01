@@ -14,7 +14,7 @@ import lombok.experimental.Accessors;
 
 /**
  * <p>
- * 供应商报价单�?
+ * 供应商报价单表
  * </p>
  *
  * @author deng

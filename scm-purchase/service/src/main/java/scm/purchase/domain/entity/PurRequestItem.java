@@ -13,7 +13,7 @@ import lombok.experimental.Accessors;
 
 /**
  * <p>
- * 采购申请明细�?
+ * 采购申请明细表
  * </p>
  *
  * @author deng

@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 /**
- * OAuth2 登出控制�?
+ * OAuth2 登出控制�?
  * 提供 OAuth2 授权撤销功能
  *
  * @author Deng
@@ -37,7 +37,7 @@ public class OAuth2LogoutController {
             @RequestHeader("Authorization") String authHeader,
             @RequestParam(required = false) String clientId) {
 
-        // 验证并解�?Token
+        // 验证并解�?Token
         if (!StringUtils.hasText(authHeader) || !authHeader.startsWith(BEARER_PREFIX)) {
             log.warn("Invalid authorization header format");
             return ApiResponse.fail(400, "Invalid authorization header");
@@ -62,7 +62,7 @@ public class OAuth2LogoutController {
                 log.warn("OAuth2 logout: authorization not found for userId={} clientId={}", userId, clientId);
             }
         } else {
-            // 撤销所有授�?全局登出)
+            // 撤销所有授�?全局登出)
             jwtUtils.revokeAllUserTokens(userId);
             log.info("OAuth2 global logout: revoked all tokens for userId={}", userId);
         }

@@ -2,8 +2,8 @@ package scm.warehouse.controller;
 
 import com.frog.common.response.ApiResponse;
 import com.frog.common.util.UUIDv7Util;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import scm.warehouse.domain.entity.WmsOutboundItem;
 import scm.warehouse.service.IWmsOutboundItemService;
@@ -11,13 +11,13 @@ import scm.warehouse.service.IWmsOutboundItemService;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@RequiredArgsConstructor
 @Slf4j
 @RestController
 @RequestMapping("/wms-outbound-item")
 public class WmsOutboundItemController {
 
-    @Autowired
-    private IWmsOutboundItemService outboundItemService;
+    private final IWmsOutboundItemService outboundItemService;
 
     @PostMapping
     public ApiResponse<WmsOutboundItem> create(@RequestBody WmsOutboundItem item) {

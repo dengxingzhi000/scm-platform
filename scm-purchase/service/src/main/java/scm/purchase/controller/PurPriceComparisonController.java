@@ -1,21 +1,21 @@
 package scm.purchase.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import scm.purchase.domain.entity.PurPriceComparison;
 import scm.purchase.service.IPurPriceComparisonService;
 
 import java.util.List;
 
+@RequiredArgsConstructor
 @Slf4j
 @RestController
 @RequestMapping("/pur-price-comparison")
 public class PurPriceComparisonController {
 
-    @Autowired
-    private IPurPriceComparisonService purPriceComparisonService;
+    private final IPurPriceComparisonService purPriceComparisonService;
 
     @GetMapping("/{id}")
     public PurPriceComparison getById(@PathVariable String id) {

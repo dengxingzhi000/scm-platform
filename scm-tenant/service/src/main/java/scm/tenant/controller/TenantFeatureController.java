@@ -1,21 +1,20 @@
 package scm.tenant.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import scm.tenant.domain.entity.TenantFeature;
 import scm.tenant.service.impl.TenantFeatureServiceImpl;
 
 import java.util.List;
 
+@RequiredArgsConstructor
 @Slf4j
 @RestController
 @RequestMapping("/tenant-feature")
 public class TenantFeatureController {
-
-    @Autowired
-    private TenantFeatureServiceImpl tenantFeatureService;
+    private final TenantFeatureServiceImpl tenantFeatureService;
 
     @PostMapping
     public TenantFeature create(@RequestBody TenantFeature entity) {
@@ -45,7 +44,7 @@ public class TenantFeatureController {
     public boolean isFeatureEnabled(
             @RequestParam String tenantId,
             @RequestParam String featureCode) {
-        log.info("[API] 检查功能是否启�? tenantId={}, featureCode={}", tenantId, featureCode);
+        log.info("[API] 检查功能是否启�? tenantId={}, featureCode={}", tenantId, featureCode);
         return tenantFeatureService.isFeatureEnabled(tenantId, featureCode);
     }
 

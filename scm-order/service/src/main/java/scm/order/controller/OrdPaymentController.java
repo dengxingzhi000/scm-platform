@@ -1,20 +1,20 @@
-﻿package scm.order.controller;
+package scm.order.controller;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import scm.order.domain.entity.OrdPayment;
 import scm.order.service.IOrdPaymentService;
 
 import java.util.List;
 
+@RequiredArgsConstructor
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/payments")
 public class OrdPaymentController {
 
-    @Autowired
-    private IOrdPaymentService paymentService;
+    private final IOrdPaymentService paymentService;
 
     @GetMapping("/{id}")
     public OrdPayment getById(@PathVariable String id) {

@@ -6,6 +6,7 @@ import com.frog.common.web.domain.SecurityUser;
 import com.frog.system.service.ISysPermissionService;
 import com.frog.system.service.ISysUserService;
 import com.frog.system.api.UserDubboService;
+import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.stereotype.Component;
 
@@ -20,17 +21,12 @@ import java.util.UUID;
  * @author Deng
  * @version 2.0
  */
+@RequiredArgsConstructor
 @DubboService
 @Component
 public class UserDubboServiceImpl implements UserDubboService {
     private final ISysUserService sysUserService;
     private final ISysPermissionService sysPermissionService;
-
-    public UserDubboServiceImpl(ISysUserService sysUserService,
-                                ISysPermissionService sysPermissionService) {
-        this.sysUserService = sysUserService;
-        this.sysPermissionService = sysPermissionService;
-    }
 
     @Override
     public SecurityUser getUserByUsername(String username) {

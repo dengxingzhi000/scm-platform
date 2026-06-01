@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * 用户角色关联�?- 支持临时角色授权
+ * 用户角色关联�?- 支持临时角色授权
  *
  * @author Deng
  * @since 2025-12-15
@@ -31,10 +31,10 @@ public class SysUserRole {
 
     private UUID roleId;
 
-    ")
+    @TableField("effective_time")
     private LocalDateTime effectiveTime;
 
-    ")
+    @TableField("expire_time")
     private LocalDateTime expireTime;
 
     private Integer approvalStatus;
@@ -49,7 +49,7 @@ public class SysUserRole {
     @TableField(value = "create_by", fill = FieldFill.INSERT)
     private UUID createBy;
 
-    // ==================== 冗余字段（来�?db_user.sys_user�?===================
+    // ==================== 冗余字段（来�?db_user.sys_user�?===================
 
     @TableField("username")
     private String username;
@@ -61,14 +61,14 @@ public class SysUserRole {
     private Integer userStatus;
 
     /**
-     * 审批状态枚�?
+     * 审批状态枚�?
      */
     @Getter
     public enum ApprovalStatus {
-        PENDING(0, "待审�?),
-        IN_PROGRESS(1, "审批�?),
-        APPROVED(2, "已批�?),
-        REJECTED(3, "已拒�?);
+        PENDING(0, "待审批"),
+        IN_PROGRESS(1, "审批中"),
+        APPROVED(2, "已批准"),
+        REJECTED(3, "已拒绝");
 
         private final int code;
         private final String desc;
@@ -80,14 +80,14 @@ public class SysUserRole {
     }
 
     /**
-     * 判断是否为临时授�?
+     * 判断是否为临时授�?
      */
     public boolean isTemporary() {
         return effectiveTime != null && expireTime != null;
     }
 
     /**
-     * 判断是否在有效期�?
+     * 判断是否在有效期�?
      */
     public boolean isEffective() {
         if (approvalStatus == null || approvalStatus != ApprovalStatus.APPROVED.getCode()) {

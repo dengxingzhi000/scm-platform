@@ -2,6 +2,8 @@ package com.frog.inventory.service.dubbo;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.frog.inventory.api.InventoryDubboService;
+import com.frog.inventory.api.exception.InsufficientStockException;
+import com.frog.inventory.api.request.BatchDeductStockRequest;
 import com.frog.inventory.domain.entity.Inventory;
 import com.frog.inventory.mapper.InvInventoryMapper;
 import com.frog.inventory.service.RedisInventoryService;

@@ -8,10 +8,10 @@ import com.frog.order.api.OrderDubboService;
 import com.frog.order.domain.entity.Order;
 import com.frog.order.mapper.OrdOrderMapper;
 import com.frog.order.service.impl.OrderDubboServiceImpl;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.junit.jupiter.api.*;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -30,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author SCM Platform Team
  * @since 2025-12-26
  */
+@RequiredArgsConstructor
 @Slf4j
 @SpringBootTest
 @ActiveProfiles("test")
@@ -37,14 +38,11 @@ import static org.junit.jupiter.api.Assertions.*;
 @DisplayName("Seata AT 模式集成测试")
 public class SeataAtModeIntegrationTest {
 
-    @Autowired
-    private OrderDubboServiceImpl orderService;
+    private final OrderDubboServiceImpl orderService;
 
-    @Autowired
-    private OrdOrderMapper orderMapper;
+    private final OrdOrderMapper orderMapper;
 
-    @Autowired
-    private InvInventoryMapper inventoryMapper;
+    private final InvInventoryMapper inventoryMapper;
 
     @DubboReference(version = "1.0.0", group = "scm", check = false)
     private InventoryDubboService inventoryService;

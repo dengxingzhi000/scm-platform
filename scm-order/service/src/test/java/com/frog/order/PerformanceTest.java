@@ -9,9 +9,9 @@ import com.frog.order.mapper.OrdOrderMapper;
 import com.frog.order.service.impl.OrderDubboServiceImpl;
 import scm.order.service.impl.OrderTccServiceImpl;
 import lombok.Data;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.*;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -45,6 +45,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author SCM Platform Team
  * @since 2025-12-26
  */
+@RequiredArgsConstructor
 @Slf4j
 @SpringBootTest
 @ActiveProfiles("test")
@@ -52,17 +53,13 @@ import static org.junit.jupiter.api.Assertions.*;
 @DisplayName("Seata 分布式事务性能测试")
 public class PerformanceTest {
 
-    @Autowired
-    private OrderDubboServiceImpl orderAtService;
+    private final OrderDubboServiceImpl orderAtService;
 
-    @Autowired
-    private OrderTccServiceImpl orderTccService;
+    private final OrderTccServiceImpl orderTccService;
 
-    @Autowired
-    private OrdOrderMapper orderMapper;
+    private final OrdOrderMapper orderMapper;
 
-    @Autowired
-    private InvInventoryMapper inventoryMapper;
+    private final InvInventoryMapper inventoryMapper;
 
     private static final Long PERF_TEST_SKU_ID = 8888L;
     private static final Long PERF_TEST_USER_ID = 10000L;

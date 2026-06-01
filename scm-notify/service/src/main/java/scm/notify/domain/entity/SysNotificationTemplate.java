@@ -12,7 +12,7 @@ import lombok.experimental.Accessors;
 
 /**
  * <p>
- * 通知模板�?
+ * 通知模板表
  * </p>
  *
  * @author deng
@@ -44,7 +44,6 @@ public class SysNotificationTemplate implements Serializable {
     @TableField("content_template")
     private String contentTemplate;
 
-    ")
     @TableField("variables_schema")
     private String variablesSchema;
 

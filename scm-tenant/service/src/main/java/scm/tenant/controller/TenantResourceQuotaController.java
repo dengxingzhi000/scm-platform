@@ -1,22 +1,20 @@
 package scm.tenant.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import scm.tenant.domain.entity.TenantResourceQuota;
 import scm.tenant.service.impl.TenantResourceQuotaServiceImpl;
 
 import java.util.List;
 
+@RequiredArgsConstructor
 @Slf4j
 @RestController
 @RequestMapping("/tenant-resource-quota")
 public class TenantResourceQuotaController {
-
-    @Autowired
-    private TenantResourceQuotaServiceImpl tenantResourceQuotaService;
-
+    private final TenantResourceQuotaServiceImpl tenantResourceQuotaService;
     @PostMapping
     public TenantResourceQuota create(@RequestBody TenantResourceQuota entity) {
         log.info("[API] 创建租户资源配额: tenantId={}", entity.getTenantId());
@@ -45,7 +43,7 @@ public class TenantResourceQuotaController {
     public boolean checkQuota(
             @RequestParam String tenantId,
             @RequestParam String resourceType) {
-        log.info("[API] 检查租户配�? tenantId={}, resourceType={}", tenantId, resourceType);
+        log.info("[API] 检查租户配�? tenantId={}, resourceType={}", tenantId, resourceType);
         return tenantResourceQuotaService.checkQuota(tenantId, resourceType);
     }
 

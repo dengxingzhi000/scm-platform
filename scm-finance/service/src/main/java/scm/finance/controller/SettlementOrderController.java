@@ -2,21 +2,21 @@ package scm.finance.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frog.common.response.ApiResponse;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import scm.finance.domain.entity.SettlementOrder;
 import scm.finance.service.ISettlementOrderService;
 
 import java.math.BigDecimal;
 
+@RequiredArgsConstructor
 @Slf4j
 @RestController
 @RequestMapping("/settlement-order")
 public class SettlementOrderController {
 
-    @Autowired
-    private ISettlementOrderService settlementOrderService;
+    private final ISettlementOrderService settlementOrderService;
 
     @GetMapping("/{id}")
     public ApiResponse<SettlementOrder> getById(@PathVariable String id) {
@@ -35,7 +35,7 @@ public class SettlementOrderController {
         order.setId(id);
         order.setUpdateTime(java.time.LocalDateTime.now());
         settlementOrderService.updateById(order);
-        log.info("结算单更新成�? id={}", id);
+        log.info("结算单更新成�? id={}", id);
         return ApiResponse.success(order);
     }
 
@@ -46,7 +46,7 @@ public class SettlementOrderController {
             order.setDeleted(true);
             order.setUpdateTime(java.time.LocalDateTime.now());
             settlementOrderService.updateById(order);
-            log.info("结算单删除成�? id={}", id);
+            log.info("结算单删除成�? id={}", id);
         }
         return ApiResponse.success();
     }

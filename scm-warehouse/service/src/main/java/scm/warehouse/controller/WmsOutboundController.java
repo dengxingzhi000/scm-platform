@@ -3,21 +3,21 @@ package scm.warehouse.controller;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frog.common.response.ApiResponse;
 import com.frog.common.util.UUIDv7Util;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import scm.warehouse.domain.entity.WmsOutbound;
 import scm.warehouse.service.IWmsOutboundService;
 
 import java.time.LocalDateTime;
 
+@RequiredArgsConstructor
 @Slf4j
 @RestController
 @RequestMapping("/wms-outbound")
 public class WmsOutboundController {
 
-    @Autowired
-    private IWmsOutboundService outboundService;
+    private final IWmsOutboundService outboundService;
 
     @PostMapping
     public ApiResponse<WmsOutbound> create(@RequestBody WmsOutbound outbound) {

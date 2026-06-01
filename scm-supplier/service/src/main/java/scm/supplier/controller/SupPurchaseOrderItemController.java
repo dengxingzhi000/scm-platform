@@ -2,8 +2,8 @@ package scm.supplier.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frog.common.response.ApiResponse;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import scm.supplier.domain.entity.SupPurchaseOrderItem;
 import scm.supplier.service.ISupPurchaseOrderItemService;
@@ -12,13 +12,13 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+@RequiredArgsConstructor
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/purchase-order-items")
 public class SupPurchaseOrderItemController {
 
-    @Autowired
-    private ISupPurchaseOrderItemService purchaseOrderItemService;
+    private final ISupPurchaseOrderItemService purchaseOrderItemService;
 
     @GetMapping("/{id}")
     public ApiResponse<SupPurchaseOrderItem> getById(@PathVariable UUID id) {

@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * 敏感操作日志�?
+ * 敏感操作日志表
  *
  * @author Deng
  * @since 2025-12-15
@@ -46,7 +46,6 @@ public class SysSensitiveOperationLog {
     @TableField(typeHandler = UuidArrayTypeHandler.class)
     private UUID[] targetIds;
 
-    ")
     @TableField(typeHandler = JacksonTypeHandler.class)
     private Map<String, Object> operationDetail;
 

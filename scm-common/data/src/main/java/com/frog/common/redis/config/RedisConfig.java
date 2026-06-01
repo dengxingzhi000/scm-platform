@@ -11,8 +11,8 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.listener.PatternTopic;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.data.redis.listener.adapter.MessageListenerAdapter;
-import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
+import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.Primary;
@@ -39,7 +39,7 @@ public class RedisConfig {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(factory);
 
-        Jackson2JsonRedisSerializer<Object> serializer = new Jackson2JsonRedisSerializer<>(Object.class);
+        RedisSerializer<Object> serializer = RedisSerializer.json();
 
         StringRedisSerializer stringSerializer = new StringRedisSerializer();
 
@@ -153,7 +153,7 @@ public class RedisConfig {
                 .build();
     }
 
-    private Jackson2JsonRedisSerializer<Object> jackson2JsonRedisSerializer() {
-        return new Jackson2JsonRedisSerializer<>(Object.class);
+    private RedisSerializer<Object> jackson2JsonRedisSerializer() {
+        return RedisSerializer.json();
     }
 }

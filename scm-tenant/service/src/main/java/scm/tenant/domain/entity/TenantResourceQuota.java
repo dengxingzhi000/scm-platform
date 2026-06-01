@@ -14,7 +14,7 @@ import lombok.experimental.Accessors;
 
 /**
  * <p>
- * 租户资源配额�?
+ * 租户资源配额表
  * </p>
  *
  * @author deng

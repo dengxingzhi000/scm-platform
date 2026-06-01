@@ -1,5 +1,8 @@
 package com.frog.inventory.api;
 
+import com.frog.inventory.api.exception.InsufficientStockException;
+import com.frog.inventory.api.request.BatchDeductStockRequest;
+
 /**
  * 库存服务 Dubbo 接口
  *
@@ -48,67 +51,4 @@ public interface InventoryDubboService {
      * @return 可用库存数量
      */
     Integer queryAvailableStock(Long skuId);
-
-    /**
-     * 批量扣减库存请求
-     */
-    class BatchDeductStockRequest implements java.io.Serializable {
-        private static final long serialVersionUID = 1L;
-
-        private java.util.List<StockItem> items;
-        private String requestId;
-
-        public static class StockItem implements java.io.Serializable {
-            private static final long serialVersionUID = 1L;
-            private Long skuId;
-            private Integer quantity;
-
-            public Long getSkuId() {
-                return skuId;
-            }
-
-            public void setSkuId(Long skuId) {
-                this.skuId = skuId;
-            }
-
-            public Integer getQuantity() {
-                return quantity;
-            }
-
-            public void setQuantity(Integer quantity) {
-                this.quantity = quantity;
-            }
-        }
-
-        public java.util.List<StockItem> getItems() {
-            return items;
-        }
-
-        public void setItems(java.util.List<StockItem> items) {
-            this.items = items;
-        }
-
-        public String getRequestId() {
-            return requestId;
-        }
-
-        public void setRequestId(String requestId) {
-            this.requestId = requestId;
-        }
-    }
-
-    /**
-     * 库存不足异常
-     */
-    class InsufficientStockException extends RuntimeException {
-        private static final long serialVersionUID = 1L;
-
-        public InsufficientStockException(String message) {
-            super(message);
-        }
-
-        public InsufficientStockException(String message, Throwable cause) {
-            super(message, cause);
-        }
-    }
 }

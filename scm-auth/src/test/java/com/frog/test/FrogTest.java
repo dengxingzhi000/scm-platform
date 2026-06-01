@@ -2,8 +2,8 @@ package com.frog.test;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
@@ -17,12 +17,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
  * @author Deng
  * createData 2025/11/3 10:07
  */
+@RequiredArgsConstructor
 @SpringBootTest
 @ImportAutoConfiguration
 public class FrogTest {
 
-    @Autowired
-    PasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
 
     @Test
     public void testExample() {

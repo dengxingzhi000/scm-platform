@@ -11,7 +11,7 @@ import lombok.experimental.Accessors;
 
 /**
  * <p>
- * 权限�?
+ * 权限表
  * </p>
  *
  * @author author
@@ -50,7 +50,7 @@ public class SysPermission {
 
     private String apiPath;
 
-    ")
+    @TableField("http_method")
     private String httpMethod;
 
     private Integer permissionLevel;

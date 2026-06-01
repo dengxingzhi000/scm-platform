@@ -14,7 +14,7 @@ import lombok.experimental.Accessors;
 
 /**
  * <p>
- * 敏感操作日志�?
+ * 敏感操作日志表
  * </p>
  *
  * @author deng
@@ -31,7 +31,6 @@ public class SysSensitiveOperationLog implements Serializable {
     @TableId(value = "id", type = IdType.NONE)
     private String id;
 
-    ")
     @TableField("user_id")
     private String userId;
 
@@ -65,7 +64,6 @@ public class SysSensitiveOperationLog implements Serializable {
     @TableField("approval_required")
     private Boolean approvalRequired;
 
-    ")
     @TableField("approval_id")
     private String approvalId;
 

@@ -12,7 +12,7 @@ import lombok.experimental.Accessors;
 
 /**
  * <p>
- * 比价分析�?
+ * 比价分析表
  * </p>
  *
  * @author deng

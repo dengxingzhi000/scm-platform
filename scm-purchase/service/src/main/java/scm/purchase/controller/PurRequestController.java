@@ -1,21 +1,21 @@
 package scm.purchase.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import scm.purchase.domain.entity.PurRequest;
 import scm.purchase.service.IPurRequestService;
 
 import java.util.List;
 
+@RequiredArgsConstructor
 @Slf4j
 @RestController
 @RequestMapping("/pur-request")
 public class PurRequestController {
 
-    @Autowired
-    private IPurRequestService purRequestService;
+    private final IPurRequestService purRequestService;
 
     @GetMapping("/{id}")
     public PurRequest getById(@PathVariable String id) {

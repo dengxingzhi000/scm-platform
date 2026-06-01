@@ -23,8 +23,8 @@ public class FreightRuleServiceImpl extends ServiceImpl<FreightRuleMapper, Freig
     public List<FreightRule> listActiveRules() {
         log.debug("查询生效中的运费规则");
         LocalDate today = LocalDate.now();
-        LambdaQueryWrapper<FreightRule> wrapper = Wrappers.lambdaQuery()
-                .eq(FreightRule::getEnabled, true)
+        LambdaQueryWrapper<FreightRule> wrapper = Wrappers.lambdaQuery();
+        wrapper.eq(FreightRule::getEnabled, true)
                 .eq(FreightRule::getDeleted, false)
                 .le(FreightRule::getEffectiveDate, today)
                 .ge(FreightRule::getExpiryDate, today)

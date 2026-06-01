@@ -5,9 +5,9 @@ import com.frog.order.domain.entity.Order;
 import scm.order.job.OrderTimeoutCancelJobHandler;
 import com.frog.order.mapper.OrdOrderMapper;
 import com.xxl.job.core.handler.annotation.XxlJob;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.*;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -30,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author SCM Platform Team
  * @since 2025-12-26
  */
+@RequiredArgsConstructor
 @Slf4j
 @SpringBootTest
 @ActiveProfiles("test")
@@ -37,11 +38,9 @@ import static org.junit.jupiter.api.Assertions.*;
 @DisplayName("XXL-Job 任务调度集成测试")
 public class XxlJobIntegrationTest {
 
-    @Autowired
-    private OrderTimeoutCancelJobHandler orderTimeoutCancelJobHandler;
+    private final OrderTimeoutCancelJobHandler orderTimeoutCancelJobHandler;
 
-    @Autowired
-    private OrdOrderMapper orderMapper;
+    private final OrdOrderMapper orderMapper;
 
     private static final Long TEST_USER_ID = 3001L;
 
