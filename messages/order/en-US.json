@@ -1,0 +1,15 @@
+{
+  "title": "Orders",
+  "orderNo": "Order No.",
+  "status": "Status",
+  "totalAmount": "Total Amount",
+  "createTime": "Created At",
+  "status_pending": "Pending",
+  "status_paid": "Paid",
+  "status_shipped": "Shipped",
+  "status_delivered": "Delivered",
+  "status_cancelled": "Cancelled",
+  "detail": "Order Detail",
+  "createOrder": "Create Order",
+  "updateStatus": "Update Status"
+}

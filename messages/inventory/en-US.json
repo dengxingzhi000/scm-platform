@@ -1,0 +1,9 @@
+{
+  "title": "Inventory",
+  "skuCode": "SKU Code",
+  "availableStock": "Available",
+  "reservedStock": "Reserved",
+  "totalStock": "Total",
+  "lowStock": "Low Stock",
+  "alerts": "Alerts"
+}

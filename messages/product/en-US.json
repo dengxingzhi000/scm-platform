@@ -1,0 +1,10 @@
+{
+  "title": "Products",
+  "spuName": "Product Name",
+  "skuCode": "SKU Code",
+  "price": "Price",
+  "stock": "Stock",
+  "category": "Category",
+  "brand": "Brand",
+  "search": "Search Products"
+}

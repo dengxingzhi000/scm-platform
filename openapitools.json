@@ -1,0 +1,25 @@
+{
+  "$schema": "node_modules/@openapitools/openapi-generator-cli/config.schema.json",
+  "spaces": 2,
+  "generator-cli": {
+    "version": "7.12.0",
+    "storageDir": "~/.openapi-generator",
+    "generators": {
+      "scm-api": {
+        "generatorName": "typescript-axios",
+        "output": "#{cwd}/src/lib/api/generated",
+        "inputSpec": "http://localhost:8761/v3/api-docs",
+        "additionalProperties": {
+          "withInterfaces": true,
+          "useSingleRequestParameter": true,
+          "supportsES6": true,
+          "withNodeImports": false
+        },
+        "globalProperties": {
+          "apiDocs": false,
+          "modelDocs": false
+        }
+      }
+    }
+  }
+}

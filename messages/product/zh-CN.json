@@ -1,0 +1,10 @@
+{
+  "title": "产品管理",
+  "spuName": "产品名称",
+  "skuCode": "SKU编码",
+  "price": "价格",
+  "stock": "库存",
+  "category": "分类",
+  "brand": "品牌",
+  "search": "搜索产品"
+}

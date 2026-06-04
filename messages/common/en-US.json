@@ -1,0 +1,47 @@
+{
+  "app": {
+    "name": "SCM Platform",
+    "description": "Smart Supply Chain Management Platform"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "orders": "Orders",
+    "inventory": "Inventory",
+    "products": "Products",
+    "purchase": "Purchase",
+    "warehouse": "Warehouse",
+    "logistics": "Logistics",
+    "suppliers": "Suppliers",
+    "finance": "Finance",
+    "system": "System",
+    "tenant": "Tenant"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome back",
+    "stats": {
+      "todayOrders": "Today's Orders",
+      "pendingShipments": "Pending Shipments",
+      "lowStock": "Low Stock Alerts",
+      "monthlyRevenue": "Monthly Revenue"
+    },
+    "recentOrders": "Recent Orders",
+    "quickActions": "Quick Actions"
+  },
+  "save": "Save",
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "edit": "Edit",
+  "create": "Create",
+  "search": "Search",
+  "reset": "Reset",
+  "confirm": "Confirm",
+  "export": "Export",
+  "import": "Import",
+  "loading": "Loading...",
+  "noData": "No Data",
+  "operation": "Action",
+  "status": "Status",
+  "enabled": "Enabled",
+  "disabled": "Disabled"
+}

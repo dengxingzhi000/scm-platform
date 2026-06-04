@@ -1,0 +1,9 @@
+{
+  "title": "库存管理",
+  "skuCode": "SKU编码",
+  "availableStock": "可用库存",
+  "reservedStock": "预留库存",
+  "totalStock": "总库存",
+  "lowStock": "库存预警",
+  "alerts": "预警列表"
+}
