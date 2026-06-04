@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "generate:api": "openapi-generator-cli generate -i http://localhost:8761/v3/api-docs -g typescript-axios -o src/lib/api/generated --additional-properties=withInterfaces=true,useSingleRequestParameter=true"
   },
   "dependencies": {
     "next": "^15.2.0",
@@ -48,6 +49,8 @@
     "typescript": "^5.8.0",
     "eslint": "^9.0.0",
     "@eslint/eslintrc": "^3.3.0",
-    "eslint-config-next": "^15.2.0"
+    "eslint-config-next": "^15.2.0",
+    "@tanstack/react-query-devtools": "^5.70.0",
+    "@openapitools/openapi-generator-cli": "^2.18.0"
   }
 }
