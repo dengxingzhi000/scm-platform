@@ -1,0 +1,49 @@
+{
+  "app": {
+    "name": "SCM 供应链管理平台",
+    "description": "智能制造供应链管理平台"
+  },
+  "nav": {
+    "dashboard": "仪表盘",
+    "orders": "订单管理",
+    "inventory": "库存管理",
+    "products": "产品管理",
+    "purchase": "采购管理",
+    "warehouse": "仓库管理",
+    "logistics": "物流管理",
+    "suppliers": "供应商管理",
+    "finance": "财务管理",
+    "system": "系统设置",
+    "tenant": "租户管理"
+  },
+  "dashboard": {
+    "title": "工作台",
+    "welcome": "欢迎回来",
+    "stats": {
+      "todayOrders": "今日订单",
+      "pendingShipments": "待发货",
+      "lowStock": "库存预警",
+      "monthlyRevenue": "月营收"
+    },
+    "recentOrders": "最近订单",
+    "quickActions": "快捷操作"
+  },
+  "common": {
+    "save": "保存",
+    "cancel": "取消",
+    "delete": "删除",
+    "edit": "编辑",
+    "create": "新建",
+    "search": "搜索",
+    "reset": "重置",
+    "confirm": "确认",
+    "export": "导出",
+    "import": "导入",
+    "loading": "加载中...",
+    "noData": "暂无数据",
+    "operation": "操作",
+    "status": "状态",
+    "enabled": "启用",
+    "disabled": "禁用"
+  }
+}
