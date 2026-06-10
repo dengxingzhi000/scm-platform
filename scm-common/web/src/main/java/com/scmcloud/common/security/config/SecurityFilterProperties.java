@@ -21,8 +21,11 @@ public class SecurityFilterProperties {
     /** SQL/XSS 杩囨护鍔ㄤ綔锛欰LERT 浠呭憡璀︼紝BLOCK 鎷︽埅 */
     private SqlFilterMode mode = SqlFilterMode.ALERT;
 
-    /** 鏄惁鍚敤 XSS 绠€鍗曟娴嬶紙寤鸿涓昏渚濊禆 CSP/杈撳嚭缂栫爜锟?/
     private boolean xssEnabled = true;
+
+    public boolean isXssEnabled() {
+        return xssEnabled;
+    }
 
     /** 鎸夎矾寰勬帓闄わ紙Ant 琛ㄨ揪寮忥級锛屼緥濡傦細/api/public/** */
     private List<String> excludePaths = new ArrayList<>();
