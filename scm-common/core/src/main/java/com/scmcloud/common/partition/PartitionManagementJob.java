@@ -14,31 +14,31 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 鏁版嵁搴撳垎鍖虹鐞嗗畾鏃朵换锟?
-
- * 鎵ц鏃堕棿锛氭瘡锟? 鏃ュ噷锟?1:00锛坈ron: 0 0 1 1 * ?锟?
-
- * 鍔熻兘锟?
- * 1. 涓轰笅涓湀鍒涘缓鏂扮殑鍒嗗尯琛紙鎻愬墠鍒涘缓锛岄伩鍏嶆湀鏈彃鍏ュけ璐ワ級
- * 2. 娓呯悊杩囨湡鍒嗗尯锛堜繚鐣欒繎 24 涓湀锛岃秴杩囧垯 DETACH 褰掓。锟?
- * 3. 鏀寔鐨勫垎鍖鸿〃锟?
- *    - ord_order (璁㈠崟琛紝锟給rder_time 鍒嗗尯)
- *    - ord_payment (鏀粯璁板綍锛屾寜 payment_time 鍒嗗尯)
- *    - ord_refund (閫€娆捐褰曪紝锟絩efund_time 鍒嗗尯)
- *    - inv_reservation (搴撳瓨棰勭暀锛屾寜 create_time 鍒嗗尯)
- *    - inv_log (搴撳瓨鏃ュ織锛屾寜 create_time 鍒嗗尯)
- *    - inv_batch_flow (鎵规娴佹按锛屾寜 create_time 鍒嗗尯)
- *    - sup_purchase_order (閲囪喘璁㈠崟锛屾寜 order_time 鍒嗗尯)
- *    - tenant_operation_log (绉熸埛鎿嶄綔鏃ュ織锛屾寜 create_time 鍒嗗尯)
- *    - payment_record (璐㈠姟鏀粯璁板綍锛屾寜 payment_time 鍒嗗尯)
-
- * XXL-Job 閰嶇疆绀轰緥锟?
- * - 鎵ц鍣細scm-common-executor
- * - JobHandler锛歱artitionManagementJob
- * - Cron锟?0 1 1 * ?
- * - 杩愯妯″紡锛欱EAN
- * - 闃诲澶勭悊绛栫暐锛氬崟鏈轰覆锟?
- * - 璺敱绛栫暐锛氱涓€锟?
+ * Database partition management scheduled task
+ *
+ * Execution time: 1st day of every month at 01:00 (cron: 0 1 1 * ?)
+ *
+ * Functions:
+ * 1. Create new partition tables for the next month (pre-create to avoid month-end insertion failures)
+ * 2. Clean up expired partitions (retain last 24 months, DETACH and archive beyond that)
+ * 3. Supported partition tables:
+ *    - ord_order (order table, partitioned by order_time)
+ *    - ord_payment (payment record, partitioned by payment_time)
+ *    - ord_refund (refund record, partitioned by refund_time)
+ *    - inv_reservation (inventory reservation, partitioned by create_time)
+ *    - inv_log (inventory log, partitioned by create_time)
+ *    - inv_batch_flow (batch flow, partitioned by create_time)
+ *    - sup_purchase_order (purchase order, partitioned by order_time)
+ *    - tenant_operation_log (tenant operation log, partitioned by create_time)
+ *    - payment_record (financial payment record, partitioned by payment_time)
+ *
+ * XXL-Job configuration example:
+ * - Executor: scm-common-executor
+ * - JobHandler: partitionManagementJob
+ * - Cron: 0 1 1 * ?
+ * - Run mode: BEAN
+ * - Blocking strategy: single machine serial
+ * - Routing strategy: first
  *
  * @author Claude Code
  * @since 2025-01-24
@@ -51,7 +51,7 @@ public class PartitionManagementJob {
     private final JdbcTemplate jdbcTemplate;
 
     /**
-     * 闇€瑕佺鐞嗙殑鍒嗗尯琛ㄩ厤锟?
+     * Partition tables to manage
      */
     private static final List<PartitionTable> PARTITION_TABLES = List.of(
         new PartitionTable("ord_order", "order_time"),
@@ -66,12 +66,12 @@ public class PartitionManagementJob {
     );
 
     /**
-     * 淇濈暀鍒嗗尯鐨勬湀鏁帮紙24涓湀 = 2骞达級
+     * Retention period for partitions (24 months = 2 years)
      */
     private static final int RETENTION_MONTHS = 24;
 
     /**
-     * 鎵ц鍒嗗尯绠＄悊浠诲姟
+     * Execute partition management task
      */
     @XxlJob("partitionManagementJob")
     public void execute() {
@@ -79,20 +79,20 @@ public class PartitionManagementJob {
         List<String> results = new ArrayList<>();
 
         try {
-            log.info("寮€濮嬫墽琛屽垎鍖虹鐞嗕换鍔?);
+            log.info("Starting partition management task");
 
-            // 1. 涓轰笅涓湀鍒涘缓鏂板垎锟?
+            // 1. Create new partition for next month
             YearMonth nextMonth = YearMonth.now().plusMonths(1);
             int createdCount = createPartitionsForMonth(nextMonth);
-            results.add(String.format("鍒涘缓涓嬫湀鍒嗗尯: %d 涓?, createdCount));
+            results.add(String.format("Created next month partitions: %d", createdCount));
 
-            // 2. 娓呯悊杩囨湡鍒嗗尯
+            // 2. Clean up expired partitions
             YearMonth cutoffMonth = YearMonth.now().minusMonths(RETENTION_MONTHS);
             int detachedCount = detachExpiredPartitions(cutoffMonth);
-            results.add(String.format("褰掓。杩囨湡鍒嗗尯: %d 涓?, detachedCount));
+            results.add(String.format("Archived expired partitions: %d", detachedCount));
 
             long duration = System.currentTimeMillis() - startTime;
-            String successMsg = String.format("鍒嗗尯绠＄悊瀹屾垚锟絪锛岃€楁椂: %d ms",
+            String successMsg = String.format("Partition management completed [%s], duration: %d ms",
                 String.join(", ", results), duration);
 
             log.info(successMsg);
@@ -100,14 +100,14 @@ public class PartitionManagementJob {
 
         } catch (Exception e) {
             long duration = System.currentTimeMillis() - startTime;
-            String errorMsg = String.format("鍒嗗尯绠＄悊澶辫触锛岃€楁椂: %d ms", duration);
+            String errorMsg = String.format("Partition management failed, duration: %d ms", duration);
             log.error(errorMsg, e);
             XxlJobHelper.handleFail(errorMsg + ": " + e.getMessage());
         }
     }
 
     /**
-     * 涓烘寚瀹氭湀浠藉垱寤哄垎锟?
+     * Create partitions for the specified month
      */
     private int createPartitionsForMonth(YearMonth yearMonth) {
         int count = 0;
@@ -117,7 +117,7 @@ public class PartitionManagementJob {
             try {
                 String partitionName = table.tableName + "_" + partitionSuffix;
 
-                // 妫€鏌ュ垎鍖烘槸鍚﹀凡瀛樺湪
+                // Check if partition already exists
                 String checkSql = """
                     SELECT COUNT(*) FROM pg_tables
                     WHERE schemaname = 'public' AND tablename = ?
@@ -125,15 +125,15 @@ public class PartitionManagementJob {
                 Integer exists = jdbcTemplate.queryForObject(checkSql, Integer.class, partitionName);
 
                 if (exists != null && exists > 0) {
-                    log.debug("鍒嗗尯 {} 宸插瓨鍦紝璺宠繃鍒涘缓", partitionName);
+                    log.debug("Partition {} already exists, skipping creation", partitionName);
                     continue;
                 }
 
-                // 璁＄畻鍒嗗尯鑼冨洿
+                // Calculate partition range
                 LocalDate startDate = yearMonth.atDay(1);
                 LocalDate endDate = yearMonth.atEndOfMonth().plusDays(1);
 
-                // 鍒涘缓鍒嗗尯锟?
+                // Create partition table
                 String createSql = String.format("""
                     CREATE TABLE IF NOT EXISTS %s PARTITION OF %s
                     FOR VALUES FROM ('%s') TO ('%s')
@@ -145,11 +145,11 @@ public class PartitionManagementJob {
                 );
 
                 jdbcTemplate.execute(createSql);
-                log.info("鎴愬姛鍒涘缓鍒嗗尯: {}", partitionName);
+                log.info("Successfully created partition: {}", partitionName);
                 count++;
 
             } catch (Exception e) {
-                log.error("鍒涘缓鍒嗗尯澶辫触: {}.{}", table.tableName, partitionSuffix, e);
+                log.error("Failed to create partition: {}.{}", table.tableName, partitionSuffix, e);
             }
         }
 
@@ -157,14 +157,14 @@ public class PartitionManagementJob {
     }
 
     /**
-     * 鍒嗙杩囨湡鍒嗗尯锛堝綊妗ｏ級
+     * Detach expired partitions (archive)
      */
     private int detachExpiredPartitions(YearMonth cutoffMonth) {
         int count = 0;
 
         for (PartitionTable table : PARTITION_TABLES) {
             try {
-                // 鏌ヨ鎵€鏈夊垎锟?
+                // Query all partitions
                 String querySql = """
                     SELECT tablename FROM pg_tables
                     WHERE schemaname = 'public'
@@ -178,29 +178,29 @@ public class PartitionManagementJob {
                 );
 
                 for (String partition : partitions) {
-                    // 浠庡垎鍖哄悕鎻愬彇骞存湀 (渚嬪: ord_order_202401 -> 202401)
+                    // Extract year-month from partition name (e.g. ord_order_202401 -> 202401)
                     String suffix = partition.substring(table.tableName.length() + 1);
                     try {
                         YearMonth partitionMonth = YearMonth.parse(suffix, DateTimeFormatter.ofPattern("yyyyMM"));
 
                         if (partitionMonth.isBefore(cutoffMonth)) {
-                            // DETACH 鍒嗗尯锛堜笉鍒犻櫎鏁版嵁锛屽彧鏄粠涓昏〃鍒嗙锟?
+                            // DETACH partition (do not delete data, only detach from parent table)
                             String detachSql = String.format(
                                 "ALTER TABLE %s DETACH PARTITION %s",
                                 table.tableName,
                                 partition
                             );
                             jdbcTemplate.execute(detachSql);
-                            log.info("鎴愬姛褰掓。鍒嗗尯: {}", partition);
+                            log.info("Successfully archived partition: {}", partition);
                             count++;
                         }
                     } catch (Exception e) {
-                        log.warn("鏃犳硶瑙ｆ瀽鍒嗗尯锟?{}", partition);
+                        log.warn("Unable to parse partition suffix: {}", partition);
                     }
                 }
 
             } catch (Exception e) {
-                log.error("褰掓。鍒嗗尯澶辫触: {}", table.tableName, e);
+                log.error("Failed to archive partitions: {}", table.tableName, e);
             }
         }
 
@@ -208,7 +208,7 @@ public class PartitionManagementJob {
     }
 
     /**
-     * 鍒嗗尯琛ㄩ厤锟?
+     * Partition table configuration
      */
     private record PartitionTable(String tableName, String partitionColumn) {
     }

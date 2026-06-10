@@ -15,9 +15,9 @@ import java.lang.reflect.Method;
 import java.util.UUID;
 
 /**
- * 閰嶉妫€锟紸OP 鎷︽埅锟?
+ * Quota check AOP interceptor
 
- * 浣跨敤鏂瑰紡锟?
+ * Usage:
  * <pre>
  * @RequireQuotaCheck(quotaType = QuotaType.ORDERS, increment = 1)
  * public Order createOrder(OrderCreateDTO dto) {
@@ -36,18 +36,18 @@ public class QuotaChecker {
     private final QuotaService quotaService;
 
     /**
-     * 鍦ㄦ柟娉曟墽琛屽墠妫€鏌ラ厤锟?
+     * Check quota before method execution
      */
     @Before("@annotation(com.scmcloud.common.tenant.quota.RequireQuotaCheck)")
     public void checkQuota(JoinPoint joinPoint) {
-        // 鑾峰彇绉熸埛 ID
+        // Get tenant ID
         UUID tenantId = TenantContextHolder.getTenantId();
         if (tenantId == null) {
             log.warn("Tenant ID is null, skipping quota check");
             return;
         }
 
-        // 鑾峰彇娉ㄨВ
+        // Get annotation
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         Method method = signature.getMethod();
         RequireQuotaCheck annotation = method.getAnnotation(RequireQuotaCheck.class);
@@ -62,13 +62,13 @@ public class QuotaChecker {
         log.debug("Checking quota for tenant={}, type={}, increment={}",
                 tenantId, quotaType, increment);
 
-        // 妫€鏌ラ厤锟?
+        // Check quota
         boolean hasQuota = quotaService.checkAndConsumeQuota(tenantId, quotaType, increment);
 
         if (!hasQuota) {
             log.warn("Quota exceeded for tenant={}, type={}", tenantId, quotaType);
             throw new QuotaExceededException(
-                    String.format("绉熸埛閰嶉宸茬敤灏斤細%s锛岃鍗囩骇濂楅鎴栬仈绯诲鏈?, quotaType.getDescription())
+                    String.format("Quota exceeded for %s. Please upgrade or contact support.", quotaType.getDescription())
             );
         }
 
@@ -76,7 +76,7 @@ public class QuotaChecker {
     }
 
     /**
-     * 閰嶉瓒呴檺寮傚父
+     * Quota exceeded exception
      */
     public static class QuotaExceededException extends RuntimeException {
         public QuotaExceededException(String message) {
