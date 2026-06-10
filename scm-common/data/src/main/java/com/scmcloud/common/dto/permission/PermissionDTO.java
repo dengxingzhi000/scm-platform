@@ -19,20 +19,20 @@ import java.util.UUID;
 public class PermissionDTO {
     private UUID id;
 
-    @NotNull(message = "鐖剁骇 ID涓嶈兘涓虹┖")
+    @NotNull(message = "Parent ID cannot be empty")
     private UUID parentId;
 
-    @NotBlank(message = "鏉冮檺缂栫爜涓嶈兘涓虹┖")
-    @Pattern(regexp = "^[a-z][a-z0-9:]*$", message = "鏉冮檺缂栫爜鍙兘鍖呭惈灏忓啓瀛楁瘝銆佹暟瀛楀拰鍐掑彿")
+    @NotBlank(message = "Permission code cannot be empty")
+    @Pattern(regexp = "^[a-z][a-z0-9:]*$", message = "Permission code can only contain lowercase letters, numbers and colons")
     private String permissionCode;
 
-    @NotBlank(message = "鏉冮檺鍚嶇О涓嶈兘涓虹┖")
-    @Size(max = 64, message = "鏉冮檺鍚嶇О闀垮害涓嶈兘瓒呰繃64涓瓧绗?)
+    @NotBlank(message = "Permission name cannot be empty")
+    @Size(max = 64, message = "Permission name length cannot exceed 64 characters")
     private String permissionName;
 
-    @NotNull(message = "鏉冮檺绫诲瀷涓嶈兘涓虹┖")
-    @Min(value = 1, message = "鏉冮檺绫诲瀷蹇呴』锟?5涔嬮棿")
-    @Max(value = 5, message = "鏉冮檺绫诲瀷蹇呴』锟?5涔嬮棿")
+    @NotNull(message = "Permission type cannot be empty")
+    @Min(value = 1, message = "Permission type must be between 1-5")
+    @Max(value = 5, message = "Permission type must be between 1-5")
     private Integer permissionType;
 
     private String routePath;
@@ -47,18 +47,18 @@ public class PermissionDTO {
 
     private String httpMethod;
 
-    @NotBlank(message = "鏉冮檺褰掑睘涓嶈兘涓虹┖")
-    @Pattern(regexp = "^(PLATFORM|TENANT)$", message = "鏉冮檺褰掑睘蹇呴』鏄疨LATFORM鎴朤ENANT")
+    @NotBlank(message = "Permission scope cannot be empty")
+    @Pattern(regexp = "^(PLATFORM|TENANT)$", message = "Permission scope must be PLATFORM or TENANT")
     private String permissionScope;
 
-    @NotNull(message = "鏉冮檺绛夌骇涓嶈兘涓虹┖")
-    @Min(value = 1, message = "鏉冮檺绛夌骇蹇呴』锟?4涔嬮棿")
-    @Max(value = 4, message = "鏉冮檺绛夌骇蹇呴』锟?4涔嬮棿")
+    @NotNull(message = "Permission level cannot be empty")
+    @Min(value = 1, message = "Permission level must be between 1-4")
+    @Max(value = 4, message = "Permission level must be between 1-4")
     private Integer permissionLevel;
 
-    @NotNull(message = "椋庨櫓绛夌骇涓嶈兘涓虹┖")
-    @Min(value = 1, message = "椋庨櫓绛夌骇蹇呴』锟?4涔嬮棿")
-    @Max(value = 4, message = "椋庨櫓绛夌骇蹇呴』锟?4涔嬮棿")
+    @NotNull(message = "Risk level cannot be empty")
+    @Min(value = 1, message = "Risk level must be between 1-4")
+    @Max(value = 4, message = "Risk level must be between 1-4")
     private Integer riskLevel;
 
     private Boolean needApproval;

@@ -22,30 +22,30 @@ public class RoleDTO {
 
     private UUID tenantId;
 
-    @NotBlank(message = "瑙掕壊缂栫爜涓嶈兘涓虹┖")
-    @Pattern(regexp = "^ROLE_[A-Z_]+$", message = "瑙掕壊缂栫爜蹇呴』浠OLE_寮€澶达紝鍙兘鍖呭惈澶у啓瀛楁瘝鍜屼笅鍒掔嚎")
+    @NotBlank(message = "Role code cannot be empty")
+    @Pattern(regexp = "^ROLE_[A-Z_]+$", message = "Role code must start with ROLE_, only uppercase letters and underscores")
     private String roleCode;
 
-    @NotBlank(message = "瑙掕壊鍚嶇О涓嶈兘涓虹┖")
-    @Size(max = 64, message = "瑙掕壊鍚嶇О闀垮害涓嶈兘瓒呰繃64涓瓧绗?)
+    @NotBlank(message = "Role name cannot be empty")
+    @Size(max = 64, message = "Role name length cannot exceed 64 characters")
     private String roleName;
 
-    @Size(max = 255, message = "瑙掕壊鎻忚堪闀垮害涓嶈兘瓒呰繃255涓瓧绗?)
+    @Size(max = 255, message = "Role description length cannot exceed 255 characters")
     private String roleDesc;
 
     private String roleType;
 
     private String roleCategory;
 
-    @NotNull(message = "瑙掕壊绾у埆涓嶈兘涓虹┖")
-    @Min(value = 0, message = "瑙掕壊绾у埆涓嶈兘灏忎簬0")
-    @Max(value = 999, message = "瑙掕壊绾у埆涓嶈兘澶т簬999")
+    @NotNull(message = "Role level cannot be empty")
+    @Min(value = 0, message = "Role level cannot be less than 0")
+    @Max(value = 999, message = "Role level cannot exceed 999")
     private Integer roleLevel;
 
-    @NotNull(message = "鏁版嵁鏉冮檺涓嶈兘涓虹┖")
+    @NotNull(message = "Data scope cannot be empty")
     private Integer dataScope;
 
-    @DecimalMin(value = "0.00", message = "鏈€澶у鎵归噾棰濅笉鑳戒负璐熸暟")
+    @DecimalMin(value = "0.00", message = "Max approval amount cannot be negative")
     private BigDecimal maxApprovalAmount;
 
     private String businessScope;
