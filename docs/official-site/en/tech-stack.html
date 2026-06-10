@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SCM Platform — Technology Stack</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&family=Noto+Serif+SC:wght@400;500;600&display=swap');
+:root {
+  --mono: 'JetBrains Mono', monospace;
+  --serif: 'Instrument Serif', 'Noto Serif SC', serif;
+  --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --bg: #fafaf8; --bg2: #f5f5f0; --bg-card: #ffffff;
+  --t1: #1a1a18; --t2: #5a5a56; --t3: #8a8a86;
+  --border: #e8e8e4; --border2: #d4d4d0;
+  --accent: #2563eb; --green: #16a34a; --red: #dc2626; --amber: #d97706;
+}
+.lang-switch { font-family: var(--mono); font-size: 10px; padding: 4px 10px; border-radius: 6px; color: var(--t3); text-decoration: none; border: .5px solid var(--border); transition: color .15s, background .15s; letter-spacing: .02em; margin-left: 8px; }
+.lang-switch:hover { color: var(--t1); background: var(--bg2); }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--sans); background: var(--bg); color: var(--t1); -webkit-font-smoothing: antialiased; }
+
+/* Header */
+.site-header { position: sticky; top: 0; z-index: 100; background: rgba(250,250,248,.85); backdrop-filter: blur(12px); border-bottom: .5px solid var(--border); }
+.site-header-inner { max-width: 960px; margin: 0 auto; padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; }
+.site-logo { font-family: var(--mono); font-size: 13px; font-weight: 500; color: var(--t1); text-decoration: none; }
+.site-nav { display: flex; gap: 4px; align-items: center; }
+.site-nav a { font-family: var(--mono); font-size: 11px; padding: 5px 12px; border-radius: 6px; color: var(--t3); text-decoration: none; transition: color .15s, background .15s; letter-spacing: .02em; }
+.site-nav a:hover, .site-nav a.active { color: var(--t1); background: var(--bg2); }
+.site-nav-cta { background: var(--t1) !important; color: var(--bg) !important; padding: 5px 14px !important; border-radius: 6px !important; }
+.site-nav-cta:hover { opacity: .85 !important; }
+
+/* Footer */
+.site-footer { border-top: .5px solid var(--border); padding: 32px 0; margin-top: 64px; }
+.site-footer-inner { max-width: 960px; margin: 0 auto; padding: 0 24px; display: flex; justify-content: space-between; align-items: center; }
+.site-footer-left { font-family: var(--mono); font-size: 11px; color: var(--t3); }
+.site-footer-right { font-family: var(--serif); font-size: 13px; font-style: italic; color: var(--t3); }
+
+/* Page */
+.site-page { max-width: 680px; margin: 0 auto; padding: 0 24px; }
+.site-hero { padding: 48px 0 32px; border-bottom: .5px solid var(--border); margin-bottom: 40px; }
+.site-hero-eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; color: var(--t3); text-transform: uppercase; margin-bottom: 16px; }
+.site-hero h1 { font-family: var(--serif); font-size: 34px; font-weight: 400; line-height: 1.15; color: var(--t1); margin-bottom: 16px; }
+.site-hero-sub { font-size: 15px; color: var(--t2); line-height: 1.65; max-width: 520px; }
+.site-section { margin-bottom: 48px; }
+.site-section-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: .5px solid var(--border); }
+.site-section-num { font-family: var(--mono); font-size: 11px; color: var(--t3); min-width: 20px; }
+.site-section-title { font-size: 15px; font-weight: 500; color: var(--t1); }
+
+/* Tech table */
+.site-tech-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 16px 0; }
+.site-tech-table th { font-family: var(--mono); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--t3); font-weight: 400; text-align: left; padding: 8px 12px 8px 0; border-bottom: .5px solid var(--border); }
+.site-tech-table td { padding: 10px 12px 10px 0; border-bottom: .5px solid var(--border); color: var(--t2); vertical-align: top; line-height: 1.5; }
+.site-tech-table td:first-child { color: var(--t1); font-weight: 500; white-space: nowrap; padding-right: 20px; }
+.site-tech-table tr:last-child td { border-bottom: none; }
+
+/* Flow steps */
+.site-flow { display: flex; flex-direction: column; gap: 0; margin: 16px 0; }
+.site-flow-step { display: grid; grid-template-columns: 40px 1fr; gap: 16px; padding: 16px 0; border-bottom: .5px solid var(--border); align-items: start; }
+.site-flow-step:last-child { border-bottom: none; }
+.site-flow-num { font-family: var(--mono); font-size: 11px; color: var(--t3); padding-top: 2px; }
+.site-flow-title { font-size: 13px; font-weight: 500; color: var(--t1); margin-bottom: 4px; }
+.site-flow-desc { font-size: 13px; color: var(--t2); line-height: 1.6; }
+
+.site-prose { font-size: 14px; line-height: 1.8; color: var(--t2); }
+.site-prose + .site-prose { margin-top: 12px; }
+
+@media (max-width: 640px) {
+  .site-nav { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="site-header">
+  <div class="site-header-inner">
+    <a href="index.html" class="site-logo">SCM Platform</a>
+    <nav class="site-nav">
+      <a href="index.html">Home</a>
+      <a href="features.html">Features</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="philosophy.html">Philosophy</a>
+      <a href="tech-stack.html" class="active">Tech Stack</a>
+      <a href="../zh/tech-stack.html" class="lang-switch">中文</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<div class="site-page">
+
+<!-- Hero -->
+<div class="site-hero">
+  <div class="site-hero-eyebrow">technology choices</div>
+  <h1>Technology Stack</h1>
+  <div class="site-hero-sub">Every technology choice at each layer is carefully considered — not chasing the latest trends, but selecting the right tool for the problem.</div>
+</div>
+
+<!-- Tech Stack Table -->
+<div class="site-section">
+  <table class="site-tech-table">
+    <tr><th>Layer</th><th>Components</th></tr>
+    <tr><td>Backend</td><td>Java 21 (Virtual Threads), Spring Boot 4.0.6, Spring Cloud 2025.1.1</td></tr>
+    <tr><td>Alibaba Ecosystem</td><td>Spring Cloud Alibaba 2025.1.0.0 (Nacos, Sentinel, Seata)</td></tr>
+    <tr><td>Database</td><td>PostgreSQL, MyBatis-Plus 3.5.15, ShardingSphere 5.5.1</td></tr>
+    <tr><td>Cache</td><td>Redis (distributed cache, Lua scripts for atomic operations)</td></tr>
+    <tr><td>Search</td><td>Elasticsearch 8.11.4, Canal 1.1.7 (binlog sync)</td></tr>
+    <tr><td>Messaging</td><td>Kafka (event streaming), RabbitMQ (reliable queue)</td></tr>
+    <tr><td>RPC</td><td>Apache Dubbo 3.3.6 (internal service calls)</td></tr>
+    <tr><td>Scheduling</td><td>XXL-Job 3.3.1 (distributed task scheduling)</td></tr>
+    <tr><td>Monitoring</td><td>Sentinel, SkyWalking 9.3.0, Micrometer + Prometheus</td></tr>
+    <tr><td>Frontend</td><td>Next.js 15 (App Router), React 19, Ant Design 5, Zustand 5, TanStack Query 5</td></tr>
+    <tr><td>DevOps</td><td>Docker, GitHub Actions, SonarCloud, OWASP Dependency Check</td></tr>
+  </table>
+</div>
+
+<!-- Key Decisions -->
+<div class="site-section">
+  <div class="site-section-header"><span class="site-section-num">→</span><span class="site-section-title">Key Technology Decisions</span></div>
+  <div class="site-flow">
+    <div class="site-flow-step">
+      <div class="site-flow-num">01</div>
+      <div><div class="site-flow-title">Java 21 Virtual Threads</div><div class="site-flow-desc">One virtual thread per request, no thread pool tuning needed. I/O-bound throughput improves by 3-5x.</div></div>
+    </div>
+    <div class="site-flow-step">
+      <div class="site-flow-num">02</div>
+      <div><div class="site-flow-title">Seata Distributed Transactions</div><div class="site-flow-desc">AT mode zero-invasion, TCC mode high performance, Saga mode long-running transactions. Choose the mode per scenario.</div></div>
+    </div>
+    <div class="site-flow-step">
+      <div class="site-flow-num">03</div>
+      <div><div class="site-flow-title">Redis Lua Atomic Operations</div><div class="site-flow-desc">Stock deduction executes atomically in Redis single-threaded mode. No race conditions, no database locks. Hot path latency &lt;2ms.</div></div>
+    </div>
+    <div class="site-flow-step">
+      <div class="site-flow-num">04</div>
+      <div><div class="site-flow-title">Canal Binlog Sync</div><div class="site-flow-desc">Listens to MySQL/PostgreSQL binlog, syncs to Elasticsearch in real time. Zero invasion to business code.</div></div>
+    </div>
+    <div class="site-flow-step">
+      <div class="site-flow-num">05</div>
+      <div><div class="site-flow-title">Next.js 15 App Router</div><div class="site-flow-desc">Server components reduce client-side JS size. Streaming rendering improves first-paint performance. Built-in i18n support.</div></div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+</main>
+
+<footer class="site-footer">
+  <div class="site-footer-inner">
+    <div class="site-footer-left">SCM Platform &middot; Apache 2.0 License</div>
+    <div class="site-footer-right">Built for Enterprise Supply Chain</div>
+  </div>
+</footer>
+
+</body>
+</html>

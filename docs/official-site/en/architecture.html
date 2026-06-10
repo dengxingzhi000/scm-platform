@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>系统架构 — SCM Platform</title>
+<title>System Architecture — SCM Platform</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&family=Noto+Serif+SC:wght@400;500;600&display=swap');
 :root {
@@ -15,6 +15,8 @@
   --border: #e8e8e4; --border2: #d4d4d0;
   --accent: #2563eb; --green: #16a34a; --red: #dc2626; --amber: #d97706;
 }
+.lang-switch { font-family: var(--mono); font-size: 10px; padding: 4px 10px; border-radius: 6px; color: var(--t3); text-decoration: none; border: .5px solid var(--border); transition: color .15s, background .15s; letter-spacing: .02em; margin-left: 8px; }
+.lang-switch:hover { color: var(--t1); background: var(--bg2); }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: var(--sans); background: var(--bg); color: var(--t1); -webkit-font-smoothing: antialiased; }
 
@@ -162,11 +164,12 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); -webki
   <div class="site-header-inner">
     <a href="index.html" class="site-logo">SCM Platform</a>
     <nav class="site-nav">
-      <a href="index.html">首页</a>
-      <a href="features.html">功能</a>
-      <a href="architecture.html" class="active">架构</a>
-      <a href="philosophy.html">理念</a>
-      <a href="tech-stack.html">技术栈</a>
+      <a href="index.html">Home</a>
+      <a href="features.html">Features</a>
+      <a href="architecture.html" class="active">Architecture</a>
+      <a href="philosophy.html">Philosophy</a>
+      <a href="tech-stack.html">Tech Stack</a>
+      <a href="../zh/architecture.html" class="lang-switch">中文</a>
     </nav>
   </div>
 </header>
@@ -177,55 +180,55 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); -webki
 <!-- Hero -->
 <div class="site-hero">
   <div class="site-hero-eyebrow">architecture reference · v1.0</div>
-  <h1>系统架构</h1>
-  <div class="site-hero-sub">为工程师而写的架构文档——解释为什么，而不仅仅是什么。</div>
+  <h1>System Architecture</h1>
+  <div class="site-hero-sub">Architecture documentation written for engineers — explaining the why, not just the what.</div>
 </div>
 
-<!-- 六大核心支柱 -->
+<!-- Six Core Pillars -->
 <div class="site-section">
   <div class="site-section-header">
     <span class="site-section-num">01</span>
-    <span class="site-section-title">六大核心支柱</span>
+    <span class="site-section-title">Six Core Pillars</span>
   </div>
   <div class="site-pillar-grid">
     <div class="site-pillar-card">
-      <div class="site-pillar-label">微服务</div>
-      <div class="site-pillar-title">Spring Cloud 微服务</div>
-      <div class="site-pillar-desc">15+ 独立服务，Nacos 服务发现，Sentinel 熔断限流</div>
+      <div class="site-pillar-label">Microservices</div>
+      <div class="site-pillar-title">Spring Cloud Microservices</div>
+      <div class="site-pillar-desc">15+ independent services, Nacos service discovery, Sentinel circuit breaking and rate limiting</div>
     </div>
     <div class="site-pillar-card">
-      <div class="site-pillar-label">事务</div>
-      <div class="site-pillar-title">Seata 分布式事务</div>
-      <div class="site-pillar-desc">AT/TCC/Saga 三模式，跨服务数据一致性</div>
+      <div class="site-pillar-label">Transactions</div>
+      <div class="site-pillar-title">Seata Distributed Transactions</div>
+      <div class="site-pillar-desc">AT/TCC/Saga three modes, cross-service data consistency</div>
     </div>
     <div class="site-pillar-card">
-      <div class="site-pillar-label">缓存</div>
-      <div class="site-pillar-title">Redis + Lua 原子操作</div>
-      <div class="site-pillar-desc">热路径零数据库查询，库存扣减原子性保障</div>
+      <div class="site-pillar-label">Caching</div>
+      <div class="site-pillar-title">Redis + Lua Atomic Operations</div>
+      <div class="site-pillar-desc">Zero database queries on hot paths, atomic stock deduction guarantee</div>
     </div>
     <div class="site-pillar-card">
-      <div class="site-pillar-label">搜索</div>
+      <div class="site-pillar-label">Search</div>
       <div class="site-pillar-title">Elasticsearch + Canal</div>
-      <div class="site-pillar-desc">binlog 实时同步，全文搜索覆盖商品、订单、供应商</div>
+      <div class="site-pillar-desc">Real-time binlog sync, full-text search across products, orders, and suppliers</div>
     </div>
     <div class="site-pillar-card">
-      <div class="site-pillar-label">多租户</div>
-      <div class="site-pillar-title">动态数据源路由</div>
-      <div class="site-pillar-desc">租户级数据隔离，可配置特性开关，按需加载模块</div>
+      <div class="site-pillar-label">Multi-Tenancy</div>
+      <div class="site-pillar-title">Dynamic Data Source Routing</div>
+      <div class="site-pillar-desc">Tenant-level data isolation, configurable feature toggles, on-demand module loading</div>
     </div>
     <div class="site-pillar-card">
-      <div class="site-pillar-label">可观测</div>
-      <div class="site-pillar-title">全链路监控</div>
-      <div class="site-pillar-desc">SkyWalking 追踪、Prometheus 指标、结构化日志、业务指标</div>
+      <div class="site-pillar-label">Observability</div>
+      <div class="site-pillar-title">Full-Link Monitoring</div>
+      <div class="site-pillar-desc">SkyWalking tracing, Prometheus metrics, structured logging, business metrics</div>
     </div>
   </div>
 </div>
 
-<!-- 架构拓扑 -->
+<!-- Architecture Topology -->
 <div class="site-section">
   <div class="site-section-header">
     <span class="site-section-num">02</span>
-    <span class="site-section-title">架构拓扑</span>
+    <span class="site-section-title">Architecture Topology</span>
   </div>
   <div class="site-diagram">
     <svg viewBox="0 0 620 380" xmlns="http://www.w3.org/2000/svg">
@@ -346,15 +349,15 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); -webki
   </div>
 </div>
 
-<!-- SLO 目标 -->
+<!-- SLO Targets -->
 <div class="site-section">
   <div class="site-section-header">
     <span class="site-section-num">03</span>
-    <span class="site-section-title">SLO 目标</span>
+    <span class="site-section-title">SLO Targets</span>
   </div>
   <div class="site-slo-grid">
     <div class="site-slo-card">
-      <div class="site-slo-op">API 响应 (P95)</div>
+      <div class="site-slo-op">API Response (P95)</div>
       <div class="site-slo-vals">
         <span><span class="site-slo-label">P50</span> <span class="site-slo-val">&lt;50ms</span></span>
         <span><span class="site-slo-label">P95</span> <span class="site-slo-val">&lt;200ms</span></span>
@@ -362,7 +365,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); -webki
       </div>
     </div>
     <div class="site-slo-card">
-      <div class="site-slo-op">库存扣减 (Redis Lua)</div>
+      <div class="site-slo-op">Stock Deduction (Redis Lua)</div>
       <div class="site-slo-vals">
         <span><span class="site-slo-label">P50</span> <span class="site-slo-val">&lt;2ms</span></span>
         <span><span class="site-slo-label">P95</span> <span class="site-slo-val">&lt;5ms</span></span>
@@ -370,7 +373,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); -webki
       </div>
     </div>
     <div class="site-slo-card">
-      <div class="site-slo-op">搜索查询 (ES)</div>
+      <div class="site-slo-op">Search Query (ES)</div>
       <div class="site-slo-vals">
         <span><span class="site-slo-label">P50</span> <span class="site-slo-val">&lt;20ms</span></span>
         <span><span class="site-slo-label">P95</span> <span class="site-slo-val">&lt;80ms</span></span>
@@ -378,7 +381,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); -webki
       </div>
     </div>
     <div class="site-slo-card">
-      <div class="site-slo-op">订单创建 (含事务)</div>
+      <div class="site-slo-op">Order Creation (with tx)</div>
       <div class="site-slo-vals">
         <span><span class="site-slo-label">P50</span> <span class="site-slo-val">&lt;100ms</span></span>
         <span><span class="site-slo-label">P95</span> <span class="site-slo-val">&lt;300ms</span></span>
@@ -386,7 +389,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); -webki
       </div>
     </div>
     <div class="site-slo-card">
-      <div class="site-slo-op">事件投递 (Kafka)</div>
+      <div class="site-slo-op">Event Delivery (Kafka)</div>
       <div class="site-slo-vals">
         <span><span class="site-slo-label">P50</span> <span class="site-slo-val">&lt;10ms</span></span>
         <span><span class="site-slo-label">P95</span> <span class="site-slo-val">&lt;50ms</span></span>
@@ -394,7 +397,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); -webki
       </div>
     </div>
     <div class="site-slo-card">
-      <div class="site-slo-op">WebSocket 推送</div>
+      <div class="site-slo-op">WebSocket Push</div>
       <div class="site-slo-vals">
         <span><span class="site-slo-label">P50</span> <span class="site-slo-val">&lt;30ms</span></span>
         <span><span class="site-slo-label">P95</span> <span class="site-slo-val">&lt;100ms</span></span>
@@ -410,7 +413,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); -webki
 <footer class="site-footer">
   <div class="site-footer-inner">
     <div class="site-footer-left">SCM Platform &middot; Apache 2.0 License</div>
-    <div class="site-footer-right">为企业级供应链而生</div>
+    <div class="site-footer-right">Built for Enterprise Supply Chain</div>
   </div>
 </footer>
 

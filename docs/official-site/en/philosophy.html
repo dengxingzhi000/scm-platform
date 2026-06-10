@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SCM Platform — Design Philosophy</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&family=Noto+Serif+SC:wght@400;500;600&display=swap');
+:root {
+  --mono: 'JetBrains Mono', monospace;
+  --serif: 'Instrument Serif', 'Noto Serif SC', serif;
+  --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --bg: #fafaf8; --bg2: #f5f5f0; --bg-card: #ffffff;
+  --t1: #1a1a18; --t2: #5a5a56; --t3: #8a8a86;
+  --border: #e8e8e4; --border2: #d4d4d0;
+  --accent: #2563eb; --green: #16a34a; --red: #dc2626; --amber: #d97706;
+}
+.lang-switch { font-family: var(--mono); font-size: 10px; padding: 4px 10px; border-radius: 6px; color: var(--t3); text-decoration: none; border: .5px solid var(--border); transition: color .15s, background .15s; letter-spacing: .02em; margin-left: 8px; }
+.lang-switch:hover { color: var(--t1); background: var(--bg2); }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--sans); background: var(--bg); color: var(--t1); -webkit-font-smoothing: antialiased; }
+
+/* Header */
+.site-header { position: sticky; top: 0; z-index: 100; background: rgba(250,250,248,.85); backdrop-filter: blur(12px); border-bottom: .5px solid var(--border); }
+.site-header-inner { max-width: 960px; margin: 0 auto; padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; }
+.site-logo { font-family: var(--mono); font-size: 13px; font-weight: 500; color: var(--t1); text-decoration: none; }
+.site-nav { display: flex; gap: 4px; align-items: center; }
+.site-nav a { font-family: var(--mono); font-size: 11px; padding: 5px 12px; border-radius: 6px; color: var(--t3); text-decoration: none; transition: color .15s, background .15s; letter-spacing: .02em; }
+.site-nav a:hover, .site-nav a.active { color: var(--t1); background: var(--bg2); }
+.site-nav-cta { background: var(--t1) !important; color: var(--bg) !important; padding: 5px 14px !important; border-radius: 6px !important; }
+.site-nav-cta:hover { opacity: .85 !important; }
+
+/* Footer */
+.site-footer { border-top: .5px solid var(--border); padding: 32px 0; margin-top: 64px; }
+.site-footer-inner { max-width: 960px; margin: 0 auto; padding: 0 24px; display: flex; justify-content: space-between; align-items: center; }
+.site-footer-left { font-family: var(--mono); font-size: 11px; color: var(--t3); }
+.site-footer-right { font-family: var(--serif); font-size: 13px; font-style: italic; color: var(--t3); }
+
+/* Page */
+.site-page { max-width: 680px; margin: 0 auto; padding: 0 24px; }
+.site-hero { padding: 48px 0 32px; border-bottom: .5px solid var(--border); margin-bottom: 40px; }
+.site-hero-eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; color: var(--t3); text-transform: uppercase; margin-bottom: 16px; }
+.site-hero h1 { font-family: var(--serif); font-size: 34px; font-weight: 400; line-height: 1.15; color: var(--t1); margin-bottom: 16px; }
+.site-hero-sub { font-size: 15px; color: var(--t2); line-height: 1.65; max-width: 520px; }
+.site-section { margin-bottom: 48px; }
+.site-section-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: .5px solid var(--border); }
+.site-section-num { font-family: var(--mono); font-size: 11px; color: var(--t3); min-width: 20px; }
+.site-section-title { font-size: 15px; font-weight: 500; color: var(--t1); }
+.site-prose { font-size: 14px; line-height: 1.8; color: var(--t2); }
+.site-prose + .site-prose { margin-top: 12px; }
+.site-callout { border-left: 2px solid var(--border2); padding: 12px 16px; margin: 16px 0; font-family: var(--serif); font-size: 15px; font-style: italic; color: var(--t2); line-height: 1.6; }
+
+/* Pillar grid */
+.site-pillar-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
+.site-pillar-card { background: var(--bg-card); border: .5px solid var(--border); border-radius: 8px; padding: 14px 16px; }
+.site-pillar-label { font-family: var(--mono); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--t3); margin-bottom: 4px; }
+.site-pillar-title { font-size: 13px; font-weight: 500; color: var(--t1); margin-bottom: 4px; }
+.site-pillar-desc { font-size: 12px; color: var(--t2); line-height: 1.5; }
+
+/* Feature grid */
+.site-feature-grid { display: flex; flex-direction: column; gap: 0; margin: 16px 0; }
+.site-feature-row { display: grid; grid-template-columns: 180px 1fr; gap: 16px; padding: 16px 0; border-bottom: .5px solid var(--border); align-items: start; }
+.site-feature-row:last-child { border-bottom: none; }
+.site-feature-name { font-size: 13px; font-weight: 500; color: var(--t1); }
+.site-feature-port { font-family: var(--mono); font-size: 10px; color: var(--t3); margin-top: 2px; }
+.site-feature-desc { font-size: 13px; color: var(--t2); line-height: 1.6; }
+
+/* Landing */
+.site-landing-hero { padding: 80px 0 48px; text-align: center; }
+.site-landing-hero h1 { font-family: var(--serif); font-size: 48px; font-weight: 400; line-height: 1.1; color: var(--t1); margin-bottom: 20px; }
+.site-landing-hero-sub { font-size: 16px; color: var(--t2); line-height: 1.7; max-width: 560px; margin: 0 auto 32px; }
+.site-landing-cta { display: inline-flex; gap: 12px; }
+.site-landing-cta a { font-family: var(--mono); font-size: 12px; padding: 10px 24px; border-radius: 8px; text-decoration: none; transition: opacity .15s; }
+.site-landing-cta-primary { background: var(--t1); color: var(--bg); }
+.site-landing-cta-secondary { background: var(--bg2); color: var(--t1); border: .5px solid var(--border); }
+
+/* Highlight grid */
+.site-highlight-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin: 32px 0; }
+.site-highlight-card { background: var(--bg-card); border: .5px solid var(--border); border-radius: 8px; padding: 20px 16px; }
+.site-highlight-icon { font-size: 20px; margin-bottom: 12px; }
+.site-highlight-title { font-size: 13px; font-weight: 500; color: var(--t1); margin-bottom: 6px; }
+.site-highlight-desc { font-size: 12px; color: var(--t2); line-height: 1.5; }
+
+/* Tech bar */
+.site-tech-bar { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 24px 0; }
+.site-tech-tag { font-family: var(--mono); font-size: 10px; padding: 4px 10px; border-radius: 99px; border: .5px solid var(--border); color: var(--t3); background: var(--bg-card); }
+
+/* Diagram */
+.site-diagram { background: var(--bg2); border-radius: 12px; border: .5px solid var(--border); padding: 20px; margin: 16px 0; overflow-x: auto; }
+.site-diagram svg { display: block; margin: 0 auto; }
+
+/* SLO grid */
+.site-slo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 16px 0; }
+.site-slo-card { background: var(--bg2); border-radius: 8px; padding: 12px; border: .5px solid var(--border); }
+.site-slo-op { font-size: 11px; color: var(--t2); margin-bottom: 8px; line-height: 1.4; }
+.site-slo-vals { display: flex; gap: 4px; flex-wrap: wrap; }
+.site-slo-val { font-family: var(--mono); font-size: 10px; padding: 2px 5px; border-radius: 4px; background: var(--bg-card); border: .5px solid var(--border); color: var(--t2); }
+.site-slo-label { font-family: var(--mono); font-size: 9px; color: var(--t3); }
+
+/* Philosophy nav pills */
+.site-nav-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 32px; }
+.site-nav-pill { font-family: var(--mono); font-size: 10px; padding: 4px 12px; border-radius: 99px; border: .5px solid var(--border); color: var(--t3); cursor: pointer; transition: background .15s, color .15s, border-color .15s; background: none; }
+.site-nav-pill:hover, .site-nav-pill.active { background: var(--bg2); color: var(--t1); border-color: var(--border2); }
+.dp-section { margin-bottom: 40px; display: none; }
+.dp-section.visible { display: block; }
+
+/* Tradeoff */
+.site-tradeoff { background: var(--bg2); border-radius: 8px; border: .5px solid var(--border); padding: 16px 20px; margin: 16px 0; }
+.site-tradeoff-head { font-family: var(--mono); font-size: 10px; letter-spacing: .07em; text-transform: uppercase; color: var(--t3); margin-bottom: 12px; }
+.site-tradeoff-row { display: grid; grid-template-columns: 80px 1fr; gap: 12px; padding: 8px 0; border-bottom: .5px solid var(--border); font-size: 13px; line-height: 1.5; align-items: start; }
+.site-tradeoff-row:last-child { border-bottom: none; }
+.site-tradeoff-label { font-family: var(--mono); font-size: 10px; padding-top: 2px; }
+.label-chosen { color: var(--green); }
+.label-rejected { color: var(--red); }
+.label-cost { color: var(--amber); }
+.site-tradeoff-text { color: var(--t2); }
+
+/* Principle list */
+.site-principle-list { display: flex; flex-direction: column; gap: 0; margin: 16px 0; }
+.site-principle { display: flex; gap: 14px; padding: 12px 0; border-bottom: .5px solid var(--border); align-items: flex-start; }
+.site-principle:last-child { border-bottom: none; }
+.site-principle-glyph { font-family: var(--mono); font-size: 11px; color: var(--t3); padding-top: 2px; min-width: 20px; }
+.site-principle-title { font-size: 13px; font-weight: 500; color: var(--t1); margin-bottom: 3px; }
+.site-principle-desc { font-size: 13px; color: var(--t2); line-height: 1.6; }
+
+/* Scale grid */
+.site-scale-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 16px 0; }
+.site-scale-card { border: .5px solid var(--border); border-radius: 8px; padding: 14px 16px; background: var(--bg-card); }
+.site-scale-label { font-family: var(--mono); font-size: 9px; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 6px; }
+.sl-easy { color: var(--green); } .sl-hard { color: var(--amber); } .sl-defer { color: var(--t3); }
+.site-scale-title { font-size: 13px; font-weight: 500; color: var(--t1); margin-bottom: 4px; }
+.site-scale-desc { font-size: 12px; color: var(--t2); line-height: 1.5; }
+
+/* Non-goal list */
+.site-nongoal-list { display: flex; flex-direction: column; gap: 0; margin: 12px 0; }
+.site-nongoal-item { display: flex; gap: 10px; padding: 10px 0; border-bottom: .5px solid var(--border); font-size: 13px; color: var(--t2); line-height: 1.5; }
+.site-nongoal-item:last-child { border-bottom: none; }
+.site-nongoal-x { font-family: var(--mono); font-size: 11px; color: var(--red); padding-top: 2px; min-width: 14px; }
+.site-nongoal-title { color: var(--t1); font-weight: 500; }
+
+/* Tech table */
+.site-tech-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 16px 0; }
+.site-tech-table th { font-family: var(--mono); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--t3); font-weight: 400; text-align: left; padding: 8px 12px 8px 0; border-bottom: .5px solid var(--border); }
+.site-tech-table td { padding: 10px 12px 10px 0; border-bottom: .5px solid var(--border); color: var(--t2); vertical-align: top; line-height: 1.5; }
+.site-tech-table td:first-child { color: var(--t1); font-weight: 500; white-space: nowrap; padding-right: 20px; }
+.site-tech-table tr:last-child td { border-bottom: none; }
+
+/* Code */
+.site-code { font-family: var(--mono); font-size: 12px; background: var(--bg2); padding: 1px 6px; border-radius: 4px; border: .5px solid var(--border); color: var(--t1); }
+.site-code-block { font-family: var(--mono); font-size: 12px; background: var(--bg2); padding: 16px 20px; border-radius: 8px; border: .5px solid var(--border); color: var(--t1); line-height: 1.6; overflow-x: auto; margin: 12px 0; white-space: pre; }
+
+@media (max-width: 640px) {
+  .site-pillar-grid, .site-highlight-grid, .site-slo-grid, .site-scale-grid { grid-template-columns: 1fr; }
+  .site-feature-row { grid-template-columns: 1fr; gap: 4px; }
+  .site-landing-hero h1 { font-size: 32px; }
+  .site-nav { display: none; }
+}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="site-header-inner">
+    <a href="index.html" class="site-logo">SCM Platform</a>
+    <nav class="site-nav">
+      <a href="index.html">Home</a>
+      <a href="features.html">Features</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="philosophy.html" class="active">Philosophy</a>
+      <a href="tech-stack.html">Tech Stack</a>
+      <a href="../zh/philosophy.html" class="lang-switch">中文</a>
+    </nav>
+  </div>
+</header>
+
+<main class="site-page">
+
+<div class="site-hero">
+  <div class="site-hero-eyebrow">design philosophy · v1.0</div>
+  <h1>Why We Build This Way</h1>
+  <p class="site-hero-sub">Opinion is architecture. Behind every technical decision lies a value judgment.</p>
+</div>
+
+<div class="site-nav-pills">
+  <button class="site-nav-pill active" onclick="show('all')">All</button>
+  <button class="site-nav-pill" onclick="show('ddd')">DDD</button>
+  <button class="site-nav-pill" onclick="show('cqrs')">CQRS</button>
+  <button class="site-nav-pill" onclick="show('events')">Events</button>
+  <button class="site-nav-pill" onclick="show('cache')">Cache</button>
+  <button class="site-nav-pill" onclick="show('storage')">Storage</button>
+  <button class="site-nav-pill" onclick="show('ai')">AI</button>
+  <button class="site-nav-pill" onclick="show('tenancy')">Multi-Tenancy</button>
+  <button class="site-nav-pill" onclick="show('scale')">Scale</button>
+  <button class="site-nav-pill" onclick="show('ops')">Ops</button>
+  <button class="site-nav-pill" onclick="show('nongoals')">Non-Goals</button>
+</div>
+
+<section class="dp-section visible" data-tags="all ddd">
+  <div class="site-section-header"><span class="site-section-num">I</span><span class="site-section-title">Domain-Driven Design</span></div>
+  <div class="site-callout">When the domain model is correct, code reads like business language. When it's wrong, every line of code is a translation.</div>
+  <p class="site-prose">We don't worship DDD as methodology — we use it as a communication tool. In the supply chain domain, terminology is territory — "order" means something very different in procurement versus sales contexts. We use Bounded Contexts to ensure each service owns its semantic space, rather than sharing a bloated, anemic model.</p>
+  <p class="site-prose">Aggregate root design follows the "consistency boundary" principle: one transaction modifies one aggregate. The order aggregate includes order lines and payment records, but not logistics tracking — that belongs to a different context. This boundary constraint forces eventual consistency between services rather than strong transactions — a technical decision that is also a business decision.</p>
+  <p class="site-prose">The Repository layer abstracts persistence details, letting domain models focus on business rules. We oppose exposing JPA annotations or ORM-specific logic in the domain layer — domain objects shouldn't know whether they're persisted in PostgreSQL or Redis.</p>
+</section>
+
+<section class="dp-section" data-tags="all cqrs">
+  <div class="site-section-header"><span class="site-section-num">II</span><span class="site-section-title">CQRS</span></div>
+  <p class="site-prose">Read-write separation isn't a "performance optimization" — it's a modeling choice. In the scm-system module, the complexity of cross-database queries forced us to confront the limitations of a unified model. CQRS lets us build optimal models for reads and writes separately: the write model follows domain rules, the read model follows query efficiency.</p>
+  <p class="site-prose">The Command side uses JPA + @Master to write to the primary database, while the Query side uses MyBatis-Plus + @Slave to read from replicas or Redis cache. Both are synchronized through events — when the write model changes, a DomainEvent is published, and Eventual Consistency automatically updates the read model.</p>
+  <div class="site-tradeoff">
+    <div class="site-tradeoff-head">Trade‑off</div>
+    <div class="site-tradeoff-row">
+      <span class="site-tradeoff-label label-rejected">rejected</span>
+      <span class="site-tradeoff-text">Unified model (CRUD Repository handling both queries and commands) — cross-database joins cause unpredictable performance, query logic pollutes the domain model.</span>
+    </div>
+    <div class="site-tradeoff-row">
+      <span class="site-tradeoff-label label-chosen">chosen</span>
+      <span class="site-tradeoff-text">CQRS separation — each use case's queries can be independently optimized while the domain model stays clean.</span>
+    </div>
+  </div>
+</section>
+
+<section class="dp-section" data-tags="all events">
+  <div class="site-section-header"><span class="site-section-num">III</span><span class="site-section-title">Event-Driven</span></div>
+  <div class="site-callout">An event is not a message — it's an irreversible fact. Once persisted, it becomes part of the audit log.</div>
+  <p class="site-prose">In distributed systems, synchronous call chains are a source of fragility. We use Spring Cloud Function with a message broker for event-driven orchestration: when an order is created, the system publishes OrderCreatedEvent, and inventory, logistics, and notification services respond independently. No central orchestrator, no synchronous blocking.</p>
+  <p class="site-prose">We follow event sourcing principles — not by storing all state as event streams, but by persisting critical business events to dedicated event tables as a foundation for auditing and diagnostics. Kafka serves as the event backbone, guaranteeing at-least-once delivery, with consumers handling duplicate messages through idempotency.</p>
+  <div class="site-tradeoff">
+    <div class="site-tradeoff-head">Trade‑off</div>
+    <div class="site-tradeoff-row">
+      <span class="site-tradeoff-label label-rejected">rejected</span>
+      <span class="site-tradeoff-text">Synchronous pipeline (inter-service orchestration via HTTP) — lacks resilience, a single downstream failure blocks the entire chain.</span>
+    </div>
+    <div class="site-tradeoff-row">
+      <span class="site-tradeoff-label label-cost">cost</span>
+      <span class="site-tradeoff-text">Events can be lost (message broker failure, consumer crash, network partition) — mitigated through dead letter queues, scheduled compensation, and idempotency tables.</span>
+    </div>
+  </div>
+</section>
+
+<section class="dp-section" data-tags="all cache">
+  <div class="site-section-header"><span class="site-section-num">IV</span><span class="site-section-title">Cache as Performance Architecture</span></div>
+  <p class="site-prose">Caching is not a post-hoc optimization — it's a first-class architectural concern. We design explicit caching strategies for every query path, rather than reactively adding caches after performance bottlenecks emerge.</p>
+  <div class="site-principle-list">
+    <div class="site-principle">
+      <span class="site-principle-glyph">01</span>
+      <div><div class="site-principle-title">L1 Caffeine Local Cache</div><div class="site-principle-desc">Each service instance maintains a local cache with a 5-minute TTL, reducing reads on Redis. Suitable for dictionary data, configuration items, and domain objects with low change frequency.</div></div>
+    </div>
+    <div class="site-principle">
+      <span class="site-principle-glyph">02</span>
+      <div><div class="site-principle-title">L2 Redis Distributed Cache</div><div class="site-principle-desc">Cross-service shared cache data with a 30-minute TTL. Uses Redis Pub/Sub to actively invalidate related caches on data changes, rather than relying on passive TTL expiration.</div></div>
+    </div>
+    <div class="site-principle">
+      <span class="site-principle-glyph">03</span>
+      <div><div class="site-principle-title">Strong Invalidation Strategy</div><div class="site-principle-desc">Invalidate cache immediately after write operations complete, rather than updating the cache. The next read request naturally refills with fresh data, avoiding cache-to-database inconsistency windows.</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="dp-section" data-tags="all storage">
+  <div class="site-section-header"><span class="site-section-num">V</span><span class="site-section-title">Storage Abstraction</span></div>
+  <div class="site-callout">Storage selection is one of the most regret-inducing and costly architectural decisions. An abstraction layer preserves your right to change it.</div>
+  <p class="site-prose">We don't use RedisTemplate or JPA EntityManager directly in business code. Instead, every data access goes through Repository interfaces or custom abstraction layers. This not only simplifies testing — more importantly, when the day comes to migrate from PostgreSQL to CockroachDB, or upgrade from Redis Standalone to Redis Cluster, the scope of change is contained within a single layer.</p>
+  <div class="site-tradeoff">
+    <div class="site-tradeoff-head">Trade‑off</div>
+    <div class="site-tradeoff-row">
+      <span class="site-tradeoff-label label-rejected">rejected</span>
+      <span class="site-tradeoff-text">Direct SDK integration (business code calling RedisTemplate, MongoTemplate, etc.) — code deeply couples with specific storage, changing storage means rewriting the service.</span>
+    </div>
+    <div class="site-tradeoff-row">
+      <span class="site-tradeoff-label label-cost">cost</span>
+      <span class="site-tradeoff-text">Each storage abstraction layer adds roughly two hours of development time — but over the project lifecycle, the flexibility gained far outweighs the cost.</span>
+    </div>
+  </div>
+</section>
+
+<section class="dp-section" data-tags="all ai">
+  <div class="site-section-header"><span class="site-section-num">VI</span><span class="site-section-title">AI as Infrastructure</span></div>
+  <div class="site-callout">AI is not a product feature — it's infrastructure capability. We don't name requirements as "AI features" but instead weave intelligence into the seams of existing business processes.</div>
+  <p class="site-prose">We don't aim to replace human decision-makers with AI. Models predict, people decide. The AI module handles: demand forecasting, inventory health scoring, supplier risk assessment, and order anomaly detection. These capabilities appear embedded within business interfaces, not in a separate AI console.</p>
+  <div class="site-principle-list">
+    <div class="site-principle">
+      <span class="site-principle-glyph">01</span>
+      <div><div class="site-principle-title">Non-Blocking Integration</div><div class="site-principle-desc">AI inference results are output as JSON structures, consistent with business data formats. The system runs fully even without AI features — AI is additive, not a dependency.</div></div>
+    </div>
+    <div class="site-principle">
+      <span class="site-principle-glyph">02</span>
+      <div><div class="site-principle-title">Async Inference</div><div class="site-principle-desc">All AI inference goes through the message queue for async execution. User operations are unaffected by model inference time — inventory predictions run in the background and results are pushed to the frontend via WebSocket.</div></div>
+    </div>
+    <div class="site-principle">
+      <span class="site-principle-glyph">03</span>
+      <div><div class="site-principle-title">Classification Normalization</div><div class="site-principle-desc">Product classifications from different sources (SPU categories, customs codes, warehouse location types) are mapped to a unified classification tree via AI, eliminating N×N mapping complexity.</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="dp-section" data-tags="all tenancy">
+  <div class="site-section-header"><span class="site-section-num">VII</span><span class="site-section-title">Multi-Tenant Isolation</span></div>
+  <div class="site-callout">Isolation level is a security decision, not an architectural one. Choose the wrong isolation model and you either leak data or burn out maintaining it.</div>
+  <p class="site-prose">We adopt a hybrid isolation strategy: logical isolation (shared database filtered by tenant) for most scenarios, and physical isolation (dedicated database instances) for high-security requirements. TenantContextHolder resolves the tenant identifier at the request entry point, threading through the entire call chain to ensure data boundaries remain intact.</p>
+  <div class="site-principle-list">
+    <div class="site-principle">
+      <span class="site-principle-glyph">01</span>
+      <div><div class="site-principle-title">Hibernate Filters</div><div class="site-principle-desc">The ORM layer automatically appends tenant_id filter conditions — developers never manually concatenate SQL. All tables include a tenant_id column with covering indexes.</div></div>
+    </div>
+    <div class="site-principle">
+      <span class="site-principle-glyph">02</span>
+      <div><div class="site-principle-title">Redis Key Prefixes</div><div class="site-principle-desc">Cache keys use tenant_id as a prefix to prevent cross-tenant cache overlap. Hot data like flash-sale inventory is sharded per tenant.</div></div>
+    </div>
+    <div class="site-principle">
+      <span class="site-principle-glyph">03</span>
+      <div><div class="site-principle-title">Schema Isolation</div><div class="site-principle-desc">For finance-grade tenants, use dedicated database schemas rather than row-level filtering. Connection pools route dynamically per tenant, with TenantContextHolder driving @DS annotation-based data source switching.</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="dp-section" data-tags="all scale">
+  <div class="site-section-header"><span class="site-section-num">VIII</span><span class="site-section-title">Scaling Philosophy</span></div>
+  <div class="site-callout">Don't predict bottlenecks. Monitor them, then scale. Premature scaling and never scaling are equally dangerous.</div>
+  <p class="site-prose">Our scaling strategy follows the "vertically then horizontally" principle: before clear horizontal scaling needs emerge, optimize through vertical scaling and code improvements first. When horizontal scaling becomes necessary, each service's stateless design ensures simplicity.</p>
+  <div class="site-scale-grid">
+    <div class="site-scale-card">
+      <div class="site-scale-label sl-easy">easy</div>
+      <div class="site-scale-title">HTTP Layer</div>
+      <div class="site-scale-desc">Stateless services scale horizontally through load balancing. The Gateway layer auto-routes, Nacos registry detects node changes in real time. Add instances, increase throughput.</div>
+    </div>
+    <div class="site-scale-card">
+      <div class="site-scale-label sl-hard">hard</div>
+      <div class="site-scale-title">WebSocket Layer</div>
+      <div class="site-scale-desc">Long-lived connections require session affinity. Use Redis Pub/Sub to broadcast cross-instance messages, or configure Sticky Sessions at the Gateway layer.</div>
+    </div>
+    <div class="site-scale-card">
+      <div class="site-scale-label sl-easy">easy</div>
+      <div class="site-scale-title">Worker Layer</div>
+      <div class="site-scale-desc">Message consumer tasks are stateless, automatically distributed through Kafka partition rebalancing. Increase consumer group instances to boost throughput.</div>
+    </div>
+    <div class="site-scale-card">
+      <div class="site-scale-label sl-defer">defer</div>
+      <div class="site-scale-title">Database</div>
+      <div class="site-scale-desc">Read-write separation + sharding (ShardingSphere) is already provisioned at the architecture level, but only enabled when a single database reaches 5000 QPS or 2TB.</div>
+    </div>
+  </div>
+</section>
+
+<section class="dp-section" data-tags="all ops">
+  <div class="site-section-header"><span class="site-section-num">IX</span><span class="site-section-title">Operations Philosophy</span></div>
+  <p class="site-prose">An architectural design that can't run is useless, no matter how elegant. We treat operability as an architectural requirement from day one — meaning every service knows how it will be deployed, monitored, and debugged before a single line of code is committed. Infrastructure as Code (IaC) and immutable infrastructure are our default operations model.</p>
+  <div class="site-principle-list">
+    <div class="site-principle">
+      <span class="site-principle-glyph">01</span>
+      <div><div class="site-principle-title">Observability First</div><div class="site-principle-desc">Every service must expose health checks, metric endpoints (Prometheus), distributed tracing (SkyWalking), and structured logging. No instrumentation, no deployment.</div></div>
+    </div>
+    <div class="site-principle">
+      <span class="site-principle-glyph">02</span>
+      <div><div class="site-principle-title">Systematic Idempotency</div><div class="site-principle-desc">All critical write operations (order creation, stock deduction, payment callbacks) use request IDs for idempotency. Redis stores a 24-hour idempotency table, safely degrading duplicate requests.</div></div>
+    </div>
+    <div class="site-principle">
+      <span class="site-principle-glyph">03</span>
+      <div><div class="site-principle-title">Graceful Degradation</div><div class="site-principle-desc">Sentinel circuit breaking + service degradation is a default configuration, not an optional feature. Every Feign call has a fallback, every cache miss has protection. The system degrades rather than avalanches.</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="dp-section" data-tags="all nongoals">
+  <div class="site-section-header"><span class="site-section-num">X</span><span class="site-section-title">Non-Goals</span></div>
+  <p class="site-prose">Knowing what not to do is harder than knowing what to do. These are things we deliberately avoid — constraints that sharpen our architectural focus.</p>
+  <div class="site-nongoal-list">
+    <div class="site-nongoal-item">
+      <span class="site-nongoal-x">✕</span>
+      <div><span class="site-nongoal-title">No pursuit of 100% availability</span> — Our SLO target is 99.9% (~43 minutes downtime per month). This means we don't need multi-region active-active deployment, unitized architecture, or cross-AZ real-time sync. This restraint lets us focus resources on what matters.</div>
+    </div>
+    <div class="site-nongoal-item">
+      <span class="site-nongoal-x">✕</span>
+      <div><span class="site-nongoal-title">No pursuit of "technical novelty"</span> — We prefer mature, battle-tested technologies. Kubernetes is our infrastructure foundation, but we don't adopt Service Mesh; we use PostgreSQL over NewSQL databases; we choose classic message queues over event streaming platforms. Innovation is confined to the business logic layer.</div>
+    </div>
+    <div class="site-nongoal-item">
+      <span class="site-nongoal-x">✕</span>
+      <div><span class="site-nongoal-title">Not a general-purpose platform</span> — SCM Platform is designed for mid-to-large enterprise supply chains, not a general-purpose PaaS. We assume users have dedicated operations teams, clear domain expertise, and customization needs. We don't aim to be an "out-of-the-box" SaaS product.</div>
+    </div>
+    <div class="site-nongoal-item">
+      <span class="site-nongoal-x">✕</span>
+      <div><span class="site-nongoal-title">No promise of "zero configuration"</span> — Good architecture requires understanding. We don't try to hide complexity behind excessive abstractions — every service's startup order, configuration meaning, and database initialization scripts need to be understood. Documentation doesn't replace knowledge, but it lowers the barrier to acquiring it.</div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="site-footer-inner">
+    <div class="site-footer-left">SCM Platform &middot; Apache 2.0 License</div>
+    <div class="site-footer-right">Built for Enterprise Supply Chain</div>
+  </div>
+</footer>
+
+<script>
+function show(tag) {
+  document.querySelectorAll('.site-nav-pill').forEach(function(p) { p.classList.remove('active'); });
+  event.target.classList.add('active');
+  document.querySelectorAll('.dp-section').forEach(function(s) {
+    var tags = s.dataset.tags || '';
+    s.classList.toggle('visible', tags.indexOf(tag) !== -1);
+  });
+}
+</script>
+
+</body>
+</html>

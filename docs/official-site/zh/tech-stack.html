@@ -15,6 +15,8 @@
   --border: #e8e8e4; --border2: #d4d4d0;
   --accent: #2563eb; --green: #16a34a; --red: #dc2626; --amber: #d97706;
 }
+.lang-switch { font-family: var(--mono); font-size: 10px; padding: 4px 10px; border-radius: 6px; color: var(--t3); text-decoration: none; border: .5px solid var(--border); transition: color .15s, background .15s; letter-spacing: .02em; margin-left: 8px; }
+.lang-switch:hover { color: var(--t1); background: var(--bg2); }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: var(--sans); background: var(--bg); color: var(--t1); -webkit-font-smoothing: antialiased; }
 
@@ -80,6 +82,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); -webki
       <a href="architecture.html">架构</a>
       <a href="philosophy.html">理念</a>
       <a href="tech-stack.html" class="active">技术栈</a>
+      <a href="../en/tech-stack.html" class="lang-switch">English</a>
     </nav>
   </div>
 </header>

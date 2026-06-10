@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SCM Platform — 企业级供应链管理平台</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&family=Noto+Serif+SC:wght@400;500;600&display=swap');
+:root {
+  --mono: 'JetBrains Mono', monospace;
+  --serif: 'Instrument Serif', 'Noto Serif SC', serif;
+  --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --bg: #fafaf8; --bg2: #f5f5f0; --bg-card: #ffffff;
+  --t1: #1a1a18; --t2: #5a5a56; --t3: #8a8a86;
+  --border: #e8e8e4; --border2: #d4d4d0;
+  --accent: #2563eb; --green: #16a34a; --red: #dc2626; --amber: #d97706;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--sans); background: var(--bg); color: var(--t1); -webkit-font-smoothing: antialiased; }
+.lang-switch { font-family: var(--mono); font-size: 10px; padding: 4px 10px; border-radius: 6px; color: var(--t3); text-decoration: none; border: .5px solid var(--border); transition: color .15s, background .15s; letter-spacing: .02em; margin-left: 8px; }
+.lang-switch:hover { color: var(--t1); background: var(--bg2); }
+
+/* Header */
+.site-header { position: sticky; top: 0; z-index: 100; background: rgba(250,250,248,.85); backdrop-filter: blur(12px); border-bottom: .5px solid var(--border); }
+.site-header-inner { max-width: 960px; margin: 0 auto; padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; }
+.site-logo { font-family: var(--mono); font-size: 13px; font-weight: 500; color: var(--t1); text-decoration: none; }
+.site-nav { display: flex; gap: 4px; align-items: center; }
+.site-nav a { font-family: var(--mono); font-size: 11px; padding: 5px 12px; border-radius: 6px; color: var(--t3); text-decoration: none; transition: color .15s, background .15s; letter-spacing: .02em; }
+.site-nav a:hover, .site-nav a.active { color: var(--t1); background: var(--bg2); }
+.site-nav-cta { background: var(--t1) !important; color: var(--bg) !important; padding: 5px 14px !important; border-radius: 6px !important; }
+.site-nav-cta:hover { opacity: .85 !important; }
+
+/* Footer */
+.site-footer { border-top: .5px solid var(--border); padding: 32px 0; margin-top: 64px; }
+.site-footer-inner { max-width: 960px; margin: 0 auto; padding: 0 24px; display: flex; justify-content: space-between; align-items: center; }
+.site-footer-left { font-family: var(--mono); font-size: 11px; color: var(--t3); }
+.site-footer-right { font-family: var(--serif); font-size: 13px; font-style: italic; color: var(--t3); }
+
+/* Page */
+.site-page { max-width: 680px; margin: 0 auto; padding: 0 24px; }
+.site-hero { padding: 48px 0 32px; border-bottom: .5px solid var(--border); margin-bottom: 40px; }
+.site-hero-eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; color: var(--t3); text-transform: uppercase; margin-bottom: 16px; }
+.site-hero h1 { font-family: var(--serif); font-size: 34px; font-weight: 400; line-height: 1.15; color: var(--t1); margin-bottom: 16px; }
+.site-hero-sub { font-size: 15px; color: var(--t2); line-height: 1.65; max-width: 520px; }
+.site-section { margin-bottom: 48px; }
+.site-section-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: .5px solid var(--border); }
+.site-section-num { font-family: var(--mono); font-size: 11px; color: var(--t3); min-width: 20px; }
+.site-section-title { font-size: 15px; font-weight: 500; color: var(--t1); }
+.site-prose { font-size: 14px; line-height: 1.8; color: var(--t2); }
+.site-prose + .site-prose { margin-top: 12px; }
+.site-callout { border-left: 2px solid var(--border2); padding: 12px 16px; margin: 16px 0; font-family: var(--serif); font-size: 15px; font-style: italic; color: var(--t2); line-height: 1.6; }
+
+/* Pillar grid */
+.site-pillar-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
+.site-pillar-card { background: var(--bg-card); border: .5px solid var(--border); border-radius: 8px; padding: 14px 16px; }
+.site-pillar-label { font-family: var(--mono); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--t3); margin-bottom: 4px; }
+.site-pillar-title { font-size: 13px; font-weight: 500; color: var(--t1); margin-bottom: 4px; }
+.site-pillar-desc { font-size: 12px; color: var(--t2); line-height: 1.5; }
+
+/* Feature grid */
+.site-feature-grid { display: flex; flex-direction: column; gap: 0; margin: 16px 0; }
+.site-feature-row { display: grid; grid-template-columns: 180px 1fr; gap: 16px; padding: 16px 0; border-bottom: .5px solid var(--border); align-items: start; }
+.site-feature-row:last-child { border-bottom: none; }
+.site-feature-name { font-size: 13px; font-weight: 500; color: var(--t1); }
+.site-feature-port { font-family: var(--mono); font-size: 10px; color: var(--t3); margin-top: 2px; }
+.site-feature-desc { font-size: 13px; color: var(--t2); line-height: 1.6; }
+
+/* Landing */
+.site-landing-hero { padding: 80px 0 48px; text-align: center; }
+.site-landing-hero h1 { font-family: var(--serif); font-size: 48px; font-weight: 400; line-height: 1.1; color: var(--t1); margin-bottom: 20px; }
+.site-landing-hero-sub { font-size: 16px; color: var(--t2); line-height: 1.7; max-width: 560px; margin: 0 auto 32px; }
+.site-landing-cta { display: inline-flex; gap: 12px; }
+.site-landing-cta a { font-family: var(--mono); font-size: 12px; padding: 10px 24px; border-radius: 8px; text-decoration: none; transition: opacity .15s; }
+.site-landing-cta-primary { background: var(--t1); color: var(--bg); }
+.site-landing-cta-secondary { background: var(--bg2); color: var(--t1); border: .5px solid var(--border); }
+
+/* Highlight grid */
+.site-highlight-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin: 32px 0; }
+.site-highlight-card { background: var(--bg-card); border: .5px solid var(--border); border-radius: 8px; padding: 20px 16px; }
+.site-highlight-icon { font-size: 20px; margin-bottom: 12px; }
+.site-highlight-title { font-size: 13px; font-weight: 500; color: var(--t1); margin-bottom: 6px; }
+.site-highlight-desc { font-size: 12px; color: var(--t2); line-height: 1.5; }
+
+/* Tech bar */
+.site-tech-bar { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 24px 0; }
+.site-tech-tag { font-family: var(--mono); font-size: 10px; padding: 4px 10px; border-radius: 99px; border: .5px solid var(--border); color: var(--t3); background: var(--bg-card); }
+
+/* SLO grid */
+.site-slo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 16px 0; }
+.site-slo-card { background: var(--bg2); border-radius: 8px; padding: 12px; border: .5px solid var(--border); }
+.site-slo-op { font-size: 11px; color: var(--t2); margin-bottom: 8px; line-height: 1.4; }
+.site-slo-vals { display: flex; gap: 4px; flex-wrap: wrap; }
+.site-slo-val { font-family: var(--mono); font-size: 10px; padding: 2px 5px; border-radius: 4px; background: var(--bg-card); border: .5px solid var(--border); color: var(--t2); }
+.site-slo-label { font-family: var(--mono); font-size: 9px; color: var(--t3); }
+
+/* Philosophy nav pills */
+.site-nav-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 32px; }
+.site-nav-pill { font-family: var(--mono); font-size: 10px; padding: 4px 12px; border-radius: 99px; border: .5px solid var(--border); color: var(--t3); cursor: pointer; transition: background .15s, color .15s, border-color .15s; background: none; }
+.site-nav-pill:hover, .site-nav-pill.active { background: var(--bg2); color: var(--t1); border-color: var(--border2); }
+.dp-section { margin-bottom: 40px; display: none; }
+.dp-section.visible { display: block; }
+
+/* Tradeoff */
+.site-tradeoff { background: var(--bg2); border-radius: 8px; border: .5px solid var(--border); padding: 16px 20px; margin: 16px 0; }
+.site-tradeoff-head { font-family: var(--mono); font-size: 10px; letter-spacing: .07em; text-transform: uppercase; color: var(--t3); margin-bottom: 12px; }
+.site-tradeoff-row { display: grid; grid-template-columns: 80px 1fr; gap: 12px; padding: 8px 0; border-bottom: .5px solid var(--border); font-size: 13px; line-height: 1.5; align-items: start; }
+.site-tradeoff-row:last-child { border-bottom: none; }
+.site-tradeoff-label { font-family: var(--mono); font-size: 10px; padding-top: 2px; }
+.label-chosen { color: var(--green); }
+.label-rejected { color: var(--red); }
+.label-cost { color: var(--amber); }
+.site-tradeoff-text { color: var(--t2); }
+
+/* Principle list */
+.site-principle-list { display: flex; flex-direction: column; gap: 0; margin: 16px 0; }
+.site-principle { display: flex; gap: 14px; padding: 12px 0; border-bottom: .5px solid var(--border); align-items: flex-start; }
+.site-principle:last-child { border-bottom: none; }
+.site-principle-glyph { font-family: var(--mono); font-size: 11px; color: var(--t3); padding-top: 2px; min-width: 20px; }
+.site-principle-title { font-size: 13px; font-weight: 500; color: var(--t1); margin-bottom: 3px; }
+.site-principle-desc { font-size: 13px; color: var(--t2); line-height: 1.6; }
+
+/* Scale grid */
+.site-scale-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 16px 0; }
+.site-scale-card { border: .5px solid var(--border); border-radius: 8px; padding: 14px 16px; background: var(--bg-card); }
+.site-scale-label { font-family: var(--mono); font-size: 9px; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 6px; }
+.sl-easy { color: var(--green); } .sl-hard { color: var(--amber); } .sl-defer { color: var(--t3); }
+.site-scale-title { font-size: 13px; font-weight: 500; color: var(--t1); margin-bottom: 4px; }
+.site-scale-desc { font-size: 12px; color: var(--t2); line-height: 1.5; }
+
+/* Non-goal list */
+.site-nongoal-list { display: flex; flex-direction: column; gap: 0; margin: 12px 0; }
+.site-nongoal-item { display: flex; gap: 10px; padding: 10px 0; border-bottom: .5px solid var(--border); font-size: 13px; color: var(--t2); line-height: 1.5; }
+.site-nongoal-item:last-child { border-bottom: none; }
+.site-nongoal-x { font-family: var(--mono); font-size: 11px; color: var(--red); padding-top: 2px; min-width: 14px; }
+.site-nongoal-title { color: var(--t1); font-weight: 500; }
+
+/* Tech table */
+.site-tech-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 16px 0; }
+.site-tech-table th { font-family: var(--mono); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--t3); font-weight: 400; text-align: left; padding: 8px 12px 8px 0; border-bottom: .5px solid var(--border); }
+.site-tech-table td { padding: 10px 12px 10px 0; border-bottom: .5px solid var(--border); color: var(--t2); vertical-align: top; line-height: 1.5; }
+.site-tech-table td:first-child { color: var(--t1); font-weight: 500; white-space: nowrap; padding-right: 20px; }
+.site-tech-table tr:last-child td { border-bottom: none; }
+
+/* Flow steps */
+.site-flow { display: flex; flex-direction: column; gap: 0; margin: 16px 0; }
+.site-flow-step { display: grid; grid-template-columns: 40px 1fr; gap: 16px; padding: 16px 0; border-bottom: .5px solid var(--border); align-items: start; }
+.site-flow-step:last-child { border-bottom: none; }
+.site-flow-num { font-family: var(--mono); font-size: 11px; color: var(--t3); padding-top: 2px; }
+.site-flow-title { font-size: 13px; font-weight: 500; color: var(--t1); margin-bottom: 4px; }
+.site-flow-desc { font-size: 13px; color: var(--t2); line-height: 1.6; }
+
+/* Diagram */
+.site-diagram { background: var(--bg2); border-radius: 12px; border: .5px solid var(--border); padding: 20px; margin: 16px 0; overflow-x: auto; }
+.site-diagram svg { display: block; margin: 0 auto; }
+
+/* Code */
+.site-code { font-family: var(--mono); font-size: 12px; background: var(--bg2); padding: 1px 6px; border-radius: 4px; border: .5px solid var(--border); color: var(--t1); }
+.site-code-block { font-family: var(--mono); font-size: 12px; background: var(--bg2); padding: 16px 20px; border-radius: 8px; border: .5px solid var(--border); color: var(--t1); line-height: 1.6; overflow-x: auto; margin: 12px 0; white-space: pre; }
+
+@media (max-width: 640px) {
+  .site-pillar-grid, .site-highlight-grid, .site-slo-grid, .site-scale-grid { grid-template-columns: 1fr; }
+  .site-feature-row { grid-template-columns: 1fr; gap: 4px; }
+  .site-landing-hero h1 { font-size: 32px; }
+  .site-nav { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="site-header">
+  <div class="site-header-inner">
+    <a href="index.html" class="site-logo">SCM Platform</a>
+    <nav class="site-nav">
+      <a href="index.html" class="active">首页</a>
+      <a href="features.html">功能</a>
+      <a href="architecture.html">架构</a>
+      <a href="philosophy.html">理念</a>
+      <a href="tech-stack.html">技术栈</a>
+      <a href="../en/index.html" class="lang-switch">English</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<!-- Landing Hero -->
+<div style="max-width: 960px; margin: 0 auto; padding: 0 24px;">
+  <div class="site-landing-hero">
+    <div style="font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--t3);text-transform:uppercase;margin-bottom:16px;">enterprise supply chain management</div>
+    <h1>供应链管理，<br>重新设计</h1>
+    <div class="site-landing-hero-sub">
+      基于 Spring Boot 4 + Spring Cloud 2025 构建的云原生微服务供应链平台。15+ 独立服务、分布式事务、实时库存、AI 驱动决策——为高并发场景而生。
+    </div>
+    <div class="site-landing-cta">
+      <a href="architecture.html" class="site-landing-cta-primary">查看架构</a>
+      <a href="features.html" class="site-landing-cta-secondary">功能特性</a>
+    </div>
+  </div>
+</div>
+
+<!-- Highlights -->
+<div style="max-width: 960px; margin: 0 auto; padding: 0 24px;">
+  <div class="site-landing-hero-eyebrow" style="font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--t3);text-align:center;margin-bottom:32px;">核心能力</div>
+  <div class="site-highlight-grid">
+    <div class="site-highlight-card">
+      <div class="site-highlight-icon">🏗️</div>
+      <div class="site-highlight-title">微服务架构</div>
+      <div class="site-highlight-desc">15+ 独立可部署服务，API 网关、服务发现、配置中心一体化</div>
+    </div>
+    <div class="site-highlight-card">
+      <div class="site-highlight-icon">🔐</div>
+      <div class="site-highlight-title">企业级安全</div>
+      <div class="site-highlight-desc">OAuth2 + JWT + WebAuthn 无密码认证，RBAC 细粒度数据权限</div>
+    </div>
+    <div class="site-highlight-card">
+      <div class="site-highlight-icon">💰</div>
+      <div class="site-highlight-title">分布式事务</div>
+      <div class="site-highlight-desc">Seata AT/TCC/Saga 模式，跨服务数据一致性保障</div>
+    </div>
+    <div class="site-highlight-card">
+      <div class="site-highlight-icon">⚡</div>
+      <div class="site-highlight-title">高性能</div>
+      <div class="site-highlight-desc">Redis Lua 原子库存扣减，读写分离，数据库分片</div>
+    </div>
+    <div class="site-highlight-card">
+      <div class="site-highlight-icon">🔍</div>
+      <div class="site-highlight-title">全文搜索</div>
+      <div class="site-highlight-desc">Elasticsearch 驱动的商品搜索，Canal binlog 实时同步</div>
+    </div>
+    <div class="site-highlight-card">
+      <div class="site-highlight-icon">📊</div>
+      <div class="site-highlight-title">可观测性</div>
+      <div class="site-highlight-desc">Sentinel 熔断、SkyWalking 链路、Prometheus 指标、Grafana 看板</div>
+    </div>
+  </div>
+</div>
+
+<!-- Tech bar -->
+<div style="max-width: 960px; margin: 0 auto; padding: 0 24px;">
+  <div style="font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--t3);text-align:center;margin-bottom:16px;">技术栈概览</div>
+  <div class="site-tech-bar">
+    <span class="site-tech-tag">Spring Boot 4</span>
+    <span class="site-tech-tag">Java 21 VT</span>
+    <span class="site-tech-tag">PostgreSQL</span>
+    <span class="site-tech-tag">Redis</span>
+    <span class="site-tech-tag">Kafka</span>
+    <span class="site-tech-tag">Elasticsearch</span>
+    <span class="site-tech-tag">Next.js 15</span>
+    <span class="site-tech-tag">Docker</span>
+  </div>
+</div>
+
+<!-- Explore section -->
+<div style="max-width: 680px; margin: 48px auto; padding: 0 24px;">
+  <div class="site-section-header"><span class="site-section-num">→</span><span class="site-section-title">了解更多</span></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+    <a href="architecture.html" style="text-decoration:none;">
+      <div class="site-pillar-card"><div class="site-pillar-label">Architecture</div><div class="site-pillar-title">系统架构</div><div class="site-pillar-desc">微服务拓扑、核心模式、SLO 目标</div></div>
+    </a>
+    <a href="philosophy.html" style="text-decoration:none;">
+      <div class="site-pillar-card"><div class="site-pillar-label">Philosophy</div><div class="site-pillar-title">设计哲学</div><div class="site-pillar-desc">10 条设计原则，trade-off 决策记录</div></div>
+    </a>
+    <a href="features.html" style="text-decoration:none;">
+      <div class="site-pillar-card"><div class="site-pillar-label">Features</div><div class="site-pillar-title">功能特性</div><div class="site-pillar-desc">15 个业务模块全览</div></div>
+    </a>
+    <a href="tech-stack.html" style="text-decoration:none;">
+      <div class="site-pillar-card"><div class="site-pillar-label">Tech Stack</div><div class="site-pillar-title">技术栈</div><div class="site-pillar-desc">分层选型明细 + 关键决策</div></div>
+    </a>
+  </div>
+</div>
+
+</main>
+
+<footer class="site-footer">
+  <div class="site-footer-inner">
+    <div class="site-footer-left">SCM Platform &middot; Apache 2.0 License</div>
+    <div class="site-footer-right">为企业级供应链而生</div>
+  </div>
+</footer>
+
+</body>
+</html>

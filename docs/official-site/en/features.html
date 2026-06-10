@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCM Platform — 功能特性</title>
+<title>SCM Platform — Features</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&family=Noto+Serif+SC:wght@400;500;600&display=swap');
 :root {
@@ -15,6 +15,8 @@
   --border: #e8e8e4; --border2: #d4d4d0;
   --accent: #2563eb; --green: #16a34a; --red: #dc2626; --amber: #d97706;
 }
+.lang-switch { font-family: var(--mono); font-size: 10px; padding: 4px 10px; border-radius: 6px; color: var(--t3); text-decoration: none; border: .5px solid var(--border); transition: color .15s, background .15s; letter-spacing: .02em; margin-left: 8px; }
+.lang-switch:hover { color: var(--t1); background: var(--bg2); }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: var(--sans); background: var(--bg); color: var(--t1); -webkit-font-smoothing: antialiased; }
 
@@ -162,11 +164,12 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); -webki
   <div class="site-header-inner">
     <a href="index.html" class="site-logo">SCM Platform</a>
     <nav class="site-nav">
-      <a href="index.html">首页</a>
-      <a href="features.html" class="active">功能</a>
-      <a href="architecture.html">架构</a>
-      <a href="philosophy.html">理念</a>
-      <a href="tech-stack.html">技术栈</a>
+      <a href="index.html">Home</a>
+      <a href="features.html" class="active">Features</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="philosophy.html">Philosophy</a>
+      <a href="tech-stack.html">Tech Stack</a>
+      <a href="../zh/features.html" class="lang-switch">中文</a>
     </nav>
   </div>
 </header>
@@ -175,116 +178,116 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); -webki
 
 <div class="site-page">
   <div class="site-hero">
-    <div class="site-hero-eyebrow">平台模块</div>
-    <h1>功能特性</h1>
-    <div class="site-hero-sub">15 个独立模块覆盖供应链全流程——从采购到交付，从库存到财务。</div>
+    <div class="site-hero-eyebrow">Platform Modules</div>
+    <h1>Features</h1>
+    <div class="site-hero-sub">15 independent modules covering the full supply chain lifecycle — from procurement to delivery, from inventory to finance.</div>
   </div>
 
   <div class="site-feature-grid">
     <div class="site-feature-row">
       <div>
-        <div class="site-feature-name">API 网关</div>
+        <div class="site-feature-name">API Gateway</div>
         <div class="site-feature-port">:8761</div>
       </div>
-      <div class="site-feature-desc">统一路由入口，请求限流，跨切面处理。Sentinel 熔断降级保障系统稳定性。</div>
+      <div class="site-feature-desc">Unified routing entry, request rate limiting, cross-cutting concerns. Sentinel circuit breaking ensures system stability.</div>
     </div>
     <div class="site-feature-row">
       <div>
-        <div class="site-feature-name">认证服务</div>
+        <div class="site-feature-name">Authentication Service</div>
         <div class="site-feature-port">:8106</div>
       </div>
-      <div class="site-feature-desc">OAuth2 + JWT + WebAuthn 无密码登录。Token 刷新、会话管理、多因子认证。</div>
+      <div class="site-feature-desc">OAuth2 + JWT + WebAuthn passwordless login. Token refresh, session management, multi-factor authentication.</div>
     </div>
     <div class="site-feature-row">
       <div>
-        <div class="site-feature-name">系统管理</div>
+        <div class="site-feature-name">System Management</div>
         <div class="site-feature-port">:8081</div>
       </div>
-      <div class="site-feature-desc">用户、角色、权限、部门、字典、配置管理。RBAC 细粒度数据权限控制。</div>
+      <div class="site-feature-desc">Users, roles, permissions, departments, dictionaries, configuration management. RBAC fine-grained data access control.</div>
     </div>
     <div class="site-feature-row">
       <div>
-        <div class="site-feature-name">商品管理</div>
+        <div class="site-feature-name">Product Management</div>
         <div class="site-feature-port">:8201</div>
       </div>
-      <div class="site-feature-desc">SPU/SKU 体系、分类、品牌、属性管理。支持多规格商品和批量操作。</div>
+      <div class="site-feature-desc">SPU/SKU system, categories, brands, attribute management. Supports multi-spec products and batch operations.</div>
     </div>
     <div class="site-feature-row">
       <div>
-        <div class="site-feature-name">库存管理</div>
+        <div class="site-feature-name">Inventory Management</div>
         <div class="site-feature-port">:8202</div>
       </div>
-      <div class="site-feature-desc">实时库存、预留、预警、快照。Redis Lua 原子扣减，热路径零数据库查询。</div>
+      <div class="site-feature-desc">Real-time inventory, reservations, alerts, snapshots. Redis Lua atomic deduction, zero database queries on hot paths.</div>
     </div>
     <div class="site-feature-row">
       <div>
-        <div class="site-feature-name">订单管理</div>
+        <div class="site-feature-name">Order Management</div>
         <div class="site-feature-port">:8203</div>
       </div>
-      <div class="site-feature-desc">订单生命周期、状态机、支付、退款。Seata 分布式事务保障跨服务一致性。</div>
+      <div class="site-feature-desc">Order lifecycle, state machine, payments, refunds. Seata distributed transactions guarantee cross-service consistency.</div>
     </div>
     <div class="site-feature-row">
       <div>
-        <div class="site-feature-name">仓库管理</div>
+        <div class="site-feature-name">Warehouse Management</div>
         <div class="site-feature-port">:8204</div>
       </div>
-      <div class="site-feature-desc">出入库、波次拣货、库位管理。支持多仓多库区精细化运营。</div>
+      <div class="site-feature-desc">Inbound/outbound, wave picking, location management. Supports multi-warehouse, multi-zone fine-grained operations.</div>
     </div>
     <div class="site-feature-row">
       <div>
-        <div class="site-feature-name">物流管理</div>
+        <div class="site-feature-name">Logistics Management</div>
         <div class="site-feature-port">:8205</div>
       </div>
-      <div class="site-feature-desc">承运商、运单、轨迹追踪、路线优化。对接主流物流平台。</div>
+      <div class="site-feature-desc">Carriers, waybills, tracking, route optimization. Integrated with major logistics platforms.</div>
     </div>
     <div class="site-feature-row">
       <div>
-        <div class="site-feature-name">供应商管理</div>
+        <div class="site-feature-name">Supplier Management</div>
         <div class="site-feature-port">:8206</div>
       </div>
-      <div class="site-feature-desc">供应商入驻、评估、结算。供应商全生命周期管理。</div>
+      <div class="site-feature-desc">Supplier onboarding, evaluation, settlement. Full supplier lifecycle management.</div>
     </div>
     <div class="site-feature-row">
       <div>
-        <div class="site-feature-name">采购管理</div>
+        <div class="site-feature-name">Procurement Management</div>
         <div class="site-feature-port">&mdash;</div>
       </div>
-      <div class="site-feature-desc">询价、报价、合同、采购单。采购全流程数字化。</div>
+      <div class="site-feature-desc">Inquiry, quotation, contracts, purchase orders. Digitalized procurement workflow.</div>
     </div>
     <div class="site-feature-row">
       <div>
-        <div class="site-feature-name">财务管理</div>
+        <div class="site-feature-name">Financial Management</div>
         <div class="site-feature-port">&mdash;</div>
       </div>
-      <div class="site-feature-desc">结算、发票、运费规则、对账。财务与业务数据一体化。</div>
+      <div class="site-feature-desc">Settlement, invoicing, freight rules, reconciliation. Integrated financial and business data.</div>
     </div>
     <div class="site-feature-row">
       <div>
-        <div class="site-feature-name">租户管理</div>
+        <div class="site-feature-name">Tenant Management</div>
         <div class="site-feature-port">&mdash;</div>
       </div>
-      <div class="site-feature-desc">租户生命周期、套餐、特性开关。按租户粒度的功能和数据隔离。</div>
+      <div class="site-feature-desc">Tenant lifecycle, plans, feature toggles. Per-tenant data and functionality isolation.</div>
     </div>
     <div class="site-feature-row">
       <div>
-        <div class="site-feature-name">审批流程</div>
+        <div class="site-feature-name">Approval Workflow</div>
         <div class="site-feature-port">&mdash;</div>
       </div>
-      <div class="site-feature-desc">可配置审批流程引擎。支持多级审批、条件分支、加签转签。</div>
+      <div class="site-feature-desc">Configurable approval workflow engine. Supports multi-level approval, conditional branching, countersigning.</div>
     </div>
     <div class="site-feature-row">
       <div>
-        <div class="site-feature-name">审计日志</div>
+        <div class="site-feature-name">Audit Log</div>
         <div class="site-feature-port">&mdash;</div>
       </div>
-      <div class="site-feature-desc">操作日志、敏感操作追踪。完整的行为审计链。</div>
+      <div class="site-feature-desc">Operation logging, sensitive action tracking. Complete behavioral audit trail.</div>
     </div>
     <div class="site-feature-row">
       <div>
-        <div class="site-feature-name">通知服务</div>
+        <div class="site-feature-name">Notification Service</div>
         <div class="site-feature-port">&mdash;</div>
       </div>
-      <div class="site-feature-desc">模板化消息、多渠道投递（站内信、邮件、短信、Webhook）。</div>
+      <div class="site-feature-desc">Template-based messaging, multi-channel delivery (in-app, email, SMS, Webhook).</div>
     </div>
   </div>
 </div>
@@ -294,7 +297,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); -webki
 <footer class="site-footer">
   <div class="site-footer-inner">
     <div class="site-footer-left">SCM Platform &middot; Apache 2.0 License</div>
-    <div class="site-footer-right">为企业级供应链而生</div>
+    <div class="site-footer-right">Built for Enterprise Supply Chain</div>
   </div>
 </footer>
 
