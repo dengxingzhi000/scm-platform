@@ -32,7 +32,7 @@ public class DeptRoleCrossDatabaseCommandService {
      * @param deptId 閮ㄩ棬 ID
      * @return 鍒犻櫎琛屾暟
      */
-    @Master(reason = "鍐欐搷浣滃繀椤昏蛋涓诲簱")
+    @Master(reason = "Write operation must use master database")
     @Transactional(rollbackFor = Exception.class)
     public int deleteRoleDeptsByDeptId(UUID deptId) {
         if (deptId == null) {

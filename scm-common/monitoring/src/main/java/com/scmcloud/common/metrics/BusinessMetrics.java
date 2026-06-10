@@ -40,7 +40,7 @@ public class BusinessMetrics {
         counterCache.computeIfAbsent(key, k ->
                 Counter.builder(metricName)
                         .tags(tags)
-                        .description("涓氬姟璁℃暟鎸囨爣: " + metricName)
+                        .description("Business count metric: " + metricName)
                         .register(registry)
         ).increment();
     }
@@ -54,7 +54,7 @@ public class BusinessMetrics {
         timerCache.computeIfAbsent(key, k ->
                 Timer.builder(metricName)
                         .tags(tags)
-                        .description("涓氬姟鑰楁椂鎸囨爣: " + metricName)
+                        .description("Business timing metric: " + metricName)
                         .publishPercentiles(0.5, 0.9, 0.95, 0.99)
                         .publishPercentileHistogram()
                         .register(registry)
@@ -70,7 +70,7 @@ public class BusinessMetrics {
         summaryCache.computeIfAbsent(key, k ->
                 DistributionSummary.builder(metricName)
                         .tags(tags)
-                        .description("涓氬姟鍒嗗竷鎸囨爣: " + metricName)
+                        .description("Business distribution metric: " + metricName)
                         .publishPercentiles(0.5, 0.9, 0.95, 0.99)
                         .register(registry)
         ).record(value);
@@ -86,7 +86,7 @@ public class BusinessMetrics {
             AtomicLong atomic = new AtomicLong(value);
             Gauge.builder(metricName, atomic, AtomicLong::get)
                     .tags(tags)
-                    .description("涓氬姟鐘舵€佹寚锟?" + metricName)
+                    .description("Business status metric: " + metricName)
                     .register(registry);
             return atomic;
         });
@@ -141,7 +141,7 @@ public class BusinessMetrics {
      */
     public void recordExpiringPermissions(int count) {
         Gauge.builder("business.permissions.expiring", () -> count)
-                .description("鍗冲皢杩囨湡鐨勪复鏃舵潈闄愭暟閲?)
+                .description("Number of expiring temporary permissions")
                 .register(registry);
     }
 }

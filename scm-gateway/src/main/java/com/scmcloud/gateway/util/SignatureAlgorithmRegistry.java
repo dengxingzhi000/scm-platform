@@ -43,7 +43,7 @@ public class SignatureAlgorithmRegistry {
             );
         }
 
-        log.info("锟紻efault signature algorithm 'HMAC-SHA256-V1' validated successfully");
+        log.info("[SignatureAlgorithmRegistry] Default signature algorithm 'HMAC-SHA256-V1' validated successfully");
     }
 
     public SignatureAlgorithm getAlgorithm(String version) {

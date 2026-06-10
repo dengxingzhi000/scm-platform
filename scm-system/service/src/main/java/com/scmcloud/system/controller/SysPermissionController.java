@@ -44,7 +44,7 @@ public class SysPermissionController {
     @PostMapping
     @PreAuthorize("hasAuthority('system:permission:add')")
     @AuditLog(
-            operation = "鏂板鏉冮檺",
+            operation = "Add permission",
             businessType = "PERMISSION",
             riskLevel = 4
     )

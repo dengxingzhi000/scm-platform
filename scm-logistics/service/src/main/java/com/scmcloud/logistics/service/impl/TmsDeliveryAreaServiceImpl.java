@@ -20,7 +20,7 @@ public class TmsDeliveryAreaServiceImpl extends ServiceImpl<TmsDeliveryAreaMappe
 
     @Override
     public Page<TmsDeliveryArea> pageList(int page, int size, String carrierId, String province, String city) {
-        log.debug("鏌ヨ閰嶉€佸尯鍩熷垪锟?page={}, size={}, carrierId={}, province={}, city={}", page, size, carrierId, province, city);
+        log.debug("Query delivery area list: page={}, size={}, carrierId={}, province={}, city={}", page, size, carrierId, province, city);
 
         LambdaQueryWrapper<TmsDeliveryArea> wrapper = Wrappers.lambdaQuery();
         if (StringUtils.hasText(carrierId)) {
@@ -40,7 +40,7 @@ public class TmsDeliveryAreaServiceImpl extends ServiceImpl<TmsDeliveryAreaMappe
 
     @Override
     public List<TmsDeliveryArea> listByCarrier(String carrierId) {
-        log.debug("鏍规嵁鐗╂祦鍟嗘煡璇㈤厤閫佸尯锟?carrierId={}", carrierId);
+        log.debug("Query delivery area by carrier: carrierId={}", carrierId);
         return lambdaQuery()
                 .eq(TmsDeliveryArea::getCarrierId, carrierId)
                 .eq(TmsDeliveryArea::getDeleted, false)
@@ -49,7 +49,7 @@ public class TmsDeliveryAreaServiceImpl extends ServiceImpl<TmsDeliveryAreaMappe
 
     @Override
     public boolean checkCoverage(String carrierId, String province, String city, String district) {
-        log.debug("妫€鏌ュ尯鍩熻锟?carrierId={}, province={}, city={}, district={}", carrierId, province, city, district);
+        log.debug("Check area coverage: carrierId={}, province={}, city={}, district={}", carrierId, province, city, district);
 
         LambdaQueryWrapper<TmsDeliveryArea> wrapper = Wrappers.lambdaQuery();
         wrapper.eq(TmsDeliveryArea::getCarrierId, carrierId);

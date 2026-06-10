@@ -22,7 +22,7 @@ public class TmsTrackingServiceImpl extends ServiceImpl<TmsTrackingMapper, TmsTr
 
     @Override
     public List<TmsTracking> listByWaybillId(String waybillId) {
-        log.debug("鏍规嵁杩愬崟ID鏌ヨ鐗╂祦杞ㄨ抗: waybillId={}", waybillId);
+        log.debug("Query tracking by waybill ID: waybillId={}", waybillId);
         return lambdaQuery()
                 .eq(TmsTracking::getWaybillId, waybillId)
                 .orderByDesc(TmsTracking::getTrackTime)
@@ -31,7 +31,7 @@ public class TmsTrackingServiceImpl extends ServiceImpl<TmsTrackingMapper, TmsTr
 
     @Override
     public List<TmsTracking> listByWaybillNo(String waybillNo) {
-        log.debug("鏍规嵁杩愬崟鍙锋煡璇㈢墿娴佽建锟?waybillNo={}", waybillNo);
+        log.debug("Query tracking by waybill number: waybillNo={}", waybillNo);
         return lambdaQuery()
                 .eq(TmsTracking::getWaybillNo, waybillNo)
                 .orderByDesc(TmsTracking::getTrackTime)
@@ -40,7 +40,7 @@ public class TmsTrackingServiceImpl extends ServiceImpl<TmsTrackingMapper, TmsTr
 
     @Override
     public Page<TmsTracking> pageList(int page, int size, String waybillNo, String trackStatus) {
-        log.debug("鍒嗛〉鏌ヨ鐗╂祦杞ㄨ抗: page={}, size={}, waybillNo={}, trackStatus={}", page, size, waybillNo, trackStatus);
+        log.debug("Page query tracking: page={}, size={}, waybillNo={}, trackStatus={}", page, size, waybillNo, trackStatus);
 
         LambdaQueryWrapper<TmsTracking> wrapper = Wrappers.lambdaQuery();
         if (StringUtils.hasText(waybillNo)) {

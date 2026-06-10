@@ -50,14 +50,14 @@ public class ReconciliationRecordServiceImpl extends ServiceImpl<ReconciliationR
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ReconciliationRecord reconcile(String id, String reconcilerId, String reconcilerName) {
-        log.info("鎵ц瀵硅处: id={}, reconciler={}", id, reconcilerName);
+        log.info("Execute reconciliation: id={}, reconciler={}", id, reconcilerName);
 
         ReconciliationRecord record = getById(id);
         if (record == null || Boolean.TRUE.equals(record.getDeleted())) {
-            throw new IllegalArgumentException("瀵硅处璁板綍涓嶅瓨锟?" + id);
+            throw new IllegalArgumentException("Reconciliation record not found: " + id);
         }
         if (record.getStatus() != 0) {
-            throw new IllegalStateException("鍙湁寰呭璐︾姸鎬佺殑璁板綍鎵嶈兘瀵硅处, 褰撳墠鐘讹拷 " + record.getStatus());
+            throw new IllegalStateException("Only pending records can be reconciled, current status: " + record.getStatus());
         }
 
         record.setStatus(1);
@@ -68,25 +68,25 @@ public class ReconciliationRecordServiceImpl extends ServiceImpl<ReconciliationR
 
         if (Boolean.TRUE.equals(record.getHasDiff())) {
             record.setStatus(3);
-            log.warn("瀵硅处瀛樺湪宸紓: id={}, diffAmount={}", id, record.getDiffAmount());
+            log.warn("Reconciliation has differences: id={}, diffAmount={}", id, record.getDiffAmount());
         }
 
         updateById(record);
-        log.info("瀵硅处瀹屾垚: id={}, status={}", id, record.getStatus());
+        log.info("Reconciliation completed: id={}, status={}", id, record.getStatus());
         return record;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ReconciliationRecord confirm(String id, String confirmerId, String confirmerName) {
-        log.info("纭瀵硅处: id={}, confirmer={}", id, confirmerName);
+        log.info("Confirm reconciliation: id={}, confirmer={}", id, confirmerName);
 
         ReconciliationRecord record = getById(id);
         if (record == null || Boolean.TRUE.equals(record.getDeleted())) {
-            throw new IllegalArgumentException("瀵硅处璁板綍涓嶅瓨锟?" + id);
+            throw new IllegalArgumentException("Reconciliation record not found: " + id);
         }
         if (record.getStatus() != 1 && record.getStatus() != 3) {
-            throw new IllegalStateException("鍙湁宸插璐︽垨鏈夊樊寮傜姸鎬佺殑璁板綍鎵嶈兘纭, 褰撳墠鐘讹拷 " + record.getStatus());
+            throw new IllegalStateException("Only reconciled or diff records can be confirmed, current status: " + record.getStatus());
         }
 
         record.setStatus(2);
@@ -96,22 +96,18 @@ public class ReconciliationRecordServiceImpl extends ServiceImpl<ReconciliationR
         record.setUpdateTime(LocalDateTime.now());
 
         updateById(record);
-        log.info("瀵硅处纭鎴愬姛: id={}", id);
+        log.info("Reconciliation confirmed successfully: id={}", id);
         return record;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ReconciliationRecord markAsDiff(String id, String diffReason) {
-        log.info("鏍囪瀵硅处宸紓: id={}, reason={}", id, diffReason);
+        log.info("Mark reconciliation difference: id={}, reason={}", id, diffReason);
 
         ReconciliationRecord record = getById(id);
         if (record == null || Boolean.TRUE.equals(record.getDeleted())) {
-            throw new IllegalArgumentException("瀵硅处璁板綍涓嶅瓨锟?" + id);
-        }
-
-        record.setStatus(3);
-        record.setHasDiff(true);
+            throw new IllegalArgumentException("Reconciliation record not found: " + id);
         record.setDiffReason(diffReason);
         record.setUpdateTime(LocalDateTime.now());
 

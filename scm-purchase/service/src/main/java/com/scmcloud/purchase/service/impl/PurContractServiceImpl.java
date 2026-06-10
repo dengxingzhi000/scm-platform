@@ -80,7 +80,7 @@ public class PurContractServiceImpl extends ServiceImpl<PurContractMapper, PurCo
     public boolean sign(String id, String signedBy, String signedByName) {
         PurContract contract = getById(id);
         if (contract == null || contract.getDeleted()) {
-            throw new IllegalArgumentException("鍚堝悓涓嶅瓨锟?" + id);
+            throw new IllegalArgumentException("Contract not found: " + id);
         }
         statusValidator.validateTransition("PURCHASE", "PENDING_APPROVAL", "APPROVED");
         contract.setStatus(2); // APPROVED
@@ -96,7 +96,7 @@ public class PurContractServiceImpl extends ServiceImpl<PurContractMapper, PurCo
     public boolean terminate(String id) {
         PurContract contract = getById(id);
         if (contract == null || contract.getDeleted()) {
-            throw new IllegalArgumentException("鍚堝悓涓嶅瓨锟?" + id);
+            throw new IllegalArgumentException("Contract not found: " + id);
         }
         String fromStatus;
         switch (contract.getStatus()) {

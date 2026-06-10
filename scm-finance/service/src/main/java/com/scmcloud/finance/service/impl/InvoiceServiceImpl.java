@@ -22,7 +22,7 @@ public class InvoiceServiceImpl extends ServiceImpl<InvoiceMapper, Invoice> impl
 
     @Override
     public List<Invoice> listByPartyId(String partyId) {
-        log.debug("鎸夊線鏉ユ柟鏌ヨ鍙戠エ: partyId={}", partyId);
+        log.debug("Query invoices by party: partyId={}", partyId);
         LambdaQueryWrapper<Invoice> wrapper = Wrappers.lambdaQuery();
         wrapper.eq(StringUtils.hasText(partyId), Invoice::getPartyId, partyId)
                 .eq(Invoice::getDeleted, false)
@@ -33,14 +33,14 @@ public class InvoiceServiceImpl extends ServiceImpl<InvoiceMapper, Invoice> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Invoice issueInvoice(String id, String issuerName) {
-        log.info("寮€鍏峰彂锟?id={}, issuer={}", id, issuerName);
+        log.info("Issue invoice: id={}, issuer={}", id, issuerName);
 
         Invoice invoice = getById(id);
         if (invoice == null || Boolean.TRUE.equals(invoice.getDeleted())) {
-            throw new IllegalArgumentException("鍙戠エ涓嶅瓨锟?" + id);
+            throw new IllegalArgumentException("Invoice not found: " + id);
         }
         if (invoice.getStatus() != 0) {
-            throw new IllegalStateException("鍙湁鑽夌鐘舵€佺殑鍙戠エ鎵嶈兘寮€锟?褰撳墠鐘讹拷 " + invoice.getStatus());
+            throw new IllegalStateException("Only draft invoices can be issued, current status: " + invoice.getStatus());
         }
 
         invoice.setStatus(1);
@@ -50,7 +50,7 @@ public class InvoiceServiceImpl extends ServiceImpl<InvoiceMapper, Invoice> impl
         invoice.setUpdateBy(issuerName);
 
         updateById(invoice);
-        log.info("鍙戠エ寮€鍏锋垚锟?id={}, invoiceNo={}", id, invoice.getInvoiceNo());
+        log.info("Invoice issued successfully: id={}, invoiceNo={}", id, invoice.getInvoiceNo());
         return invoice;
     }
 
@@ -61,31 +61,31 @@ public class InvoiceServiceImpl extends ServiceImpl<InvoiceMapper, Invoice> impl
 
         Invoice invoice = getById(id);
         if (invoice == null || Boolean.TRUE.equals(invoice.getDeleted())) {
-            throw new IllegalArgumentException("鍙戠エ涓嶅瓨锟?" + id);
+            throw new IllegalArgumentException("Invoice not found: " + id);
         }
         if (invoice.getStatus() == 3 || invoice.getStatus() == 4) {
-            throw new IllegalStateException("鍙戠エ宸蹭綔搴熸垨宸茬孩锟?涓嶈兘鍐嶆浣滃簾");
+            throw new IllegalStateException("Invoice already voided or red-flushed, cannot void again");
         }
 
         invoice.setStatus(3);
         invoice.setUpdateTime(LocalDateTime.now());
 
         updateById(invoice);
-        log.info("鍙戠エ浣滃簾鎴愬姛: id={}", id);
+        log.info("Invoice voided successfully: id={}", id);
         return invoice;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Invoice redFlushInvoice(String id) {
-        log.info("绾㈠啿鍙戠エ: id={}", id);
+        log.info("Red-flush invoice: id={}", id);
 
         Invoice invoice = getById(id);
         if (invoice == null || Boolean.TRUE.equals(invoice.getDeleted())) {
-            throw new IllegalArgumentException("鍙戠エ涓嶅瓨锟?" + id);
+            throw new IllegalArgumentException("Invoice not found: " + id);
         }
         if (invoice.getStatus() != 1 && invoice.getStatus() != 2) {
-            throw new IllegalStateException("鍙湁宸插紑鍏锋垨宸查偖瀵勭殑鍙戠エ鎵嶈兘绾㈠啿, 褰撳墠鐘讹拷 " + invoice.getStatus());
+            throw new IllegalStateException("Only issued or mailed invoices can be red-flushed, current status: " + invoice.getStatus());
         }
 
         invoice.setStatus(4);

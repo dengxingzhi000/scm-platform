@@ -85,28 +85,28 @@ public class SysAuthServiceImpl implements ISysAuthService {
             
             // 楠岃瘉鐢ㄦ埛瀵硅薄闈炵┖
             if (user == null) {
-                auditLogService.recordLoginFailure(username, ipAddress, "璁よ瘉澶辫触锛氱敤鎴蜂俊鎭负绌?);
-                throw new BadCredentialsException("璁よ瘉澶辫触");
+                auditLogService.recordLoginFailure(username, ipAddress, "Authentication failed: user info is empty");
+                throw new BadCredentialsException("Authentication failed");
             }
 
             // 4. 妫€鏌ュ弻鍥犵礌璁よ瘉锛圡FA锟?
             if (Boolean.TRUE.equals(user.getTwoFactorEnabled())) {
                 // 淇: MFA 鍚敤鏃跺繀椤绘彁渚涢獙璇佺爜
                 if (!StringUtils.hasText(request.getTwoFactorCode())) {
-                    auditLogService.recordLoginFailure(username, ipAddress, "MFA宸插惎鐢ㄤ絾鏈彁渚涢獙璇佺爜");
+                    auditLogService.recordLoginFailure(username, ipAddress, "MFA enabled but verification code not provided");
                     businessMetrics.recordLoginAttempt(false, "mfa");
-                    throw new BadCredentialsException("鍙屽洜绱犺璇佸凡鍚敤锛屽繀椤绘彁渚涢獙璇佺爜");
+                    throw new BadCredentialsException("Two-factor authentication enabled, verification code required");
                 }
                 if (!verifyTwoFactor(user.getTwoFactorSecret(), request.getTwoFactorCode(), user.getUserId())) {
-                    auditLogService.recordLoginFailure(username, ipAddress, "鍙屽洜绱犺璇佸け璐?);
+                    auditLogService.recordLoginFailure(username, ipAddress, "Two-factor verification failed");
                     businessMetrics.recordLoginAttempt(false, "mfa");
-                    throw new BadCredentialsException("鍙屽洜绱犺璇佺爜閿欒");
+                    throw new BadCredentialsException("Two-factor verification code incorrect");
                 }
             }
 
             // 5. 妫€鏌ュ瘑鐮佹槸鍚﹁繃锟?
             if (user.getPasswordExpireTime() != null && user.getPasswordExpireTime().isBefore(LocalDateTime.now())) {
-                auditLogService.recordLogin(user.getUserId(), username, ipAddress, true, "瀵嗙爜宸茶繃鏈?);
+                auditLogService.recordLogin(user.getUserId(), username, ipAddress, true, "Password expired");
                 // 淇: 瀵嗙爜杩囨湡鏃朵笉杩斿洖 token锛屾樉寮忚缃负 null 闃叉瀹夊叏婕忔礊
                 return LoginResponse.builder()
                         .accessToken(null)
@@ -114,7 +114,7 @@ public class SysAuthServiceImpl implements ISysAuthService {
                         .userId(user.getUserId())
                         .username(username)
                         .needChangePassword(true)
-                        .message("瀵嗙爜宸茶繃鏈燂紝璇蜂慨鏀瑰瘑鐮?)
+                        .message("Password has expired, please change your password")
                         .build();
             }
 
@@ -139,7 +139,7 @@ public class SysAuthServiceImpl implements ISysAuthService {
             }
 
             // 9. 璁板綍鐧诲綍鏃ュ織
-            auditLogService.recordLogin(user.getUserId(), username, ipAddress, true, "鐧诲綍鎴愬姛");
+            auditLogService.recordLogin(user.getUserId(), username, ipAddress, true, "Login successful");
 
             // 10. 璁板綍鐧诲綍鎴愬姛鎸囨爣
             businessMetrics.recordLogin(true, deviceId);
@@ -165,9 +165,9 @@ public class SysAuthServiceImpl implements ISysAuthService {
             auditLogService.recordLoginFailure(username, ipAddress, e.getMessage());
 
             int remainingAttempts = securityProperties.getMaxLoginAttempts() - getLoginAttempts(username);
-            String message = "鐢ㄦ埛鍚嶆垨瀵嗙爜閿欒";
+            String message = "Invalid username or password";
             if (remainingAttempts > 0) {
-                message += "锛岃繕鍙皾璇? + remainingAttempts + " 娆?;
+                message += ", attempts remaining: " + remainingAttempts;
             }
 
             log.warn("Login failed for user: {}, IP: {}, Reason: {}", username, ipAddress, e.getMessage());
@@ -229,8 +229,8 @@ public class SysAuthServiceImpl implements ISysAuthService {
 
     @Override
     public void logout(String token, UUID userId, String reason) {
-        jwtUtils.revokeToken(token, reason != null ? reason : "鐢ㄦ埛涓诲姩鐧诲嚭");
-        auditLogService.recordLogout(userId, "鐧诲嚭鎴愬姛");
+        jwtUtils.revokeToken(token, reason != null ? reason : "User initiated logout");
+        auditLogService.recordLogout(userId, "Logout successful");
         log.info("User logout: UserId={}", userId);
     }
 
@@ -238,7 +238,7 @@ public class SysAuthServiceImpl implements ISysAuthService {
     public LoginResponse refreshToken(String refreshToken, String deviceId, String ipAddress) {
         // 淇: 绉婚櫎閫昏緫鍙嶈浆 - isRefreshTokenInvalid() 杩斿洖 true 琛ㄧず鏃犳晥
         if (jwtUtils.isRefreshTokenInvalid(refreshToken)) {
-            throw new BadCredentialsException("鍒锋柊浠ょ墝鏃犳晥鎴栧凡杩囨湡");
+            throw new BadCredentialsException("Refresh token invalid or expired");
         }
 
         UUID userId = jwtUtils.getUserIdFromToken(refreshToken);
@@ -267,7 +267,7 @@ public class SysAuthServiceImpl implements ISysAuthService {
     @Override
     public void forceLogout(UUID userId, String reason) {
         jwtUtils.revokeAllUserTokens(userId);
-        auditLogService.recordLogout(userId, "绠＄悊鍛樺己鍒朵笅锟?" + reason);
+        auditLogService.recordLogout(userId, "Admin force logout: " + reason);
         log.info("User force logout: UserId={}, Reason={}", userId, reason);
     }
 }

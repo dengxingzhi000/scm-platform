@@ -28,7 +28,7 @@ public class SettlementOrderServiceImpl extends ServiceImpl<SettlementOrderMappe
     @Override
     @Transactional(rollbackFor = Exception.class)
     public SettlementOrder createSettlement(SettlementOrder order) {
-        log.info("鍒涘缓缁撶畻锟?partnerName={}, settlementType={}", order.getPartnerName(), order.getSettlementType());
+        log.info("Create settlement order: partnerName={}, settlementType={}", order.getPartnerName(), order.getSettlementType());
 
         order.setId(UUIDv7Util.generateString());
         order.setSettlementNo(generateSettlementNo());
@@ -41,17 +41,17 @@ public class SettlementOrderServiceImpl extends ServiceImpl<SettlementOrderMappe
 
         boolean success = save(order);
         if (!success) {
-            throw new RuntimeException("鍒涘缓缁撶畻鍗曞け璐?);
+            throw new RuntimeException("Failed to create settlement order");
         }
 
-        log.info("缁撶畻鍗曞垱寤烘垚鍔?id={}, settlementNo={}", order.getId(), order.getSettlementNo());
+        log.info("Settlement order created successfully: id={}, settlementNo={}", order.getId(), order.getSettlementNo());
         return order;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public SettlementOrder confirmSettlement(String id, String approverId, String approverName) {
-        log.info("纭缁撶畻锟?id={}, approver={}", id, approverName);
+        log.info("Confirm settlement: id={}, approver={}", id, approverName);
 
         SettlementOrder order = getById(id);
         if (order == null || Boolean.TRUE.equals(order.getDeleted())) {
@@ -66,17 +66,17 @@ public class SettlementOrderServiceImpl extends ServiceImpl<SettlementOrderMappe
         order.setUpdateTime(LocalDateTime.now());
 
         updateById(order);
-        log.info("缁撶畻鍗曠‘璁ゆ垚锟?id={}", id);
+        log.info("Settlement order confirmed successfully: id={}", id);
         return order;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public SettlementOrder recordPayment(String id, BigDecimal amount) {
-        log.info("璁板綍缁撶畻鍗曚粯锟?id={}, amount={}", id, amount);
+        log.info("Record settlement payment: id={}, amount={}", id, amount);
 
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("浠樻閲戦蹇呴』澶т簬0");
+            throw new IllegalArgumentException("Payment amount must be greater than 0");
         }
 
         SettlementOrder order = getById(id);
@@ -86,7 +86,7 @@ public class SettlementOrderServiceImpl extends ServiceImpl<SettlementOrderMappe
         BigDecimal newPaidAmount = order.getPaidAmount().add(amount);
         if (newPaidAmount.compareTo(order.getActualAmount()) > 0) {
             throw new IllegalArgumentException(
-                    String.format("浠樻閲戦瓒呭嚭搴斾粯閲戦: 宸蹭粯=%s, 鏈=%s, 搴斾粯=%s",
+                    String.format("Payment exceeds payable amount: paid=%s, current=%s, payable=%s",
                             order.getPaidAmount(), amount, order.getActualAmount()));
         }
 
@@ -99,10 +99,10 @@ public class SettlementOrderServiceImpl extends ServiceImpl<SettlementOrderMappe
 
         if (order.getUnpaidAmount().compareTo(BigDecimal.ZERO) == 0) {
             order.setStatus(4);
-            log.info("缁撶畻鍗曞凡鍏ㄩ浠樻: id={}", id);
+            log.info("Settlement order fully paid: id={}", id);
         } else {
             order.setStatus(3);
-            log.info("缁撶畻鍗曢儴鍒嗕粯锟?id={}, paid={}, unpaid={}", id, newPaidAmount, order.getUnpaidAmount());
+            log.info("Settlement order partially paid: id={}, paid={}, unpaid={}", id, newPaidAmount, order.getUnpaidAmount());
         }
 
         updateById(order);
@@ -111,7 +111,7 @@ public class SettlementOrderServiceImpl extends ServiceImpl<SettlementOrderMappe
 
     @Override
     public Page<SettlementOrder> listByStatus(Integer status, int page, int size) {
-        log.debug("鎸夌姸鎬佹煡璇㈢粨绠楀崟: status={}, page={}, size={}", status, page, size);
+        log.debug("Query settlement orders by status: status={}, page={}, size={}", status, page, size);
         LambdaQueryWrapper<SettlementOrder> wrapper = Wrappers.lambdaQuery();
         if (status != null) {
             wrapper.eq(SettlementOrder::getStatus, status);

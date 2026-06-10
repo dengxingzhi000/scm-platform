@@ -60,7 +60,7 @@ public class PurPriceComparisonServiceImpl extends ServiceImpl<PurPriceCompariso
     public boolean approve(String id, String approverId, String approverName) {
         PurPriceComparison comparison = getById(id);
         if (comparison == null || comparison.getDeleted()) {
-            throw new IllegalArgumentException("姣斾环鍒嗘瀽涓嶅瓨锟?" + id);
+            throw new IllegalArgumentException("Price comparison not found: " + id);
         }
         statusValidator.validateTransition("PURCHASE", "PENDING_APPROVAL", "APPROVED");
         comparison.setStatus(2); // APPROVED

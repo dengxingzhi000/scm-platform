@@ -47,7 +47,7 @@ public class TmsWaybillServiceImpl extends ServiceImpl<TmsWaybillMapper, TmsWayb
 
     @Override
     public TmsWaybill getByWaybillNo(String waybillNo) {
-        log.debug("鏍规嵁杩愬崟鍙锋煡锟?waybillNo={}", waybillNo);
+        log.debug("Query by waybill number: waybillNo={}", waybillNo);
         return lambdaQuery()
                 .eq(TmsWaybill::getWaybillNo, waybillNo)
                 .eq(TmsWaybill::getDeleted, false)
@@ -56,7 +56,7 @@ public class TmsWaybillServiceImpl extends ServiceImpl<TmsWaybillMapper, TmsWayb
 
     @Override
     public List<TmsWaybill> listByOrderId(String orderId) {
-        log.debug("鏍规嵁璁㈠崟ID鏌ヨ杩愬崟: orderId={}", orderId);
+        log.debug("Query waybills by order ID: orderId={}", orderId);
         return lambdaQuery()
                 .eq(TmsWaybill::getOrderId, orderId)
                 .eq(TmsWaybill::getDeleted, false)
@@ -66,7 +66,7 @@ public class TmsWaybillServiceImpl extends ServiceImpl<TmsWaybillMapper, TmsWayb
 
     @Override
     public List<TmsWaybill> listByOrderNo(String orderNo) {
-        log.debug("鏍规嵁璁㈠崟鍙锋煡璇㈣繍锟?orderNo={}", orderNo);
+        log.debug("Query waybills by order number: orderNo={}", orderNo);
         return lambdaQuery()
                 .eq(TmsWaybill::getOrderNo, orderNo)
                 .eq(TmsWaybill::getDeleted, false)
@@ -106,7 +106,7 @@ public class TmsWaybillServiceImpl extends ServiceImpl<TmsWaybillMapper, TmsWayb
 
         TmsWaybill waybill = getById(waybillId);
         if (waybill == null) {
-            log.warn("杩愬崟涓嶅瓨锟?waybillId={}", waybillId);
+            log.warn("Waybill not found: waybillId={}", waybillId);
             return false;
         }
 
@@ -120,7 +120,7 @@ public class TmsWaybillServiceImpl extends ServiceImpl<TmsWaybillMapper, TmsWayb
 
         boolean success = updateById(waybill);
         if (success) {
-            log.info("杩愬崟鐘舵€佹洿鏂版垚锟?waybillNo={}, status={}", waybill.getWaybillNo(), status);
+            log.info("Waybill status updated successfully: waybillNo={}, status={}", waybill.getWaybillNo(), status);
         }
         return success;
     }

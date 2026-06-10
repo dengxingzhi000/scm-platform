@@ -61,7 +61,7 @@ public class QuotaResetJob {
                     tenantId = UUID.fromString(param.trim());
                     log.info("寮€濮嬮噸缃鎴烽厤棰濓紝绉熸埛ID: {}", tenantId);
                 } catch (IllegalArgumentException e) {
-                    String errorMsg = "鏃犳晥鐨勭鎴稩D鍙傛暟: " + param;
+                    String errorMsg = "Invalid tenant ID parameter: " + param;
                     log.error(errorMsg, e);
                     XxlJobHelper.handleFail(errorMsg);
                     return;
@@ -75,15 +75,15 @@ public class QuotaResetJob {
 
             long duration = System.currentTimeMillis() - startTime;
             String successMsg = tenantId == null
-                ? String.format("閰嶉閲嶇疆瀹屾垚锛岃€楁椂: %d ms", duration)
-                : String.format("绉熸埛 %s 閰嶉閲嶇疆瀹屾垚锛岃€楁椂: %d ms", tenantId, duration);
+                ? String.format("Quota reset completed, duration: %d ms", duration)
+                : String.format("Tenant %s quota reset completed, duration: %d ms", tenantId, duration);
 
             log.info(successMsg);
             XxlJobHelper.handleSuccess(successMsg);
 
         } catch (Exception e) {
             long duration = System.currentTimeMillis() - startTime;
-            String errorMsg = String.format("閰嶉閲嶇疆澶辫触锛岃€楁椂: %d ms", duration);
+            String errorMsg = String.format("Quota reset failed, duration: %d ms", duration);
             log.error(errorMsg, e);
             XxlJobHelper.handleFail(errorMsg + ": " + e.getMessage());
         }

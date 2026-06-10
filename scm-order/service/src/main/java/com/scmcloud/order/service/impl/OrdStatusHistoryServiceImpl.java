@@ -17,7 +17,7 @@ public class OrdStatusHistoryServiceImpl extends ServiceImpl<OrdStatusHistoryMap
 
     @Override
     public List<OrdStatusHistory> listByOrderId(Long orderId) {
-        log.debug("鏌ヨ璁㈠崟鐘舵€佸巻锟?orderId={}", orderId);
+        log.debug("Query order status history: orderId={}", orderId);
         LambdaQueryWrapper<OrdStatusHistory> wrapper = Wrappers.lambdaQuery();
         wrapper.eq(OrdStatusHistory::getOrderId, orderId)
                 .orderByDesc(OrdStatusHistory::getTransitionedAt);

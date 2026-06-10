@@ -83,7 +83,7 @@ public class ApiSignatureConfiguration {
                 log.warn("\n{}\n", message);
             }
         } else {
-            log.info("锟紸PI signature configuration validated ({} app(s) configured)",
+            log.info("[ApiSignatureConfiguration] API signature configuration validated ({} app(s) configured)",
                      appSecrets.size());
         }
     }

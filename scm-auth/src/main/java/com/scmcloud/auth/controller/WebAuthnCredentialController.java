@@ -157,7 +157,7 @@ public class WebAuthnCredentialController {
     @PreAuthorize("isAuthenticated()")
     public ApiResponse<WebauthnCredentialDTO> updateDeviceName(
             @PathVariable String credentialId,
-            @NotBlank(message = "璁惧鍚嶇О涓嶈兘涓虹┖")
+            @NotBlank(message = "Device name cannot be empty")
             @RequestParam String deviceName,
             @AuthenticationPrincipal SecurityUser user) {
 

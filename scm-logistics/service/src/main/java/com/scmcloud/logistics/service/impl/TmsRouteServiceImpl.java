@@ -20,7 +20,7 @@ public class TmsRouteServiceImpl extends ServiceImpl<TmsRouteMapper, TmsRoute> i
 
     @Override
     public Page<TmsRoute> pageList(int page, int size, String courierId, Integer status, LocalDate deliveryDate) {
-        log.debug("鏌ヨ閰嶉€佽矾绾垮垪锟?page={}, size={}, courierId={}, status={}, deliveryDate={}", page, size, courierId, status, deliveryDate);
+        log.debug("Query delivery route list: page={}, size={}, courierId={}, status={}, deliveryDate={}", page, size, courierId, status, deliveryDate);
 
         LambdaQueryWrapper<TmsRoute> wrapper = Wrappers.lambdaQuery();
         if (StringUtils.hasText(courierId)) {
@@ -39,7 +39,7 @@ public class TmsRouteServiceImpl extends ServiceImpl<TmsRouteMapper, TmsRoute> i
 
     @Override
     public List<TmsRoute> listByCourierId(String courierId) {
-        log.debug("鏍规嵁閰嶉€佸憳鏌ヨ璺嚎: courierId={}", courierId);
+        log.debug("Query route by courier: courierId={}", courierId);
         return lambdaQuery()
                 .eq(TmsRoute::getCourierId, courierId)
                 .orderByDesc(TmsRoute::getDeliveryDate)
@@ -48,7 +48,7 @@ public class TmsRouteServiceImpl extends ServiceImpl<TmsRouteMapper, TmsRoute> i
 
     @Override
     public TmsRoute getByRouteNo(String routeNo) {
-        log.debug("鏍规嵁璺嚎缂栧彿鏌ヨ: routeNo={}", routeNo);
+        log.debug("Query route by number: routeNo={}", routeNo);
         return lambdaQuery()
                 .eq(TmsRoute::getRouteNo, routeNo)
                 .one();

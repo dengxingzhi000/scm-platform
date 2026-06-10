@@ -37,7 +37,7 @@ public class TenantDubboServiceImpl implements TenantDubboService {
 
     @Override
     public TenantDTO getById(String tenantId) {
-        log.debug("Dubbo鏌ヨ绉熸埛: tenantId={}", tenantId);
+        log.debug("Dubbo query tenant: tenantId={}", tenantId);
         Tenant tenant = tenantService.lambdaQuery()
                 .eq(Tenant::getId, tenantId)
                 .eq(Tenant::getDeleted, false)
@@ -47,7 +47,7 @@ public class TenantDubboServiceImpl implements TenantDubboService {
 
     @Override
     public TenantDTO getByCode(String tenantCode) {
-        log.debug("Dubbo鏌ヨ绉熸埛: tenantCode={}", tenantCode);
+        log.debug("Dubbo query tenant: tenantCode={}", tenantCode);
         Tenant tenant = tenantService.lambdaQuery()
                 .eq(Tenant::getTenantCode, tenantCode)
                 .eq(Tenant::getDeleted, false)
@@ -57,7 +57,7 @@ public class TenantDubboServiceImpl implements TenantDubboService {
 
     @Override
     public PageResult<TenantDTO> queryTenants(TenantQuery query) {
-        log.debug("Dubbo鍒嗛〉鏌ヨ绉熸埛: query={}", query);
+        log.debug("Dubbo page query tenants: query={}", query);
 
         LambdaQueryWrapper<Tenant> wrapper = Wrappers.lambdaQuery();
         if (query.getTenantName() != null) {
@@ -93,7 +93,7 @@ public class TenantDubboServiceImpl implements TenantDubboService {
 
     @Override
     public TenantResourceQuotaDTO getResourceQuota(String tenantId) {
-        log.debug("Dubbo鏌ヨ璧勬簮閰嶉: tenantId={}", tenantId);
+        log.debug("Dubbo query resource quota: tenantId={}", tenantId);
         TenantResourceQuota quota = quotaService.lambdaQuery()
                 .eq(TenantResourceQuota::getTenantId, tenantId)
                 .one();
@@ -102,35 +102,35 @@ public class TenantDubboServiceImpl implements TenantDubboService {
 
     @Override
     public QuotaCheckResultDTO checkQuota(String tenantId, QuotaType quotaType, int required) {
-        log.debug("Dubbo妫€鏌ラ厤锟?tenantId={}, quotaType={}, required={}", tenantId, quotaType, required);
+        log.debug("Dubbo check quota: tenantId={}, quotaType={}, required={}", tenantId, quotaType, required);
 
         TenantResourceQuota quota = quotaService.lambdaQuery()
                 .eq(TenantResourceQuota::getTenantId, tenantId)
                 .one();
 
         if (quota == null) {
-            return new QuotaCheckResultDTO(false, 0, 0, "閰嶉淇℃伅涓嶅瓨鍦?);
+            return new QuotaCheckResultDTO(false, 0, 0, "Quota info not found");
         }
 
         return switch (quotaType) {
-            case USER -> buildResult(quota.getCurrentUsers(), quota.getMaxUsers(), required, "鐢ㄦ埛鏁?);
-            case WAREHOUSE -> buildResult(quota.getCurrentWarehouses(), quota.getMaxWarehouses(), required, "浠撳簱鏁?);
-            case SKU -> buildResult(quota.getCurrentSkus(), quota.getMaxSkus(), required, "SKU鏁?);
-            case ORDER_PER_DAY -> buildResult(quota.getCurrentOrdersToday(), quota.getMaxOrdersPerDay(), required, "姣忔棩璁㈠崟鏁?);
-            case STORAGE_GB -> buildResult(quota.getCurrentStorageGb() != null ? quota.getCurrentStorageGb().intValue() : 0, quota.getMaxStorageGb(), required, "瀛樺偍绌洪棿");
-            case API_CALLS_PER_DAY -> buildResult(quota.getCurrentApiCallsToday(), quota.getMaxApiCallsPerDay(), required, "姣忔棩API璋冪敤鏁?);
+            case USER -> buildResult(quota.getCurrentUsers(), quota.getMaxUsers(), required, "Users");
+            case WAREHOUSE -> buildResult(quota.getCurrentWarehouses(), quota.getMaxWarehouses(), required, "Warehouses");
+            case SKU -> buildResult(quota.getCurrentSkus(), quota.getMaxSkus(), required, "SKUs");
+            case ORDER_PER_DAY -> buildResult(quota.getCurrentOrdersToday(), quota.getMaxOrdersPerDay(), required, "Orders per day");
+            case STORAGE_GB -> buildResult(quota.getCurrentStorageGb() != null ? quota.getCurrentStorageGb().intValue() : 0, quota.getMaxStorageGb(), required, "Storage space");
+            case API_CALLS_PER_DAY -> buildResult(quota.getCurrentApiCallsToday(), quota.getMaxApiCallsPerDay(), required, "API calls per day");
         };
     }
 
     private QuotaCheckResultDTO buildResult(int current, int max, int required, String resourceName) {
         boolean available = (current + required) <= max;
-        String message = available ? resourceName + "閰嶉鍏呰冻" : resourceName + "閰嶉涓嶈冻";
+        String message = available ? resourceName + " quota sufficient" : resourceName + " quota insufficient";
         return new QuotaCheckResultDTO(available, current, max, message);
     }
 
     @Override
     public String createTenant(TenantCreateCommand command) {
-        log.info("Dubbo鍒涘缓绉熸埛: tenantCode={}, tenantName={}", command.getTenantCode(), command.getTenantName());
+        log.info("Dubbo create tenant: tenantCode={}, tenantName={}", command.getTenantCode(), command.getTenantName());
 
         Tenant tenant = new Tenant();
         tenant.setId(UUID.randomUUID().toString());
@@ -148,13 +148,13 @@ public class TenantDubboServiceImpl implements TenantDubboService {
         tenant.setUpdateTime(LocalDateTime.now());
 
         tenantService.save(tenant);
-        log.info("Dubbo鍒涘缓绉熸埛鎴愬姛: id={}", tenant.getId());
+        log.info("Dubbo create tenant successfully: id={}", tenant.getId());
         return tenant.getId();
     }
 
     @Override
     public void updateTenant(String tenantId, TenantUpdateCommand command) {
-        log.info("Dubbo鏇存柊绉熸埛: tenantId={}", tenantId);
+        log.info("Dubbo update tenant: tenantId={}", tenantId);
 
         Tenant tenant = new Tenant();
         tenant.setId(tenantId);
@@ -172,7 +172,7 @@ public class TenantDubboServiceImpl implements TenantDubboService {
 
     @Override
     public void suspendTenant(String tenantId) {
-        log.info("Dubbo鍋滅敤绉熸埛: tenantId={}", tenantId);
+        log.info("Dubbo suspend tenant: tenantId={}", tenantId);
         Tenant tenant = new Tenant();
         tenant.setId(tenantId);
         tenant.setStatus(2);
@@ -183,7 +183,7 @@ public class TenantDubboServiceImpl implements TenantDubboService {
 
     @Override
     public void activateTenant(String tenantId) {
-        log.info("Dubbo婵€娲荤锟?tenantId={}", tenantId);
+        log.info("Dubbo activate tenant: tenantId={}", tenantId);
         Tenant tenant = new Tenant();
         tenant.setId(tenantId);
         tenant.setStatus(1);

@@ -60,8 +60,8 @@ public class WebauthnCredential implements Serializable {
      * 鐢ㄤ簬瀹㈡埛绔煡鎵惧搴旂殑绉侀挜杩涜绛惧悕
      */
     @TableField(value = "credential_id")
-    @NotBlank(message = "鍑瘉 ID涓嶈兘涓虹┖")
-    @Size(min = 16, max = 1024, message = "鍑瘉ID闀垮害蹇呴』锟?-1024涔嬮棿")
+    @NotBlank(message = "Credential ID cannot be empty")
+    @Size(min = 16, max = 1024, message = "Credential ID length must be between 16-1024")
     private String credentialId;
 
     /**
@@ -69,8 +69,8 @@ public class WebauthnCredential implements Serializable {
      * 涓氬姟澶栭敭锛屽叧鑱斿埌sys_user锟?
      */
     @TableField(value = "user_id")
-    @NotBlank(message = "鐢ㄦ埛 ID涓嶈兘涓虹┖")
-    @Size(max = 64, message = "鐢ㄦ埛ID闀垮害涓嶈兘瓒呰繃64")
+    @NotBlank(message = "User ID cannot be empty")
+    @Size(max = 64, message = "User ID length cannot exceed 64")
     private UUID userId;
 
     /**
@@ -80,8 +80,8 @@ public class WebauthnCredential implements Serializable {
      */
     @TableField(value = "public_key_pem")
     @JsonIgnore // 鏁忔劅淇℃伅锛屼笉鍦↗SON鍝嶅簲涓毚锟?
-    @NotBlank(message = "鍏挜涓嶈兘涓虹┖")
-    @Size(max = 2048, message = "鍏挜闀垮害涓嶈兘瓒呰繃2048")
+    @NotBlank(message = "Public key cannot be empty")
+    @Size(max = 2048, message = "Public key length cannot exceed 2048")
     private String publicKeyPem;
 
     /**
@@ -92,9 +92,9 @@ public class WebauthnCredential implements Serializable {
      * - EdDSA (-8): EdDSA
      */
     @TableField(value = "alg")
-    @NotBlank(message = "绛惧悕绠楁硶涓嶈兘涓虹┖")
+    @NotBlank(message = "Signature algorithm cannot be empty")
     @Pattern(regexp = "^(ES256|ES384|ES512|RS256|RS384|RS512|PS256|PS384|PS512|EdDSA)$",
-             message = "涓嶆敮鎸佺殑绛惧悕绠楁硶")
+             message = "Unsupported signature algorithm")
     private String alg;
 
     /**
@@ -105,8 +105,8 @@ public class WebauthnCredential implements Serializable {
      * - 鍒濆鍊奸€氬父锟?
      */
     @TableField(value = "sign_count")
-    @NotNull(message = "绛惧悕璁℃暟鍣ㄤ笉鑳戒负绌?)
-    @Min(value = 0, message = "绛惧悕璁℃暟鍣ㄤ笉鑳戒负璐熸暟")
+    @NotNull(message = "Signature counter cannot be null")
+    @Min(value = 0, message = "Signature counter cannot be negative")
     private Long signCount;
 
     /**
@@ -114,7 +114,7 @@ public class WebauthnCredential implements Serializable {
      * 甯姪鐢ㄦ埛璇嗗埆涓嶅悓鐨勮璇佸櫒
      */
     @TableField(value = "device_name")
-    @Size(max = 100, message = "璁惧鍚嶇О闀垮害涓嶈兘瓒呰繃100")
+    @Size(max = 100, message = "Device name length cannot exceed 100")
     private String deviceName;
 
     /**
@@ -140,7 +140,7 @@ public class WebauthnCredential implements Serializable {
      * - false: 鍋滅敤锛岀敤鎴蜂富鍔ㄧ鐢ㄦ垨绯荤粺妫€娴嬪埌寮傚父
      */
     @TableField(value = "is_active")
-    @NotNull(message = "鍚敤鐘舵€佷笉鑳戒负绌?)
+    @NotNull(message = "Active status cannot be null")
     private Boolean isActive;
 
     /**

@@ -64,17 +64,17 @@ public class SysNotificationAuditServiceImpl extends ServiceImpl<SysNotification
     }
 
     public boolean sendNotification(String id) {
-        log.info("鍙戦€侀€氱煡: id={}", id);
+        log.info("Send notification: id={}", id);
         SysNotificationAudit audit = getById(id);
         if (audit == null) {
-            log.warn("閫氱煡瀹¤涓嶅瓨锟?id={}", id);
+            log.warn("Notification audit not found: id={}", id);
             return false;
         }
         audit.setStatus("SENT");
         audit.setSentAt(LocalDateTime.now());
         boolean success = updateById(audit);
         if (success) {
-            log.info("閫氱煡鍙戦€佹垚锟?id={}", id);
+            log.info("Notification sent successfully: id={}", id);
         }
         return success;
     }

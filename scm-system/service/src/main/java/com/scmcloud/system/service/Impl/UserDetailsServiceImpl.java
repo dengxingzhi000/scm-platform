@@ -40,7 +40,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         var user = sysUserMapper.findByUsername(username);
         if (user == null || user.getDeleted()) {
             log.warn("User not found: {}", username);
-            throw new UsernameNotFoundException("鐢ㄦ埛涓嶅瓨鍦ㄦ垨宸插垹锟?" + username);
+            throw new UsernameNotFoundException("User not found or deleted: " + username);
         }
 
         // 2. 锟絛b_permission 搴撴煡璇㈢敤鎴疯鑹诧紙璺ㄥ簱鏌ヨ锟?

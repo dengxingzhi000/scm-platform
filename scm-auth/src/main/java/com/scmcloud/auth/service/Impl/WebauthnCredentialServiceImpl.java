@@ -255,7 +255,7 @@ public class WebauthnCredentialServiceImpl extends ServiceImpl<WebauthnCredentia
 
         int updated = credentialMapper.updateDeviceName(userId, credentialId, deviceName);
         if (updated == 0) {
-            throw new IllegalStateException("鍑瘉涓嶅瓨鍦ㄦ垨鏇存柊澶辫触");
+            throw new IllegalStateException("Credential not found or update failed");
         }
 
         WebauthnCredential credential = credentialMapper.findByUserIdAndCredId(userId, credentialId);
@@ -269,7 +269,7 @@ public class WebauthnCredentialServiceImpl extends ServiceImpl<WebauthnCredentia
 
         int updated = credentialMapper.disableCredential(userId, credentialId);
         if (updated == 0) {
-            throw new IllegalStateException("鍑瘉涓嶅瓨鍦ㄦ垨鍋滅敤澶辫触");
+            throw new IllegalStateException("Credential not found or deactivation failed");
         }
 
         // 娓呯悊 Redis缂撳瓨
@@ -284,7 +284,7 @@ public class WebauthnCredentialServiceImpl extends ServiceImpl<WebauthnCredentia
 
         int deleted = credentialMapper.deleteByUserIdAndCredId(userId, credentialId);
         if (deleted == 0) {
-            throw new IllegalStateException("鍑瘉涓嶅瓨鍦ㄦ垨鍒犻櫎澶辫触");
+            throw new IllegalStateException("Credential not found or deletion failed");
         }
 
         // 娓呯悊 Redis缂撳瓨

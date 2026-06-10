@@ -63,10 +63,10 @@ public class PurRequestServiceImpl extends ServiceImpl<PurRequestMapper, PurRequ
     public boolean submit(String id) {
         PurRequest request = getById(id);
         if (request == null || request.getDeleted()) {
-            throw new IllegalArgumentException("閲囪喘鐢宠涓嶅瓨锟?" + id);
+            throw new IllegalArgumentException("Purchase request not found: " + id);
         }
         if (request.getStatus() != 0) {
-            throw new IllegalStateException("鍙湁鑽夌鐘舵€佺殑鐢宠鎵嶈兘鎻愪氦");
+            throw new IllegalStateException("Only draft requests can be submitted");
         }
         request.setStatus(1);
         request.setSubmittedAt(LocalDateTime.now());
@@ -79,10 +79,10 @@ public class PurRequestServiceImpl extends ServiceImpl<PurRequestMapper, PurRequ
     public boolean approve(String id, String approverId, String approverName) {
         PurRequest request = getById(id);
         if (request == null || request.getDeleted()) {
-            throw new IllegalArgumentException("閲囪喘鐢宠涓嶅瓨锟?" + id);
+            throw new IllegalArgumentException("Purchase request not found: " + id);
         }
         if (request.getStatus() != 1) {
-            throw new IllegalStateException("鍙湁寰呭鎵圭姸鎬佺殑鐢宠鎵嶈兘瀹℃壒");
+            throw new IllegalStateException("Only pending approval requests can be approved");
         }
         request.setStatus(2);
         request.setCurrentApproverId(approverId);
@@ -97,10 +97,10 @@ public class PurRequestServiceImpl extends ServiceImpl<PurRequestMapper, PurRequ
     public boolean reject(String id, String approverId, String approverName, String reason) {
         PurRequest request = getById(id);
         if (request == null || request.getDeleted()) {
-            throw new IllegalArgumentException("閲囪喘鐢宠涓嶅瓨锟?" + id);
+            throw new IllegalArgumentException("Purchase request not found: " + id);
         }
         if (request.getStatus() != 1) {
-            throw new IllegalStateException("鍙湁寰呭鎵圭姸鎬佺殑鐢宠鎵嶈兘椹冲洖");
+            throw new IllegalStateException("Only pending approval requests can be rejected");
         }
         request.setStatus(3);
         request.setCurrentApproverId(approverId);
@@ -116,10 +116,10 @@ public class PurRequestServiceImpl extends ServiceImpl<PurRequestMapper, PurRequ
     public boolean close(String id) {
         PurRequest request = getById(id);
         if (request == null || request.getDeleted()) {
-            throw new IllegalArgumentException("閲囪喘鐢宠涓嶅瓨锟?" + id);
+            throw new IllegalArgumentException("Purchase request not found: " + id);
         }
         if (request.getStatus() == 4) {
-            throw new IllegalStateException("宸茶浆閲囪喘鍗曠殑鐢宠涓嶈兘鍏抽棴");
+            throw new IllegalStateException("Requests already converted to order cannot be closed");
         }
         request.setStatus(5);
         request.setUpdateTime(LocalDateTime.now());
@@ -131,10 +131,10 @@ public class PurRequestServiceImpl extends ServiceImpl<PurRequestMapper, PurRequ
     public boolean convertToOrder(String id, String orderId, String orderNo) {
         PurRequest request = getById(id);
         if (request == null || request.getDeleted()) {
-            throw new IllegalArgumentException("閲囪喘鐢宠涓嶅瓨锟?" + id);
+            throw new IllegalArgumentException("Purchase request not found: " + id);
         }
         if (request.getStatus() != 2) {
-            throw new IllegalStateException("鍙湁宸插鎵圭殑鐢宠鎵嶈兘杞噰璐崟");
+            throw new IllegalStateException("Only approved requests can be converted to purchase order");
         }
         if (Boolean.TRUE.equals(request.getConverted())) {
             throw new IllegalStateException("璇ョ敵璇峰凡杞噰璐崟");

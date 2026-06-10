@@ -97,7 +97,7 @@ public class SecurityConfigurationValidator {
                 log.warn(warningMessage, errorMessage);
             }
         } else {
-            log.info("锟紸ll critical security configurations are properly set");
+            log.info("[SecurityConfigurationValidator] All critical security configurations are properly set");
 
             if (isProductionLike) {
                 validateSecretStrength();
@@ -166,7 +166,7 @@ public class SecurityConfigurationValidator {
                 log.warn("鈿狅笍  {}", errorMessage);
             }
         } else {
-            log.info("锟紺lock skew configuration validated: nonceTtl={}, allowedClockSkew={}",
+            log.info("[SecurityConfigurationValidator] Clock skew configuration validated: nonceTtl={}, allowedClockSkew={}",
                     nonceTtl, allowedClockSkew);
         }
     }

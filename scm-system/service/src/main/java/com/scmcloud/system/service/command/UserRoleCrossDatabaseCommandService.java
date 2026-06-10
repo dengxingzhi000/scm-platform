@@ -36,7 +36,7 @@ public class UserRoleCrossDatabaseCommandService {
      * @param createBy 鍒涘缓锟絀D
      * @return 鎻掑叆琛屾暟
      */
-    @Master(reason = "鍐欐搷浣滃繀椤昏蛋涓诲簱")
+    @Master(reason = "Write operation must use master database")
     @Transactional(rollbackFor = Exception.class)
     public int batchInsertUserRoles(UUID userId, List<UUID> roleIds, UUID createBy) {
         if (userId == null || roleIds == null || roleIds.isEmpty()) {
@@ -59,7 +59,7 @@ public class UserRoleCrossDatabaseCommandService {
      * @param createBy      鍒涘缓锟絀D
      * @return 鎻掑叆琛屾暟
      */
-    @Master(reason = "鍐欐搷浣滃繀椤昏蛋涓诲簱")
+    @Master(reason = "Write operation must use master database")
     @Transactional(rollbackFor = Exception.class)
     public int batchInsertTemporaryUserRoles(UUID userId, List<UUID> roleIds,
                                               LocalDateTime effectiveTime,
@@ -82,7 +82,7 @@ public class UserRoleCrossDatabaseCommandService {
      * @param userId 鐢ㄦ埛 ID
      * @return 鍒犻櫎琛屾暟
      */
-    @Master(reason = "鍐欐搷浣滃繀椤昏蛋涓诲簱")
+    @Master(reason = "Write operation must use master database")
     @Transactional(rollbackFor = Exception.class)
     public int deleteUserRoles(UUID userId) {
         if (userId == null) {
@@ -103,7 +103,7 @@ public class UserRoleCrossDatabaseCommandService {
      * @param newExpireTime 鏂扮殑杩囨湡鏃堕棿
      * @return 鏇存柊琛屾暟
      */
-    @Master(reason = "鍐欐搷浣滃繀椤昏蛋涓诲簱")
+    @Master(reason = "Write operation must use master database")
     @Transactional(rollbackFor = Exception.class)
     public int extendTemporaryRole(UUID userId, UUID roleId, LocalDateTime newExpireTime) {
         if (userId == null || roleId == null || newExpireTime == null) {
@@ -124,7 +124,7 @@ public class UserRoleCrossDatabaseCommandService {
      * @param roleId 瑙掕壊 ID
      * @return 鏇存柊琛屾暟
      */
-    @Master(reason = "鍐欐搷浣滃繀椤昏蛋涓诲簱")
+    @Master(reason = "Write operation must use master database")
     @Transactional(rollbackFor = Exception.class)
     public int terminateTemporaryRole(UUID userId, UUID roleId) {
         if (userId == null || roleId == null) {

@@ -57,7 +57,7 @@ public class SysRoleController {
     @PostMapping
     @PreAuthorize("hasAuthority('system:role:add')")
     @AuditLog(
-            operation = "鏂板瑙掕壊",
+            operation = "Add role",
             businessType = "ROLE",
             riskLevel = 4
     )

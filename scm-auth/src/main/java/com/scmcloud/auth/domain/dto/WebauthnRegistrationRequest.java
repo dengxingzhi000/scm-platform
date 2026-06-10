@@ -24,33 +24,33 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class WebauthnRegistrationRequest {
-    @NotBlank(message = "鍑瘉 ID涓嶈兘涓虹┖")
-    @Size(min = 16, max = 1024, message = "鍑瘉ID闀垮害蹇呴』锟?-1024涔嬮棿")
+    @NotBlank(message = "Credential ID cannot be empty")
+    @Size(min = 16, max = 1024, message = "Credential ID length must be between 16-1024")
     private String credentialId;
 
-    @NotBlank(message = "clientDataJSON 涓嶈兘涓虹┖")
+    @NotBlank(message = "clientDataJSON cannot be empty")
     private String clientDataJSON;
 
-    @NotBlank(message = "attestationObject 涓嶈兘涓虹┖")
+    @NotBlank(message = "attestationObject cannot be empty")
     private String attestationObject;
 
-    @NotBlank(message = "璁惧 ID涓嶈兘涓虹┖")
+    @NotBlank(message = "Device ID cannot be empty")
     private String deviceId;
 
-    @Size(max = 2048, message = "鍏挜闀垮害涓嶈兘瓒呰繃2048")
+    @Size(max = 2048, message = "Public key length cannot exceed 2048")
     private String publicKeyPem;
 
-    @NotBlank(message = "绛惧悕绠楁硶涓嶈兘涓虹┖")
+    @NotBlank(message = "Signature algorithm cannot be empty")
     @Pattern(regexp = "^(ES256|ES384|ES512|RS256|RS384|RS512|PS256|PS384|PS512|EdDSA)$",
-             message = "涓嶆敮鎸佺殑绛惧悕绠楁硶")
+             message = "Unsupported signature algorithm")
     private String algorithm;
 
-    @Size(max = 100, message = "璁惧鍚嶇О闀垮害涓嶈兘瓒呰繃100")
+    @Size(max = 100, message = "Device name length cannot exceed 100")
     private String deviceName;
 
     private UUID aaguid;
 
-    @Size(max = 100, message = "浼犺緭鏂瑰紡闀垮害涓嶈兘瓒呰繃100")
+    @Size(max = 100, message = "Transport length cannot exceed 100")
     private String transports;
 
     @Pattern(regexp = "^(platform|cross-platform)$", message = "璁よ瘉鍣ㄧ被鍨嬩笉姝ｇ‘")

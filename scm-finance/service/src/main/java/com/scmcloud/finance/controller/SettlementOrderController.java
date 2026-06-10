@@ -35,7 +35,7 @@ public class SettlementOrderController {
         order.setId(id);
         order.setUpdateTime(java.time.LocalDateTime.now());
         settlementOrderService.updateById(order);
-        log.info("缁撶畻鍗曟洿鏂版垚锟?id={}", id);
+        log.info("Settlement order updated successfully: id={}", id);
         return ApiResponse.success(order);
     }
 
@@ -46,7 +46,7 @@ public class SettlementOrderController {
             order.setDeleted(true);
             order.setUpdateTime(java.time.LocalDateTime.now());
             settlementOrderService.updateById(order);
-            log.info("缁撶畻鍗曞垹闄ゆ垚锟?id={}", id);
+            log.info("Settlement order deleted successfully: id={}", id);
         }
         return ApiResponse.success();
     }

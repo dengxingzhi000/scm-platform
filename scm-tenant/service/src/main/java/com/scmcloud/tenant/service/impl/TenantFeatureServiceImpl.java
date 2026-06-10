@@ -19,7 +19,7 @@ import java.util.UUID;
 public class TenantFeatureServiceImpl extends ServiceImpl<TenantFeatureMapper, TenantFeature> implements ITenantFeatureService {
 
     public TenantFeature createFeature(TenantFeature entity) {
-        log.info("鍒涘缓绉熸埛鍔熻兘: tenantId={}, featureCode={}", entity.getTenantId(), entity.getFeatureCode());
+        log.info("Create tenant feature: tenantId={}, featureCode={}", entity.getTenantId(), entity.getFeatureCode());
         entity.setId(UUID.randomUUID().toString());
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
@@ -27,7 +27,7 @@ public class TenantFeatureServiceImpl extends ServiceImpl<TenantFeatureMapper, T
             entity.setEnabled(true);
         }
         save(entity);
-        log.info("绉熸埛鍔熻兘鍒涘缓鎴愬姛: id={}", entity.getId());
+        log.info("Tenant feature created successfully: id={}", entity.getId());
         return entity;
     }
 
@@ -38,19 +38,19 @@ public class TenantFeatureServiceImpl extends ServiceImpl<TenantFeatureMapper, T
     }
 
     public TenantFeature updateFeature(TenantFeature entity) {
-        log.info("鏇存柊绉熸埛鍔熻兘: id={}", entity.getId());
+        log.info("Update tenant feature: id={}", entity.getId());
         entity.setUpdateTime(LocalDateTime.now());
         updateById(entity);
         return entity;
     }
 
     public boolean deleteById(String id) {
-        log.info("鍒犻櫎绉熸埛鍔熻兘: id={}", id);
+        log.info("Delete tenant feature: id={}", id);
         return removeById(id);
     }
 
     public boolean isFeatureEnabled(String tenantId, String featureCode) {
-        log.debug("妫€鏌ュ姛鑳芥槸鍚﹀惎锟?tenantId={}, featureCode={}", tenantId, featureCode);
+        log.debug("Check if feature is enabled: tenantId={}, featureCode={}", tenantId, featureCode);
 
         TenantFeature feature = lambdaQuery()
                 .eq(TenantFeature::getTenantId, tenantId)
@@ -58,12 +58,12 @@ public class TenantFeatureServiceImpl extends ServiceImpl<TenantFeatureMapper, T
                 .one();
 
         if (feature == null) {
-            log.debug("鍔熻兘涓嶅瓨锟?tenantId={}, featureCode={}", tenantId, featureCode);
+            log.debug("Feature not found: tenantId={}, featureCode={}", tenantId, featureCode);
             return false;
         }
 
         boolean enabled = Boolean.TRUE.equals(feature.getEnabled());
-        log.debug("鍔熻兘妫€鏌ョ粨锟?tenantId={}, featureCode={}, enabled={}", tenantId, featureCode, enabled);
+        log.debug("Feature check result: tenantId={}, featureCode={}, enabled={}", tenantId, featureCode, enabled);
         return enabled;
     }
 
@@ -75,7 +75,7 @@ public class TenantFeatureServiceImpl extends ServiceImpl<TenantFeatureMapper, T
     }
 
     public Page<TenantFeature> pageQuery(int page, int size, String tenantId, String featureCode, Boolean enabled) {
-        log.debug("鍒嗛〉鏌ヨ绉熸埛鍔熻兘: page={}, size={}, tenantId={}, featureCode={}, enabled={}",
+        log.debug("Page query tenant features: page={}, size={}, tenantId={}, featureCode={}, enabled={}",
                 page, size, tenantId, featureCode, enabled);
 
         LambdaQueryWrapper<TenantFeature> wrapper = Wrappers.lambdaQuery();

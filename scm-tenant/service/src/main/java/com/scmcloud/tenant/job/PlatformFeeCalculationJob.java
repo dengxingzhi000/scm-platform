@@ -76,7 +76,7 @@ public class PlatformFeeCalculationJob {
                         try {
                             tenantId = UUID.fromString(part.substring(9));
                         } catch (IllegalArgumentException e) {
-                            String errorMsg = "鏃犳晥鐨勭鎴稩D鍙傛暟: " + part;
+                            String errorMsg = "Invalid tenant ID parameter: " + part;
                             log.error(errorMsg, e);
                             XxlJobHelper.handleFail(errorMsg);
                             return;
@@ -86,13 +86,13 @@ public class PlatformFeeCalculationJob {
                         try {
                             targetMonth = YearMonth.parse(part, DateTimeFormatter.ofPattern("yyyy-MM"));
                         } catch (Exception e) {
-                            log.warn("鏃犳硶瑙ｆ瀽鏈堜唤鍙傛暟: {}, 浣跨敤榛樿鍊?, part);
+                            log.warn("Unable to parse month parameter: {}, using default", part);
                         }
                     }
                 }
             }
 
-            String scope = tenantId == null ? "鎵€鏈夌鎴? : "绉熸埛 " + tenantId;
+            String scope = tenantId == null ? "All tenants" : "Tenant " + tenantId;
             log.info("寮€濮嬭绠梴} {} 骞冲彴鏈嶅姟璐?, targetMonth, scope);
 
             // 鎵ц璁¤垂璁＄畻
@@ -100,7 +100,7 @@ public class PlatformFeeCalculationJob {
 
             long duration = System.currentTimeMillis() - startTime;
             String successMsg = String.format(
-                "骞冲彴鏈嶅姟璐硅绠楀畬鎴愶紝鏈堜唤: %s, 鑼冨洿: %s, 璁＄畻绉熸埛锟?%d, 鑰楁椂: %d ms",
+                "Platform fee calculation completed, month: %s, scope: %s, calculated tenants: %d, duration: %d ms",
                 targetMonth,
                 scope,
                 calculatedCount,
@@ -112,7 +112,7 @@ public class PlatformFeeCalculationJob {
 
         } catch (Exception e) {
             long duration = System.currentTimeMillis() - startTime;
-            String errorMsg = String.format("骞冲彴鏈嶅姟璐硅绠楀け璐ワ紝鑰楁椂: %d ms", duration);
+            String errorMsg = String.format("Platform fee calculation failed, duration: %d ms", duration);
             log.error(errorMsg, e);
             XxlJobHelper.handleFail(errorMsg + ": " + e.getMessage());
         }

@@ -20,26 +20,26 @@ public class InventoryTransferRequest {
   /**
    * SKU ID
    */
-  @NotBlank(message = "SKU ID 涓嶈兘涓虹┖")
+  @NotBlank(message = "SKU ID cannot be empty")
   private String skuId;
 
   /**
-   * 婧愪粨锟絀D锛堜粠鍝釜浠撳簱杞嚭锟?
+   * Source warehouse ID
    */
-  @NotBlank(message = "婧愪粨锟絀D 涓嶈兘涓虹┖")
+  @NotBlank(message = "Source warehouse ID cannot be empty")
   private String fromWarehouseId;
 
   /**
-   * 鐩爣浠撳簱 ID锛堣浆鍏ュ埌鍝釜浠撳簱锟?
+   * Target warehouse ID
    */
-  @NotBlank(message = "鐩爣浠撳簱 ID 涓嶈兘涓虹┖")
+  @NotBlank(message = "Target warehouse ID cannot be empty")
   private String toWarehouseId;
 
   /**
-   * 璋冩嫧鏁伴噺
+   * Transfer quantity
    */
-  @NotNull(message = "璋冩嫧鏁伴噺涓嶈兘涓虹┖")
-  @Positive(message = "璋冩嫧鏁伴噺蹇呴』澶т簬0")
+  @NotNull(message = "Transfer quantity cannot be empty")
+  @Positive(message = "Transfer quantity must be greater than 0")
   private Integer quantity;
 
   /**

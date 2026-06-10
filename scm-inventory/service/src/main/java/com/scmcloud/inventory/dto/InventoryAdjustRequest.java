@@ -19,25 +19,25 @@ public class InventoryAdjustRequest {
   /**
    * SKU ID
    */
-  @NotBlank(message = "SKU ID 涓嶈兘涓虹┖")
+  @NotBlank(message = "SKU ID cannot be empty")
   private String skuId;
 
   /**
-   * 浠撳簱 ID
+   * Warehouse ID
    */
-  @NotBlank(message = "浠撳簱 ID 涓嶈兘涓虹┖")
+  @NotBlank(message = "Warehouse ID cannot be empty")
   private String warehouseId;
 
   /**
-   * 璋冩暣鏁伴噺锛堟鏁颁负澧炲姞锛岃礋鏁颁负鍑忓皯锟?
+   * Adjustment quantity (positive for increase, negative for decrease)
    */
-  @NotNull(message = "璋冩暣鏁伴噺涓嶈兘涓虹┖")
+  @NotNull(message = "Adjustment quantity cannot be empty")
   private Integer quantity;
 
   /**
-   * 璋冩暣绫诲瀷锟?鍏ュ簱, 2-鍑哄簱, 6-鐩樼偣璋冩暣, 7-璋冩嫧锟?
+   * Adjustment type: 1-inbound, 2-outbound, 6-inventory check, 7-transfer
    */
-  @NotNull(message = "璋冩暣绫诲瀷涓嶈兘涓虹┖")
+  @NotNull(message = "Adjustment type cannot be empty")
   private Integer adjustType;
 
   /**

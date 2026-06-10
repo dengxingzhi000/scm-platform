@@ -90,7 +90,7 @@ public class SysAuthController {
         UUID userId = SecurityUtils.getCurrentUserUuid().orElse(null);
         String traceId = traceId(request);
 
-        authService.logout(token, userId, "鐢ㄦ埛涓诲姩鐧诲嚭");
+        authService.logout(token, userId, "User initiated logout");
         log.info("logout traceId={} userId={}", traceId, userId);
 
         return ApiResponse.success();
@@ -170,7 +170,7 @@ public class SysAuthController {
     )
     public ApiResponse<Void> forceLogout(
             @PathVariable UUID userId,
-            @RequestParam @NotBlank(message = "鐧诲嚭鍘熷洜涓嶈兘涓虹┖") String reason) {
+            @RequestParam @NotBlank(message = "Logout reason cannot be empty") String reason) {
 
         authService.forceLogout(userId, reason);
         log.info("force logout userId={} reason={}", userId, reason);

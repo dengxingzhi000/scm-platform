@@ -66,7 +66,7 @@ public class PurPlanServiceImpl extends ServiceImpl<PurPlanMapper, PurPlan> impl
     public boolean submit(String id) {
         PurPlan plan = getById(id);
         if (plan == null || plan.getDeleted()) {
-            throw new IllegalArgumentException("閲囪喘璁″垝涓嶅瓨锟?" + id);
+            throw new IllegalArgumentException("Purchase plan not found: " + id);
         }
         statusValidator.validateTransition("PURCHASE", "DRAFT", "PENDING_APPROVAL");
         plan.setStatus(1); // PENDING_APPROVAL
@@ -79,7 +79,7 @@ public class PurPlanServiceImpl extends ServiceImpl<PurPlanMapper, PurPlan> impl
     public boolean approve(String id, String approverId, String approverName) {
         PurPlan plan = getById(id);
         if (plan == null || plan.getDeleted()) {
-            throw new IllegalArgumentException("閲囪喘璁″垝涓嶅瓨锟?" + id);
+            throw new IllegalArgumentException("Purchase plan not found: " + id);
         }
         statusValidator.validateTransition("PURCHASE", "PENDING_APPROVAL", "APPROVED");
         plan.setStatus(2); // APPROVED
@@ -95,7 +95,7 @@ public class PurPlanServiceImpl extends ServiceImpl<PurPlanMapper, PurPlan> impl
     public boolean startExecution(String id) {
         PurPlan plan = getById(id);
         if (plan == null || plan.getDeleted()) {
-            throw new IllegalArgumentException("閲囪喘璁″垝涓嶅瓨锟?" + id);
+            throw new IllegalArgumentException("Purchase plan not found: " + id);
         }
         statusValidator.validateTransition("PURCHASE", "APPROVED", "APPROVED");
         plan.setUpdateTime(LocalDateTime.now());
@@ -107,7 +107,7 @@ public class PurPlanServiceImpl extends ServiceImpl<PurPlanMapper, PurPlan> impl
     public boolean complete(String id) {
         PurPlan plan = getById(id);
         if (plan == null || plan.getDeleted()) {
-            throw new IllegalArgumentException("閲囪喘璁″垝涓嶅瓨锟?" + id);
+            throw new IllegalArgumentException("Purchase plan not found: " + id);
         }
         statusValidator.validateTransition("PURCHASE", "APPROVED", "REJECTED");
         plan.setStatus(3); // REJECTED

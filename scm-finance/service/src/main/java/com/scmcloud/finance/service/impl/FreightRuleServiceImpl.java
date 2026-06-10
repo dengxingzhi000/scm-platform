@@ -21,7 +21,7 @@ public class FreightRuleServiceImpl extends ServiceImpl<FreightRuleMapper, Freig
 
     @Override
     public List<FreightRule> listActiveRules() {
-        log.debug("鏌ヨ鐢熸晥涓殑杩愯垂瑙勫垯");
+        log.debug("Query active freight rules");
         LocalDate today = LocalDate.now();
         LambdaQueryWrapper<FreightRule> wrapper = Wrappers.lambdaQuery();
         wrapper.eq(FreightRule::getEnabled, true)
@@ -40,16 +40,16 @@ public class FreightRuleServiceImpl extends ServiceImpl<FreightRuleMapper, Freig
 
         FreightRule rule = getById(ruleId);
         if (rule == null || Boolean.TRUE.equals(rule.getDeleted())) {
-            throw new IllegalArgumentException("杩愯垂瑙勫垯涓嶅瓨锟?" + ruleId);
+            throw new IllegalArgumentException("Freight rule not found: " + ruleId);
         }
 
         if (!Boolean.TRUE.equals(rule.getEnabled())) {
-            throw new IllegalArgumentException("杩愯垂瑙勫垯宸茬锟?" + ruleId);
+            throw new IllegalArgumentException("Freight rule is disabled: " + ruleId);
         }
 
         if (rule.getFreeThreshold() != null && orderAmount != null
                 && orderAmount.compareTo(rule.getFreeThreshold()) >= 0) {
-            log.info("璁㈠崟閲戦婊¤冻鍏嶈繍璐归槇锟?鍏嶈繍锟?orderAmount={}, threshold={}",
+            log.info("Order amount meets free shipping threshold, free shipping: orderAmount={}, threshold={}",
                     orderAmount, rule.getFreeThreshold());
             return BigDecimal.ZERO;
         }
@@ -60,7 +60,7 @@ public class FreightRuleServiceImpl extends ServiceImpl<FreightRuleMapper, Freig
             case 2 -> freight = calculateByQuantity(rule, quantity);
             case 3 -> freight = calculateByVolume(rule, volume);
             case 4 -> freight = rule.getFixedFreight() != null ? rule.getFixedFreight() : BigDecimal.ZERO;
-            default -> throw new IllegalArgumentException("涓嶆敮鎸佺殑璁¤垂绫诲瀷: " + rule.getBillingType());
+            default -> throw new IllegalArgumentException("Unsupported billing type: " + rule.getBillingType());
         }
 
         if (rule.getRemoteAreaFee() != null) {

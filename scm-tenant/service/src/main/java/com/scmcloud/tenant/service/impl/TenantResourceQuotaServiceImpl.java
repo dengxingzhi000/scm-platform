@@ -19,12 +19,12 @@ import java.util.UUID;
 public class TenantResourceQuotaServiceImpl extends ServiceImpl<TenantResourceQuotaMapper, TenantResourceQuota> implements ITenantResourceQuotaService {
 
     public TenantResourceQuota createQuota(TenantResourceQuota entity) {
-        log.info("鍒涘缓绉熸埛璧勬簮閰嶉: tenantId={}", entity.getTenantId());
+        log.info("Create tenant resource quota: tenantId={}", entity.getTenantId());
         entity.setId(UUID.randomUUID().toString());
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         save(entity);
-        log.info("绉熸埛璧勬簮閰嶉鍒涘缓鎴愬姛: id={}", entity.getId());
+        log.info("Tenant resource quota created successfully: id={}", entity.getId());
         return entity;
     }
 
@@ -35,26 +35,26 @@ public class TenantResourceQuotaServiceImpl extends ServiceImpl<TenantResourceQu
     }
 
     public TenantResourceQuota updateQuota(TenantResourceQuota entity) {
-        log.info("鏇存柊绉熸埛璧勬簮閰嶉: id={}", entity.getId());
+        log.info("Update tenant resource quota: id={}", entity.getId());
         entity.setUpdateTime(LocalDateTime.now());
         updateById(entity);
         return entity;
     }
 
     public boolean deleteById(String id) {
-        log.info("鍒犻櫎绉熸埛璧勬簮閰嶉: id={}", id);
+        log.info("Delete tenant resource quota: id={}", id);
         return removeById(id);
     }
 
     public boolean checkQuota(String tenantId, String resourceType) {
-        log.debug("妫€鏌ョ鎴烽厤锟?tenantId={}, resourceType={}", tenantId, resourceType);
+        log.debug("Check tenant quota: tenantId={}, resourceType={}", tenantId, resourceType);
 
         TenantResourceQuota quota = lambdaQuery()
                 .eq(TenantResourceQuota::getTenantId, tenantId)
                 .one();
 
         if (quota == null) {
-            log.warn("绉熸埛閰嶉涓嶅瓨锟?tenantId={}", tenantId);
+            log.warn("Tenant quota not found: tenantId={}", tenantId);
             return false;
         }
 
@@ -78,7 +78,7 @@ public class TenantResourceQuotaServiceImpl extends ServiceImpl<TenantResourceQu
     }
 
     public Page<TenantResourceQuota> pageQuery(int page, int size, String tenantId) {
-        log.debug("鍒嗛〉鏌ヨ绉熸埛璧勬簮閰嶉: page={}, size={}, tenantId={}", page, size, tenantId);
+        log.debug("Page query tenant resource quota: page={}, size={}, tenantId={}", page, size, tenantId);
 
         LambdaQueryWrapper<TenantResourceQuota> wrapper = Wrappers.lambdaQuery();
 

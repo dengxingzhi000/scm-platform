@@ -28,7 +28,7 @@ public class SysPermissionApprovalServiceImpl extends ServiceImpl<SysPermissionA
     @Override
     @Transactional(rollbackFor = Exception.class)
     public SysPermissionApproval submitApproval(SysPermissionApproval approval) {
-        log.info("鎻愪氦瀹℃壒鐢宠: applicantId={}, type={}", approval.getApplicantId(), approval.getApprovalType());
+        log.info("Submit approval request: applicantId={}, type={}", approval.getApplicantId(), approval.getApprovalType());
 
         approval.setId(UUIDv7Util.generateString());
         approval.setApprovalStatus(STATUS_PENDING);
@@ -37,10 +37,10 @@ public class SysPermissionApprovalServiceImpl extends ServiceImpl<SysPermissionA
 
         boolean success = save(approval);
         if (!success) {
-            throw new RuntimeException("鎻愪氦瀹℃壒鐢宠澶辫触");
+            throw new RuntimeException("Failed to submit approval request");
         }
 
-        log.info("瀹℃壒鐢宠鎻愪氦鎴愬姛: id={}", approval.getId());
+        log.info("Approval request submitted successfully: id={}", approval.getId());
         return approval;
     }
 
@@ -51,7 +51,7 @@ public class SysPermissionApprovalServiceImpl extends ServiceImpl<SysPermissionA
 
         SysPermissionApproval approval = getById(approvalId);
         if (approval == null) {
-            throw new IllegalArgumentException("瀹℃壒璁板綍涓嶅瓨锟?" + approvalId);
+            throw new IllegalArgumentException("Approval record not found: " + approvalId);
         }
 
         if (approval.getApprovalStatus() != STATUS_PENDING
@@ -81,7 +81,7 @@ public class SysPermissionApprovalServiceImpl extends ServiceImpl<SysPermissionA
 
         SysPermissionApproval approval = getById(approvalId);
         if (approval == null) {
-            throw new IllegalArgumentException("瀹℃壒璁板綍涓嶅瓨锟?" + approvalId);
+            throw new IllegalArgumentException("Approval record not found: " + approvalId);
         }
 
         if (approval.getApprovalStatus() != STATUS_PENDING
@@ -107,7 +107,7 @@ public class SysPermissionApprovalServiceImpl extends ServiceImpl<SysPermissionA
 
     @Override
     public List<SysPermissionApproval> listByApplicant(String applicantId) {
-        log.debug("鏌ヨ鐢宠浜哄鎵瑰垪锟?applicantId={}", applicantId);
+        log.debug("Query approval list by applicant: applicantId={}", applicantId);
 
         LambdaQueryWrapper<SysPermissionApproval> wrapper = Wrappers.lambdaQuery();
         wrapper.eq(SysPermissionApproval::getApplicantId, applicantId)
@@ -118,7 +118,7 @@ public class SysPermissionApprovalServiceImpl extends ServiceImpl<SysPermissionA
 
     @Override
     public List<SysPermissionApproval> listPending(String approverId) {
-        log.debug("鏌ヨ寰呭鎵瑰垪锟?approverId={}", approverId);
+        log.debug("Query pending approval list: approverId={}", approverId);
 
         LambdaQueryWrapper<SysPermissionApproval> wrapper = Wrappers.lambdaQuery();
         wrapper.and(w -> w.eq(SysPermissionApproval::getApprovalStatus, STATUS_PENDING)

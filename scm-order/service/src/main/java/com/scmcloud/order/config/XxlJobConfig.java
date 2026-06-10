@@ -60,7 +60,7 @@ public class XxlJobConfig {
         xxlJobSpringExecutor.setLogPath(logPath);
         xxlJobSpringExecutor.setLogRetentionDays(logRetentionDays);
 
-        log.info("锟絒XXL-Job] 鎵ц鍣ㄥ垵濮嬪寲瀹屾垚");
+        log.info("[XXL-Job] Executor initialization completed");
         return xxlJobSpringExecutor;
     }
 }
