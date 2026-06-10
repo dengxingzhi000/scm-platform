@@ -75,6 +75,6 @@ public interface SysAuthServiceClient {
                   userId, reason, ex.getMessage());
 
         // 闄嶇骇杩斿洖澶辫触锛氳璇佹湇鍔′笉鍙敤鏃舵棤娉曞己鍒剁櫥锟?
-        return ApiResponse.fail(503, "璁よ瘉鏈嶅姟鏆傛椂涓嶅彲鐢紝璇风◢鍚庨噸璇?);
+        return ApiResponse.fail(503, "Auth service temporarily unavailable, please try again later");
     }
 }

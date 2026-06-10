@@ -14,26 +14,26 @@ import lombok.Getter;
 @AllArgsConstructor
 public enum SecurityEventType {
 
-    LOGIN_SUCCESS("鐧诲綍鎴愬姛", 1),
-    LOGIN_FAILED("鐧诲綍澶辫触", 2),
-    LOGOUT("鐧诲嚭", 1),
+    LOGIN_SUCCESS("Login Success", 1),
+    LOGIN_FAILED("Login Failed", 2),
+    LOGOUT("Logout", 1),
 
-    PASSWORD_CHANGED("瀵嗙爜淇敼", 2),
-    PASSWORD_RESET("瀵嗙爜閲嶇疆", 3),
+    PASSWORD_CHANGED("Password Changed", 2),
+    PASSWORD_RESET("Password Reset", 3),
 
-    PERMISSION_GRANTED("鏉冮檺鎺堜簣", 3),
-    PERMISSION_REVOKED("鏉冮檺鎾ら攢", 3),
+    PERMISSION_GRANTED("Permission Granted", 3),
+    PERMISSION_REVOKED("Permission Revoked", 3),
 
-    DATA_EXPORT("鏁版嵁瀵煎嚭", 4),
-    DATA_DELETE("鏁版嵁鍒犻櫎", 4),
+    DATA_EXPORT("Data Export", 4),
+    DATA_DELETE("Data Deletion", 4),
 
-    API_ABUSE("API 婊ョ敤", 4),
-    SQL_INJECTION_ATTEMPT("SQL 娉ㄥ叆灏濊瘯", 5),
-    XSS_ATTEMPT("XSS 鏀诲嚮灏濊瘯", 5),
-    UNAUTHORIZED_ACCESS("鏈巿鏉冭闂?, 4),
+    API_ABUSE("API Abuse", 4),
+    SQL_INJECTION_ATTEMPT("SQL Injection Attempt", 5),
+    XSS_ATTEMPT("XSS Attack Attempt", 5),
+    UNAUTHORIZED_ACCESS("Unauthorized Access", 4),
 
-    IP_BLACKLISTED("IP 琚媺榛?, 3),
-    ACCOUNT_LOCKED("璐︽埛閿佸畾", 3);
+    IP_BLACKLISTED("IP Blacklisted", 3),
+    ACCOUNT_LOCKED("Account Locked", 3);
 
     private final String description;
     private final Integer riskLevel; // 1-锟?-锟?-锟?-涓ラ噸 5-绱э拷

@@ -89,14 +89,14 @@ public class IdempotentAspect {
         ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
 
         if (attributes == null) {
-            throw new BusinessException("鏃犳硶鑾峰彇璇锋眰涓婁笅鏂?);
+            throw new BusinessException("Unable to obtain request context");
         }
 
         HttpServletRequest request = attributes.getRequest();
         String token = request.getHeader(TOKEN_HEADER);
 
         if (token == null || token.isEmpty()) {
-            throw new BusinessException("缂哄皯骞傜瓑锟絋oken");
+            throw new BusinessException("Missing idempotent token");
         }
 
         return token;

@@ -24,11 +24,11 @@ import java.util.UUID;
 public class UserDTOWithSensitive {
     private UUID id;
 
-    @NotBlank(message = "鐢ㄦ埛鍚嶄笉鑳戒负绌?)
-    @Size(min = 4, max = 32, message = "鐢ㄦ埛鍚嶉暱搴?-32涓瓧绗?)
+    @NotBlank(message = "Username cannot be empty")
+    @Size(min = 4, max = 32, message = "Username length must be 4-32 characters")
     private String username;
 
-    @NotBlank(message = "鐪熷疄濮撳悕涓嶈兘涓虹┖")
+    @NotBlank(message = "Real name cannot be empty")
     @Sensitive(type = SensitiveType.NAME)  // 濮撳悕鑴辨晱锛氬紶**
     private String realName;
 
@@ -36,16 +36,16 @@ public class UserDTOWithSensitive {
     @Sensitive(type = SensitiveType.ID_CARD)  // 鍝嶅簲鑴辨晱锟?0101********1234
     @Pattern(
             regexp = "^[1-9]\\d{5}(18|19|20)\\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\\d|3[01])\\d{3}[0-9Xx]$",
-            message = "韬唤璇佸彿鏍煎紡涓嶆纭?
+            message = "ID card number format is incorrect"
     )
     private String idCard;
 
     @Sensitive(type = SensitiveType.EMAIL)  // 閭鑴辨晱锛歛bc****@example.com
-    @Email(message = "閭鏍煎紡涓嶆纭?)
+    @Email(message = "Email format is incorrect")
     private String email;
 
     @Sensitive(type = SensitiveType.MOBILE)  // 鎵嬫満鍙疯劚鏁忥細138****1234
-    @Pattern(regexp = "^1[3-9]\\d{9}$", message = "鎵嬫満鍙锋牸寮忎笉姝ｇ‘")
+    @Pattern(regexp = "^1[3-9]\\d{9}$", message = "Phone number format is incorrect")
     private String phone;
 
     @EncryptField  // 閾惰鍗″彿鍔犲瘑瀛樺偍

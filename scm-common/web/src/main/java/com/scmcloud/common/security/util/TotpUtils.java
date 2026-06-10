@@ -72,15 +72,15 @@ public class TotpUtils {
                 String generatedCode = generateCode(secret, time);
 
                 if (code.equals(generatedCode)) {
-                    log.debug("TOTP楠岃瘉鎴愬姛锛屾椂闂村亸锟?{}", i);
+                    log.debug("TOTP verification successful, time offset: {}", i);
                     return true;
                 }
             }
 
-            log.warn("TOTP 楠岃瘉澶辫触");
+            log.warn("TOTP verification failed");
             return false;
         } catch (Exception e) {
-            log.error("TOTP 楠岃瘉寮傚父", e);
+            log.error("TOTP verification exception", e);
             return false;
         }
     }
@@ -123,7 +123,7 @@ public class TotpUtils {
             long currentTime = Instant.now().getEpochSecond() / TIME_STEP;
             return generateCode(secret, currentTime);
         } catch (Exception e) {
-            log.error("鐢熸垚楠岃瘉鐮佸け璐?, e);
+            log.error("Failed to generate verification code", e);
             return null;
         }
     }

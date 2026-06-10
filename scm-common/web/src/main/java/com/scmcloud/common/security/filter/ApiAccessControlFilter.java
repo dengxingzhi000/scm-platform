@@ -106,7 +106,7 @@ public class ApiAccessControlFilter extends OncePerRequestFilter {
                     ipAddress,
                     requestUri,
                     false,
-                    "灏濊瘯璁块棶鏃犳潈闄愮殑API: " + method + " " + requestUri
+                    "Attempted to access unauthorized API: " + method + " " + requestUri
             );
 
             String traceId = request.getHeader("X-Request-ID");
@@ -115,7 +115,7 @@ public class ApiAccessControlFilter extends OncePerRequestFilter {
 
             securityMetrics.increment("security.access.denied");
             SecurityErrorResponseWriter.write(request, response, HttpServletResponse.SC_FORBIDDEN, "ACCESS_DENIED",
-                    "鎮ㄦ病鏈夎闂璧勬簮鐨勬潈闄?);
+                    "You do not have permission to access this resource");
             return;
         }
 
