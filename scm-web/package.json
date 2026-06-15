@@ -27,7 +27,7 @@
     "axios": "^1.8.0",
     "clsx": "^2.1.0",
     "dayjs": "^1.11.0",
-    "echarts": "^5.6.0",
+    "echarts": "^6.1.0",
     "echarts-for-react": "^3.0.0",
     "lodash-es": "^4.17.0",
     "mermaid": "^11.0.0",
