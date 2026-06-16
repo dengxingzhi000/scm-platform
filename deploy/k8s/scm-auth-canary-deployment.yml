@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: scm-auth
-          image: ${DOCKERHUB_USERNAME}/scm-auth:canary
+          image: docker.io/scmcloud/scm-auth:canary
           ports:
             - containerPort: 8106
           envFrom:
@@ -25,6 +25,18 @@ spec:
                 name: scm-config
             - secretRef:
                 name: scm-secrets
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8106
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8106
+            initialDelaySeconds: 60
+            periodSeconds: 15
           resources:
             requests:
               memory: "512Mi"

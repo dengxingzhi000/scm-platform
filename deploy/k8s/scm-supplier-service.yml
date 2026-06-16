@@ -1,13 +1,12 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: scm-auth-canary
+  name: scm-supplier
   namespace: scm-prod
 spec:
   selector:
-    app: scm-auth
-    track: canary
+    app: scm-supplier
   ports:
-    - port: 8106
-      targetPort: 8106
+    - port: 8206
+      targetPort: 8206
   type: ClusterIP

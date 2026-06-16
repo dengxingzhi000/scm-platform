@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scm-gateway
+  namespace: scm-prod
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: scm-gateway
+  template:
+    metadata:
+      labels:
+        app: scm-gateway
+    spec:
+      containers:
+        - name: scm-gateway
+          image: docker.io/scmcloud/scm-gateway:latest
+          ports:
+            - containerPort: 8761
+          envFrom:
+            - configMapRef:
+                name: scm-config
+            - secretRef:
+                name: scm-secrets
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "250m"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8761
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8761
+            initialDelaySeconds: 20
+            periodSeconds: 5

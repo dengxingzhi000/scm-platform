@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scm-finance
+  namespace: scm-prod
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: scm-finance
+  template:
+    metadata:
+      labels:
+        app: scm-finance
+    spec:
+      containers:
+        - name: scm-finance
+          image: docker.io/scmcloud/scm-finance:latest
+          ports:
+            - containerPort: 8208
+          envFrom:
+            - configMapRef:
+                name: scm-config
+            - secretRef:
+                name: scm-secrets
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8208
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8208
+            initialDelaySeconds: 20
+            periodSeconds: 5

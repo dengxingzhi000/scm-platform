@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scm-purchase
+  namespace: scm-prod
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: scm-purchase
+  template:
+    metadata:
+      labels:
+        app: scm-purchase
+    spec:
+      containers:
+        - name: scm-purchase
+          image: docker.io/scmcloud/scm-purchase:latest
+          ports:
+            - containerPort: 8207
+          envFrom:
+            - configMapRef:
+                name: scm-config
+            - secretRef:
+                name: scm-secrets
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8207
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8207
+            initialDelaySeconds: 20
+            periodSeconds: 5
