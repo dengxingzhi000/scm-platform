@@ -15,6 +15,10 @@ env:
   redisHost: redis
   redisPort: "6379"
 
+secrets:
+  dbUsername: "admin"
+  dbPassword: "admin123"
+
 resources:
   auth:
     requests:

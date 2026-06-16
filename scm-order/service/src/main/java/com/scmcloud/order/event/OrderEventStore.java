@@ -37,7 +37,7 @@ public class OrderEventStore {
     }
 
     public List<OrderEvent> getEvents(UUID orderId) {
-        LambdaQueryWrapper<OrdOrderEvent> wrapper = Wrappers.lambdaQuery()
+        LambdaQueryWrapper<OrdOrderEvent> wrapper = Wrappers.lambdaQuery(OrdOrderEvent.class)
             .eq(OrdOrderEvent::getOrderId, orderId)
             .orderByAsc(OrdOrderEvent::getCreateTime);
         return eventMapper.selectList(wrapper).stream()
@@ -46,7 +46,7 @@ public class OrderEventStore {
     }
 
     public List<OrderEvent> getEvents(UUID orderId, int offset, int limit) {
-        LambdaQueryWrapper<OrdOrderEvent> wrapper = Wrappers.lambdaQuery()
+        LambdaQueryWrapper<OrdOrderEvent> wrapper = Wrappers.lambdaQuery(OrdOrderEvent.class)
             .eq(OrdOrderEvent::getOrderId, orderId)
             .orderByAsc(OrdOrderEvent::getCreateTime)
             .last("OFFSET " + offset + " LIMIT " + limit);

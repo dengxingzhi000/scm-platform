@@ -23,7 +23,7 @@ export default function () {
 
   check(loginRes, { 'login successful': (r) => r.status === 200 });
 
-  const token = loginRes.json('data?.token');
+  const token = loginRes.json('data.token');
   const headers = {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${token}`,
