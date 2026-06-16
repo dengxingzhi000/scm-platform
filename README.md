@@ -31,6 +31,7 @@
 | 🏢 | **Multi-Tenant** | Tenant isolation with dynamic data source routing and configurable feature flags |
 | 🖥️ | **Modern Frontend** | Next.js 15 App Router, Ant Design 5 Pro, Zustand state management, TanStack Query |
 | 📦 | **Domain-Driven Design** | Clean CQRS separation, aggregate roots, domain events via Kafka/RabbitMQ |
+| ☸️ | **Cloud Native** | Kubernetes manifests for all services, Helm charts, ArgoCD GitOps, canary deployments |
 
 ## Tech Stack
 
@@ -46,7 +47,8 @@
 | **Scheduling** | XXL-Job 3.3.1 (distributed task scheduling) |
 | **Monitoring** | Sentinel, SkyWalking 9.3.0, Micrometer + Prometheus |
 | **Frontend** | Next.js 15 (App Router), React 19, Ant Design 5, Zustand 5, TanStack Query 5, ECharts, next-intl |
-| **DevOps** | Docker, GitHub Actions, SonarCloud, OWASP Dependency Check |
+| **DevOps** | Docker, Kubernetes, Helm, ArgoCD, GitHub Actions, SonarCloud, OWASP |
+| **Testing** | JUnit 5, k6 load testing, Pact contract testing, Playwright E2E, PIT mutation testing |
 
 ## Architecture
 
@@ -159,6 +161,7 @@ cd scm-order/service && mvn spring-boot:run
 | Sentinel Dashboard | http://localhost:8080 |
 | XXL-Job Admin | http://localhost:8088/xxl-job-admin |
 | Prometheus | http://localhost:9090 |
+| Grafana | http://localhost:3000 |
 
 ### 6. Frontend
 
@@ -178,6 +181,48 @@ The frontend runs at **http://localhost:3000** with built-in zh-CN and en-US lan
 | `/order` | Order lifecycle management |
 | `/inventory` | Inventory & stock alerts |
 | `/system/*` | System settings (users, roles, permissions) |
+
+## Kubernetes Deployment
+
+All 9 services have deployment + service manifests in `deploy/k8s/`. Deploy with:
+
+```bash
+# Apply all K8s resources
+kubectl apply -f deploy/k8s/namespace.yml
+kubectl apply -f deploy/k8s/configmap.yml
+kubectl apply -f deploy/k8s/secrets.yml
+kubectl apply -f deploy/k8s/scm-*-deployment.yml
+kubectl apply -f deploy/k8s/scm-*-service.yml
+
+# Or use Helm
+helm install scm-platform deploy/helm/scm-platform/
+
+# ArgoCD GitOps
+kubectl apply -f deploy/argocd/application.yaml
+```
+
+### Services Port Map
+
+| Service | Port | Replicas |
+|---------|------|----------|
+| scm-gateway | 8761 | 3 |
+| scm-system | 8081 | 3 |
+| scm-product | 8201 | 2 |
+| scm-inventory | 8202 | 2 |
+| scm-order | 8203 | 2 |
+| scm-warehouse | 8204 | 2 |
+| scm-logistics | 8205 | 2 |
+| scm-supplier | 8206 | 2 |
+| scm-purchase | 8207 | 2 |
+| scm-finance | 8208 | 2 |
+
+## Load Testing
+
+```bash
+# Run k6 load tests
+k6 run scripts/loadtest/order-flow.js
+k6 run scripts/loadtest/inventory-check.js
+```
 
 ## Key Architecture Patterns
 
@@ -223,6 +268,16 @@ public Order createOrder(OrderDTO dto) {
 }
 ```
 
+## Infrastructure
+
+| Component | Purpose | Config |
+|-----------|---------|--------|
+| **PgBouncer** | Connection pooling | `deploy/pgbouncer/` |
+| **Redis Sentinel** | Cache HA | `deploy/redis/sentinel.conf` |
+| **PostgreSQL HA** | Database HA with Patroni | `deploy/postgresql/ha/` |
+| **Kafka** | Event streaming | Docker Compose |
+| **Canal** | Binlog sync to Elasticsearch | `docker-compose-debezium.yml` |
+
 ## Project Structure
 
 ```
@@ -251,8 +306,47 @@ scm-platform/
 ├── scm-approval/            # Approval workflows
 ├── scm-audit/               # Audit logging
 ├── scm-notify/              # Notification service
-├── scripts/                 # Database init scripts, utilities
-└── docs/                    # Documentation
+├── deploy/                  # Deployment configs (K8s, Helm, ArgoCD, PgBouncer)
+├── scripts/                 # Database init scripts, partition mgmt, load tests
+└── docs/                    # Documentation, audits, data dictionary
+```
+
+## Database Management
+
+```bash
+# Initialize all databases
+export PGPASSWORD=admin123 && cd scripts/db && ./init-all-databases.sh
+
+# Create partitions (next 3 months)
+./scripts/db/partition/create-partitions.sh
+
+# Drop old partitions (24-month retention)
+./scripts/db/partition/drop-old-partitions.sh
+
+# Apply data retention policies
+./scripts/db/retention/apply-retention.sh
+
+# Run data quality checks
+./scripts/db/quality/check-quality.sh
+```
+
+## Testing
+
+```bash
+# Unit tests
+mvn test -pl scm-order/service -f com.scm.parent/pom.xml
+
+# Single test
+mvn test -Dtest=OrderServiceTest -pl scm-order/service -f com.scm.parent/pom.xml
+
+# Full CI check (tests + JaCoCo coverage)
+mvn verify -f com.scm.parent/pom.xml
+
+# Load tests (requires k6)
+k6 run scripts/loadtest/order-flow.js
+
+# E2E tests (requires Playwright)
+cd scm-web && npx playwright test
 ```
 
 ## Contributing
