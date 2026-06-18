@@ -1,0 +1,30 @@
+server:
+  port: 8201
+
+spring:
+  application:
+    name: scm-file
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/db_system
+    username: ${DB_USERNAME:admin}
+    password: ${DB_PASSWORD:admin123}
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+
+storage:
+  minio:
+    endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+    access-key: ${MINIO_ACCESS_KEY:minioadmin}
+    secret-key: ${MINIO_SECRET_KEY:minioadmin}
+    bucket-name: ${MINIO_BUCKET:scm-files}
+
+mybatis-plus:
+  mapper-locations: classpath*:mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+
+logging:
+  level:
+    com.scmcloud.file: DEBUG
