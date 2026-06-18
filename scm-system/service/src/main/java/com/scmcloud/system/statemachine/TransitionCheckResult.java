@@ -1,13 +1,17 @@
 package com.scmcloud.system.statemachine;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * Result of a transition eligibility check.
  */
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class TransitionCheckResult {
 
     private boolean allowed;
