@@ -37,6 +37,9 @@
     <!-- Supplier & Finance Layer -->
     <module>../scm-supplier</module>
     <module>../scm-finance</module>
+
+    <!-- File Service -->
+    <module>../scm-file</module>
   </modules>
 
   <parent>
