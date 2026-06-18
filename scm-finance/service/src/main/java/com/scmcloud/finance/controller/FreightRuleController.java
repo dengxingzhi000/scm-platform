@@ -15,7 +15,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/freight-rule")
 public class FreightRuleController {
-
     private final IFreightRuleService freightRuleService;
 
     @GetMapping("/{id}")

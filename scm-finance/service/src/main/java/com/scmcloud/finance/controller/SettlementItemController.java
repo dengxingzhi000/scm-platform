@@ -16,7 +16,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/settlement-item")
 public class SettlementItemController {
-
     private final ISettlementItemService settlementItemService;
 
     @GetMapping("/{id}")

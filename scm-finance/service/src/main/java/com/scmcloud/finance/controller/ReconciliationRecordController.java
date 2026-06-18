@@ -12,7 +12,6 @@ import com.scmcloud.finance.service.IReconciliationRecordService;
 @RestController
 @RequestMapping("/reconciliation-record")
 public class ReconciliationRecordController {
-
     private final IReconciliationRecordService reconciliationRecordService;
 
     @GetMapping("/{id}")

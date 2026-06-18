@@ -43,6 +43,10 @@
     <file url="file://$PROJECT_DIR$/scm-common/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/scm-common/web/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/scm-common/web/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/scm-file/api/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/scm-file/service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/scm-file/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/scm-file/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/scm-finance/api/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/scm-finance/api/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/scm-finance/service/src/main/java" charset="UTF-8" />
@@ -63,6 +67,8 @@
     <file url="file://$PROJECT_DIR$/scm-logistics/service/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/scm-logistics/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/scm-logistics/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/scm-message/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/scm-message/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/scm-notify/api/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/scm-notify/api/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/scm-notify/service/src/main/java" charset="UTF-8" />

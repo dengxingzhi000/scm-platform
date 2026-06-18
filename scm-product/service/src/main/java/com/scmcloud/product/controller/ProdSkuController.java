@@ -18,7 +18,6 @@ import java.util.UUID;
 @RequestMapping("/api/v1/prod-sku")
 @RequiredArgsConstructor
 public class ProdSkuController {
-
     private final IProdSkuService skuService;
 
     @GetMapping

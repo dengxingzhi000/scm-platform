@@ -47,7 +47,6 @@ public class SysPermissionApprovalServiceImpl extends ServiceImpl<SysPermissionA
     @Override
     @Transactional(rollbackFor = Exception.class)
     public SysPermissionApproval approve(String approvalId, String approverId, String approverName) {
-        log.info("瀹℃壒閫氳繃: approvalId={}, approverId={}", approvalId, approverId);
 
         SysPermissionApproval approval = getById(approvalId);
         if (approval == null) {
@@ -70,14 +69,12 @@ public class SysPermissionApprovalServiceImpl extends ServiceImpl<SysPermissionA
             throw new RuntimeException("瀹℃壒鎿嶄綔澶辫触");
         }
 
-        log.info("瀹℃壒閫氳繃鎴愬姛: id={}", approvalId);
         return approval;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public SysPermissionApproval reject(String approvalId, String approverId, String approverName, String rejectReason) {
-        log.info("瀹℃壒鎷掔粷: approvalId={}, approverId={}", approvalId, approverId);
 
         SysPermissionApproval approval = getById(approvalId);
         if (approval == null) {
@@ -101,7 +98,6 @@ public class SysPermissionApprovalServiceImpl extends ServiceImpl<SysPermissionA
             throw new RuntimeException("瀹℃壒鎷掔粷鎿嶄綔澶辫触");
         }
 
-        log.info("瀹℃壒鎷掔粷鎴愬姛: id={}", approvalId);
         return approval;
     }
 

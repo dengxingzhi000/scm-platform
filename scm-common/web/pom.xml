@@ -4,7 +4,7 @@
     <parent>
         <groupId>com.scmcloud</groupId>
         <artifactId>scm-common</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <version>1.0.0-beta.1</version>
     </parent>
 
     <artifactId>scm-common-web</artifactId>
@@ -49,27 +49,27 @@
         <dependency>
             <groupId>com.scmcloud</groupId>
             <artifactId>scm-common-core</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.scmcloud</groupId>
             <artifactId>scm-common-data</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.scmcloud</groupId>
             <artifactId>scm-system-api</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.scmcloud</groupId>
             <artifactId>scm-common-security-api</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.scmcloud</groupId>
             <artifactId>scm-common-security-core</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>1.0.0-beta.1</version>
         </dependency>
         <!-- common start -->
 

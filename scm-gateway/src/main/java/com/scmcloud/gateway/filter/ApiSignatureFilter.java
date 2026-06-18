@@ -21,8 +21,6 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
-import java.util.stream.Stream;
 
 import io.micrometer.core.instrument.MeterRegistry;
 
@@ -84,11 +82,12 @@ public class ApiSignatureFilter implements GlobalFilter, Ordered {
         String appId = headers.getFirst("X-App-Id");
         String version = headers.getFirst("X-Sign-Version");
 
-        if (Stream.of(timestamp, nonce, signature, appId).anyMatch(StringUtils::isBlank)) {
+        if (timestamp == null || timestamp.isBlank()
+                || nonce == null || nonce.isBlank()
+                || signature == null || signature.isBlank()
+                || appId == null || appId.isBlank()) {
             return unauthorized(exchange, "MISSING_PARAMETERS", "Missing signature parameters");
         }
-
-        // Parameters validated above - guaranteed non-null
         long current = System.currentTimeMillis();
         long requestTime;
         try {

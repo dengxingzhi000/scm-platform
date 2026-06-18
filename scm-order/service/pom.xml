@@ -8,7 +8,7 @@
     <parent>
         <groupId>com.scmcloud</groupId>
         <artifactId>scm-order</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <version>1.0.0-beta.1</version>
     </parent>
 
     <artifactId>scm-order-service</artifactId>
@@ -21,30 +21,30 @@
         <dependency>
             <groupId>com.scmcloud</groupId>
             <artifactId>scm-order-api</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.scmcloud</groupId>
             <artifactId>scm-inventory-api</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>1.0.0-beta.1</version>
         </dependency>
 
         <!-- Common Modules -->
         <dependency>
             <groupId>com.scmcloud</groupId>
             <artifactId>scm-common-web</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.scmcloud</groupId>
             <artifactId>scm-common-integration</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>1.0.0-beta.1</version>
         </dependency>
 
         <dependency>
             <groupId>com.scmcloud</groupId>
             <artifactId>scm-system-api</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>1.0.0-beta.1</version>
         </dependency>
 
         <dependency>
@@ -101,7 +101,7 @@
         <dependency>
             <groupId>com.scmcloud</groupId>
             <artifactId>scm-inventory-service</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>1.0.0-beta.1</version>
             <scope>test</scope>
         </dependency>
 

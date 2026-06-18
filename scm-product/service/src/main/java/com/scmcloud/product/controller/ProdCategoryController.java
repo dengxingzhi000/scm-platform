@@ -18,7 +18,6 @@ import java.util.UUID;
 @RequestMapping("/api/v1/prod-category")
 @RequiredArgsConstructor
 public class ProdCategoryController {
-
     private final IProdCategoryService categoryService;
 
     @GetMapping

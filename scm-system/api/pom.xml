@@ -5,7 +5,7 @@
     <parent>
         <groupId>com.scmcloud</groupId>
         <artifactId>scm-system</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <version>1.0.0-beta.1</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -23,14 +23,14 @@
         <dependency>
             <groupId>com.scmcloud</groupId>
             <artifactId>scm-common-security-core</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>1.0.0-beta.1</version>
         </dependency>
 
         <!-- 添加: 公共 DTO 模块依赖 -->
         <dependency>
             <groupId>com.scmcloud</groupId>
             <artifactId>scm-common-data</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>1.0.0-beta.1</version>
         </dependency>
     </dependencies>
 </project>

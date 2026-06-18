@@ -43,7 +43,6 @@ public class ReconciliationRecordServiceImpl extends ServiceImpl<ReconciliationR
             throw new RuntimeException("鍒涘缓瀵硅处璁板綍澶辫触");
         }
 
-        log.info("瀵硅处璁板綍鍒涘缓鎴愬姛: id={}, reconciliationNo={}", record.getId(), record.getReconciliationNo());
         return record;
     }
 

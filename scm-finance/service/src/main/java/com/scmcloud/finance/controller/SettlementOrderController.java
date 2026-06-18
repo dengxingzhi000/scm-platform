@@ -15,7 +15,6 @@ import java.math.BigDecimal;
 @RestController
 @RequestMapping("/settlement-order")
 public class SettlementOrderController {
-
     private final ISettlementOrderService settlementOrderService;
 
     @GetMapping("/{id}")

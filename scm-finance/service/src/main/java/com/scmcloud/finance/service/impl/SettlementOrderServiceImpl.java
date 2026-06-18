@@ -10,7 +10,6 @@ import com.scmcloud.finance.mapper.SettlementOrderMapper;
 import com.scmcloud.finance.service.ISettlementOrderService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,9 +20,11 @@ import java.time.LocalDateTime;
 @Service
 public class SettlementOrderServiceImpl extends ServiceImpl<SettlementOrderMapper, SettlementOrder>
         implements ISettlementOrderService {
+    private final StatusValidator statusValidator;
 
-    @Autowired
-    private StatusValidator statusValidator;
+    public SettlementOrderServiceImpl(StatusValidator statusValidator) {
+        this.statusValidator = statusValidator;
+    }
 
     @Override
     @Transactional(rollbackFor = Exception.class)

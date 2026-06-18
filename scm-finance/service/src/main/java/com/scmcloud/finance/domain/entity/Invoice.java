@@ -113,5 +113,4 @@ public class Invoice {
 
     @TableField("remark")
     private String remark;
-
 }

@@ -8,7 +8,7 @@
     <parent>
         <groupId>com.scmcloud</groupId>
         <artifactId>scm-tenant</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <version>1.0.0-beta.1</version>
     </parent>
 
     <artifactId>scm-tenant-service</artifactId>
@@ -21,13 +21,13 @@
         <dependency>
             <groupId>com.scmcloud</groupId>
             <artifactId>scm-tenant-api</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>1.0.0-beta.1</version>
         </dependency>
 
         <dependency>
             <groupId>com.scmcloud</groupId>
             <artifactId>scm-common-web</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>1.0.0-beta.1</version>
         </dependency>
 
         <dependency>

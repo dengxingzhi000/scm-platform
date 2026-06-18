@@ -18,7 +18,6 @@ import java.util.UUID;
 @RequestMapping("/api/v1/prod-spu")
 @RequiredArgsConstructor
 public class ProdSpuController {
-
     private final IProdSpuService spuService;
 
     @GetMapping

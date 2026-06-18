@@ -5,7 +5,7 @@
     <parent>
         <groupId>com.scmcloud</groupId>
         <artifactId>scm-platform</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <version>1.0.0-beta.1</version>
         <relativePath>../com.scm.parent/pom.xml</relativePath>
     </parent>
 
@@ -24,27 +24,27 @@
         <dependency>
             <groupId>com.scmcloud</groupId>
             <artifactId>scm-common-web</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.scmcloud</groupId>
             <artifactId>scm-common-core</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.scmcloud</groupId>
             <artifactId>scm-system-api</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.scmcloud</groupId>
             <artifactId>scm-common-monitoring</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.scmcloud</groupId>
             <artifactId>scm-common-security-core</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>1.0.0-beta.1</version>
         </dependency>
 
         <dependency>
@@ -73,7 +73,7 @@
         <dependency>
             <groupId>com.scmcloud</groupId>
             <artifactId>scm-audit-service</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>net.logstash.logback</groupId>

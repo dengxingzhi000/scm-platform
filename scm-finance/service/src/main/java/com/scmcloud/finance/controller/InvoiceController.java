@@ -1,22 +1,21 @@
 package com.scmcloud.finance.controller;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.scmcloud.common.response.ApiResponse;
-import com.scmcloud.common.util.UUIDv7Util;
+import com.scmcloud.finance.domain.dto.CreateInvoiceRequest;
+import com.scmcloud.finance.domain.dto.UpdateInvoiceRequest;
+import com.scmcloud.finance.domain.entity.Invoice;
+import com.scmcloud.finance.service.IInvoiceService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
-import com.scmcloud.finance.domain.entity.Invoice;
-import com.scmcloud.finance.service.IInvoiceService;
 
-import java.time.LocalDateTime;
-import java.util.List;
-
-@RequiredArgsConstructor
 @Slf4j
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/invoice")
 public class InvoiceController {
-
     private final IInvoiceService invoiceService;
 
     @GetMapping("/{id}")
@@ -26,43 +25,32 @@ public class InvoiceController {
     }
 
     @PostMapping
-    public ApiResponse<Invoice> create(@RequestBody Invoice invoice) {
-        invoice.setId(UUIDv7Util.generateString());
-        invoice.setStatus(0);
-        invoice.setDeleted(false);
-        invoice.setCreateTime(LocalDateTime.now());
-        invoice.setUpdateTime(LocalDateTime.now());
-        invoiceService.save(invoice);
-        log.info("发票创建成功: id={}, invoiceNo={}", invoice.getId(), invoice.getInvoiceNo());
+    public ApiResponse<Invoice> create(@RequestBody @Valid CreateInvoiceRequest request) {
+        Invoice invoice = invoiceService.create(request);
         return ApiResponse.success(invoice);
     }
 
     @PutMapping("/{id}")
-    public ApiResponse<Invoice> update(@PathVariable String id, @RequestBody Invoice invoice) {
-        invoice.setId(id);
-        invoice.setUpdateTime(LocalDateTime.now());
-        invoiceService.updateById(invoice);
-        log.info("发票更新成功: id={}", id);
+    public ApiResponse<Invoice> update(
+            @PathVariable String id,
+            @RequestBody UpdateInvoiceRequest request) {
+        Invoice invoice = invoiceService.update(id, request);
         return ApiResponse.success(invoice);
     }
 
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@PathVariable String id) {
-        Invoice invoice = invoiceService.getById(id);
-        if (invoice != null) {
-            invoice.setDeleted(true);
-            invoice.setUpdateTime(LocalDateTime.now());
-            invoiceService.updateById(invoice);
-            log.info("发票删除成功: id={}", id);
-        }
+        invoiceService.delete(id);
         return ApiResponse.success();
     }
 
-    @GetMapping("/by-party")
-    public ApiResponse<List<Invoice>> listByPartyId(
-            @RequestParam String partyId) {
-        List<Invoice> invoices = invoiceService.listByPartyId(partyId);
-        return ApiResponse.success(invoices);
+    @GetMapping("/page")
+    public ApiResponse<Page<Invoice>> pageByPartyId(
+            @RequestParam String partyId,
+            @RequestParam(defaultValue = "1") int pageNum,
+            @RequestParam(defaultValue = "10") int pageSize) {
+        Page<Invoice> page = invoiceService.pageByPartyId(partyId, pageNum, pageSize);
+        return ApiResponse.success(page);
     }
 
     @PostMapping("/{id}/issue")

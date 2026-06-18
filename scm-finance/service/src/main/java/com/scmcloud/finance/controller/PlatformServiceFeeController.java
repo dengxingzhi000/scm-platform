@@ -17,7 +17,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/platform-service-fee")
 public class PlatformServiceFeeController {
-
     private final IPlatformServiceFeeService platformServiceFeeService;
 
     @GetMapping("/{id}")

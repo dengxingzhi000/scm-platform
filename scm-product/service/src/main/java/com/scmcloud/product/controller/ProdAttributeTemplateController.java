@@ -18,7 +18,6 @@ import java.util.UUID;
 @RequestMapping("/api/v1/prod-attribute-template")
 @RequiredArgsConstructor
 public class ProdAttributeTemplateController {
-
     private final IProdAttributeTemplateService attributeTemplateService;
 
     @GetMapping
