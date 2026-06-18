@@ -1,10 +1,11 @@
 package com.scmcloud.file.api.enums;
 
 public enum UploadTaskStatus {
-    PENDING(0),
-    UPLOADING(1),
-    COMPLETED(2),
-    FAILED(3);
+    INIT(0),
+    PENDING(1),
+    UPLOADING(2),
+    COMPLETED(3),
+    FAILED(4);
 
     private final int code;
 
