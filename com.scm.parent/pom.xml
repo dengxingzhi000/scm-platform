@@ -40,6 +40,9 @@
 
     <!-- File Service -->
     <module>../scm-file</module>
+
+    <!-- Message Service -->
+    <module>../scm-message</module>
   </modules>
 
   <parent>
