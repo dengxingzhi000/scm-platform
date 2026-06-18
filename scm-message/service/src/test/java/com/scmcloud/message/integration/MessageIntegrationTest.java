@@ -21,7 +21,7 @@ class MessageIntegrationTest {
         DomainEvent event = OrderCreatedEvent.of("order-1", "ORD001", 1L);
         
         // When
-        var result = outboxService.save(event);
+        var result = outboxService.saveEvent(event);
         
         // Then
         assertNotNull(result);

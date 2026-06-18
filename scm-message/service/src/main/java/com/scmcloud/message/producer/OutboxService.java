@@ -20,7 +20,7 @@ public class OutboxService extends ServiceImpl<EventOutboxMapper, EventOutbox> {
         this.objectMapper = objectMapper;
     }
     
-    public EventOutbox save(DomainEvent event) {
+    public EventOutbox saveEvent(DomainEvent event) {
         try {
             EventOutbox outbox = new EventOutbox();
             outbox.setId(event.getEventId());

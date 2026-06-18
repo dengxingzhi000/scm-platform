@@ -19,7 +19,6 @@ import java.util.UUID;
 @Component
 @RequiredArgsConstructor
 public class MinioStorageEngine implements StorageEngine {
-    
     private final MinioClient minioClient;
     private final StorageConfig config;
     

@@ -1,5 +1,7 @@
 package com.scmcloud.message.producer;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.scmcloud.message.entity.EventOutbox;
 import com.scmcloud.message.event.DomainEvent;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +21,7 @@ public class OutboxPublisher {
 
     private final OutboxService outboxService;
     private final KafkaEventProducer kafkaEventProducer;
+    private final ObjectMapper objectMapper;
 
     @Scheduled(fixedDelay = 5000)
     public void publishPendingEvents() {
@@ -57,6 +60,15 @@ public class OutboxPublisher {
     }
 
     private DomainEvent convertToDomainEvent(EventOutbox outbox) {
+        Map<String, Object> payloadMap;
+        try {
+            payloadMap = objectMapper.readValue(outbox.getPayload(), new TypeReference<>() {});
+        } catch (Exception e) {
+            log.warn("Failed to deserialize payload for event: {}, using empty map", outbox.getId());
+            payloadMap = Collections.emptyMap();
+        }
+
+        final Map<String, Object> payload = payloadMap;
         return new DomainEvent() {
             @Override
             public String getEventId() { return outbox.getId(); }
@@ -71,7 +83,7 @@ public class OutboxPublisher {
             @Override
             public Date getTimestamp() { return outbox.getCreateTime(); }
             @Override
-            public Map<String, Object> getPayload() { return Collections.emptyMap(); }
+            public Map<String, Object> getPayload() { return payload; }
         };
     }
 }

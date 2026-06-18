@@ -34,7 +34,7 @@ class OutboxServiceTest {
         when(mapper.insert(any())).thenReturn(1);
         
         // When
-        EventOutbox result = outboxService.save(event);
+        EventOutbox result = outboxService.saveEvent(event);
         
         // Then
         assertNotNull(result);

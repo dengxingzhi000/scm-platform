@@ -20,16 +20,14 @@ public class FileMetadataService extends ServiceImpl<FileMetadataMapper, FileMet
     public Optional<FileMetadata> findByMd5(String md5, Long tenantId) {
         LambdaQueryWrapper<FileMetadata> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(FileMetadata::getMd5, md5)
-               .eq(FileMetadata::getTenantId, tenantId)
-               .eq(FileMetadata::getDeleted, 0);
+               .eq(FileMetadata::getTenantId, tenantId);
         return Optional.ofNullable(getOne(wrapper));
     }
     
     public Optional<FileMetadata> findById(String id, Long tenantId) {
         LambdaQueryWrapper<FileMetadata> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(FileMetadata::getId, id)
-               .eq(FileMetadata::getTenantId, tenantId)
-               .eq(FileMetadata::getDeleted, 0);
+               .eq(FileMetadata::getTenantId, tenantId);
         return Optional.ofNullable(getOne(wrapper));
     }
 }
