@@ -10,8 +10,11 @@ import java.util.List;
  *
  * <p>Usage:</p>
  * <pre>
- * // Check if transition is valid
+ * // Check if transition is valid (by target status)
  * if (engine.canTransition("ORDER", "PAID", "SHIPPED").isAllowed()) { ... }
+ *
+ * // Check if transition is valid (by action code)
+ * if (engine.canTransitionByAction("ORDER", "PAID", "SHIP").isAllowed()) { ... }
  *
  * // Execute transition (validates + returns result)
  * TransitionResult result = engine.transition("ORDER", order.getStatus(), "SHIP");
@@ -26,6 +29,11 @@ public interface StateMachineEngine {
      * Check if a transition from fromStatus to toStatus is allowed.
      */
     TransitionCheckResult canTransition(String bizType, String fromStatus, String toStatus);
+
+    /**
+     * Check if a transition by actionCode is allowed from current status.
+     */
+    TransitionCheckResult canTransitionByAction(String bizType, String fromStatus, String actionCode);
 
     /**
      * Execute a transition by action code. Validates the transition is legal.

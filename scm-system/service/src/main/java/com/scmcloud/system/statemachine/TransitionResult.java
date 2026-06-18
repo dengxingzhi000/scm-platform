@@ -1,14 +1,18 @@
 package com.scmcloud.system.statemachine;
 
 import com.scmcloud.system.domain.entity.SysStatusTransition;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * Result of executing a state transition.
  */
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class TransitionResult {
 
     private boolean success;

@@ -1,7 +1,9 @@
 package com.scmcloud.system.statemachine;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * An available action from a given status.
@@ -9,6 +11,8 @@ import lombok.Data;
  */
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class AvailableAction {
 
     private String actionCode;

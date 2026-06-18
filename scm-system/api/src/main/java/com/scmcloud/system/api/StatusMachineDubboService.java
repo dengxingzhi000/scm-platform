@@ -10,15 +10,26 @@ import java.util.List;
  */
 public interface StatusMachineDubboService {
 
+    // ─── Validation ────────────────────────────────────
+
     /**
-     * Check if a transition is allowed.
+     * Check if a transition from fromStatus to toStatus is allowed.
      */
     TransitionCheckDTO canTransition(String bizType, String fromStatus, String toStatus);
+
+    /**
+     * Check if a transition by actionCode is allowed from current status.
+     */
+    TransitionCheckDTO canTransitionByAction(String bizType, String fromStatus, String actionCode);
+
+    // ─── Execution ─────────────────────────────────────
 
     /**
      * Execute a transition by action code. Returns target status if valid.
      */
     TransitionResultDTO transition(String bizType, String fromStatus, String actionCode);
+
+    // ─── Query ─────────────────────────────────────────
 
     /**
      * Get all available actions from current status.

@@ -23,6 +23,12 @@ public class StatusMachineDubboServiceImpl implements StatusMachineDubboService 
     }
 
     @Override
+    public TransitionCheckDTO canTransitionByAction(String bizType, String fromStatus, String actionCode) {
+        TransitionCheckResult r = stateMachineEngine.canTransitionByAction(bizType, fromStatus, actionCode);
+        return new TransitionCheckDTO(r.isAllowed(), r.getBizType(), r.getFromStatus(), r.getToStatus(), r.getReason());
+    }
+
+    @Override
     public TransitionResultDTO transition(String bizType, String fromStatus, String actionCode) {
         TransitionResult r = stateMachineEngine.transition(bizType, fromStatus, actionCode);
         return new TransitionResultDTO(r.isSuccess(), r.getBizType(), r.getFromStatus(), r.getToStatus(),
