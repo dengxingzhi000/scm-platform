@@ -113,6 +113,12 @@
             <artifactId>webauthn4j-core</artifactId>
             <version>0.30.1.RELEASE</version>
         </dependency>
+
+        <!-- Spring Security SAML2 -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-saml2-service-provider</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
