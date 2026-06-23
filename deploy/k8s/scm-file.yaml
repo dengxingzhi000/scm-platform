@@ -1,29 +1,29 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: scm-gateway
+  name: scm-file
   namespace: scm-platform
   labels:
-    app: scm-gateway
-    tier: infrastructure
+    app: scm-file
+    tier: business
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: scm-gateway
+      app: scm-file
   template:
     metadata:
       labels:
-        app: scm-gateway
+        app: scm-file
       annotations:
         prometheus.io/scrape: "true"
-        prometheus.io/port: "8761"
+        prometheus.io/port: "8213"
     spec:
       containers:
-        - name: scm-gateway
-          image: scm-platform/scm-gateway:latest
+        - name: scm-file
+          image: scm-platform/scm-file:latest
           ports:
-            - containerPort: 8761
+            - containerPort: 8213
               name: http
           env:
             - name: SPRING_PROFILES_ACTIVE
@@ -38,52 +38,63 @@ spec:
                 configMapKeyRef:
                   name: scm-config
                   key: nacos-namespace
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: scm-config
+                  key: db-host
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: scm-secrets
+                  key: db-username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: scm-secrets
+                  key: db-password
+            - name: REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: scm-config
+                  key: redis-host
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: scm-secrets
+                  key: redis-password
             - name: JAVA_OPTS
-              value: "-Xms512m -Xmx512m -XX:+UseG1GC"
+              value: "-Xms256m -Xmx512m -XX:+UseG1GC"
           resources:
             requests:
               cpu: "250m"
-              memory: "512Mi"
+              memory: "256Mi"
             limits:
               cpu: "1000m"
               memory: "1Gi"
           livenessProbe:
             httpGet:
               path: /actuator/health
-              port: 8761
+              port: 8213
             initialDelaySeconds: 60
             periodSeconds: 10
           readinessProbe:
             httpGet:
               path: /actuator/health
-              port: 8761
+              port: 8213
             initialDelaySeconds: 30
             periodSeconds: 5
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: scm-gateway
+  name: scm-file
   namespace: scm-platform
 spec:
   selector:
-    app: scm-gateway
+    app: scm-file
   ports:
-    - port: 8761
-      targetPort: 8761
+    - port: 8213
+      targetPort: 8213
       name: http
   type: ClusterIP
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: scm-config
-  namespace: scm-platform
-data:
-  nacos-server: "nacos-headless.nacos:8848"
-  nacos-namespace: "scm-platform"
-  db-host: "postgresql.postgres:5432"
-  redis-host: "redis-master.redis:6379"
-  kafka-bootstrap: "kafka-headless.kafka:9092"
-  elasticsearch-uris: "http://elasticsearch-master.elasticsearch:9200"
-  seata-server: "seata-server.seata:8091"
