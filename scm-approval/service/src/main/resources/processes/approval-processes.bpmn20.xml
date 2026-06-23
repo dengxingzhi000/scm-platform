@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:flowable="http://flowable.org/bpmn"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             targetNamespace="http://flowable.org/test">
+
+    <!-- 采购审批流程 -->
+    <process id="purchase-approval" name="采购审批流程" isExecutable="true">
+
+        <startEvent id="start" name="开始"
+                    flowable:formFieldValidation="true"/>
+
+        <!-- 填写采购申请 -->
+        <userTask id="fill-purchase-request" name="填写采购申请"
+                  flowable:assignee="${applicantId}"
+                  flowable:formFieldValidation="true">
+            <documentation>申请人填写采购申请单</documentation>
+        </userTask>
+
+        <!-- 部门主管审批 -->
+        <userTask id="dept-manager-approve" name="部门主管审批"
+                  flowable:candidateGroups="${deptManagerGroup}"
+                  flowable:formFieldValidation="true">
+            <documentation>部门主管审批采购申请</documentation>
+        </userTask>
+
+        <!-- 判断是否需要总经理审批（金额 > 10000） -->
+        <exclusiveGateway id="gateway-amount-check" name="金额判断"/>
+
+        <!-- 总经理审批 -->
+        <userTask id="gm-approve" name="总经理审批"
+                  flowable:candidateGroups="${gmGroup}"
+                  flowable:formFieldValidation="true">
+            <documentation>总经理审批大额采购申请</documentation>
+        </userTask>
+
+        <!-- 采购执行 -->
+        <userTask id="purchase-execute" name="采购执行"
+                  flowable:assignee="${purchaserId}"
+                  flowable:formFieldValidation="true">
+            <documentation>采购员执行采购</documentation>
+        </userTask>
+
+        <!-- 验收入库 -->
+        <userTask id="warehouse-receive" name="验收入库"
+                  flowable:assignee="${warehouseManagerId}"
+                  flowable:formFieldValidation="true">
+            <documentation>仓库管理员验收采购物资</documentation>
+        </userTask>
+
+        <endEvent id="end" name="结束"/>
+
+        <!-- 流程连线 -->
+        <sequenceFlow id="flow-start" sourceRef="start" targetRef="fill-purchase-request"/>
+
+        <sequenceFlow id="flow-fill" sourceRef="fill-purchase-request" targetRef="dept-manager-approve"/>
+
+        <sequenceFlow id="flow-dept-approve" sourceRef="dept-manager-approve" targetRef="gateway-amount-check"/>
+
+        <!-- 金额 <= 10000，直接到采购执行 -->
+        <sequenceFlow id="flow-amount-small" sourceRef="gateway-amount-check" targetRef="purchase-execute">
+            <conditionExpression>${amount &lt;= 10000}</conditionExpression>
+        </sequenceFlow>
+
+        <!-- 金额 > 10000，需要总经理审批 -->
+        <sequenceFlow id="flow-amount-large" sourceRef="gateway-amount-check" targetRef="gm-approve">
+            <conditionExpression>${amount > 10000}</conditionExpression>
+        </sequenceFlow>
+
+        <sequenceFlow id="flow-gm-approve" sourceRef="gm-approve" targetRef="purchase-execute"/>
+
+        <sequenceFlow id="flow-purchase" sourceRef="purchase-execute" targetRef="warehouse-receive"/>
+
+        <sequenceFlow id="flow-receive" sourceRef="warehouse-receive" targetRef="end"/>
+
+    </process>
+
+    <!-- 通用审批流程 -->
+    <process id="general-approval" name="通用审批流程" isExecutable="true">
+
+        <startEvent id="general-start" name="开始"/>
+
+        <!-- 申请人提交 -->
+        <userTask id="submit" name="提交申请"
+                  flowable:assignee="${applicantId}">
+            <documentation>申请人提交审批申请</documentation>
+        </userTask>
+
+        <!-- 审批人审批 -->
+        <userTask id="approve" name="审批"
+                  flowable:assignee="${approverId}">
+            <documentation>审批人审批申请</documentation>
+        </userTask>
+
+        <!-- 判断审批结果 -->
+        <exclusiveGateway id="gateway-result" name="审批结果判断"/>
+
+        <endEvent id="general-end-approved" name="审批通过"/>
+        <endEvent id="general-end-rejected" name="审批驳回"/>
+
+        <sequenceFlow id="general-flow-submit" sourceRef="general-start" targetRef="submit"/>
+        <sequenceFlow id="general-flow-to-approve" sourceRef="submit" targetRef="approve"/>
+        <sequenceFlow id="general-flow-decision" sourceRef="approve" targetRef="gateway-result"/>
+
+        <sequenceFlow id="general-flow-approved" sourceRef="gateway-result" targetRef="general-end-approved">
+            <conditionExpression>${approved == true}</conditionExpression>
+        </sequenceFlow>
+
+        <sequenceFlow id="general-flow-rejected" sourceRef="gateway-result" targetRef="general-end-rejected">
+            <conditionExpression>${approved == false}</conditionExpression>
+        </sequenceFlow>
+
+    </process>
+
+</definitions>
