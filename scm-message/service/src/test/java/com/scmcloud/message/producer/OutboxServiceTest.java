@@ -51,7 +51,7 @@ class OutboxServiceTest {
         outbox.setId(eventId);
         outbox.setStatus("PENDING");
         when(mapper.selectById(eventId)).thenReturn(outbox);
-        when(mapper.updateById(any())).thenReturn(1);
+        when(mapper.updateById(any(EventOutbox.class))).thenReturn(1);
         
         // When
         outboxService.markAsPublished(eventId);
