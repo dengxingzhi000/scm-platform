@@ -46,7 +46,7 @@ class InvoiceServiceTest {
         assertEquals("INV-2026-001", result.getInvoiceNo());
         assertEquals(InvoiceStatus.DRAFT.getCode(), result.getStatus());
         assertFalse(result.getDeleted());
-        verify(invoiceMapper).insert(any());
+        verify(invoiceMapper).insert(any(Invoice.class));
     }
 
     @Test

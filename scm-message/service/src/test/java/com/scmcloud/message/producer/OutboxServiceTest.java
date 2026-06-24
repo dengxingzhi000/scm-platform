@@ -31,7 +31,7 @@ class OutboxServiceTest {
     void shouldSaveEventToOutbox() {
         // Given
         DomainEvent event = OrderCreatedEvent.of("order-1", "ORD001", 1L);
-        when(mapper.insert(any())).thenReturn(1);
+        when(mapper.insert(any(EventOutbox.class))).thenReturn(1);
         
         // When
         EventOutbox result = outboxService.saveEvent(event);
@@ -40,7 +40,7 @@ class OutboxServiceTest {
         assertNotNull(result);
         assertEquals("ORDER_CREATED", result.getEventType());
         assertEquals("PENDING", result.getStatus());
-        verify(mapper).insert(any());
+        verify(mapper).insert(any(EventOutbox.class));
     }
     
     @Test
