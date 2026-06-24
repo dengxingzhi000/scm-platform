@@ -28,13 +28,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Disabled("Pre-existing: controller test setup incomplete")
 class InvoiceControllerTest {
 
-@ExtendWith(MockitoExtension.class)
-@Disabled("Pre-existing: controller test setup incomplete")
-class InvoiceControllerTest {
-
-@ExtendWith(MockitoExtension.class)
-class InvoiceControllerTest {
-
     @Mock
     private IInvoiceService invoiceService;
 
