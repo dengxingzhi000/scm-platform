@@ -9,18 +9,20 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.datasource.lookup.AbstractRoutingDataSource;
 
 import javax.sql.DataSource;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * 璇诲啓鍒嗙璺敱鏁版嵁锟?
+ * Read-write separation routing datasource.
  * <p>
- * 鍩轰簬 Spring AbstractRoutingDataSource 瀹炵幇锛屾敮鎸侊細
- * - 涓讳粠鑷姩璺敱
- * - 璐熻浇鍧囪　
- * - 鍋ュ悍妫€锟?
- * - 璇诲啓涓€鑷存€т繚锟?
+ * Based on Spring AbstractRoutingDataSource, supports:
+ * - Master-slave automatic routing
+ * - Load balancing
+ * - Health checking
+ * - Read-write consistency
+ * - Slave fault retry
+ * - Runtime hot-switch load balance strategy
  *
  * @author Deng
  * @since 2025-12-16
@@ -31,20 +33,22 @@ public class ReadWriteRoutingDataSource extends AbstractRoutingDataSource {
 
     private final String groupName;
     private final ReadWriteProperties properties;
-    private final SlaveLoadBalancer loadBalancer;
+
+    private final AtomicReference<SlaveLoadBalancer> loadBalancerRef;
 
     @Setter
     private List<SlaveLoadBalancer.SlaveInfo> slaveInfos;
 
-    /**
-     * 浠庡簱鍙敤鎬х姸锟?
-     */
     private final Map<String, Boolean> slaveAvailability = new ConcurrentHashMap<>();
+    private final Map<String, DataSource> slaveDataSourceMap = new ConcurrentHashMap<>();
+    private final Map<String, Long> lastValidationTime = new ConcurrentHashMap<>();
+    private static final long VALIDATION_CACHE_MS = 5000; // 5s cache
 
     // Metrics
     private Counter masterRouteCounter;
     private Counter slaveRouteCounter;
     private Counter fallbackCounter;
+    private Counter retryCounter;
 
     public ReadWriteRoutingDataSource(String groupName,
                                        DataSource masterDataSource,
@@ -54,9 +58,8 @@ public class ReadWriteRoutingDataSource extends AbstractRoutingDataSource {
                                        MeterRegistry meterRegistry) {
         this.groupName = groupName;
         this.properties = properties;
-        this.loadBalancer = loadBalancer;
+        this.loadBalancerRef = new AtomicReference<>(loadBalancer);
 
-        // 璁剧疆鏁版嵁锟?
         Map<Object, Object> targetDataSources = new ConcurrentHashMap<>();
         targetDataSources.put(MASTER_KEY, masterDataSource);
         targetDataSources.putAll(slaveDataSources);
@@ -64,10 +67,11 @@ public class ReadWriteRoutingDataSource extends AbstractRoutingDataSource {
         setTargetDataSources(targetDataSources);
         setDefaultTargetDataSource(masterDataSource);
 
-        // 鍒濆鍖栦粠搴撳彲鐢拷
-        slaveDataSources.keySet().forEach(name -> slaveAvailability.put(name, true));
+        slaveDataSources.forEach((name, ds) -> {
+            slaveAvailability.put(name, true);
+            slaveDataSourceMap.put(name, ds);
+        });
 
-        // 鍒濆鍖栨寚锟?
         if (meterRegistry != null) {
             initMetrics(meterRegistry);
         }
@@ -90,11 +94,16 @@ public class ReadWriteRoutingDataSource extends AbstractRoutingDataSource {
                 .tag("group", groupName)
                 .description("Number of fallbacks to master")
                 .register(meterRegistry);
+
+        this.retryCounter = Counter.builder("datasource.rw.retry")
+                .tag("group", groupName)
+                .description("Number of slave retries")
+                .register(meterRegistry);
     }
 
     @Override
     protected Object determineCurrentLookupKey() {
-        // 1. 妫€鏌ユ槸鍚﹀簲璇ヤ娇鐢ㄤ富锟?
+        // 1. Check if should use master
         long readMasterAfterWriteMs = properties.getReadMasterAfterWrite().toMillis();
         if (ReadWriteRoutingContext.shouldUseMaster(readMasterAfterWriteMs)) {
             log.debug("[RW-Routing] Group [{}] routing to MASTER", groupName);
@@ -102,7 +111,7 @@ public class ReadWriteRoutingDataSource extends AbstractRoutingDataSource {
             return MASTER_KEY;
         }
 
-        // 2. 妫€鏌ヨ矾鐢辩被锟?
+        // 2. Check routing type
         ReadWriteRoutingContext.RoutingType routingType = ReadWriteRoutingContext.current();
 
         if (routingType == ReadWriteRoutingContext.RoutingType.MASTER) {
@@ -111,11 +120,11 @@ public class ReadWriteRoutingDataSource extends AbstractRoutingDataSource {
             return MASTER_KEY;
         }
 
-        // 3. 灏濊瘯璺敱鍒颁粠锟?
+        // 3. Try routing to slave (with retry)
         if (routingType == ReadWriteRoutingContext.RoutingType.SLAVE ||
                 routingType == ReadWriteRoutingContext.RoutingType.AUTO) {
 
-            // 妫€鏌ユ槸鍚︽寚瀹氫簡鐗瑰畾浠庡簱
+            // Check if specific slave is specified
             String specifiedSlave = ReadWriteRoutingContext.getSpecifiedSlave();
             if (specifiedSlave != null && slaveAvailability.getOrDefault(specifiedSlave, false)) {
                 log.debug("[RW-Routing] Group [{}] routing to SLAVE [{}] (specified)",
@@ -124,8 +133,8 @@ public class ReadWriteRoutingDataSource extends AbstractRoutingDataSource {
                 return specifiedSlave;
             }
 
-            // 浣跨敤璐熻浇鍧囪　閫夋嫨浠庡簱
-            String selectedSlave = selectSlave();
+            // Use retry mechanism to select slave
+            String selectedSlave = selectSlaveWithRetry();
             if (selectedSlave != null) {
                 log.debug("[RW-Routing] Group [{}] routing to SLAVE [{}]",
                         groupName, selectedSlave);
@@ -133,7 +142,7 @@ public class ReadWriteRoutingDataSource extends AbstractRoutingDataSource {
                 return selectedSlave;
             }
 
-            // 浠庡簱涓嶅彲鐢紝闄嶇骇鍒颁富锟?
+            // No available slave, fallback to master
             log.warn("[RW-Routing] Group [{}] no available slave, fallback to MASTER", groupName);
             incrementFallbackCounter();
         }
@@ -142,12 +151,16 @@ public class ReadWriteRoutingDataSource extends AbstractRoutingDataSource {
         return MASTER_KEY;
     }
 
-    private String selectSlave() {
+    /**
+     * Select slave with retry.
+     * <p>
+     * When selected slave is unavailable, automatically try other slaves.
+     */
+    private String selectSlaveWithRetry() {
         if (slaveInfos == null || slaveInfos.isEmpty()) {
             return null;
         }
 
-        // 杩囨护鍙敤鐨勪粠锟?
         List<SlaveLoadBalancer.SlaveInfo> availableSlaves = slaveInfos.stream()
                 .filter(s -> slaveAvailability.getOrDefault(s.name(), false))
                 .toList();
@@ -156,32 +169,97 @@ public class ReadWriteRoutingDataSource extends AbstractRoutingDataSource {
             return null;
         }
 
-        return loadBalancer.select(availableSlaves);
+        int maxRetries = Math.min(properties.getSlaveRetryCount(), availableSlaves.size());
+        Set<String> triedSlaves = new HashSet<>();
+
+        for (int i = 0; i < maxRetries; i++) {
+            List<SlaveLoadBalancer.SlaveInfo> remainingSlaves = availableSlaves.stream()
+                    .filter(s -> !triedSlaves.contains(s.name()))
+                    .toList();
+
+            if (remainingSlaves.isEmpty()) {
+                break;
+            }
+
+            String selected = loadBalancerRef.get().select(remainingSlaves);
+            if (selected == null) {
+                break;
+            }
+
+            if (isSlaveConnectionValid(selected)) {
+                if (i > 0) {
+                    incrementRetryCounter();
+                    log.info("[RW-Routing] Group [{}] retry succeeded with slave [{}] after {} attempts",
+                            groupName, selected, i + 1);
+                }
+                return selected;
+            }
+
+            triedSlaves.add(selected);
+            log.warn("[RW-Routing] Group [{}] slave [{}] connection invalid, trying next slave",
+                    groupName, selected);
+        }
+
+        return null;
     }
 
     /**
-     * 鏍囪浠庡簱涓嶅彲锟?
+     * Check slave connection validity (with cache).
      */
+    private boolean isSlaveConnectionValid(String slaveName) {
+        Long lastCheck = lastValidationTime.get(slaveName);
+        if (lastCheck != null && System.currentTimeMillis() - lastCheck < VALIDATION_CACHE_MS) {
+            return slaveAvailability.getOrDefault(slaveName, false);
+        }
+
+        DataSource dataSource = slaveDataSourceMap.get(slaveName);
+        if (dataSource == null) {
+            return false;
+        }
+
+        try (var connection = dataSource.getConnection()) {
+            boolean valid = connection.isValid(3);
+            lastValidationTime.put(slaveName, System.currentTimeMillis());
+            return valid;
+        } catch (Exception e) {
+            log.debug("[RW-Routing] Group [{}] slave [{}] connection check failed: {}",
+                    groupName, slaveName, e.getMessage());
+            lastValidationTime.put(slaveName, System.currentTimeMillis());
+            return false;
+        }
+    }
+
     public void markSlaveUnavailable(String slaveName) {
         slaveAvailability.put(slaveName, false);
         log.warn("[RW-Routing] Group [{}] slave [{}] marked as UNAVAILABLE",
                 groupName, slaveName);
     }
 
-    /**
-     * 鏍囪浠庡簱鍙敤
-     */
     public void markSlaveAvailable(String slaveName) {
         slaveAvailability.put(slaveName, true);
         log.info("[RW-Routing] Group [{}] slave [{}] marked as AVAILABLE",
                 groupName, slaveName);
     }
 
-    /**
-     * 鑾峰彇浠庡簱鍙敤鎬х姸锟?
-     */
     public Map<String, Boolean> getSlaveAvailability() {
         return Map.copyOf(slaveAvailability);
+    }
+
+    /**
+     * Switch load balance strategy at runtime.
+     *
+     * @param newLoadBalancer new load balancer
+     */
+    public void switchLoadBalancer(SlaveLoadBalancer newLoadBalancer) {
+        SlaveLoadBalancer oldLoadBalancer = loadBalancerRef.getAndSet(newLoadBalancer);
+        log.info("[RW-Routing] Group [{}] load balancer switched from {} to {}",
+                groupName,
+                oldLoadBalancer.getClass().getSimpleName(),
+                newLoadBalancer.getClass().getSimpleName());
+    }
+
+    public String getCurrentLoadBalancerName() {
+        return loadBalancerRef.get().getClass().getSimpleName();
     }
 
     private void incrementMasterCounter() {
@@ -199,6 +277,12 @@ public class ReadWriteRoutingDataSource extends AbstractRoutingDataSource {
     private void incrementFallbackCounter() {
         if (fallbackCounter != null) {
             fallbackCounter.increment();
+        }
+    }
+
+    private void incrementRetryCounter() {
+        if (retryCounter != null) {
+            retryCounter.increment();
         }
     }
 }

@@ -17,11 +17,11 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 
 /**
- * 璇诲啓鍒嗙璺敱鍒囬潰
+ * Read-write separation routing aspect.
  * <p>
- * 澶勭悊 @Master銆丂Slave 娉ㄨВ锛屼互鍙婅嚜鍔ㄥ垽鏂簨鍔＄被锟?
+ * Handles @Master, @Slave annotations and auto-detects transaction type.
  * <p>
- * 浼樺厛绾ч珮锟紷Transactional锛岀‘淇濆湪浜嬪姟寮€鍚墠璁剧疆璺敱
+ * Higher priority than @Transactional to ensure routing is set before transaction starts.
  *
  * @author Deng
  * @since 2025-12-16
@@ -30,6 +30,7 @@ import java.lang.reflect.Method;
 @Aspect
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class ReadWriteRoutingAspect {
+
     @Pointcut("@annotation(com.scmcloud.common.data.rw.annotation.Master)")
     public void masterPointcut() {}
 
@@ -45,9 +46,6 @@ public class ReadWriteRoutingAspect {
     @Pointcut("@annotation(org.springframework.transaction.annotation.Transactional)")
     public void transactionalPointcut() {}
 
-    /**
-     * 澶勭悊 @Master 娉ㄨВ
-     */
     @Around("masterPointcut() || masterClassPointcut()")
     public Object aroundMaster(ProceedingJoinPoint joinPoint) throws Throwable {
         Master master = getAnnotation(joinPoint, Master.class);
@@ -66,9 +64,6 @@ public class ReadWriteRoutingAspect {
         }
     }
 
-    /**
-     * 澶勭悊 @Slave 娉ㄨВ
-     */
     @Around("slavePointcut() || slaveClassPointcut()")
     public Object aroundSlave(ProceedingJoinPoint joinPoint) throws Throwable {
         Slave slave = getAnnotation(joinPoint, Slave.class);
@@ -91,17 +86,10 @@ public class ReadWriteRoutingAspect {
         }
     }
 
-    /**
-     * 澶勭悊 @Transactional 娉ㄨВ
-     * <p>
-     * - readOnly=true 锟戒粠搴?
-     * - readOnly=false 锟戒富搴?
-     */
     @Around("transactionalPointcut()")
     public Object aroundTransactional(ProceedingJoinPoint joinPoint) throws Throwable {
         Transactional transactional = getAnnotation(joinPoint, Transactional.class);
 
-        // 濡傛灉宸茬粡鏈夋樉寮忚矾鐢憋紝涓嶅啀澶勭悊
         if (ReadWriteRoutingContext.current() != ReadWriteRoutingContext.RoutingType.AUTO) {
             return joinPoint.proceed();
         }
@@ -118,11 +106,9 @@ public class ReadWriteRoutingAspect {
                 ReadWriteRoutingContext.pop();
             }
         } else {
-            // 鍐欎簨鍔★紝璁板綍鍐欐搷浣滄椂锟?
             ReadWriteRoutingContext.push(ReadWriteRoutingContext.RoutingType.MASTER);
             try {
                 Object result = joinPoint.proceed();
-                // 浜嬪姟鎴愬姛鍚庢爣璁板啓鎿嶄綔
                 ReadWriteRoutingContext.markWrite();
                 return result;
             } finally {
@@ -132,17 +118,14 @@ public class ReadWriteRoutingAspect {
     }
 
     private <T extends Annotation> T getAnnotation(ProceedingJoinPoint joinPoint, Class<T> annotationClass) {
-
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         Method method = signature.getMethod();
 
-        // 鍏堜粠鏂规硶涓婃壘
         T annotation = method.getAnnotation(annotationClass);
         if (annotation != null) {
             return annotation;
         }
 
-        // 鍐嶄粠绫讳笂锟?
         return joinPoint.getTarget().getClass().getAnnotation(annotationClass);
     }
 }

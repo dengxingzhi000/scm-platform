@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * 闅忔満璐熻浇鍧囪　锟?
+ * Random load balancer.
  *
  * @author Deng
  * @since 2025-12-16

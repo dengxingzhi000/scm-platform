@@ -2,6 +2,7 @@ package com.scmcloud.common.data.rw.endpoint;
 
 import com.scmcloud.common.data.rw.config.ReadWriteAutoConfiguration;
 import com.scmcloud.common.data.rw.health.SlaveHealthChecker;
+import com.scmcloud.common.data.rw.loadbalance.*;
 import com.scmcloud.common.data.rw.routing.ReadWriteRoutingDataSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,16 +16,17 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * 璇诲啓鍒嗙绠＄悊绔偣
+ * Read-write separation management endpoint.
  * <p>
- * 鎻愪緵杩愯鏃剁鐞嗚兘鍔涳細
- * - 鏌ョ湅浠庡簱鐘讹拷
- * - 鎵嬪姩鎽橀櫎/鎭㈠浠庡簱
- * - 鏌ョ湅鍋ュ悍淇℃伅
+ * Provides runtime management capabilities:
+ * - View slave status
+ * - Manually remove/restore slaves
+ * - View health information
+ * - Switch load balance strategy
  * <p>
- * 璁块棶璺緞锟絘ctuator/readwrite
+ * Access path: /actuator/readwrite
  * <p>
- * 娉ㄦ剰锛氶渶锟絪pring-boot-starter-actuator 渚濊禆
+ * Note: Requires spring-boot-starter-actuator dependency
  *
  * @author Deng
  * @since 2025-12-16
@@ -37,7 +39,7 @@ public class ReadWriteEndpoint {
     private final SlaveHealthChecker healthChecker;
 
     /**
-     * 鑾峰彇鎵€鏈夎鍐欏垎绂荤姸锟?
+     * Get all read-write separation status.
      * <p>
      * GET /actuator/readwrite
      */
@@ -58,7 +60,7 @@ public class ReadWriteEndpoint {
     }
 
     /**
-     * 鑾峰彇鎸囧畾缁勭殑鐘讹拷
+     * Get status of specified group.
      * <p>
      * GET /actuator/readwrite/{groupName}
      */
@@ -77,35 +79,33 @@ public class ReadWriteEndpoint {
     }
 
     /**
-     * 鎵嬪姩鎽橀櫎浠庡簱
+     * Manually remove slave / switch load balance strategy.
      * <p>
      * POST /actuator/readwrite with {"groupName": "xxx", "slaveName": "xxx", "action": "markUnavailable"}
+     * POST /actuator/readwrite with {"groupName": "xxx", "action": "switchLoadBalancer", "strategy": "ROUND_ROBIN"}
      */
     @WriteOperation
-    public Map<String, Object> operate(String groupName, String slaveName, String action) {
+    public Map<String, Object> operate(String groupName, String slaveName, String action, String strategy) {
         if ("markAvailable".equalsIgnoreCase(action)) {
             return doMarkAvailable(groupName, slaveName);
+        } else if ("switchLoadBalancer".equalsIgnoreCase(action)) {
+            return doSwitchLoadBalancer(groupName, strategy);
         } else {
             return doMarkUnavailable(groupName, slaveName);
         }
     }
 
-    /**
-     * 鏋勫缓缁勪俊锟?
-     */
     private Map<String, Object> buildGroupInfo(String groupName) {
         Map<String, Object> groupInfo = new HashMap<>();
 
         ReadWriteRoutingDataSource ds = dataSourceProvider.getDataSource(groupName);
         groupInfo.put("slaveAvailability", ds.getSlaveAvailability());
         groupInfo.put("healthStatus", buildHealthDetails(groupName));
+        groupInfo.put("loadBalancer", ds.getCurrentLoadBalancerName());
 
         return groupInfo;
     }
 
-    /**
-     * 鏋勫缓鍋ュ悍璇︽儏
-     */
     private Map<String, Object> buildHealthDetails(String groupName) {
         Map<String, Object> healthDetails = new HashMap<>();
         Map<String, SlaveHealthChecker.HealthStatus> allStatus = healthChecker.getAllHealthStatus();
@@ -164,5 +164,37 @@ public class ReadWriteEndpoint {
         }
 
         return result;
+    }
+
+    private Map<String, Object> doSwitchLoadBalancer(String groupName, String strategy) {
+        Map<String, Object> result = new HashMap<>();
+
+        try {
+            ReadWriteRoutingDataSource ds = dataSourceProvider.getDataSource(groupName);
+            SlaveLoadBalancer newLoadBalancer = createLoadBalancer(strategy);
+            ds.switchLoadBalancer(newLoadBalancer);
+
+            log.info("[RW-Endpoint] Switched load balancer for group [{}] to [{}]", groupName, strategy);
+
+            result.put("success", true);
+            result.put("message", String.format("Load balancer switched to %s", strategy));
+            result.put("previousStrategy", ds.getCurrentLoadBalancerName());
+        } catch (Exception e) {
+            result.put("success", false);
+            result.put("error", e.getMessage());
+        }
+
+        return result;
+    }
+
+    private SlaveLoadBalancer createLoadBalancer(String strategy) {
+        return switch (strategy.toUpperCase()) {
+            case "ROUND_ROBIN" -> new RoundRobinLoadBalancer();
+            case "WEIGHTED_ROUND_ROBIN" -> new WeightedRoundRobinLoadBalancer();
+            case "RANDOM" -> new RandomLoadBalancer();
+            case "WEIGHTED_RANDOM" -> new WeightedRandomLoadBalancer();
+            case "LEAST_CONNECTIONS" -> new LeastConnectionsLoadBalancer();
+            default -> throw new IllegalArgumentException("Unknown load balance strategy: " + strategy);
+        };
     }
 }

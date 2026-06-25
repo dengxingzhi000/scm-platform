@@ -12,13 +12,13 @@ import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 
 /**
- * 璇诲啓鍒嗙閾捐矾杩借釜鎷︽埅锟?
+ * Read-write separation tracing interceptor.
  * <p>
- * 闆嗘垚 OpenTelemetry锛岃褰曪細
- * - 璺敱绫诲瀷锛圡ASTER/SLAVE锟?
- * - 鐩爣鏁版嵁锟?
- * - 鎵ц鑰楁椂
- * - 鏄惁闄嶇骇
+ * Integrates with OpenTelemetry to record:
+ * - Routing type (MASTER/SLAVE)
+ * - Target datasource
+ * - Execution time
+ * - Fallback status
  *
  * @author Deng
  * @since 2025-12-16
@@ -47,21 +47,16 @@ public class ReadWriteTracingInterceptor implements MethodInterceptor {
                 .startSpan();
 
         try (Scope ignored = span.makeCurrent()) {
-            // 璁板綍鎸囧畾鐨勪粠锟?
             String specifiedSlave = ReadWriteRoutingContext.getSpecifiedSlave();
             if (specifiedSlave != null) {
                 span.setAttribute("db.rw.specified_slave", specifiedSlave);
             }
 
-            // 鎵ц鏂规硶
             Object result = invocation.proceed();
-
-            // 璁板綍鎴愬姛
             span.setStatus(StatusCode.OK);
             return result;
 
         } catch (Exception e) {
-            // 璁板綍寮傚父
             span.setStatus(StatusCode.ERROR, e.getMessage());
             span.recordException(e);
             throw e;

@@ -1,16 +1,22 @@
 package com.scmcloud.common.data.rw.loadbalance;
 
+import lombok.Setter;
+
 import java.util.List;
 
 /**
- * 璐熻浇鍧囪　鍣ㄦ娊璞″熀锟?
+ * Load balancer abstract base class.
  * <p>
- * 鎻愪緵鍏叡鐨勭┖鍊兼鏌ュ拰鍙敤鑺傜偣杩囨护閫昏緫
+ * Provides common null check and available node filtering logic.
+ * Supports slave warmup mechanism.
  *
  * @author Deng
  * @since 2025-12-16
  */
 public abstract class AbstractLoadBalancer implements SlaveLoadBalancer {
+
+    @Setter
+    protected SlaveWarmupManager warmupManager;
 
     @Override
     public final String select(List<SlaveInfo> slaves) {
@@ -26,20 +32,37 @@ public abstract class AbstractLoadBalancer implements SlaveLoadBalancer {
             return null;
         }
 
+        if (warmupManager != null && hasWarmingUpSlaves(available)) {
+            available = applyWarmupWeight(available);
+        }
+
         return doSelect(available);
     }
 
-    /**
-     * 浠庡彲鐢ㄨ妭鐐逛腑閫夋嫨涓€锟?
-     *
-     * @param available 鍙敤鑺傜偣鍒楄〃锛堥潪绌猴級
-     * @return 閫変腑鐨勮妭鐐瑰悕锟?
-     */
+    private boolean hasWarmingUpSlaves(List<SlaveInfo> slaves) {
+        for (SlaveInfo slave : slaves) {
+            if (warmupManager.isWarmingUp(slave.name())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private List<SlaveInfo> applyWarmupWeight(List<SlaveInfo> slaves) {
+        return slaves.stream()
+                .map(slave -> {
+                    int effectiveWeight = warmupManager.getEffectiveWeight(slave.name(), slave.weight());
+                    if (effectiveWeight != slave.weight()) {
+                        return new SlaveInfo(slave.name(), effectiveWeight,
+                                slave.activeConnections(), slave.available());
+                    }
+                    return slave;
+                })
+                .toList();
+    }
+
     protected abstract String doSelect(List<SlaveInfo> available);
 
-    /**
-     * 鑾峰彇绗竴涓妭鐐癸紙鍏滃簳锟?
-     */
     protected String getFirstName(List<SlaveInfo> available) {
         return available.getFirst().name();
     }
