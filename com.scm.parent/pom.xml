@@ -48,6 +48,7 @@
     <module>../scm-member</module>
     <module>../scm-promotion</module>
     <module>../scm-payment</module>
+    <module>../scm-search</module>
   </modules>
 
   <parent>
