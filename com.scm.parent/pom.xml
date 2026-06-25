@@ -46,6 +46,7 @@
 
     <!-- E-Commerce Layer (Year 1) -->
     <module>../scm-member</module>
+    <module>../scm-promotion</module>
   </modules>
 
   <parent>
