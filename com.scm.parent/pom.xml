@@ -43,6 +43,9 @@
 
     <!-- Message Service -->
     <module>../scm-message</module>
+
+    <!-- E-Commerce Layer (Year 1) -->
+    <module>../scm-member</module>
   </modules>
 
   <parent>
