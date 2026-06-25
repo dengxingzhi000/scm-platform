@@ -51,6 +51,7 @@
     <module>../scm-search</module>
     <module>../scm-order-center</module>
     <module>../scm-mall</module>
+    <module>../scm-fulfillment</module>
   </modules>
 
   <parent>
