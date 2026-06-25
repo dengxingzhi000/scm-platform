@@ -3,8 +3,10 @@ package com.scmcloud.inventory.service.command;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.scmcloud.common.data.rw.annotation.Master;
+import com.scmcloud.decision.constraint.Constraint;
 import com.scmcloud.inventory.dto.InventoryReservationRequest;
 import com.scmcloud.inventory.domain.entity.Inventory;
+import com.scmcloud.inventory.engine.*;
 import com.scmcloud.inventory.lock.DistributedLock;
 import com.scmcloud.inventory.mapper.InvInventoryMapper;
 import lombok.RequiredArgsConstructor;
@@ -13,9 +15,9 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -25,6 +27,7 @@ public class InvReservationCommandService {
     private final RedisTemplate<String, Object> redisTemplate;
     private final InvInventoryMapper inventoryMapper;
     private final DistributedLock distributedLock;
+    private final InventoryAllocationEngine allocationEngine;
 
     private static final String RESERVATION_KEY_PREFIX = "inventory:reservation:";
     private static final String RESERVATION_INDEX_PREFIX = "inventory:reservation:index:";
@@ -172,5 +175,35 @@ public class InvReservationCommandService {
 
     private String buildIndexKey(String skuId, String warehouseId) {
         return RESERVATION_INDEX_PREFIX + skuId + ":" + warehouseId;
+    }
+
+    public AllocationOutput smartAllocate(AllocationInput input) {
+        log.info("执行智能库存分配: orderId={}, itemCount={}", input.getOrderId(), input.getItems().size());
+
+        List<AllocationInput.OrderItem> itemsWithStock = input.getItems().stream()
+                .filter(item -> {
+                    List<Inventory> inventories = inventoryMapper.selectList(
+                            new LambdaQueryWrapper<Inventory>()
+                                    .eq(Inventory::getSkuId, item.getSkuId())
+                                    .eq(Inventory::getDeleted, false)
+                                    .gt(Inventory::getAvailableStock, 0)
+                    );
+                    return !inventories.isEmpty();
+                })
+                .collect(Collectors.toList());
+
+        if (itemsWithStock.isEmpty()) {
+            AllocationOutput output = new AllocationOutput();
+            output.setAllocations(Collections.emptyList());
+            output.setSplitCount(0);
+            return output;
+        }
+
+        input.setItems(itemsWithStock);
+        AllocationOutput output = allocationEngine.allocate(input);
+
+        log.info("智能分配完成: orderId={}, allocations={}, splitCount={}",
+                input.getOrderId(), output.getAllocations().size(), output.getSplitCount());
+        return output;
     }
 }
