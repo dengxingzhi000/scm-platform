@@ -29,6 +29,7 @@
         <module>security/core</module>
         <module>security/api</module>
         <module>decision-engine</module>
+        <module>decision-matrix</module>
     </modules>
 
 </project>
