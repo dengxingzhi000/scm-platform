@@ -50,6 +50,7 @@
     <module>../scm-payment</module>
     <module>../scm-search</module>
     <module>../scm-order-center</module>
+    <module>../scm-mall</module>
   </modules>
 
   <parent>
