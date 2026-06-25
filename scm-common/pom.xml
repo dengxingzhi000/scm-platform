@@ -28,6 +28,7 @@
         <module>integration</module>
         <module>security/core</module>
         <module>security/api</module>
+        <module>decision-engine</module>
     </modules>
 
 </project>
