@@ -49,6 +49,7 @@
     <module>../scm-promotion</module>
     <module>../scm-payment</module>
     <module>../scm-search</module>
+    <module>../scm-order-center</module>
   </modules>
 
   <parent>
