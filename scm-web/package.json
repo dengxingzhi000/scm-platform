@@ -14,7 +14,7 @@
     "generate:api:system": "openapi-generator-cli generate --generator-key scm-system-api"
   },
   "dependencies": {
-    "@ant-design/cssinjs": "^1.23.0",
+    "@ant-design/cssinjs": "^2.1.2",
     "@ant-design/icons": "^6.0.0",
     "@ant-design/pro-components": "^2.8.0",
     "@hookform/resolvers": "^5.0.0",
