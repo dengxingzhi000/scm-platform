@@ -3,12 +3,12 @@ package com.scmcloud.common.data.rw.annotation;
 import java.lang.annotation.*;
 
 /**
- * 寮哄埗璧颁粠锟?
+ * Force routing to slave datasource.
  * <p>
- * 鐢ㄤ簬鏄庣‘鍙互鎺ュ彈寤惰繜鐨勬煡璇㈠満鏅紝濡傦細
- * - 鎶ヨ〃缁熻
- * - 鎵归噺瀵煎嚭
- * - 闈炲疄鏃舵煡锟?
+ * Used for queries that can tolerate latency, such as:
+ * - Report statistics
+ * - Batch export
+ * - Non-realtime queries
  *
  * @author Deng
  * @since 2025-12-16
@@ -19,12 +19,12 @@ import java.lang.annotation.*;
 public @interface Slave {
 
     /**
-     * 鎸囧畾浠庡簱鍚嶇О锛堝彲閫夛紝榛樿浣跨敤璐熻浇鍧囪　閫夋嫨锟?
+     * Slave datasource name (optional, defaults to load balancer selection).
      */
     String value() default "";
 
     /**
-     * 鏄惁鍏佽闄嶇骇鍒颁富搴擄紙浠庡簱涓嶅彲鐢ㄦ椂锟?
+     * Whether to fallback to master when slave is unavailable.
      */
     boolean fallbackToMaster() default true;
 }

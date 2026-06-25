@@ -9,11 +9,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 璇诲啓鍒嗙鍋ュ悍鎸囩ず锟?
+ * Read-write separation health indicator.
  * <p>
- * 鐢ㄤ簬 Spring Boot Actuator 鍋ュ悍绔偣
+ * Used for Spring Boot Actuator health endpoint.
  * <p>
- * 娉ㄦ剰锛氶渶锟絪pring-boot-starter-actuator 渚濊禆
+ * Note: Requires spring-boot-starter-actuator dependency
  *
  * @author Deng
  * @since 2025-12-16

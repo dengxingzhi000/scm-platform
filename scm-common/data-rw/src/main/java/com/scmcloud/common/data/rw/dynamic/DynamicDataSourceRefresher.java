@@ -12,13 +12,13 @@ import org.springframework.core.env.Environment;
 import java.util.Map;
 
 /**
- * 动态数据源刷新
+ * Dynamic datasource refresher.
  * <p>
- * 监听 Nacos 配置变更，动态调整：
- * - 从库权重
- * - 从库启用/禁用
- * - 负载均衡策略
- * - 健康检查参数
+ * Listens for Nacos config changes and dynamically adjusts:
+ * - Slave weights
+ * - Slave enable/disable
+ * - Load balance strategy
+ * - Health check parameters
  *
  * @author Deng
  * @since 2025-12-16
@@ -33,18 +33,10 @@ public class DynamicDataSourceRefresher {
     private final Map<String, ReadWriteRoutingDataSource> routingDataSources;
     private final Environment environment;
 
-    /**
-     * 监听配置刷新事件
-     * <p>
-     * 兼容多种 Spring Cloud 事件
-     * - RefreshScopeRefreshedEvent
-     * - EnvironmentChangeEvent
-     */
     @EventListener
     public void onApplicationEvent(ApplicationEvent event) {
         String eventClassName = event.getClass().getName();
 
-        // 检查是否是配置刷新相关事件
         if (eventClassName.equals(REFRESH_EVENT_CLASS) ||
                 eventClassName.equals(ENV_CHANGE_EVENT_CLASS)) {
 
@@ -52,9 +44,7 @@ public class DynamicDataSourceRefresher {
                     event.getClass().getSimpleName());
 
             try {
-                // 重新绑定配置
                 rebindProperties();
-                // 刷新从库设置
                 refreshSlaveSettings();
                 log.debug("[Dynamic-DS] Datasource settings refreshed successfully");
             } catch (Exception e) {
@@ -63,9 +53,6 @@ public class DynamicDataSourceRefresher {
         }
     }
 
-    /**
-     * 重新绑定配置属性
-     */
     private void rebindProperties() {
         try {
             ReadWriteProperties newProperties = Binder.get(environment)
@@ -73,20 +60,17 @@ public class DynamicDataSourceRefresher {
                     .orElse(null);
 
             if (newProperties != null) {
-                // 更新可变配置
                 properties.setReadMasterAfterWrite(newProperties.getReadMasterAfterWrite());
                 properties.setReplicationLagTolerance(newProperties.getReplicationLagTolerance());
                 properties.setHealthCheckEnabled(newProperties.isHealthCheckEnabled());
                 properties.setFailureThreshold(newProperties.getFailureThreshold());
 
-                // 更新各组配置
                 for (var entry : newProperties.getGroups().entrySet()) {
                     var existingGroup = properties.getGroups().get(entry.getKey());
                     if (existingGroup != null) {
                         existingGroup.setSlavesEnabled(entry.getValue().isSlavesEnabled());
                         existingGroup.setLoadBalance(entry.getValue().getLoadBalance());
 
-                        // 更新从库配置
                         for (var newSlave : entry.getValue().getSlaves()) {
                             for (var existingSlave : existingGroup.getSlaves()) {
                                 if (existingSlave.getName().equals(newSlave.getName())) {
@@ -105,15 +89,6 @@ public class DynamicDataSourceRefresher {
         }
     }
 
-    /**
-     * 刷新从库设置
-     * <p>
-     * 支持热更新的配置
-     * - 从库权重
-     * - 从库启用/禁用
-     * - 读写一致性时间窗口
-     * - 复制延迟容忍
-     */
     private void refreshSlaveSettings() {
         for (Map.Entry<String, ReadWriteProperties.DataSourceGroup> groupEntry : properties.getGroups().entrySet()) {
 
@@ -126,15 +101,12 @@ public class DynamicDataSourceRefresher {
                 continue;
             }
 
-            // 更新从库可用
             if (!group.isSlavesEnabled()) {
-                // 禁用所有从库
                 log.debug("[Dynamic-DS] Group [{}] slaves disabled, marking all as unavailable", groupName);
                 for (var slave : group.getSlaves()) {
                     routingDs.markSlaveUnavailable(slave.getName());
                 }
             } else {
-                // 根据配置更新各从库状态
                 for (var slave : group.getSlaves()) {
                     if (slave.isAvailable()) {
                         routingDs.markSlaveAvailable(slave.getName());
@@ -151,18 +123,12 @@ public class DynamicDataSourceRefresher {
                 properties.getReadMasterAfterWrite(), properties.getReplicationLagTolerance());
     }
 
-    /**
-     * 手动触发刷新
-     */
     public void forceRefresh() {
         log.debug("[Dynamic-DS] Force refresh triggered");
         rebindProperties();
         refreshSlaveSettings();
     }
 
-    /**
-     * 获取当前配置快照
-     */
     public Map<String, Object> getConfigSnapshot() {
         return Map.of(
                 "enabled", properties.isEnabled(),

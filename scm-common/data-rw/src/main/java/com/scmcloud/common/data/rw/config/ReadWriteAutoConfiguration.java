@@ -17,7 +17,8 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.annotation.PreDestroy;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -37,12 +38,11 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 读写分离自动配置
+ * Read-write separation auto-configuration.
  *
  * @author Deng
  * @since 2025-12-16
  */
-@Slf4j
 @AutoConfiguration(before = {
         DynamicDataSourceAssistConfiguration.class,
         DynamicDataSourceAutoConfiguration.class,
@@ -56,25 +56,18 @@ import java.util.concurrent.ConcurrentHashMap;
 )
 @EnableScheduling
 public class ReadWriteAutoConfiguration {
+    private static final Logger log = LoggerFactory.getLogger(ReadWriteAutoConfiguration.class);
+
     private final ReadWriteProperties properties;
     private final MeterRegistry meterRegistry;
     private final Environment environment;
 
-    /**
-     * 所有创建的数据源，用于关闭时清理
-     */
     private final List<HikariDataSource> allDataSources = new ArrayList<>();
-    /**
-     * 路由数据源映射
-     */
     private final Map<String, ReadWriteRoutingDataSource> routingDataSources = new ConcurrentHashMap<>();
-    /**
-     * 从库数据源映射
-     */
     private final Map<String, Map<String, DataSource>> slaveDataSourcesMap = new ConcurrentHashMap<>();
 
     public ReadWriteAutoConfiguration(ReadWriteProperties properties,
-                                      ObjectProvider<MeterRegistry> meterRegistryProvider, Environment environment) {
+                                       ObjectProvider<MeterRegistry> meterRegistryProvider, Environment environment) {
         this.properties = properties;
         this.meterRegistry = meterRegistryProvider.getIfAvailable();
         this.environment = environment;
@@ -95,11 +88,9 @@ public class ReadWriteAutoConfiguration {
             log.debug("[RW-Config] Configuring group [{}] with {} slave(s)",
                     groupName, group.getSlaves().size());
 
-            // 创建主库数据
             HikariDataSource masterDataSource = createDataSource(groupName + "-master", group.getMaster());
             allDataSources.add(masterDataSource);
 
-            // 创建从库数据
             Map<String, DataSource> slaveDataSources = new HashMap<>();
             List<SlaveLoadBalancer.SlaveInfo> slaveInfos = new ArrayList<>();
 
@@ -119,11 +110,9 @@ public class ReadWriteAutoConfiguration {
 
             slaveDataSourcesMap.put(groupName, slaveDataSources);
 
-            // 创建负载均衡
             SlaveLoadBalancer loadBalancer = createLoadBalancer(
                     group.getLoadBalance() != null ? group.getLoadBalance() : properties.getLoadBalance());
 
-            // 创建路由数据
             ReadWriteRoutingDataSource routingDataSource = new ReadWriteRoutingDataSource(
                     groupName,
                     masterDataSource,
@@ -158,7 +147,6 @@ public class ReadWriteAutoConfiguration {
         hikariConfig.setIdleTimeout(config.getIdleTimeout().toMillis());
         hikariConfig.setMaxLifetime(config.getMaxLifetime().toMillis());
 
-        // 连接测试
         hikariConfig.setConnectionTestQuery("SELECT 1");
 
         return new HikariDataSource(hikariConfig);
@@ -178,15 +166,9 @@ public class ReadWriteAutoConfiguration {
         if (url == null) {
             return "null";
         }
-        // 掩码敏感信息
         return url.replaceAll("password=[^&]*", "password=***");
     }
 
-    // ==================== Bean Definitions ====================
-
-    /**
-     * 默认数据源（第一个组的路由数据源
-     */
     @Bean
     @ConditionalOnMissingBean(DataSource.class)
     @ConditionalOnProperty(
@@ -201,19 +183,11 @@ public class ReadWriteAutoConfiguration {
                             "Please configure spring.datasource.rw.groups");
         }
 
-        // 返回第一个组作为默认数据
         String defaultGroup = routingDataSources.keySet().iterator().next();
         log.debug("[RW-Config] Using group [{}] as default DataSource", defaultGroup);
         return routingDataSources.get(defaultGroup);
     }
 
-    /**
-     * DynamicDatasource integration.
-     * <p>
-     * When {@code spring.datasource.dynamic} is enabled, expose rw routing datasources to
-     * DynamicDatasource via {@link DynamicDataSourceProvider} so {@code @DS("user")} etc can
-     * keep working while each group internally does master/slave routing.
-     */
     @Bean
     @ConditionalOnMissingBean(DynamicDataSourceProvider.class)
     @ConditionalOnClass(name = "com.baomidou.dynamic.datasource.DynamicRoutingDataSource")
@@ -232,17 +206,11 @@ public class ReadWriteAutoConfiguration {
         };
     }
 
-    /**
-     * 获取指定组的路由数据
-     */
     @Bean
     public ReadWriteDataSourceProvider readWriteDataSourceProvider() {
         return new ReadWriteDataSourceProvider(routingDataSources);
     }
 
-    /**
-     * 读写分离路由切面
-     */
     @Bean
     @ConditionalOnMissingBean
     public ReadWriteRoutingAspect readWriteRoutingAspect() {
@@ -250,9 +218,6 @@ public class ReadWriteAutoConfiguration {
         return new ReadWriteRoutingAspect();
     }
 
-    /**
-     * 从库健康检查器
-     */
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnProperty(
@@ -273,9 +238,6 @@ public class ReadWriteAutoConfiguration {
         );
     }
 
-    /**
-     * SQL 路由拦截器（MyBatis 插件
-     */
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnClass(name = "org.apache.ibatis.plugin.Interceptor")
@@ -284,9 +246,6 @@ public class ReadWriteAutoConfiguration {
         return new SqlRoutingInterceptor();
     }
 
-    /**
-     * 动态配置刷新器
-     */
     @Bean
     @ConditionalOnMissingBean
     public DynamicDataSourceRefresher dynamicDataSourceRefresher() {
@@ -294,9 +253,6 @@ public class ReadWriteAutoConfiguration {
         return new DynamicDataSourceRefresher(properties, routingDataSources, environment);
     }
 
-    /**
-     * 从库熔断
-     */
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnClass(name = "com.alibaba.csp.sentinel.SphU")
@@ -305,15 +261,11 @@ public class ReadWriteAutoConfiguration {
         return new SlaveCircuitBreaker(routingDataSources);
     }
 
-    /**
-     * 连接池指标采集器
-     */
     @Bean
     @ConditionalOnMissingBean
     public ConnectionPoolMetrics connectionPoolMetrics() {
         ConnectionPoolMetrics metrics = new ConnectionPoolMetrics(meterRegistry);
 
-        // 注册所有数据源的指
         for (HikariDataSource ds : allDataSources) {
             String poolName = ds.getPoolName();
             String[] parts = poolName.split("-", 2);
@@ -327,9 +279,6 @@ public class ReadWriteAutoConfiguration {
         return metrics;
     }
 
-    /**
-     * Actuator 健康指示
-     */
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnClass(name = "org.springframework.boot.actuate.health.HealthIndicator")
@@ -338,9 +287,6 @@ public class ReadWriteAutoConfiguration {
         return new ReadWriteHealthIndicator(healthChecker, readWriteDataSourceProvider());
     }
 
-    /**
-     * Actuator 管理端点
-     */
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnClass(name = "org.springframework.boot.actuate.endpoint.annotation.Endpoint")
@@ -365,17 +311,9 @@ public class ReadWriteAutoConfiguration {
         }
     }
 
-    /**
-     * 数据源提供器
-     * <p>
-     * 用于获取指定组的路由数据
-     */
     public record ReadWriteDataSourceProvider(
             Map<String, ReadWriteRoutingDataSource> routingDataSources
     ) {
-        /**
-         * 获取指定组的路由数据
-         */
         public ReadWriteRoutingDataSource getDataSource(String groupName) {
             ReadWriteRoutingDataSource ds = routingDataSources.get(groupName);
             if (ds == null) {
@@ -386,9 +324,6 @@ public class ReadWriteAutoConfiguration {
             return ds;
         }
 
-        /**
-         * 获取所有组
-         */
         public java.util.Set<String> getGroupNames() {
             return routingDataSources.keySet();
         }

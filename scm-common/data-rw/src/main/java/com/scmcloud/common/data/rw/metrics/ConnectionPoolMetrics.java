@@ -14,20 +14,20 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 /**
- * 杩炴帴姹犳寚鏍囬噰闆嗗櫒
+ * Connection pool metrics collector.
  * <p>
- * 鍙傝€冿細
- * - 闃块噷 TDDL DataSourceMonitor
- * - 缇庡洟 Zebra DataSourceMetrics
+ * References:
+ * - Alibaba TDDL DataSourceMonitor
+ * - Meituan Zebra DataSourceMetrics
  * - HikariCP Metrics
  * <p>
- * 閲囬泦鎸囨爣锟?
- * - 娲昏穬杩炴帴锟?
- * - 绌洪棽杩炴帴锟?
- * - 绛夊緟绾跨▼锟?
- * - 杩炴帴鑾峰彇鑰楁椂
- * - 杩炴帴浣跨敤鑰楁椂
- * - 杩炴帴鍒涘缓鑰楁椂
+ * Collected metrics:
+ * - Active connections
+ * - Idle connections
+ * - Waiting threads
+ * - Connection acquire time
+ * - Connection use time
+ * - Connection create time
  *
  * @author Deng
  * @since 2025-12-16
@@ -45,7 +45,7 @@ public class ConnectionPoolMetrics {
     }
 
     /**
-     * 娉ㄥ唽鏁版嵁婧愭寚锟?
+     * Register datasource metrics.
      */
     public void registerDataSource(String groupName, String dsName, DataSource dataSource) {
         if (!(dataSource instanceof HikariDataSource hikariDs)) {
@@ -57,7 +57,6 @@ public class ConnectionPoolMetrics {
         Tags tags = Tags.of("group", groupName, "name", dsName);
         String fullName = groupName + "." + dsName;
 
-        // 灏濊瘯鑾峰彇 MXBean
         HikariPoolMXBean poolMXBean = hikariDs.getHikariPoolMXBean();
         if (poolMXBean == null) {
             log.warn("[Pool-Metrics] HikariPoolMXBean not available for [{}], metrics will be limited",
@@ -66,43 +65,36 @@ public class ConnectionPoolMetrics {
             return;
         }
 
-        // 娲昏穬杩炴帴锟?
         Gauge.builder(METRIC_PREFIX + ".active", poolMXBean, HikariPoolMXBean::getActiveConnections)
                 .tags(tags)
                 .description("Number of active connections")
                 .register(meterRegistry);
 
-        // 绌洪棽杩炴帴锟?
         Gauge.builder(METRIC_PREFIX + ".idle", poolMXBean, HikariPoolMXBean::getIdleConnections)
                 .tags(tags)
                 .description("Number of idle connections")
                 .register(meterRegistry);
 
-        // 鎬昏繛鎺ユ暟
         Gauge.builder(METRIC_PREFIX + ".total", poolMXBean, HikariPoolMXBean::getTotalConnections)
                 .tags(tags)
                 .description("Total number of connections")
                 .register(meterRegistry);
 
-        // 绛夊緟绾跨▼锟?
         Gauge.builder(METRIC_PREFIX + ".pending", poolMXBean, HikariPoolMXBean::getThreadsAwaitingConnection)
                 .tags(tags)
                 .description("Number of threads waiting for a connection")
                 .register(meterRegistry);
 
-        // 鏈€澶ц繛鎺ユ暟
         Gauge.builder(METRIC_PREFIX + ".max", hikariDs, HikariDataSource::getMaximumPoolSize)
                 .tags(tags)
                 .description("Maximum pool size")
                 .register(meterRegistry);
 
-        // 鏈€灏忕┖闂茶繛鎺ユ暟
         Gauge.builder(METRIC_PREFIX + ".min", hikariDs, HikariDataSource::getMinimumIdle)
                 .tags(tags)
                 .description("Minimum idle connections")
                 .register(meterRegistry);
 
-        // 杩炴帴鑾峰彇鑰楁椂
         Timer acquireTimer = Timer.builder(METRIC_PREFIX + ".acquire")
                 .tags(tags)
                 .description("Connection acquire time")
@@ -110,7 +102,6 @@ public class ConnectionPoolMetrics {
                 .register(meterRegistry);
         connectionAcquireTimers.put(fullName, acquireTimer);
 
-        // 杩炴帴浣跨敤鑰楁椂
         Timer useTimer = Timer.builder(METRIC_PREFIX + ".use")
                 .tags(tags)
                 .description("Connection use time")
@@ -118,7 +109,6 @@ public class ConnectionPoolMetrics {
                 .register(meterRegistry);
         connectionUseTimers.put(fullName, useTimer);
 
-        // 杩炴帴姹犲埄鐢ㄧ巼
         Gauge.builder(METRIC_PREFIX + ".utilization", poolMXBean,
                         bean -> {
                             int total = bean.getTotalConnections();
@@ -133,7 +123,7 @@ public class ConnectionPoolMetrics {
     }
 
     /**
-     * 娉ㄥ唽鍩虹鎸囨爣锛堝綋 MXBean 涓嶅彲鐢ㄦ椂锟?
+     * Register basic metrics (when MXBean is not available).
      */
     private void registerBasicMetrics(HikariDataSource hikariDs, Tags tags, String fullName) {
         Gauge.builder(METRIC_PREFIX + ".max", hikariDs, HikariDataSource::getMaximumPoolSize)
@@ -150,7 +140,7 @@ public class ConnectionPoolMetrics {
     }
 
     /**
-     * 璁板綍杩炴帴鑾峰彇鑰楁椂
+     * Record connection acquire time.
      */
     public void recordAcquireTime(String groupName, String dsName, long nanos) {
         String fullName = groupName + "." + dsName;
@@ -161,7 +151,7 @@ public class ConnectionPoolMetrics {
     }
 
     /**
-     * 璁板綍杩炴帴浣跨敤鑰楁椂
+     * Record connection use time.
      */
     public void recordUseTime(String groupName, String dsName, long nanos) {
         String fullName = groupName + "." + dsName;
@@ -172,7 +162,7 @@ public class ConnectionPoolMetrics {
     }
 
     /**
-     * 鑾峰彇杩炴帴姹犵姸鎬佸揩锟?
+     * Get connection pool status snapshot.
      */
     public Map<String, Object> getPoolSnapshot(String groupName, String dsName,
                                                 DataSource dataSource) {

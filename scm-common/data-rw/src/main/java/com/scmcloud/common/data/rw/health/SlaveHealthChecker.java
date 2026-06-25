@@ -4,60 +4,69 @@ import com.scmcloud.common.data.rw.config.ReadWriteProperties;
 import com.scmcloud.common.data.rw.routing.ReadWriteRoutingDataSource;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
-import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * 浠庡簱鍋ュ悍妫€鏌ュ櫒
+ * Slave health checker.
  * <p>
- * 鍔熻兘锟?
- * - 瀹氭湡妫€鏌ヤ粠搴撹繛锟?
- * - 妫€娴嬪鍒跺欢锟?
- * - 鑷姩鎽橀櫎/鎭㈠涓嶅彲鐢ㄨ妭锟?
+ * Features:
+ * - Periodic slave connection check
+ * - Replication lag detection (PostgreSQL, MySQL)
+ * - Auto remove/recover unavailable nodes
  *
  * @author Deng
  * @since 2025-12-16
  */
-@Slf4j
 public class SlaveHealthChecker {
+    private static final Logger log = LoggerFactory.getLogger(SlaveHealthChecker.class);
     private final Map<String, ReadWriteRoutingDataSource> routingDataSources;
     private final Map<String, Map<String, DataSource>> slaveDataSources;
     private final ReadWriteProperties properties;
+    private final List<ReplicationLagChecker> lagCheckers;
 
-    /**
-     * 杩炵画澶辫触璁℃暟
-     */
     private final Map<String, AtomicInteger> failureCounters = new ConcurrentHashMap<>();
-
-    /**
-     * 澶嶅埗寤惰繜锛堟绉掞級
-     */
     private final Map<String, Long> replicationLags = new ConcurrentHashMap<>();
 
     public SlaveHealthChecker(Map<String, ReadWriteRoutingDataSource> routingDataSources,
                                Map<String, Map<String, DataSource>> slaveDataSources,
                                ReadWriteProperties properties,
                                MeterRegistry meterRegistry) {
+        this(routingDataSources, slaveDataSources, properties, meterRegistry, null);
+    }
+
+    public SlaveHealthChecker(Map<String, ReadWriteRoutingDataSource> routingDataSources,
+                               Map<String, Map<String, DataSource>> slaveDataSources,
+                               ReadWriteProperties properties,
+                               MeterRegistry meterRegistry,
+                               List<ReplicationLagChecker> customLagCheckers) {
         this.routingDataSources = routingDataSources;
         this.slaveDataSources = slaveDataSources;
         this.properties = properties;
 
-        // 娉ㄥ唽鎸囨爣
+        this.lagCheckers = new ArrayList<>();
+        if (customLagCheckers != null) {
+            this.lagCheckers.addAll(customLagCheckers);
+        }
+        this.lagCheckers.add(new PostgresqlReplicationLagChecker());
+        this.lagCheckers.add(new MysqlReplicationLagChecker());
+
         if (meterRegistry != null) {
             registerMetrics(meterRegistry);
         }
     }
 
     private void registerMetrics(MeterRegistry meterRegistry) {
-        // 澶嶅埗寤惰繜鎸囨爣
         for (String groupName : slaveDataSources.keySet()) {
             for (String slaveName : slaveDataSources.get(groupName).keySet()) {
                 String fullName = groupName + "." + slaveName;
@@ -72,9 +81,6 @@ public class SlaveHealthChecker {
         }
     }
 
-    /**
-     * 瀹氭湡鍋ュ悍妫€锟?
-     */
     @Scheduled(fixedDelayString = "${spring.datasource.rw.health-check-interval:30000}")
     public void healthCheck() {
         if (!properties.isHealthCheckEnabled()) {
@@ -104,14 +110,17 @@ public class SlaveHealthChecker {
         try (Connection connection = dataSource.getConnection();
              Statement statement = connection.createStatement()) {
 
-            // 1. 杩炴帴妫€锟?
             if (!connection.isValid(5)) {
                 handleFailure(groupName, slaveName, failureCounter, "Connection invalid");
                 return;
             }
 
-            // 2. 澶嶅埗寤惰繜妫€鏌ワ紙PostgreSQL锟?
-            Long lagMs = checkReplicationLag(statement);
+            // Get driver class name from config or metadata
+            String driverClassName = getDriverClassName(groupName, slaveName);
+            if (driverClassName == null) {
+                driverClassName = connection.getMetaData().getDriverClassName();
+            }
+            Long lagMs = checkReplicationLag(statement, driverClassName);
             replicationLags.put(fullName, lagMs != null ? lagMs : 0L);
 
             if (lagMs != null && lagMs > properties.getReplicationLagTolerance().toMillis()) {
@@ -121,7 +130,7 @@ public class SlaveHealthChecker {
                 return;
             }
 
-            // 鍋ュ悍妫€鏌ラ€氳繃锛岄噸缃鏁板櫒
+            // Health check passed, reset counter
             if (failureCounter.get() > 0) {
                 failureCounter.set(0);
                 markSlaveAvailable(groupName, slaveName);
@@ -134,26 +143,32 @@ public class SlaveHealthChecker {
         }
     }
 
-    /**
-     * 妫€鏌ュ鍒跺欢杩燂紙PostgreSQL锟?
-     */
-    private Long checkReplicationLag(Statement statement) {
-        try {
-            // PostgreSQL 澶嶅埗寤惰繜鏌ヨ
-            ResultSet rs = statement.executeQuery("""
-                    SELECT CASE
-                        WHEN pg_last_wal_receive_lsn() = pg_last_wal_replay_lsn() THEN 0
-                        ELSE EXTRACT(EPOCH FROM now() - pg_last_xact_replay_timestamp())::bigint * 1000
-                    END AS lag_ms
-                    """);
-
-            if (rs.next()) {
-                return rs.getLong("lag_ms");
+    private Long checkReplicationLag(Statement statement, String driverClassName) {
+        for (ReplicationLagChecker checker : lagCheckers) {
+            if (checker.supports(driverClassName)) {
+                return checker.checkReplicationLag(statement);
             }
-        } catch (Exception e) {
-            // 鍙兘涓嶆槸浠庡簱锛屾垨鑰呯増鏈笉鏀寔
-            log.trace("[Health] Could not check replication lag: {}", e.getMessage());
         }
+        log.trace("[Health] No replication lag checker found for driver: {}", driverClassName);
+        return null;
+    }
+
+    private String getDriverClassName(String groupName, String slaveName) {
+        ReadWriteProperties.DataSourceGroup group = properties.getGroups().get(groupName);
+        if (group == null) {
+            return null;
+        }
+
+        for (ReadWriteProperties.SlaveDataSourceConfig slave : group.getSlaves()) {
+            if (slave.getName().equals(slaveName)) {
+                return slave.getDriverClassName();
+            }
+        }
+
+        if (group.getMaster() != null) {
+            return group.getMaster().getDriverClassName();
+        }
+
         return null;
     }
 
@@ -188,9 +203,6 @@ public class SlaveHealthChecker {
         }
     }
 
-    /**
-     * 鑾峰彇鎵€鏈変粠搴撶殑鍋ュ悍鐘讹拷
-     */
     public Map<String, HealthStatus> getAllHealthStatus() {
         Map<String, HealthStatus> result = new ConcurrentHashMap<>();
 
@@ -213,9 +225,6 @@ public class SlaveHealthChecker {
         return result;
     }
 
-    /**
-     * 鍋ュ悍鐘讹拷
-     */
     public record HealthStatus(
             boolean available,
             long replicationLagMs,

@@ -6,36 +6,32 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * 鍔犳潈杞璐熻浇鍧囪　锟?
+ * Weighted round-robin load balancer.
  * <p>
- * 瀹炵幇骞虫粦鍔犳潈杞绠楁硶锛圢ginx 鍚屾锟?
+ * Implements smooth weighted round-robin algorithm (same as Nginx).
+ * Uses ConcurrentHashMap + AtomicInteger for thread safety.
  *
  * @author Deng
  * @since 2025-12-16
  */
 public class WeightedRoundRobinLoadBalancer extends AbstractLoadBalancer {
-    /**
-     * 褰撳墠鏉冮噸
-     */
+
     private final Map<String, AtomicInteger> currentWeights = new ConcurrentHashMap<>();
 
     @Override
     protected String doSelect(List<SlaveInfo> available) {
-        // 璁＄畻鎬绘潈锟?
         int totalWeight = available.stream()
                 .mapToInt(SlaveInfo::weight)
                 .sum();
 
-        // 骞虫粦鍔犳潈杞
         SlaveInfo selected = null;
         int maxCurrentWeight = Integer.MIN_VALUE;
 
         for (SlaveInfo slave : available) {
-            // 鍒濆鍖栧綋鍓嶆潈锟?
-            currentWeights.computeIfAbsent(slave.name(), k -> new AtomicInteger(0));
+            AtomicInteger weightAtomic = currentWeights.computeIfAbsent(
+                    slave.name(), k -> new AtomicInteger(0));
 
-            // 澧炲姞褰撳墠鏉冮噸
-            int current = currentWeights.get(slave.name()).addAndGet(slave.weight());
+            int current = weightAtomic.addAndGet(slave.weight());
 
             if (current > maxCurrentWeight) {
                 maxCurrentWeight = current;
@@ -44,8 +40,10 @@ public class WeightedRoundRobinLoadBalancer extends AbstractLoadBalancer {
         }
 
         if (selected != null) {
-            // 閫変腑鐨勮妭鐐瑰噺鍘绘€绘潈锟?
-            currentWeights.get(selected.name()).addAndGet(-totalWeight);
+            AtomicInteger selectedWeight = currentWeights.get(selected.name());
+            if (selectedWeight != null) {
+                selectedWeight.addAndGet(-totalWeight);
+            }
             return selected.name();
         }
 

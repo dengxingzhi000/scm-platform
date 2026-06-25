@@ -4,7 +4,7 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * 最少连接负载均衡器
+ * Least connections load balancer.
  *
  * @author Deng
  * @since 2025-12-16

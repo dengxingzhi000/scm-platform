@@ -3,12 +3,12 @@ package com.scmcloud.common.data.rw.annotation;
 import java.lang.annotation.*;
 
 /**
- * 寮哄埗璧颁富锟?
+ * Force routing to master datasource.
  * <p>
- * 鐢ㄤ簬闇€瑕佽鍙栨渶鏂版暟鎹殑鍦烘櫙锛屽锟?
- * - 鍐欏悗绔嬪嵆锟?
- * - 鍏抽敭涓氬姟鏌ヨ
- * - 浜嬪姟涓殑璇绘搷锟?
+ * Used for scenarios that need to read latest data, such as:
+ * - Read immediately after write
+ * - Critical business queries
+ * - Read operations in transactions
  *
  * @author Deng
  * @since 2025-12-16
@@ -19,7 +19,7 @@ import java.lang.annotation.*;
 public @interface Master {
 
     /**
-     * 鍘熷洜璇存槑锛堢敤浜庢棩蹇楀拰鐩戞帶锟?
+     * Reason description (for logging and monitoring).
      */
     String reason() default "";
 }
