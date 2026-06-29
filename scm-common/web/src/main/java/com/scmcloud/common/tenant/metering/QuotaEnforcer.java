@@ -1,9 +1,10 @@
 package com.scmcloud.common.tenant.metering;
 
+import com.scmcloud.common.redis.script.RedisLuaScriptLoader;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -30,28 +31,11 @@ public class QuotaEnforcer {
     private static final String COUNTER_PREFIX = "metering:";
     private static final long DEFAULT_DAILY_LIMIT = 100_000L;
 
+    private static final RedisScript<Long> QUOTA_SCRIPT =
+            RedisLuaScriptLoader.load("lua/tenant/check_and_increment_quota.lua", Long.class);
+
     // In-memory quota cache: tenantId -> daily limit
     private final ConcurrentMap<UUID, Long> quotaLimits = new ConcurrentHashMap<>();
-
-    /**
-     * Lua script: atomic check-and-increment.
-     * KEYS[1] = counter key
-     * ARGV[1] = daily limit
-     * ARGV[2] = TTL in seconds (until end of day)
-     * Returns: 1 if allowed, 0 if quota exceeded.
-     */
-    private static final String QUOTA_SCRIPT = """
-        local current = redis.call('GET', KEYS[1])
-        local count = current and tonumber(current) or 0
-        if count >= tonumber(ARGV[1]) then
-            return 0
-        end
-        count = redis.call('INCR', KEYS[1])
-        if count == 1 then
-            redis.call('EXPIRE', KEYS[1], ARGV[2])
-        end
-        return 1
-        """;
 
     /**
      * Check if the tenant has quota remaining and increment the counter atomically.
@@ -63,8 +47,7 @@ public class QuotaEnforcer {
         long limit = quotaLimits.getOrDefault(tenantId, DEFAULT_DAILY_LIMIT);
         long ttlSeconds = secondsUntilEndOfDay();
 
-        DefaultRedisScript<Long> script = new DefaultRedisScript<>(QUOTA_SCRIPT, Long.class);
-        Long result = redisTemplate.execute(script, Collections.singletonList(key),
+        Long result = redisTemplate.execute(QUOTA_SCRIPT, Collections.singletonList(key),
                 String.valueOf(limit), String.valueOf(ttlSeconds));
 
         boolean allowed = result != null && result == 1L;
