@@ -7,7 +7,6 @@ import org.springframework.http.MediaType;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.UUID;
 
 /**
  * Helper to emit structured JSON error responses with trace correlation.
@@ -17,7 +16,7 @@ public class SecurityErrorResponseWriter {
 
     public void write(HttpServletRequest request, HttpServletResponse response, int status, String error,
                       String message) throws IOException {
-        String traceId = resolveTraceId(request);
+        String traceId = TraceIdUtil.resolveAndSanitizeTraceId(request);
         String path = request.getRequestURI();
 
         response.setStatus(status);
@@ -29,17 +28,6 @@ public class SecurityErrorResponseWriter {
                 "{\"code\":%d,\"error\":\"%s\",\"message\":\"%s\",\"traceId\":\"%s\",\"path\":\"%s\"}",
                 status, escape(error), escape(message), escape(traceId), escape(path));
         response.getWriter().write(body);
-    }
-
-    private String resolveTraceId(HttpServletRequest request) {
-        String traceId = request.getHeader("X-Request-ID");
-        if (traceId == null || traceId.isBlank()) {
-            traceId = request.getHeader("traceparent");
-        }
-        if (traceId == null || traceId.isBlank()) {
-            traceId = UUID.randomUUID().toString();
-        }
-        return traceId;
     }
 
     private String escape(String value) {

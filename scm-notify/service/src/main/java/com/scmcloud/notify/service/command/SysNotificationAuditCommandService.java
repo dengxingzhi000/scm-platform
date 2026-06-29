@@ -23,7 +23,8 @@ public class SysNotificationAuditCommandService {
     @Master(reason = "创建通知审计")
     @Transactional(rollbackFor = Exception.class)
     public SysNotificationAudit createAudit(SysNotificationAudit entity) {
-        log.info("创建通知审计: userId={}, channel={}, templateCode={}", entity.getUserId(), entity.getChannel(), entity.getTemplateCode());
+        log.info("创建通知审计: userId={}, channel={}, templateCode={}", entity.getUserId(), entity.getChannel(),
+                entity.getTemplateCode());
         entity.setId(UUID.randomUUID().toString());
         entity.setCreatedAt(LocalDateTime.now());
         if (entity.getStatus() == null) {

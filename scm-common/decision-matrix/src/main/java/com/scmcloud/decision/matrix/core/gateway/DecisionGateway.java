@@ -4,6 +4,7 @@ import com.scmcloud.decision.matrix.api.*;
 import com.scmcloud.decision.matrix.core.chain.DefaultDecisionChain;
 import com.scmcloud.decision.matrix.core.execution.SagaExecutionMatrix;
 import com.scmcloud.decision.matrix.core.fusion.WeightedFusionEngine;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,10 +16,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>
  * Coordinates multiple decision chains and manages the overall decision workflow.
  */
+@Slf4j
 public class DecisionGateway {
-
-    private static final Logger log = LoggerFactory.getLogger(DecisionGateway.class);
-
     private final Map<String, DecisionChain> chains;
     private final FusionEngine fusionEngine;
     private final ExecutionMatrix executionMatrix;

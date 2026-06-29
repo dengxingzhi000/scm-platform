@@ -1,12 +1,13 @@
 package com.scmcloud.inventory.service;
 
+import com.scmcloud.common.redis.script.RedisLuaScriptLoader;
 import com.scmcloud.inventory.domain.entity.Inventory;
 import com.scmcloud.inventory.mapper.InvInventoryMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
@@ -44,16 +45,8 @@ public class RedisInventoryService {
    * - -1: 库存不存在
    * - -2: 库存不足
    */
-  private static final String DEDUCT_STOCK_LUA_SCRIPT =
-      "local stock = redis.call('GET', KEYS[1])\n" +
-          "if not stock then\n" +
-          "    return -1\n" +  // 库存不存在
-          "end\n" +
-          "if tonumber(stock) < tonumber(ARGV[1]) then\n" +
-          "    return -2\n" +  // 库存不足
-          "end\n" +
-          "redis.call('DECRBY', KEYS[1], ARGV[1])\n" +
-          "return 1";  // 扣减成功
+  private static final RedisScript<Long> DEDUCT_STOCK_SCRIPT =
+      RedisLuaScriptLoader.load("lua/inventory/deduct_stock.lua", Long.class);
 
   /**
    * Lua 脚本：原子性增加库存
@@ -63,14 +56,8 @@ public class RedisInventoryService {
    * <p>返回值：
    * - 增加后的库存数量
    */
-  private static final String ADD_STOCK_LUA_SCRIPT =
-      "local stock = redis.call('GET', KEYS[1])\n" +
-          "if not stock then\n" +
-          "    redis.call('SET', KEYS[1], ARGV[1])\n" +
-          "    return tonumber(ARGV[1])\n" +
-          "else\n" +
-          "    return redis.call('INCRBY', KEYS[1], ARGV[1])\n" +
-          "end";
+  private static final RedisScript<Long> ADD_STOCK_SCRIPT =
+      RedisLuaScriptLoader.load("lua/inventory/add_stock.lua", Long.class);
 
   /**
    * 从数据库同步库存到Redis
@@ -137,12 +124,8 @@ public class RedisInventoryService {
     String stockKey = buildStockKey(skuId, warehouseId);
 
     // 执行 Lua 脚本（原子操作）
-    DefaultRedisScript<Long> script = new DefaultRedisScript<>();
-    script.setScriptText(DEDUCT_STOCK_LUA_SCRIPT);
-    script.setResultType(Long.class);
-
     Long result = redisTemplate.execute(
-        script,
+        DEDUCT_STOCK_SCRIPT,
         Collections.singletonList(stockKey),
         quantity
     );
@@ -201,12 +184,8 @@ public class RedisInventoryService {
     String stockKey = buildStockKey(skuId, warehouseId);
 
     // 执行 Lua 脚本（原子操作）
-    DefaultRedisScript<Long> script = new DefaultRedisScript<>();
-    script.setScriptText(ADD_STOCK_LUA_SCRIPT);
-    script.setResultType(Long.class);
-
     Long result = redisTemplate.execute(
-        script,
+        ADD_STOCK_SCRIPT,
         Collections.singletonList(stockKey),
         quantity
     );

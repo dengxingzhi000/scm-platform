@@ -1,8 +1,9 @@
 package com.scmcloud.common.redis.lock;
 
+import com.scmcloud.common.redis.script.RedisLuaScriptLoader;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
@@ -24,26 +25,15 @@ public class DistributedLock {
     private static final Duration DEFAULT_RETRY_INTERVAL = Duration.ofMillis(200);
     private static final Duration DEFAULT_WAIT = Duration.ofSeconds(5);
     private static final Long LUA_SUCCESS = 1L;
-    private static final String UNLOCK_LUA = """
-            if redis.call('get', KEYS[1]) == ARGV[1] then
-                return redis.call('del', KEYS[1])
-            else
-                return 0
-            end
-            """;
-    private static final String RENEW_LUA = """
-            if redis.call('get', KEYS[1]) == ARGV[1] then
-                return redis.call('pexpire', KEYS[1], ARGV[2])
-            else
-                return 0
-            end
-            """;
+
+    private static final RedisScript<Long> UNLOCK_SCRIPT =
+            RedisLuaScriptLoader.load("lua/lock/unlock.lua", Long.class);
+    private static final RedisScript<Long> RENEW_SCRIPT =
+            RedisLuaScriptLoader.load("lua/lock/renew.lua", Long.class);
 
     private final RedisTemplate<String, Object> redisTemplate;
     private final LockLeaseManager leaseManager;
     private final LockMetricsRecorder metricsRecorder;
-    private final DefaultRedisScript<Long> unlockScript;
-    private final DefaultRedisScript<Long> renewScript;
     private final String ownerId;
 
     public DistributedLock(RedisTemplate<String, Object> redisTemplate, LockLeaseManager leaseManager,
@@ -51,8 +41,6 @@ public class DistributedLock {
         this.redisTemplate = redisTemplate;
         this.leaseManager = leaseManager;
         this.metricsRecorder = metricsRecorder;
-        this.unlockScript = buildScript(UNLOCK_LUA);
-        this.renewScript = buildScript(RENEW_LUA);
         this.ownerId = resolveOwnerId();
     }
 
@@ -154,7 +142,7 @@ public class DistributedLock {
         LockToken token = new LockToken(lockKey, namespaced(lockKey), lockId, ownerId, Instant.now(), Duration.ZERO);
         leaseManager.cancel(token);
         Long result = redisTemplate.execute(
-                unlockScript,
+                UNLOCK_SCRIPT,
                 Collections.singletonList(token.redisKey()),
                 token.lockValue()
         );
@@ -177,7 +165,7 @@ public class DistributedLock {
     void releaseInternal(LockToken token) {
         leaseManager.cancel(token);
         Long result = redisTemplate.execute(
-                unlockScript,
+                UNLOCK_SCRIPT,
                 Collections.singletonList(token.redisKey()),
                 token.lockValue()
         );
@@ -211,19 +199,12 @@ public class DistributedLock {
 
     private boolean renewLease(LockToken token) {
         Long result = redisTemplate.execute(
-                renewScript,
+                RENEW_SCRIPT,
                 Collections.singletonList(token.redisKey()),
                 token.lockValue(),
                 String.valueOf(token.ttl().toMillis())
         );
         return LUA_SUCCESS.equals(result);
-    }
-
-    private static DefaultRedisScript<Long> buildScript(String script) {
-        DefaultRedisScript<Long> redisScript = new DefaultRedisScript<>();
-        redisScript.setScriptText(script);
-        redisScript.setResultType(Long.class);
-        return redisScript;
     }
 
     private static String resolveOwnerId() {

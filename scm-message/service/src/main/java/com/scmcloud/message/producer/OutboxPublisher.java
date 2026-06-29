@@ -18,7 +18,6 @@ import java.util.Map;
 @Component
 @RequiredArgsConstructor
 public class OutboxPublisher {
-
     private final OutboxService outboxService;
     private final KafkaEventProducer kafkaEventProducer;
     private final ObjectMapper objectMapper;
