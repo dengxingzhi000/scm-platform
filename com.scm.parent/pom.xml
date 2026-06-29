@@ -43,6 +43,15 @@
 
     <!-- Message Service -->
     <module>../scm-message</module>
+
+    <!-- E-Commerce Layer (Year 1) -->
+    <module>../scm-member</module>
+    <module>../scm-promotion</module>
+    <module>../scm-payment</module>
+    <module>../scm-search</module>
+    <module>../scm-order-center</module>
+    <module>../scm-mall</module>
+    <module>../scm-fulfillment</module>
   </modules>
 
   <parent>

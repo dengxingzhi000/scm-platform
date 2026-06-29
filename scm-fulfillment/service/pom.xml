@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.scmcloud</groupId>
+        <artifactId>scm-fulfillment</artifactId>
+        <version>1.0.0-beta.1</version>
+    </parent>
+
+    <artifactId>scm-fulfillment-service</artifactId>
+    <packaging>jar</packaging>
+    <name>SCM Fulfillment Service Implementation</name>
+    <description>Fulfillment service implementation with orchestration and 3PL integration</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.scmcloud</groupId>
+            <artifactId>scm-fulfillment-api</artifactId>
+            <version>1.0.0-beta.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.scmcloud</groupId>
+            <artifactId>scm-common-web</artifactId>
+            <version>1.0.0-beta.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.scmcloud</groupId>
+            <artifactId>scm-common-data</artifactId>
+            <version>1.0.0-beta.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.scmcloud</groupId>
+            <artifactId>scm-order-api</artifactId>
+            <version>1.0.0-beta.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.scmcloud</groupId>
+            <artifactId>scm-warehouse-api</artifactId>
+            <version>1.0.0-beta.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.scmcloud</groupId>
+            <artifactId>scm-inventory-api</artifactId>
+            <version>1.0.0-beta.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.scmcloud</groupId>
+            <artifactId>scm-logistics-api</artifactId>
+            <version>1.0.0-beta.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.dubbo</groupId>
+            <artifactId>dubbo-spring-boot-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.dubbo</groupId>
+            <artifactId>dubbo-registry-nacos</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <skip>false</skip>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
