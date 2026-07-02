@@ -22,11 +22,12 @@
 
 | Icon | Feature | Description |
 |------|---------|-------------|
-| 🏗️ | **Microservices Architecture** | 15+ independently deployable services with API Gateway, service discovery, and config management |
+| 🏗️ | **Microservices Architecture** | 22+ independently deployable services with API Gateway, service discovery, and config management |
 | 🔐 | **Enterprise Security** | OAuth2 + JWT + WebAuthn passwordless auth, RBAC with fine-grained data scope control |
 | 💰 | **Distributed Transactions** | Seata AT/TCC/Saga modes for cross-service data consistency |
 | ⚡ | **High Performance** | Redis Lua atomic stock deduction, read-write separation, database sharding |
 | 🔍 | **Full-Text Search** | Elasticsearch-powered product search with real-time sync via Canal binlog |
+| 🧠 | **Decision Engine** | E-commerce decision matrix with intelligent pricing, inventory prediction, and A/B testing |
 | 📊 | **Observability** | Sentinel circuit breaking, SkyWalking tracing, Prometheus metrics, Grafana dashboards |
 | 🏢 | **Multi-Tenant** | Tenant isolation with dynamic data source routing and configurable feature flags |
 | 🖥️ | **Modern Frontend** | Next.js 15 App Router, Ant Design 5 Pro, Zustand state management, TanStack Query |
@@ -68,12 +69,19 @@
   ┌──▼───┐  ┌───▼───┐  ┌──▼───┐ ┌─▼────┐ ┌─▼────┐  ┌──▼───┐  ┌──▼───┐
   │ Auth  │  │System │  │Product│ │Order │ │ WMS  │  │Logist│  │Notify │
   │ :8106 │  │ :8081 │  │:8201  │ │:8203 │ │:8204 │  │:8205 │  │       │
-  └───────┘  └───────┘  └───────┘ └──────┘ └──────┘  └──────┘  └──────┘
+  └───────┘  └───────┘  └───────┘ └──────┘ └──────┘  └──────┘  └───────┘
      │          │          │        │        │          │          │
   ┌──▼───┐  ┌───▼───┐  ┌──▼───┐ ┌─▼────┐ ┌─▼────┐  ┌──▼───┐  ┌──▼───┐
-  │Approv│  │ Audit │  │ INV  │ │Finance│ │Suppl │  │Purch │  │ Tenant│
-  │      │  │       │  │:8202 │ │       │ │:8206 │  │      │  │       │
+  │Approv│  │ Audit │  │ INV  │ │Finance│ │Suppl │  │Purch │  │Tenant│
+  │      │  │       │  │:8202 │ │:8208  │ │:8206 │  │:8207 │  │      │
   └──────┘  └───────┘  └──────┘ └───────┘ └──────┘  └──────┘  └──────┘
+                                    │
+     ┌──────────┬──────────┬────────┼────────┬──────────┬──────────┐
+     │          │          │        │        │          │          │
+  ┌──▼───┐  ┌───▼───┐  ┌──▼───┐ ┌─▼────┐ ┌─▼────┐  ┌──▼───┐  ┌──▼───┐
+  │Member│  │Promo  │  │Pay   │ │Search│ │OrdCtr│  │Mall  │  │Fulfill│
+  │:8209 │  │:8210  │  │:8211 │ │:8212 │ │:8213 │  │:8214 │  │:8215 │
+  └──────┘  └───────┘  └──────┘ └──────┘ └──────┘  └──────┘  └──────┘
 ```
 
 ## Modules
@@ -90,12 +98,20 @@
 | `scm-warehouse` | 8204 | Warehouse — inbound/outbound, wave picking, location management |
 | `scm-logistics` | 8205 | Logistics — carriers, waybills, tracking, route optimization |
 | `scm-supplier` | 8206 | Suppliers — onboarding, evaluation, settlements |
-| `scm-purchase` | — | Procurement — RFQ, quotations, contracts, purchase orders |
-| `scm-finance` | — | Finance — settlements, invoices, freight rules, reconciliation |
+| `scm-purchase` | 8207 | Procurement — RFQ, quotations, contracts, purchase orders |
+| `scm-finance` | 8208 | Finance — settlements, invoices, freight rules, reconciliation |
+| `scm-member` | 8209 | Member management — profiles, addresses, points, loyalty programs |
+| `scm-promotion` | 8210 | Promotions — campaigns, coupons, discounts, flash sales |
+| `scm-payment` | 8211 | Payment — payment processing, refunds, reconciliation |
+| `scm-search` | 8212 | Search — Elasticsearch-powered full-text product search |
+| `scm-order-center` | 8213 | Order center — centralized order orchestration |
+| `scm-mall` | 8214 | Mall — e-commerce storefront, product display, cart |
+| `scm-fulfillment` | 8215 | Fulfillment — order fulfillment, shipping, delivery tracking |
 | `scm-tenant` | — | Multi-tenant — tenant lifecycle, packages, feature flags |
 | `scm-approval` | — | Approval workflows — configurable approval processes |
 | `scm-audit` | — | Audit — operation logs, sensitive operation tracking |
 | `scm-notify` | — | Notifications — templates, multi-channel delivery, audit |
+| `scm-decision` | — | Decision engine — intelligent pricing, inventory prediction, A/B testing |
 
 ## Quick Start
 
@@ -184,7 +200,7 @@ The frontend runs at **http://localhost:3000** with built-in zh-CN and en-US lan
 
 ## Kubernetes Deployment
 
-All 9 services have deployment + service manifests in `deploy/k8s/`. Deploy with:
+All 22 services have deployment + service manifests in `deploy/k8s/`. Deploy with:
 
 ```bash
 # Apply all K8s resources
@@ -215,6 +231,13 @@ kubectl apply -f deploy/argocd/application.yaml
 | scm-supplier | 8206 | 2 |
 | scm-purchase | 8207 | 2 |
 | scm-finance | 8208 | 2 |
+| scm-member | 8209 | 2 |
+| scm-promotion | 8210 | 2 |
+| scm-payment | 8211 | 2 |
+| scm-search | 8212 | 2 |
+| scm-order-center | 8213 | 2 |
+| scm-mall | 8214 | 2 |
+| scm-fulfillment | 8215 | 2 |
 
 ## Load Testing
 
@@ -225,6 +248,19 @@ k6 run scripts/loadtest/inventory-check.js
 ```
 
 ## Key Architecture Patterns
+
+### Decision Engine (E-Commerce Decision Matrix)
+
+```java
+// Weighted fusion engine for multi-criteria decision making
+WeightedFusionEngine engine = new WeightedFusionEngine();
+DecisionResult result = engine.evaluate(candidates, criteria, weights);
+
+// A/B testing support
+if (experiment.isTreatmentGroup(userId)) {
+    return treatmentEngine.evaluate(candidates);
+}
+```
 
 ### Multi-Tenant Data Routing
 
@@ -287,9 +323,12 @@ scm-platform/
 ├── scm-common/              # Shared modules
 │   ├── core/                # Utilities, exceptions, tenant context
 │   ├── data/                # Data access, read-write separation, multi-tenant routing
+│   ├── data-rw/             # Read-write separation module
+│   ├── cache/               # Redis cache, Lua script center, distributed locks
 │   ├── web/                 # Web filters, REST clients, security config
 │   ├── monitoring/          # Sentinel circuit breaker
 │   ├── integration/         # Kafka & RabbitMQ messaging
+│   ├── decision-matrix/     # Decision engine core
 │   └── security/            # Security core & API
 ├── scm-gateway/             # API Gateway
 ├── scm-auth/                # Authentication service
@@ -302,6 +341,13 @@ scm-platform/
 ├── scm-purchase/            # Procurement
 ├── scm-supplier/            # Supplier management
 ├── scm-finance/             # Financial settlement
+├── scm-member/              # Member management (profiles, addresses, points)
+├── scm-promotion/           # Promotions (campaigns, coupons, discounts)
+├── scm-payment/             # Payment processing
+├── scm-search/              # Elasticsearch full-text search
+├── scm-order-center/        # Centralized order orchestration
+├── scm-mall/                # E-commerce storefront
+├── scm-fulfillment/         # Order fulfillment & shipping
 ├── scm-tenant/              # Multi-tenant management
 ├── scm-approval/            # Approval workflows
 ├── scm-audit/               # Audit logging
