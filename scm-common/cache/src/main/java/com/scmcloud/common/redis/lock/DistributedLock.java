@@ -12,7 +12,7 @@ import java.util.Collections;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.LockSupport;
 import java.util.function.Supplier;
 
 /**
@@ -26,6 +26,8 @@ public class DistributedLock {
     private static final Duration DEFAULT_WAIT = Duration.ofSeconds(5);
     private static final Long LUA_SUCCESS = 1L;
 
+    private static final RedisScript<Long> ACQUIRE_SCRIPT =
+            RedisLuaScriptLoader.load("lua/lock/acquire.lua", Long.class);
     private static final RedisScript<Long> UNLOCK_SCRIPT =
             RedisLuaScriptLoader.load("lua/lock/unlock.lua", Long.class);
     private static final RedisScript<Long> RENEW_SCRIPT =
@@ -189,9 +191,13 @@ public class DistributedLock {
     private LockToken tryAcquire(String lockKey, Duration ttl) {
         String redisKey = namespaced(lockKey);
         String lockValue = ownerId + ":" + UUID.randomUUID();
-        Boolean success = redisTemplate.opsForValue()
-                .setIfAbsent(redisKey, lockValue, ttl);
-        if (Boolean.TRUE.equals(success)) {
+        Long result = redisTemplate.execute(
+                ACQUIRE_SCRIPT,
+                Collections.singletonList(redisKey),
+                lockValue,
+                String.valueOf(ttl.toMillis())
+        );
+        if (LUA_SUCCESS.equals(result)) {
             return new LockToken(lockKey, redisKey, lockValue, ownerId, Instant.now(), ttl);
         }
         return null;
@@ -216,11 +222,10 @@ public class DistributedLock {
     }
 
     private static void sleepWithJitter(Duration baseInterval) {
-        long baseMillis = Math.max(1L, baseInterval.toMillis());
-        long jitter = ThreadLocalRandom.current().nextLong(Math.max(1L, baseMillis / 4));
-        try {
-            TimeUnit.MILLISECONDS.sleep(baseMillis + jitter);
-        } catch (InterruptedException e) {
+        long baseNanos = Math.max(1_000_000L, baseInterval.toNanos());
+        long jitter = ThreadLocalRandom.current().nextLong(Math.max(1L, baseNanos / 4));
+        LockSupport.parkNanos(baseNanos + jitter);
+        if (Thread.interrupted()) {
             Thread.currentThread().interrupt();
         }
     }
