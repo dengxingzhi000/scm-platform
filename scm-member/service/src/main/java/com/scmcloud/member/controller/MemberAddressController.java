@@ -13,7 +13,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/members/{userId}/addresses")
 public class MemberAddressController {
-
     private final IMemberAddressService addressService;
 
     @GetMapping

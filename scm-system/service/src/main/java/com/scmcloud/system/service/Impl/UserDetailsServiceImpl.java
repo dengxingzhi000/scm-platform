@@ -3,9 +3,9 @@ package com.scmcloud.system.service.Impl;
 import com.scmcloud.common.web.domain.SecurityUser;
 import com.scmcloud.system.mapper.SysUserMapper;
 import com.scmcloud.system.mapper.SysUserRoleMapper;
-import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NullMarked;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -24,6 +24,7 @@ import java.util.Set;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@NullMarked
 public class UserDetailsServiceImpl implements UserDetailsService {
     private final SysUserMapper sysUserMapper;
     private final SysUserRoleMapper sysUserRoleMapper;
@@ -34,8 +35,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
             key = "#username",
             unless = "#result == null"
     )
-    @NonNull
-    public UserDetails loadUserByUsername(@NonNull String username) throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         // 1. 锟絛b_user 搴撴煡璇㈢敤鎴峰熀鏈俊锟?
         var user = sysUserMapper.findByUsername(username);
         if (user == null || user.getDeleted()) {

@@ -319,7 +319,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 
         // 5. 检查数据权限（是否可操作该用户
         String dataScope = permissionChecker.getUserDataScope(operatorId);
-        if (!permissionChecker.canOperateResource(operatorId, existUser.getCreateBy(),
+        if (permissionChecker.cannotOperateResource(operatorId, existUser.getCreateBy(),
                 existUser.getDeptId(), dataScope)) {
             throw new BusinessException(ResultCode.DATA_ACCESS_DENIED.getCode(), "无权操作该用户数据");
         }
@@ -379,7 +379,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 
         // 5. 检查数据权
         String dataScope = permissionChecker.getUserDataScope(operatorId);
-        if (!permissionChecker.canOperateResource(operatorId, user.getCreateBy(),
+        if (permissionChecker.cannotOperateResource(operatorId, user.getCreateBy(),
                 user.getDeptId(), dataScope)) {
             throw new BusinessException(ResultCode.DATA_ACCESS_DENIED.getCode(), "无权删除该用户数据");
         }

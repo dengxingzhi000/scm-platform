@@ -14,7 +14,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/members/{userId}/points")
 public class MemberPointsController {
-
     private final IMemberPointsService pointsService;
 
     @GetMapping
