@@ -118,7 +118,7 @@ public class SlaveHealthChecker {
             // Get driver class name from config or metadata
             String driverClassName = getDriverClassName(groupName, slaveName);
             if (driverClassName == null) {
-                driverClassName = connection.getMetaData().getDriverClassName();
+                driverClassName = connection.getMetaData().getDriverName();
             }
             Long lagMs = checkReplicationLag(statement, driverClassName);
             replicationLags.put(fullName, lagMs != null ? lagMs : 0L);

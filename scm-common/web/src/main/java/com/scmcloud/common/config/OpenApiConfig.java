@@ -9,6 +9,7 @@ import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.servers.Server;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -19,6 +20,7 @@ import java.util.List;
  * Provides Swagger UI at /swagger-ui.html
  */
 @Configuration
+@ConditionalOnClass(name = "org.springdoc.core.SpringDocConfigProperties")
 public class OpenApiConfig {
 
     @Value("${server.port:8080}")

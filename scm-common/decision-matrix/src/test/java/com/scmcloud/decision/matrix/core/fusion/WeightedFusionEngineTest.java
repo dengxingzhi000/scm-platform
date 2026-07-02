@@ -2,6 +2,7 @@ package com.scmcloud.decision.matrix.core.fusion;
 
 import com.scmcloud.decision.matrix.api.DecisionExplanation;
 import com.scmcloud.decision.matrix.api.DecisionResult;
+import com.scmcloud.decision.matrix.api.FusionEngine;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

@@ -37,6 +37,6 @@ public class PostgresqlReplicationLagChecker implements ReplicationLagChecker {
 
     @Override
     public boolean supports(String driverClassName) {
-        return driverClassName != null && driverClassName.contains("postgresql");
+        return driverClassName != null && driverClassName.toLowerCase().contains("postgresql");
     }
 }

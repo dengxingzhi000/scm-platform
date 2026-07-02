@@ -6,6 +6,7 @@ import com.scmcloud.common.rest.client.SysUserServiceClient;
 import com.scmcloud.common.rest.interceptor.RestClientRequestSignatureInterceptor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NullMarked;
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.loadbalancer.LoadBalancerClient;
 import org.springframework.context.annotation.Bean;
@@ -35,6 +36,7 @@ import java.net.URI;
 @Slf4j
 @Configuration
 @RequiredArgsConstructor
+@NullMarked
 public class RestClientHttpExchangeConfig {
     private final ClientHttpRequestFactory clientHttpRequestFactory;
     private final RestClientRequestSignatureInterceptor signatureInterceptor;

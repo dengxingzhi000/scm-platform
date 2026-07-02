@@ -84,7 +84,7 @@ public class MysqlReplicationLagChecker implements ReplicationLagChecker {
     @Override
     public boolean supports(String driverClassName) {
         return driverClassName != null &&
-                (driverClassName.contains("mysql") ||
+                (driverClassName.toLowerCase().contains("mysql") ||
                  driverClassName.equals(DRIVER_CLASS) ||
                  driverClassName.equals(DRIVER_CLASS_LEGACY));
     }
