@@ -11,13 +11,14 @@ import com.scmcloud.common.web.enums.SensitiveType;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
+
 /**
- * 鏁忔劅鏁版嵁搴忓垪鍖栧櫒
- * 鍦↗SON搴忓垪鍖栨椂鑷姩鑴辨晱
+ * 敏感数据序列化器，JSON 序列化时自动脱敏
  *
  * @author Deng
- * createData 2025/10/30 11:24
- * @version 1.0
+ * @since 2025/10/30
+ * @version 1.1
+ * @apiNote 1.1 精简序列化分支，修复乱码注释，移除热路径日志
  */
 @Slf4j
 public class SensitiveJsonSerializer extends JsonSerializer<String> implements ContextualSerializer {
@@ -26,37 +27,15 @@ public class SensitiveJsonSerializer extends JsonSerializer<String> implements C
 
     @Override
     public void serialize(String value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
-        // 澶勭悊绌哄€煎拰绌哄瓧绗︿覆
-        if (value == null || value.isEmpty()) {
-            gen.writeString(value);
-            return;
-        }
-
-        // 濡傛灉鏈惎鐢ㄨ劚鏁忥紝鐩存帴杩斿洖鍘燂拷
-        if (!enabled) {
-            gen.writeString(value);
-            return;
-        }
-
-        // 绌烘寚閽堟鏌ワ細濡傛灉type涓簄ull锛岃繑鍥炲師鍊煎苟璁板綍璀﹀憡
-        if (type == null) {
-            log.warn("SensitiveType is null, returning original value");
+        if (value == null || value.isEmpty() || !enabled || type == null) {
             gen.writeString(value);
             return;
         }
 
         try {
-            // 鎵ц鑴辨晱
-            String desensitizedValue = type.desensitize(value);
-            gen.writeString(desensitizedValue);
-
-            // 璁板綍鑴辨晱鎿嶄綔锛堜粎鍦╠ebug绾у埆锛岄伩鍏嶆€ц兘褰卞搷锟?
-            if (log.isDebugEnabled()) {
-                log.debug("Desensitized field with type: {}", type);
-            }
+            gen.writeString(type.desensitize(value));
         } catch (Exception e) {
-            // 鑴辨晱澶辫触鏃惰繑鍥炲師鍊煎苟璁板綍閿欒
-            log.error("Failed to desensitize value with type: {}, error: {}", type, e.getMessage());
+            log.error("Failed to desensitize with type {}: {}", type, e.getMessage());
             gen.writeString(value);
         }
     }
@@ -68,21 +47,14 @@ public class SensitiveJsonSerializer extends JsonSerializer<String> implements C
             return prov.findNullValueSerializer(null);
         }
 
-        // 鑾峰彇瀛楁涓婄殑@Sensitive娉ㄨВ
         Sensitive sensitive = property.getAnnotation(Sensitive.class);
         if (sensitive == null) {
             return prov.findValueSerializer(property.getType(), property);
         }
 
-        // 鍒涘缓鏂扮殑搴忓垪鍖栧櫒瀹炰緥
         SensitiveJsonSerializer serializer = new SensitiveJsonSerializer();
         serializer.type = sensitive.type();
         serializer.enabled = sensitive.enabled();
-
-        if (log.isDebugEnabled()) {
-            log.debug("Created SensitiveJsonSerializer for field: {}, type: {}", property.getName(), sensitive.type());
-        }
-
         return serializer;
     }
 }

@@ -12,13 +12,15 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 /**
- * Security 宸ュ叿锟?
+ * Security 工具类
  *
  * @author Deng
- * createData 2025/10/14 17:37
- * @version 1.0
+ * @since 2025/10/14
+ * @version 1.1
+ * @apiNote 1.1 优化匿名用户检测，UUID 正则预编译，移除反射调用
  */
 public final class SecurityUtils {
     private static volatile CurrentUserProvider provider = new SpringSecurityCurrentUserProvider();
@@ -28,14 +30,11 @@ public final class SecurityUtils {
     }
 
     /**
-     * 鑾峰彇褰撳墠鐧诲綍鐢ㄦ埛
+     * 获取当前登录用户
      */
     public static SecurityUser getCurrentUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getPrincipal() instanceof SecurityUser) {
-            return (SecurityUser) authentication.getPrincipal();
-        }
-        return null;
+        Authentication a = SecurityContextHolder.getContext().getAuthentication();
+        return (a != null && a.getPrincipal() instanceof SecurityUser u) ? u : null;
     }
 
     public static Optional<String> getCurrentUsername() { return provider.getCurrentUsername(); }
@@ -44,7 +43,11 @@ public final class SecurityUtils {
     public static Collection<String> getAuthorities()      { return provider.getAuthorities(); }
 
     public static Optional<UUID> getCurrentUserUuid() {
-        return provider.getCurrentUserId().flatMap(SecurityUtils.SpringSecurityCurrentUserProvider::parseUuid);
+        return provider.getCurrentUserId().flatMap(SpringSecurityCurrentUserProvider::parseUuid);
+    }
+
+    public static UUID requireCurrentUserUuid() {
+        return getCurrentUserUuid().orElseThrow(() -> new IllegalStateException("Missing or invalid userId (UUID)"));
     }
 
     public interface CurrentUserProvider {
@@ -58,7 +61,7 @@ public final class SecurityUtils {
 
         @Override public Optional<String> getCurrentUsername() {
             Authentication a = SecurityContextHolder.getContext().getAuthentication();
-            if (a == null || !a.isAuthenticated()) return Optional.empty();
+            if (a == null || "anonymousUser".equals(a.getPrincipal())) return Optional.empty();
             Object p = a.getPrincipal();
             if (p instanceof UserDetails u) {
                 String username = u.getUsername();
@@ -79,12 +82,12 @@ public final class SecurityUtils {
 
         @Override public Optional<String> getCurrentUserId() {
             Authentication a = SecurityContextHolder.getContext().getAuthentication();
-            if (a == null || !a.isAuthenticated()) return Optional.empty();
+            if (a == null || "anonymousUser".equals(a.getPrincipal())) return Optional.empty();
             Object p = a.getPrincipal();
-            
-            // 浣跨敤 switch 璇彞鏇挎崲 if 璇彞
+
             return switch (p) {
                 case null -> Optional.empty();
+                case SecurityUser u -> Optional.ofNullable(u.getUserId()).map(UUID::toString);
                 case Jwt jwt -> Optional.ofNullable(jwt.getClaimAsString("userId"))
                         .or(() -> Optional.ofNullable(jwt.getSubject()));
                 case OAuth2AuthenticatedPrincipal op -> {
@@ -92,17 +95,8 @@ public final class SecurityUtils {
                     if (uid == null) uid = op.getAttribute("sub");
                     yield uid != null ? Optional.of(uid) : Optional.empty();
                 }
-                default -> {
-                    // 鑷畾锟絊ecurityUser 鍙湪姝ゅ垽鏂苟锟絬serId
-                    try {
-                        var method = p.getClass().getMethod("getUserId");
-                        Object v = method.invoke(p);
-                        String userId = String.valueOf(v);
-                        yield v != null ? Optional.of(userId) : Optional.empty();
-                    } catch (Exception ignored) {
-                        yield Optional.empty();
-                    }
-                }
+                // SecurityUser 实现了 UserDetails，已在上面处理；其他 UserDetails 实现走 default
+                default -> Optional.empty();
             };
         }
 
@@ -117,15 +111,13 @@ public final class SecurityUtils {
             return a.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList();
         }
 
-        public static UUID requireCurrentUserUuid() {
-            return getCurrentUserUuid().orElseThrow(() -> new IllegalStateException("Missing or invalid userId (UUID)"));
-        }
+        // 兼容 36 位（带横线）和 32 位（hex）两种字符串形式
+        private static final Pattern UUID_NO_DASH = Pattern.compile("^[0-9a-fA-F]{32}$");
 
-        // 鍏煎 36 浣嶏紙甯︽í绾匡級锟?2 浣嶏紙锟絟ex锛変袱绉嶅瓧绗︿覆
         static Optional<UUID> parseUuid(String raw) {
             if (raw == null || raw.isBlank()) return Optional.empty();
             String s = raw.trim();
-            if (s.length() == 32 && s.matches("^[0-9a-fA-F]{32}$")) {
+            if (s.length() == 32 && UUID_NO_DASH.matcher(s).matches()) {
                 s = s.replaceFirst(
                         "([0-9a-fA-F]{8})([0-9a-fA-F]{4})([0-9a-fA-F]{4})([0-9a-fA-F]{4})([0-9a-fA-F]{12})",
                         "$1-$2-$3-$4-$5"

@@ -22,20 +22,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
- * 璁よ瘉鎺у埗鍣
+ * 认证控制器
  *
  * @author Deng
- * @version 1.0
+ * @version 1.1
  * @since 2025-10-14
+ * @apiNote 1.1 修复乱码注释，移除冗余校验，细化异常处理
  */
 @Slf4j
 @Validated
@@ -66,9 +61,6 @@ public class SysAuthController {
     @PreAuthorize("isAuthenticated()")
     public ApiResponse<Void> logout(HttpServletRequest request) {
         String token = httpServletRequestUtils.getTokenFromRequest(request);
-        if (!StringUtils.hasText(token)) {
-            return ApiResponse.fail(400, "Missing token");
-        }
         UUID userId = SecurityUtils.getCurrentUserUuid().orElse(null);
         String traceId = TraceIdUtil.resolveAndSanitizeTraceId(request);
 
@@ -83,9 +75,6 @@ public class SysAuthController {
     public ApiResponse<LoginResponse> refreshToken(
             @RequestBody @Valid RefreshTokenRequest request,
             HttpServletRequest httpRequest) {
-        if (!StringUtils.hasText(request.getRefreshToken())) {
-            return ApiResponse.fail(400, "Missing refresh token");
-        }
         String ipAddress = IpUtils.getClientIp(httpRequest);
 
         String deviceId = httpServletRequestUtils.getDeviceId(httpRequest);
@@ -109,23 +98,23 @@ public class SysAuthController {
             return ApiResponse.fail(401, "Unauthorized");
         }
 
-        UserInfo userInfo;
         try {
-            userInfo = authService.getUserInfo(userId);
+            UserInfo userInfo = authService.getUserInfo(userId);
+            return ApiResponse.success(userInfo);
+        } catch (IllegalArgumentException ex) {
+            log.warn("getUserInfo failed: userId={} error={}", userId, ex.getMessage());
+            return ApiResponse.fail(404, ex.getMessage());
         } catch (Exception ex) {
             String traceId = TraceIdUtil.resolveAndSanitizeTraceId(request);
-            log.error("getUserInfo failed traceId={} userId={} error={}",
-                    traceId, userId, ex.getMessage());
+            log.error("getUserInfo failed traceId={} userId={}", traceId, userId, ex);
             return ApiResponse.fail(503, "User service unavailable");
         }
-
-        return ApiResponse.success(userInfo);
     }
 
     @PostMapping("/force-logout/{userId}")
     @PreAuthorize("hasAuthority('system:user:edit')")
     @AuditLog(
-            operation = "寮哄埗涓嬬嚎",
+            operation = "强制下线",
             businessType = "USER",
             riskLevel = 3
     )

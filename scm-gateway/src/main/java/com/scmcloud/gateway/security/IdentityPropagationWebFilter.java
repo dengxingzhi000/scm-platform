@@ -1,7 +1,8 @@
 package com.scmcloud.gateway.security;
 
 import com.scmcloud.gateway.properties.IdentityPropagationProperties;
-import lombok.NonNull;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.Ordered;
 import org.springframework.http.server.reactive.ServerHttpRequest;
@@ -26,13 +27,30 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Adds signed identity headers to downstream requests once authentication succeeds.
+ * 身份传播过滤器
+ *
+ * <p>认证成功后，将签名的身份信息添加到下游请求头中
+ *
+ * @author deng
  */
 @Component
 @RequiredArgsConstructor
 public class IdentityPropagationWebFilter implements WebFilter, Ordered {
+
     private final IdentityPropagationProperties properties;
     private final IdentityTokenEncoder tokenEncoder;
+
+    private final Counter propagationCounter;
+    private final Counter skipCounter;
+
+    public IdentityPropagationWebFilter(IdentityPropagationProperties properties,
+                                        IdentityTokenEncoder tokenEncoder,
+                                        MeterRegistry meterRegistry) {
+        this.properties = properties;
+        this.tokenEncoder = tokenEncoder;
+        this.propagationCounter = meterRegistry.counter("gateway.identity.propagation.success");
+        this.skipCounter = meterRegistry.counter("gateway.identity.propagation.skip");
+    }
 
     @Override
     public int getOrder() {
@@ -40,8 +58,7 @@ public class IdentityPropagationWebFilter implements WebFilter, Ordered {
     }
 
     @Override
-    @NonNull
-    public Mono<Void> filter(@NonNull ServerWebExchange exchange, @NonNull WebFilterChain chain) {
+    public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
         if (!properties.isEnabled()) {
             return chain.filter(exchange);
         }
@@ -50,10 +67,12 @@ public class IdentityPropagationWebFilter implements WebFilter, Ordered {
                 .mapNotNull(SecurityContext::getAuthentication)
                 .filter(Authentication::isAuthenticated)
                 .filter(auth -> auth instanceof JwtAuthenticationToken)
-                .flatMap(auth ->
-                        propagate(exchange, chain, (JwtAuthenticationToken) auth).thenReturn(true))
-                .switchIfEmpty(Mono.just(false))
-                .flatMap(propagated -> propagated ? Mono.empty() : chain.filter(exchange));
+                .cast(JwtAuthenticationToken.class)
+                .flatMap(auth -> propagate(exchange, chain, auth))
+                .switchIfEmpty(Mono.defer(() -> {
+                    skipCounter.increment();
+                    return chain.filter(exchange);
+                }));
     }
 
     private Mono<Void> propagate(ServerWebExchange exchange, WebFilterChain chain,
@@ -61,6 +80,7 @@ public class IdentityPropagationWebFilter implements WebFilter, Ordered {
         Jwt token = authentication.getToken();
         String userId = getClaim(token, properties.getUserIdClaim());
         if (!StringUtils.hasText(userId)) {
+            skipCounter.increment();
             return chain.filter(exchange);
         }
 
@@ -94,6 +114,7 @@ public class IdentityPropagationWebFilter implements WebFilter, Ordered {
                 })
                 .build();
 
+        propagationCounter.increment();
         return chain.filter(exchange.mutate().request(mutatedRequest).build());
     }
 

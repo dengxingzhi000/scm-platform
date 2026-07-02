@@ -1,5 +1,6 @@
 package com.scmcloud.system.service.dubbo;
 
+import com.scmcloud.common.dto.permission.ApiPermissionDTO;
 import com.scmcloud.system.api.PermissionDubboService;
 import com.scmcloud.system.service.ISysPermissionService;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,11 @@ public class PermissionDubboServiceImpl implements PermissionDubboService {
     @Override
     public Set<String> findAllPermissionsByUserId(UUID userId) {
         return permissionService.getUserPermissions(userId);
+    }
+
+    @Override
+    public List<ApiPermissionDTO> findApiPermissions() {
+        return permissionService.findApiPermissions();
     }
 }
 
