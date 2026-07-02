@@ -2,6 +2,7 @@ package com.scmcloud.common.rest.client;
 
 import com.alibaba.csp.sentinel.annotation.SentinelResource;
 import com.scmcloud.common.response.ApiResponse;
+import org.jspecify.annotations.NullMarked;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -18,6 +19,7 @@ import java.util.UUID;
  * @author Claude
  * @since 2025-12-29
  */
+@NullMarked
 @HttpExchange("/api/auth")
 public interface SysAuthServiceClient {
 

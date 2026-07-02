@@ -13,7 +13,6 @@ import java.util.List;
 @Slf4j
 @Service
 public class OutboxService extends ServiceImpl<EventOutboxMapper, EventOutbox> {
-    
     private final ObjectMapper objectMapper;
     
     public OutboxService(ObjectMapper objectMapper) {

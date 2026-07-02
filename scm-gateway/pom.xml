@@ -16,7 +16,6 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <spring-cloud-gateway.version>4.3.3</spring-cloud-gateway.version>
     </properties>
 
     <dependencies>
@@ -27,11 +26,10 @@
             <version>1.0.0-beta.1</version>
         </dependency>
 
-        <!-- Spring Cloud Gateway -->
+        <!-- Spring Cloud Gateway (reactive) -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-gateway</artifactId>
-            <version>${spring-cloud-gateway.version}</version>
+            <artifactId>spring-cloud-starter-gateway-server-webflux</artifactId>
         </dependency>
 
         <!-- Spring Boot Web Flux -->

@@ -1,13 +1,15 @@
 package com.scmcloud.common.security;
 
+import com.scmcloud.common.entity.SysDataPermissionRule;
+
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
 /**
- * 鏉冮檺鏌ヨ鏈嶅姟鎺ュ彛
-
- * 鎻愪緵鏉冮檺銆佽鑹层€佹暟鎹潈闄愮瓑鏌ヨ鍔熻兘
+ * 权限查询服务接口
+ *
+ * <p>提供权限、角色、数据权限等查询功能
  *
  * @author Claude Code
  * @since 2025-01-24
@@ -15,68 +17,77 @@ import java.util.UUID;
 public interface PermissionQueryService {
 
     /**
-     * 鏌ヨ鐢ㄦ埛鐨勬墍鏈夋潈闄愮紪锟?
+     * 查询用户的所有权限编码
      *
-     * @param userId 鐢ㄦ埛 ID
-     * @return 鏉冮檺缂栫爜闆嗗悎
+     * @param userId 用户 ID
+     * @return 权限编码集合
      */
     Set<String> getUserPermissions(UUID userId);
 
     /**
-     * 鏌ヨ鐢ㄦ埛鐨勬墍鏈夎鑹茬紪锟?
+     * 查询用户的所有角色编码
      *
-     * @param userId 鐢ㄦ埛 ID
-     * @return 瑙掕壊缂栫爜闆嗗悎
+     * @param userId 用户 ID
+     * @return 角色编码集合
      */
     Set<String> getUserRoles(UUID userId);
 
     /**
-     * 鑾峰彇鐢ㄦ埛鐨勬暟鎹潈闄愯寖锟?
+     * 获取用户的数据权限范围
      *
-     * @param userId 鐢ㄦ埛 ID
-     * @return 鏁版嵁鏉冮檺鑼冨洿瀛楃涓诧紙ALL, DEPT, DEPT_AND_SUB, SELF, CUSTOM锟?
+     * @param userId 用户 ID
+     * @return 数据权限范围字符串（ALL, DEPT, DEPT_AND_SUB, SELF, CUSTOM）
      */
     String getUserDataScope(UUID userId);
 
     /**
-     * 鑾峰彇鐢ㄦ埛鐨勯儴锟絀D
+     * 获取用户的部门 ID
      *
-     * @param userId 鐢ㄦ埛 ID
-     * @return 閮ㄩ棬 ID
+     * @param userId 用户 ID
+     * @return 部门 ID
      */
     UUID getUserDeptId(UUID userId);
 
     /**
-     * 鑾峰彇閮ㄩ棬璺緞
+     * 获取部门路径
      *
-     * @param deptId 閮ㄩ棬 ID
-     * @return 閮ㄩ棬璺緞
+     * @param deptId 部门 ID
+     * @return 部门路径
      */
     String getDeptPath(UUID deptId);
 
     /**
-     * 鑾峰彇鐢ㄦ埛鍙闂殑閮ㄩ棬 ID鍒楄〃
+     * 获取用户可访问的部门 ID 列表
      *
-     * @param userId 鐢ㄦ埛 ID
-     * @param tenantId 绉熸埛 ID
-     * @param dataScope 鏁版嵁鏉冮檺鑼冨洿
-     * @return 鍙闂殑閮ㄩ棬 ID鍒楄〃
+     * @param userId 用户 ID
+     * @param tenantId 租户 ID
+     * @param dataScope 数据权限范围
+     * @return 可访问的部门 ID 列表
      */
     List<UUID> getAccessibleDepartmentIds(UUID userId, UUID tenantId, String dataScope);
 
     /**
-     * 鑾峰彇瑙掕壊绛夌骇
+     * 获取角色等级
      *
-     * @param roleId 瑙掕壊 ID
-     * @return 瑙掕壊绛夌骇
+     * @param roleId 角色 ID
+     * @return 角色等级
      */
     Integer getRoleLevel(UUID roleId);
 
     /**
-     * 鑾峰彇鐢ㄦ埛鐨勬渶楂樿鑹茬瓑锟?
+     * 获取用户的最高角色等级
      *
-     * @param userId 鐢ㄦ埛 ID
-     * @return 鏈€楂樿鑹茬瓑锟?
+     * @param userId 用户 ID
+     * @return 最高角色等级
      */
     Integer getUserMaxRoleLevel(UUID userId);
+
+    /**
+     * 查询用户/角色的自定义数据权限规则
+     *
+     * @param userId 用户 ID
+     * @param resourceType 资源类型（null 表示查询所有类型）
+     * @return 自定义数据权限规则列表
+     */
+    List<SysDataPermissionRule> getCustomDataPermissionRules(UUID userId, String resourceType);
 }

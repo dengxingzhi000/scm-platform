@@ -1,6 +1,7 @@
 package com.scmcloud.decision.matrix.core.fusion;
 
 import com.scmcloud.decision.matrix.api.*;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,9 +13,8 @@ import java.util.stream.Collectors;
  * <p>
  * Combines multiple decision results using weighted utility function with explainability.
  */
+@Slf4j
 public class WeightedFusionEngine implements FusionEngine {
-
-    private static final Logger log = LoggerFactory.getLogger(WeightedFusionEngine.class);
 
     @Override
     public DecisionResult fuse(List<DecisionResult> results, Map<String, Double> weights) {

@@ -1,6 +1,7 @@
 package com.scmcloud.decision.matrix.core.chain;
 
 import com.scmcloud.decision.matrix.api.*;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,10 +17,8 @@ import java.util.concurrent.*;
  * - Fallback nodes
  * - Timeout handling
  */
+@Slf4j
 public class DefaultDecisionChain implements DecisionChain {
-
-    private static final Logger log = LoggerFactory.getLogger(DefaultDecisionChain.class);
-
     private final String chainId;
     private final String chainName;
     private final List<DecisionNode> nodes;

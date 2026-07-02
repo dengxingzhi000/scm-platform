@@ -1,6 +1,7 @@
 package com.scmcloud.decision.matrix.core.fusion;
 
 import com.scmcloud.decision.matrix.api.DecisionResult;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -9,9 +10,8 @@ import java.util.*;
 /**
  * Conflict resolver for handling conflicting decision results.
  */
+@Slf4j
 public class ConflictResolver {
-
-    private static final Logger log = LoggerFactory.getLogger(ConflictResolver.class);
 
     /**
      * Detect conflicts between decision results.

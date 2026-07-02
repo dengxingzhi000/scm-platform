@@ -70,7 +70,7 @@
 
     <!-- Spring Ecosystem -->
     <spring-boot.version>4.0.6</spring-boot.version>
-    <spring-cloud.version>2025.1.1</spring-cloud.version>
+    <spring-cloud.version>2025.1.2</spring-cloud.version>
     <spring-cloud-alibaba.version>2025.1.0.0</spring-cloud-alibaba.version>
     <spring-statemachine.version>4.0.0</spring-statemachine.version>
 
@@ -175,6 +175,13 @@
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-amqp</artifactId>
         <version>${spring-boot.version}</version>
+      </dependency>
+
+      <!-- Jakarta Validation -->
+      <dependency>
+        <groupId>jakarta.validation</groupId>
+        <artifactId>jakarta.validation-api</artifactId>
+        <version>3.0.2</version>
       </dependency>
 
       <!-- Spring Cloud -->

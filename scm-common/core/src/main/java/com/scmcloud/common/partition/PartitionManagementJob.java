@@ -15,9 +15,9 @@ import java.util.List;
 
 /**
  * Database partition management scheduled task
- *
+
  * Execution time: 1st day of every month at 01:00 (cron: 0 1 1 * ?)
- *
+
  * Functions:
  * 1. Create new partition tables for the next month (pre-create to avoid month-end insertion failures)
  * 2. Clean up expired partitions (retain last 24 months, DETACH and archive beyond that)
@@ -31,7 +31,7 @@ import java.util.List;
  *    - sup_purchase_order (purchase order, partitioned by order_time)
  *    - tenant_operation_log (tenant operation log, partitioned by create_time)
  *    - payment_record (financial payment record, partitioned by payment_time)
- *
+
  * XXL-Job configuration example:
  * - Executor: scm-common-executor
  * - JobHandler: partitionManagementJob

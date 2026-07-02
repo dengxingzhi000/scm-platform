@@ -7,7 +7,7 @@ import jakarta.annotation.Nonnull;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.lang.NonNull;
+import org.jspecify.annotations.NullMarked;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import java.util.UUID;
@@ -20,6 +20,7 @@ import java.util.UUID;
  * @version 1.0
  */
 @Slf4j
+@NullMarked
 public class LogInterceptor implements HandlerInterceptor {
 
     @Override

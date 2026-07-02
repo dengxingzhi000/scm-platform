@@ -2,6 +2,7 @@ package com.scmcloud.auth.service;
 
 import com.scmcloud.common.dto.user.LoginRequest;
 import com.scmcloud.common.dto.user.LoginResponse;
+import com.scmcloud.common.dto.user.UserInfo;
 
 import java.util.UUID;
 
@@ -48,7 +49,15 @@ public interface ISysAuthService {
      * 寮哄埗鐢ㄦ埛鐧诲嚭
      * 
      * @param userId 鐢ㄦ埛 ID
-     * @param reason 寮哄埗鐧诲嚭鐨勫師锟?
+     * @param reason 寮哄埗鐢ㄦ埛鐧诲嚭鐨勫師锟?
      */
     void forceLogout(UUID userId, String reason);
+
+    /**
+     * 鑾峰彇鑾峰彇鐢ㄦ埛淇℃伅
+     * 
+     * @param userId 鐢ㄦ埛 ID
+     * @return 鐢ㄦ埛淇℃伅
+     */
+    UserInfo getUserInfo(UUID userId);
 }

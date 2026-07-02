@@ -18,6 +18,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NullMarked;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -37,6 +38,7 @@ import java.util.UUID;
 @Component
 @Slf4j
 @RequiredArgsConstructor
+@NullMarked
 public class StepUpFilter extends OncePerRequestFilter {
     private final StepUpEvaluator evaluator;
     private final ISysAuditLogService auditLogService;

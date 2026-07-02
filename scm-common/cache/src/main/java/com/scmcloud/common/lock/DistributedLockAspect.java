@@ -21,8 +21,8 @@ import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Method;
 import java.util.Collections;
+import java.util.concurrent.locks.LockSupport;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 /**
  * AOP aspect for @DistributedLock annotation.
@@ -62,12 +62,13 @@ public class DistributedLockAspect {
 
         // Try to acquire lock using Lua script (atomic check + set)
         long ttlMillis = annotation.unit().toMillis(annotation.ttl());
-        Long result = redisTemplate.execute(
-                ACQUIRE_SCRIPT,
-                Collections.singletonList(redisKey),
-                lockValue,
-                String.valueOf(ttlMillis)
-        );
+        Long result = tryAcquire(redisKey, lockValue, ttlMillis);
+
+        if (result == null || result != 1L) {
+            if (annotation.blocking()) {
+                result = waitAndRetry(redisKey, lockValue, ttlMillis, annotation);
+            }
+        }
 
         if (result == null || result != 1L) {
             log.warn("Failed to acquire distributed lock: key={}, method={}", lockKey, method.getName());
@@ -99,8 +100,36 @@ public class DistributedLockAspect {
             }
             return parser.parseExpression(keyExpression).getValue(context, String.class);
         } catch (Exception e) {
-            log.warn("Failed to parse lock key expression '{}': {}", keyExpression, e.getMessage());
-            return keyExpression;
+            throw new BusinessException(ErrorCode.LOCK_ACQUISITION_FAILED,
+                    "Invalid lock key expression: " + keyExpression);
         }
+    }
+
+    private Long tryAcquire(String redisKey, String lockValue, long ttlMillis) {
+        return redisTemplate.execute(
+                ACQUIRE_SCRIPT,
+                Collections.singletonList(redisKey),
+                lockValue,
+                String.valueOf(ttlMillis)
+        );
+    }
+
+    private Long waitAndRetry(String redisKey, String lockValue, long ttlMillis, DistributedLockAnnotation annotation) {
+        long waitMillis = annotation.unit().toMillis(annotation.waitTime());
+        long deadline = System.currentTimeMillis() + waitMillis;
+        long delay = 10;
+
+        while (System.currentTimeMillis() < deadline) {
+            LockSupport.parkNanos(delay * 1_000_000L);
+            if (Thread.interrupted()) {
+                return null;
+            }
+            Long result = tryAcquire(redisKey, lockValue, ttlMillis);
+            if (result != null && result == 1L) {
+                return result;
+            }
+            delay = Math.clamp(delay * 2, 10, 200);
+        }
+        return null;
     }
 }

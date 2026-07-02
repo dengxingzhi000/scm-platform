@@ -1,9 +1,14 @@
 package com.scmcloud.common.redis.config;
 
 import com.scmcloud.common.cache.spring.TwoLevelCacheInvalidationListener;
+import com.scmcloud.common.cache.spring.TwoLevelCacheManager;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -14,52 +19,71 @@ import org.springframework.data.redis.listener.adapter.MessageListenerAdapter;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.cache.CacheManager;
-import org.springframework.context.annotation.Primary;
-import com.scmcloud.common.cache.spring.TwoLevelCacheManager;
 
 import java.time.Duration;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
- * Redis 閰嶇疆锟?
+ * Redis 配置
  *
  * @author Deng
- * createData 2025/10/15 14:33
- * @version 1.0
+ * @since 2025/10/15
+ * @version 1.1
+ * @apiNote 1.1 消除重复序列化器配置，提取缓存 TTL 常量
  */
 @Configuration
 @EnableCaching
 public class RedisConfig {
+
     private static final String TWOLEVEL_INVALIDATION_CHANNEL = "cache:invalidation:twolevel";
 
+    private static final StringRedisSerializer STRING_SERIALIZER = new StringRedisSerializer();
+    private static final RedisSerializer<Object> JSON_SERIALIZER = RedisSerializer.json();
+
+    /** 缓存名称与 TTL 映射，两套 CacheManager 共享 */
+    private static final Map<String, Duration> CACHE_TTLS = Map.ofEntries(
+            // 用户信息
+            Map.entry("user", Duration.ofMinutes(30)),
+            Map.entry("userInfo", Duration.ofMinutes(30)),
+            Map.entry("userDetails", Duration.ofMinutes(30)),
+            // 权限和角色
+            Map.entry("userRoles", Duration.ofHours(1)),
+            Map.entry("userPermissions", Duration.ofHours(1)),
+            Map.entry("userDataScope", Duration.ofHours(1)),
+            Map.entry("userMaxRoleLevel", Duration.ofHours(1)),
+            Map.entry("roleLevel", Duration.ofHours(2)),
+            Map.entry("permissionTree", Duration.ofHours(2)),
+            Map.entry("permissionMapping", Duration.ofMinutes(5)),
+            Map.entry("roles", Duration.ofHours(1)),
+            Map.entry("role", Duration.ofHours(1)),
+            Map.entry("rolePermissions", Duration.ofHours(1)),
+            Map.entry("apiPermissions", Duration.ofHours(2)),
+            // 部门相关
+            Map.entry("userDeptId", Duration.ofMinutes(30)),
+            Map.entry("deptPath", Duration.ofHours(2)),
+            Map.entry("deptTree", Duration.ofHours(1)),
+            Map.entry("deptChildren", Duration.ofHours(1)),
+            Map.entry("accessibleDeptIds", Duration.ofHours(1)),
+            // 临时角色
+            Map.entry("userTemporaryRoles", Duration.ofMinutes(15))
+    );
+
     @Bean
+    @ConditionalOnMissingBean(RedisTemplate.class)
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory factory) {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(factory);
-
-        RedisSerializer<Object> serializer = RedisSerializer.json();
-
-        StringRedisSerializer stringSerializer = new StringRedisSerializer();
-
-        // key 閲囩敤String鐨勫簭鍒楀寲鏂瑰紡
-        template.setKeySerializer(stringSerializer);
-        // hash 鐨刱ey涔熼噰鐢⊿tring鐨勫簭鍒楀寲鏂瑰紡
-        template.setHashKeySerializer(stringSerializer);
-        // value 搴忓垪鍖栨柟寮忛噰鐢╦ackson
-        template.setValueSerializer(serializer);
-        // hash  鐨剉alue搴忓垪鍖栨柟寮忛噰鐢╦ackson
-        template.setHashValueSerializer(serializer);
-
+        template.setKeySerializer(STRING_SERIALIZER);
+        template.setHashKeySerializer(STRING_SERIALIZER);
+        template.setValueSerializer(JSON_SERIALIZER);
+        template.setHashValueSerializer(JSON_SERIALIZER);
         template.afterPropertiesSet();
         return template;
     }
 
     @Bean
-    @ConditionalOnProperty(name = "scm.cache.two-level.enabled", havingValue = "true", matchIfMissing = false)
+    @ConditionalOnProperty(name = "scm.cache.two-level.enabled", havingValue = "true")
     public RedisMessageListenerContainer twoLevelCacheListenerContainer(
             RedisConnectionFactory connectionFactory,
             TwoLevelCacheInvalidationListener twoLevelListener) {
@@ -71,94 +95,32 @@ public class RedisConfig {
 
     @Bean
     @Primary
-    @ConditionalOnProperty(name = "scm.cache.two-level.enabled", havingValue = "true", matchIfMissing = false)
+    @ConditionalOnProperty(name = "scm.cache.two-level.enabled", havingValue = "true")
     public CacheManager twoLevelCacheManager(RedisTemplate<String, Object> redisTemplate) {
-        Duration defaultTtl = Duration.ofHours(1);
-        Map<String, Duration> ttls = new HashMap<>();
-        // 鐢ㄦ埛鍩烘湰淇℃伅缂撳瓨
-        ttls.put("user", Duration.ofMinutes(30));
-        ttls.put("userInfo", Duration.ofMinutes(30));
-        ttls.put("userDetails", Duration.ofMinutes(30));
-
-        // 鏉冮檺鍜岃鑹茬紦锟?
-        ttls.put("userRoles", Duration.ofHours(1));
-        ttls.put("userPermissions", Duration.ofHours(1));
-        ttls.put("userDataScope", Duration.ofHours(1));
-        ttls.put("userMaxRoleLevel", Duration.ofHours(1));
-        ttls.put("roleLevel", Duration.ofHours(2));
-        ttls.put("permissionTree", Duration.ofHours(2));
-        ttls.put("permissionMapping", Duration.ofMinutes(5));
-        ttls.put("roles", Duration.ofHours(1));
-        ttls.put("role", Duration.ofHours(1));
-        ttls.put("rolePermissions", Duration.ofHours(1));
-        ttls.put("apiPermissions", Duration.ofHours(2));
-
-        // 閮ㄩ棬鐩稿叧缂撳瓨
-        ttls.put("userDeptId", Duration.ofMinutes(30));
-        ttls.put("deptPath", Duration.ofHours(2));
-        ttls.put("deptTree", Duration.ofHours(1));
-        ttls.put("deptChildren", Duration.ofHours(1));
-        ttls.put("accessibleDeptIds", Duration.ofHours(1));
-
-        // 涓存椂瑙掕壊缂撳瓨
-        ttls.put("userTemporaryRoles", Duration.ofMinutes(15));
-
-        long localMaxSize = 10_000L;
-        return new TwoLevelCacheManager(redisTemplate, defaultTtl, ttls, localMaxSize);
+        return new TwoLevelCacheManager(redisTemplate, Duration.ofHours(1), CACHE_TTLS, 10_000L);
     }
 
     @Bean
     @ConditionalOnMissingBean(TwoLevelCacheManager.class)
     public CacheManager cacheManager(RedisConnectionFactory redisConnectionFactory) {
-        RedisCacheConfiguration defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
-                .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
-                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(jackson2JsonRedisSerializer()))
-                .entryTtl(Duration.ofHours(1)); // 榛樿缂撳瓨1灏忔椂
+        RedisCacheConfiguration defaultConfig = cacheConfig(Duration.ofHours(1));
 
-        // 涓轰笉鍚岀殑缂撳瓨璁剧疆涓嶅悓鐨勮繃鏈熸椂锟?
-        Map<String, RedisCacheConfiguration> cacheConfigurations = new HashMap<>();
-        cacheConfigurations.put("user", RedisCacheConfiguration.defaultCacheConfig()
-                .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
-                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(jackson2JsonRedisSerializer()))
-                .entryTtl(Duration.ofMinutes(30))); // 鐢ㄦ埛缂撳瓨30鍒嗛挓
-
-        cacheConfigurations.put("userInfo", RedisCacheConfiguration.defaultCacheConfig()
-                .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
-                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(jackson2JsonRedisSerializer()))
-                .entryTtl(Duration.ofMinutes(30))); // 鐢ㄦ埛淇℃伅缂撳瓨30鍒嗛挓
-
-        cacheConfigurations.put("userRoles", RedisCacheConfiguration.defaultCacheConfig()
-                .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
-                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(jackson2JsonRedisSerializer()))
-                .entryTtl(Duration.ofHours(1))); // 鐢ㄦ埛瑙掕壊缂撳瓨1灏忔椂
-
-        cacheConfigurations.put("userPermissions", RedisCacheConfiguration.defaultCacheConfig()
-                .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
-                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(jackson2JsonRedisSerializer()))
-                .entryTtl(Duration.ofHours(1))); // 鐢ㄦ埛鏉冮檺缂撳瓨1灏忔椂
-
-        cacheConfigurations.put("permissionTree", RedisCacheConfiguration.defaultCacheConfig()
-                .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
-                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(jackson2JsonRedisSerializer()))
-                .entryTtl(Duration.ofHours(2))); // 鏉冮檺鏍戠紦锟藉皬鏃?
-
-        cacheConfigurations.put("roles", RedisCacheConfiguration.defaultCacheConfig()
-                .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
-                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(jackson2JsonRedisSerializer()))
-                .entryTtl(Duration.ofHours(1))); // 瑙掕壊鍒楄〃缂撳瓨1灏忔椂
-
-        cacheConfigurations.put("role", RedisCacheConfiguration.defaultCacheConfig()
-                .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
-                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(jackson2JsonRedisSerializer()))
-                .entryTtl(Duration.ofHours(1))); // 瑙掕壊缂撳瓨1灏忔椂
+        Map<String, RedisCacheConfiguration> configs = CACHE_TTLS.entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        e -> cacheConfig(e.getValue())
+                ));
 
         return RedisCacheManager.builder(redisConnectionFactory)
                 .cacheDefaults(defaultConfig)
-                .withInitialCacheConfigurations(cacheConfigurations)
+                .withInitialCacheConfigurations(configs)
                 .build();
     }
 
-    private RedisSerializer<Object> jackson2JsonRedisSerializer() {
-        return RedisSerializer.json();
+    private RedisCacheConfiguration cacheConfig(Duration ttl) {
+        return RedisCacheConfiguration.defaultCacheConfig()
+                .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(STRING_SERIALIZER))
+                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(JSON_SERIALIZER))
+                .entryTtl(ttl);
     }
 }

@@ -43,6 +43,7 @@ public class WebauthnCredentialServiceImpl extends ServiceImpl<WebauthnCredentia
     private static final String WA_AUTH_ATTEMPT_PREFIX = "webauthn:auth:attempt:";
 
     private static final int WEBAUTHN_CHALLENGE_BYTE_LENGTH = 32;
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     @Override
     public WebAuthnRegisterChallengeResponse generateRegistrationChallenge(
@@ -52,7 +53,12 @@ public class WebauthnCredentialServiceImpl extends ServiceImpl<WebauthnCredentia
         String challenge = base64Url(randomBytes());
         String key = WA_REG_CHALLENGE_PREFIX + userId + ":" + deviceId;
         long regChallengeExpiry = webAuthnConfig.getRegistrationChallengeExpirySeconds();
-        redisTemplate.opsForValue().set(key, challenge, regChallengeExpiry, TimeUnit.SECONDS);
+        try {
+            redisTemplate.opsForValue().set(key, challenge, regChallengeExpiry, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            log.error("Redis SET failed for key={}: {}", key, e.getMessage());
+            throw new IllegalStateException("Failed to store registration challenge", e);
+        }
 
         return WebAuthnRegisterChallengeResponse.builder()
                 .challenge(challenge)
@@ -72,30 +78,35 @@ public class WebauthnCredentialServiceImpl extends ServiceImpl<WebauthnCredentia
     public WebauthnCredentialDTO registerCredential(UUID userId, WebauthnRegistrationRequest request) {
         log.info("Registering WebAuthn credential for user={}, credentialId={}", userId, request.getCredentialId());
 
-        // 妫€鏌ュ嚟璇佹槸鍚﹀凡瀛樺湪
         WebauthnCredential existing = credentialMapper.findByUserIdAndCredId(userId, request.getCredentialId());
         if (existing != null) {
             throw new IllegalStateException("Credential ID already exists");
         }
 
-        // 鑾峰彇骞堕獙璇佹寫锟?
         String challengeKey = WA_REG_CHALLENGE_PREFIX + userId + ":" + request.getDeviceId();
-        Object expectedChallenge = redisTemplate.opsForValue().get(challengeKey);
+        Object expectedChallenge;
+        try {
+            expectedChallenge = redisTemplate.opsForValue().get(challengeKey);
+        } catch (Exception e) {
+            log.error("Redis GET failed for key={}: {}", challengeKey, e.getMessage());
+            throw new IllegalStateException("Failed to retrieve registration challenge", e);
+        }
         if (expectedChallenge == null) {
             throw new IllegalStateException("Registration challenge expired or does not exist");
         }
 
-        // 浣跨敤 WebAuthn4J 楠岃瘉娉ㄥ唽鍝嶅簲
         WebAuthnValidator.RegistrationResult validationResult = webAuthnValidator.validateRegistration(
                 request.getClientDataJSON(),
                 request.getAttestationObject(),
                 expectedChallenge.toString()
         );
 
-        // 鍒犻櫎宸蹭娇鐢ㄧ殑鎸戞垬
-        redisTemplate.delete(challengeKey);
+        try {
+            redisTemplate.delete(challengeKey);
+        } catch (Exception e) {
+            log.warn("Redis DELETE failed for key={}: {}", challengeKey, e.getMessage());
+        }
 
-        // 鏋勫缓骞朵繚瀛樺嚟锟?
         WebauthnCredential credential = WebauthnCredential.builder()
                 .id(UUID.randomUUID())
                 .credentialId(validationResult.getCredentialIdBase64())
@@ -117,13 +128,9 @@ public class WebauthnCredentialServiceImpl extends ServiceImpl<WebauthnCredentia
         return credentialConverter.toDTO(credential);
     }
 
-    /**
-     * 鑾峰彇 COSE 鍏挜绠楁硶鍚嶇О
-     * COSE Algorithm 鍙傦拷 https://www.iana.org/assignments/cose/cose.xhtml#algorithms
-     */
     private String getAlgorithmName(com.webauthn4j.data.attestation.authenticator.COSEKey coseKey) {
         if (coseKey == null || coseKey.getAlgorithm() == null) {
-            return "ES256"; // 榛樿
+            return "ES256";
         }
         long algValue = coseKey.getAlgorithm().getValue();
         if (algValue == -7L) {
@@ -153,10 +160,14 @@ public class WebauthnCredentialServiceImpl extends ServiceImpl<WebauthnCredentia
         String challenge = base64Url(randomBytes());
         String key = WA_CHALLENGE_PREFIX + userId + ":" + deviceId;
         long challengeExpiry = webAuthnConfig.getChallengeExpirySeconds();
-        redisTemplate.opsForValue().set(key, challenge, challengeExpiry, TimeUnit.SECONDS);
+        try {
+            redisTemplate.opsForValue().set(key, challenge, challengeExpiry, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            log.error("Redis SET failed for key={}: {}", key, e.getMessage());
+            throw new IllegalStateException("Failed to store authentication challenge", e);
+        }
 
-        // 鑾峰彇鐢ㄦ埛鎵€鏈夋椿璺冨嚟锟?
-        List<WebauthnCredential> creds = credentialMapper.findByUserId(userId);
+        List<WebauthnCredential> creds = credentialMapper.listActiveCredentials(userId);
         List<Map<String, Object>> allowCredentials = creds.stream()
                 .map(c -> {
                     Map<String, Object> cred = new HashMap<>();
@@ -185,27 +196,29 @@ public class WebauthnCredentialServiceImpl extends ServiceImpl<WebauthnCredentia
             String deviceId, String ipAddress) {
         log.info("Authenticating WebAuthn for user={}, credentialId={}", userId, request.getCredentialId());
 
-        // 楠岃瘉鎸戞垬
         String key = WA_CHALLENGE_PREFIX + userId + ":" + deviceId;
-        Object expectedChallenge = redisTemplate.opsForValue().get(key);
+        Object expectedChallenge;
+        try {
+            expectedChallenge = redisTemplate.opsForValue().get(key);
+        } catch (Exception e) {
+            log.error("Redis GET failed for key={}: {}", key, e.getMessage());
+            throw new IllegalStateException("Failed to retrieve authentication challenge", e);
+        }
         if (expectedChallenge == null) {
             throw new IllegalStateException("WebAuthn challenge expired or does not exist");
         }
 
-        // 鑾峰彇鍑瘉
         WebauthnCredential credential = credentialMapper.findByUserIdAndCredId(userId, request.getCredentialId());
         if (credential == null || !credential.isAvailable()) {
             throw new IllegalStateException("Credential does not exist or is disabled");
         }
 
-        // 楠岃瘉绛惧悕璁℃暟鍣紙闃插厠闅嗘敾鍑伙級- 棰勬锟?
         if (!credential.isCounterValid(request.getSignCount())) {
             log.warn("Invalid signature counter for user={}, credentialId={}, expected>{}, got={}",
                     userId, request.getCredentialId(), credential.getSignCount(), request.getSignCount());
-            throw new IllegalStateException("绛惧悕璁℃暟鍣ㄥ紓甯革紝鍙兘瀛樺湪鍏嬮殕鏀诲嚮");
+            throw new IllegalStateException("Signature counter invalid, possible clone attack");
         }
 
-        // 浣跨敤 WebAuthn4J 楠岃瘉鏂█绛惧悕
         byte[] storedPublicKey = Base64.getDecoder().decode(credential.getPublicKeyPem());
         WebAuthnValidator.AuthenticationResult authResult = webAuthnValidator.validateAuthentication(
                 request.getCredentialId(),
@@ -217,17 +230,17 @@ public class WebauthnCredentialServiceImpl extends ServiceImpl<WebauthnCredentia
                 credential.getSignCount()
         );
 
-        // 鏇存柊鍑瘉浣跨敤淇℃伅锛堜娇鐢ㄩ獙璇佸悗杩斿洖鐨勬柊绛惧悕璁℃暟锟?
         credentialMapper.updateSignCount(userId, request.getCredentialId(), authResult.newSignCount());
 
-        // 鍒犻櫎宸蹭娇鐢ㄧ殑鎸戞垬
-        redisTemplate.delete(key);
+        try {
+            redisTemplate.delete(key);
+        } catch (Exception e) {
+            log.warn("Redis DELETE failed for key={}: {}", key, e.getMessage());
+        }
 
-        // 鑾峰彇鐢ㄦ埛鏉冮檺
         Set<String> roles = userServiceClient.findRolesByUserId(userId).data();
         Set<String> permissions = userServiceClient.findPermissionsByUserId(userId).data();
 
-        // 绛惧彂锟紸MR鐨勮闂护锟?
         List<String> amr = Arrays.asList("pwd", "webauthn");
         String accessToken = jwtUtils.generateAccessToken(
                 userId, username, roles, permissions, deviceId, ipAddress, amr);
@@ -272,9 +285,12 @@ public class WebauthnCredentialServiceImpl extends ServiceImpl<WebauthnCredentia
             throw new IllegalStateException("Credential not found or deactivation failed");
         }
 
-        // 娓呯悊 Redis缂撳瓨
         String cacheKey = WA_CREDENTIAL_PREFIX + userId + ":" + credentialId;
-        redisTemplate.delete(cacheKey);
+        try {
+            redisTemplate.delete(cacheKey);
+        } catch (Exception e) {
+            log.warn("Redis DELETE failed for key={}: {}", cacheKey, e.getMessage());
+        }
     }
 
     @Override
@@ -287,16 +303,19 @@ public class WebauthnCredentialServiceImpl extends ServiceImpl<WebauthnCredentia
             throw new IllegalStateException("Credential not found or deletion failed");
         }
 
-        // 娓呯悊 Redis缂撳瓨
         String cacheKey = WA_CREDENTIAL_PREFIX + userId + ":" + credentialId;
-        redisTemplate.delete(cacheKey);
+        try {
+            redisTemplate.delete(cacheKey);
+        } catch (Exception e) {
+            log.warn("Redis DELETE failed for key={}: {}", cacheKey, e.getMessage());
+        }
     }
 
     @Override
     public List<WebauthnCredentialDTO> checkCredentialHealth(UUID userId) {
         log.debug("Checking credential health for user={}", userId);
 
-        List<WebauthnCredential> credentials = credentialMapper.findByUserId(userId);
+        List<WebauthnCredential> credentials = credentialMapper.listActiveCredentials(userId);
         List<WebauthnCredential> unhealthy = new ArrayList<>();
 
         long inactiveDays = webAuthnConfig.getCredentialInactiveDays();
@@ -305,17 +324,12 @@ public class WebauthnCredentialServiceImpl extends ServiceImpl<WebauthnCredentia
         for (WebauthnCredential credential : credentials) {
             boolean isUnhealthy = false;
 
-            // 妫€鏌ラ暱鏈熸湭浣跨敤
             if (credential.getLastUsedAt() != null &&
                 credential.getLastUsedAt().isBefore(inactiveThreshold)) {
                 log.warn("Credential {} for user {} has been inactive for over {} days",
                         credential.getCredentialId(), userId, inactiveDays);
                 isUnhealthy = true;
             }
-
-            // TODO: 娣诲姞鏇村鍋ュ悍妫€锟?
-            // - 绛惧悕璁℃暟鍣ㄥ紓甯告锟?
-            // - 寮傚父璁よ瘉妯″紡妫€锟?
 
             if (isUnhealthy) {
                 unhealthy.add(credential);
@@ -335,8 +349,12 @@ public class WebauthnCredentialServiceImpl extends ServiceImpl<WebauthnCredentia
         attempt.put("userAgent", userAgent);
         attempt.put("timestamp", LocalDateTime.now().toString());
 
-        redisTemplate.opsForHash().putAll(key, attempt);
-        redisTemplate.expire(key, webAuthnConfig.getAuthAttemptRetentionDays(), TimeUnit.DAYS);
+        try {
+            redisTemplate.opsForHash().putAll(key, attempt);
+            redisTemplate.expire(key, webAuthnConfig.getAuthAttemptRetentionDays(), TimeUnit.DAYS);
+        } catch (Exception e) {
+            log.error("Redis HSET+EXPIRE failed for key={}: {}", key, e.getMessage());
+        }
 
         if (!success) {
             log.warn("Failed WebAuthn authentication attempt for user={}, credentialId={}, ip={}",
@@ -346,7 +364,7 @@ public class WebauthnCredentialServiceImpl extends ServiceImpl<WebauthnCredentia
 
     private static byte[] randomBytes() {
         byte[] bytes = new byte[WEBAUTHN_CHALLENGE_BYTE_LENGTH];
-        new SecureRandom().nextBytes(bytes);
+        SECURE_RANDOM.nextBytes(bytes);
         return bytes;
     }
 

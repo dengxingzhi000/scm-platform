@@ -7,10 +7,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
 import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -62,7 +59,7 @@ public class SecurityUser implements UserDetails {
 
     @Override
     @JsonIgnore
-    public Collection<? extends GrantedAuthority> getAuthorities() {
+    public @NonNull Collection<? extends GrantedAuthority> getAuthorities() {
         // 鍚堝苟瑙掕壊鍜屾潈闄愶紝闃插尽绌洪泦锟?
         Set<GrantedAuthority> authorities = (roles != null ? roles : Collections.<String>emptySet()).stream()
                 .map(SimpleGrantedAuthority::new)
@@ -81,13 +78,8 @@ public class SecurityUser implements UserDetails {
     }
 
     @Override
-    public String getUsername() {
+    public @NonNull String getUsername() {
         return this.username;
-    }
-
-    @Override
-    public boolean isAccountNonExpired() {
-        return true;
     }
 
     @Override

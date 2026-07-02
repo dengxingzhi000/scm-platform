@@ -1,10 +1,12 @@
 package com.scmcloud.gateway.filter;
 
-import com.alibaba.nacos.shaded.com.google.common.cache.Cache;
-import com.alibaba.nacos.shaded.com.google.common.cache.CacheBuilder;
-import com.scmcloud.gateway.properties.IpAccessControlProperties;
+import com.alibaba.fastjson2.JSON;
 import com.scmcloud.gateway.filter.support.IpAccessDecision;
+import com.scmcloud.gateway.properties.IpAccessControlProperties;
 import com.scmcloud.gateway.support.ip.ClientIpResolver;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
@@ -19,14 +21,24 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Hardened IP access control filter that validates trusted proxies, uses redis-backed ACLs and
- * responds with structured payloads.
- * 寮哄寲鐗圛P璁块棶鎺у埗杩囨护鍣紝鍙獙璇佸彈淇′换鐨勪唬鐞嗭紝浣跨敤鍩轰簬Redis鐨勮闂帶鍒跺垪琛紙ACL锛夛紝骞惰繑鍥炵粨鏋勫寲鏁版嵁锟?
+ * IP 访问控制过滤器
+ *
+ * <p>功能：
+ * <ul>
+ *   <li>基于 Redis 的 IP 黑白名单（动态更新，无需重启）</li>
+ *   <li>可信代理验证，防止 X-Forwarded-For 伪造</li>
+ *   <li>本地缓存，减少 Redis 查询</li>
+ *   <li>结构化 JSON 错误响应</li>
+ *   <li>Metrics 埋点，支持 Prometheus 监控</li>
+ * </ul>
+ *
+ * @author deng
+ * @version 4.0
  */
 @Component
 @Slf4j
@@ -37,26 +49,29 @@ public class IpAccessControlFilter implements GlobalFilter, Ordered {
     private final ReactiveRedisTemplate<String, String> redisTemplate;
     private final IpAccessControlProperties properties;
     private final ClientIpResolver clientIpResolver;
-    private final Cache<String, IpAccessDecision> decisionCache;
+
+    private final ConcurrentHashMap<String, CacheEntry> decisionCache = new ConcurrentHashMap<>();
+    private final long cacheTtlMillis;
+    private final long cacheMaxSize;
+
+    private final Counter allowedCounter;
+    private final Counter blockedCounter;
 
     public IpAccessControlFilter(ReactiveRedisTemplate<String, String> redisTemplate,
-                                 IpAccessControlProperties properties) {
+                                 IpAccessControlProperties properties,
+                                 MeterRegistry meterRegistry) {
         this.redisTemplate = redisTemplate;
         this.properties = properties;
         this.clientIpResolver = new ClientIpResolver(properties);
-        this.decisionCache = CacheBuilder.newBuilder()
-                .maximumSize(Math.max(1000, properties.getCacheMaxSize()))
-                .expireAfterWrite(resolveTtl(properties.getCacheTtl()), TimeUnit.MILLISECONDS)
-                .build();
-    }
-
-    private long resolveTtl(Duration ttl) {
-        long millis = ttl != null ? ttl.toMillis() : Duration.ofMinutes(1).toMillis();
-        return Math.max(millis, 1000);
+        this.cacheTtlMillis = resolveTtl(properties.getCacheTtl());
+        this.cacheMaxSize = Math.max(1000, properties.getCacheMaxSize());
+        this.allowedCounter = meterRegistry.counter("gateway.ip.access.allowed");
+        this.blockedCounter = meterRegistry.counter("gateway.ip.access.blocked");
     }
 
     @Override
-    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+    @NonNull
+    public Mono<Void> filter(@NonNull ServerWebExchange exchange, @NonNull GatewayFilterChain chain) {
         if (!properties.isEnabled()) {
             return chain.filter(exchange);
         }
@@ -64,16 +79,17 @@ public class IpAccessControlFilter implements GlobalFilter, Ordered {
         String clientIp = clientIpResolver.resolve(exchange);
         if (!StringUtils.hasText(clientIp)) {
             log.warn("Unable to resolve client IP for {}", exchange.getRequest().getURI());
-            return blockRequest(exchange, "UNRESOLVED_IP", "");
+            blockedCounter.increment();
+            return blockRequest(exchange, "UNRESOLVED_IP", clientIp);
         }
 
-        IpAccessDecision cachedDecision = decisionCache.getIfPresent(clientIp);
+        IpAccessDecision cachedDecision = getCachedDecision(clientIp);
         if (cachedDecision != null) {
             return handleDecision(cachedDecision, clientIp, exchange, chain);
         }
 
         return evaluateAccess(clientIp)
-                .doOnNext(decision -> decisionCache.put(clientIp, decision))
+                .doOnNext(decision -> putDecision(clientIp, decision))
                 .flatMap(decision -> handleDecision(decision, clientIp, exchange, chain));
     }
 
@@ -101,8 +117,10 @@ public class IpAccessControlFilter implements GlobalFilter, Ordered {
                                       ServerWebExchange exchange,
                                       GatewayFilterChain chain) {
         if (decision.allowed()) {
+            allowedCounter.increment();
             return chain.filter(exchange);
         }
+        blockedCounter.increment();
         log.warn("Blocked client IP {} by reason {}", clientIp, decision.reason());
         return blockRequest(exchange, decision.reason(), clientIp);
     }
@@ -116,44 +134,54 @@ public class IpAccessControlFilter implements GlobalFilter, Ordered {
         String message = StringUtils.hasText(properties.getBlockMessage())
                 ? properties.getBlockMessage()
                 : "Request blocked";
-        String body = toJson(Map.of(
-                "code", HttpStatus.FORBIDDEN.value(),
-                "message", message,
-                "reason", reason,
-                "ip", clientIp
-        ));
+
+        Map<String, String> body = new LinkedHashMap<>();
+        body.put("code", String.valueOf(HttpStatus.FORBIDDEN.value()));
+        body.put("message", message);
+        body.put("reason", reason);
+        body.put("ip", clientIp != null ? clientIp : "");
+        String json = JSON.toJSONString(body);
 
         return response.writeWith(Mono.just(
-                response.bufferFactory().wrap(body.getBytes(StandardCharsets.UTF_8))
+                response.bufferFactory().wrap(json.getBytes(StandardCharsets.UTF_8))
         ));
     }
 
-    private String toJson(Map<String, Object> payload) {
-        StringBuilder builder = new StringBuilder("{");
-        boolean first = true;
-        for (Map.Entry<String, Object> entry : payload.entrySet()) {
-            if (!first) {
-                builder.append(',');
-            }
-            builder.append('"').append(escape(entry.getKey())).append('"').append(':');
-            Object value = entry.getValue();
-            if (value instanceof Number) {
-                builder.append(value);
-            } else {
-                builder.append('"').append(escape(String.valueOf(value))).append('"');
-            }
-            first = false;
+    private IpAccessDecision getCachedDecision(String clientIp) {
+        CacheEntry entry = decisionCache.get(clientIp);
+        if (entry != null && !entry.isExpired()) {
+            return entry.decision;
         }
-        return builder.append('}').toString();
+        if (entry != null) {
+            decisionCache.remove(clientIp);
+        }
+        return null;
     }
 
-    private String escape(String value) {
-        String safe = value == null ? "" : value;
-        return safe.replace("\\", "\\\\").replace("\"", "\\\"");
+    private void putDecision(String clientIp, IpAccessDecision decision) {
+        if (decisionCache.size() >= cacheMaxSize) {
+            decisionCache.entrySet().removeIf(e -> e.getValue().isExpired());
+        }
+        decisionCache.put(clientIp, CacheEntry.of(decision, cacheTtlMillis));
+    }
+
+    private long resolveTtl(java.time.Duration ttl) {
+        long millis = ttl != null ? ttl.toMillis() : java.time.Duration.ofMinutes(1).toMillis();
+        return Math.max(millis, 1000);
     }
 
     @Override
     public int getOrder() {
         return -100;
+    }
+
+    private record CacheEntry(IpAccessDecision decision, long expireAt) {
+        static CacheEntry of(IpAccessDecision decision, long ttlMillis) {
+            return new CacheEntry(decision, System.currentTimeMillis() + ttlMillis);
+        }
+
+        boolean isExpired() {
+            return System.currentTimeMillis() > expireAt;
+        }
     }
 }

@@ -1,5 +1,6 @@
 package com.scmcloud.common.security.handler;
 
+import com.scmcloud.common.security.util.TraceIdUtil;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
@@ -16,8 +17,6 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.UUID;
-import java.util.regex.Pattern;
 
 /**
  * Security-focused REST handler to provide trace-aware JSON errors without colliding with core handler.
@@ -25,12 +24,6 @@ import java.util.regex.Pattern;
 @RestControllerAdvice
 @Order(Ordered.HIGHEST_PRECEDENCE + 10)
 public class SecurityRestExceptionHandler {
-
-    /**
-     * Pattern for validating trace IDs - only allows alphanumeric, hyphens, and underscores.
-     * This prevents XSS and header injection attacks via malicious trace ID headers.
-     */
-    private static final Pattern VALID_TRACE_ID_PATTERN = Pattern.compile("^[a-zA-Z0-9\\-_]{1,128}$");
 
     /**
      * Maximum length for sanitized messages to prevent log flooding and response bloat.
@@ -61,15 +54,8 @@ public class SecurityRestExceptionHandler {
 
     private ResponseEntity<Map<String, Object>> buildResponse(HttpStatus status, String error, String sanitizedMessage,
                                                               HttpServletRequest request) {
-        String traceId = sanitizeTraceId(request.getHeader("X-Request-ID"));
-        if (traceId == null) {
-            traceId = sanitizeTraceId(request.getHeader("traceparent"));
-        }
-        if (traceId == null) {
-            traceId = UUID.randomUUID().toString();
-        }
+        String traceId = TraceIdUtil.resolveAndSanitizeTraceId(request);
 
-        // Build response body with sanitized values only
         Map<String, Object> body = buildSafeResponseBody(
                 status.value(),
                 error,
@@ -86,7 +72,6 @@ public class SecurityRestExceptionHandler {
 
     /**
      * Builds the response body with all values properly sanitized.
-     * This method ensures no user-controlled input reaches the response without sanitization.
      */
     private static Map<String, Object> buildSafeResponseBody(int code, String error, String message, String traceId,
                                                              String rawPath) {
@@ -102,49 +87,22 @@ public class SecurityRestExceptionHandler {
 
     /**
      * URL-encodes the path to neutralize any potentially dangerous characters.
-     * This prevents XSS by ensuring special characters are percent-encoded.
      */
     private static String encodePath(String path) {
         if (path == null || path.isEmpty()) {
             return "/";
         }
-        // URL encode to neutralize any dangerous characters like < > " '
         return URLEncoder.encode(path, StandardCharsets.UTF_8);
     }
 
     /**
-     * Validates and sanitizes trace ID from request headers.
-     * Only allows alphanumeric characters, hyphens, and underscores to prevent XSS and header injection.
-     *
-     * @param traceId the raw trace ID from request header
-     * @return sanitized trace ID or null if invalid/empty
-     */
-    private String sanitizeTraceId(String traceId) {
-        if (traceId == null || traceId.isBlank()) {
-            return null;
-        }
-        // Validate against allowed pattern - reject if contains potentially malicious characters
-        if (VALID_TRACE_ID_PATTERN.matcher(traceId).matches()) {
-            return traceId;
-        }
-        // Invalid trace ID format - generate a new one instead of using potentially malicious input
-        return null;
-    }
-
-    /**
      * Sanitizes error messages to prevent XSS.
-     * Escapes HTML entities and truncates to maximum length.
-     *
-     * @param message the raw error message
-     * @return sanitized message safe for inclusion in response
      */
     private String sanitizeMessage(String message) {
         if (message == null) {
             return "An error occurred";
         }
-        // Escape HTML entities to prevent XSS
         String sanitized = HtmlUtils.htmlEscape(message);
-        // Truncate to prevent response bloat
         if (sanitized.length() > MAX_MESSAGE_LENGTH) {
             sanitized = sanitized.substring(0, MAX_MESSAGE_LENGTH) + "...";
         }
