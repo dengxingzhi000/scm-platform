@@ -2,11 +2,8 @@ package com.scmcloud.decision.matrix.core.fusion;
 
 import com.scmcloud.decision.matrix.api.*;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Weighted fusion engine implementation.
@@ -72,18 +69,23 @@ public class WeightedFusionEngine implements FusionEngine {
                 .map(DecisionResult::getValue)
                 .orElse(null);
 
-        DecisionExplanation explanation = new DecisionExplanation(
-                "fusion",
-                "Weighted average of " + results.size() + " decisions",
-                factorWeights, factorScores, contributingFactors,
-                Map.of("totalWeight", totalWeight)
-        );
+        DecisionExplanation explanation = DecisionExplanation.builder()
+                .decisionId("fusion")
+                .primaryReason("Weighted average of " + results.size() + " decisions")
+                .factorWeights(factorWeights)
+                .factorScores(factorScores)
+                .contributingFactors(contributingFactors)
+                .metadata(Map.of("totalWeight", totalWeight))
+                .build();
 
-        return new DecisionResult(
-                "fusion", DecisionResult.DecisionStatus.SUCCESS,
-                bestValue, finalScore, finalConfidence,
-                explanation, null, null
-        );
+        return DecisionResult.builder()
+                .nodeId("fusion")
+                .status(DecisionResult.DecisionStatus.SUCCESS)
+                .value(bestValue)
+                .score(finalScore)
+                .confidence(finalConfidence)
+                .explanation(explanation)
+                .build();
     }
 
     private DecisionResult fuseMaxUtility(List<DecisionResult> results, Map<String, Double> weights) {
@@ -100,19 +102,23 @@ public class WeightedFusionEngine implements FusionEngine {
             factorScores.put(result.getNodeId(), calculateUtility(result, weights));
         }
 
-        DecisionExplanation explanation = new DecisionExplanation(
-                "fusion",
-                "Max utility selection from " + results.size() + " decisions",
-                factorWeights, factorScores,
-                List.of("Selected: " + best.getNodeId()),
-                Map.of("selectedScore", best.getScore())
-        );
+        DecisionExplanation explanation = DecisionExplanation.builder()
+                .decisionId("fusion")
+                .primaryReason("Max utility selection from " + results.size() + " decisions")
+                .factorWeights(factorWeights)
+                .factorScores(factorScores)
+                .contributingFactors(List.of("Selected: " + best.getNodeId()))
+                .metadata(Map.of("selectedScore", best.getScore()))
+                .build();
 
-        return new DecisionResult(
-                "fusion", DecisionResult.DecisionStatus.SUCCESS,
-                best.getValue(), best.getScore(), best.getConfidence(),
-                explanation, null, null
-        );
+        return DecisionResult.builder()
+                .nodeId("fusion")
+                .status(DecisionResult.DecisionStatus.SUCCESS)
+                .value(best.getValue())
+                .score(best.getScore())
+                .confidence(best.getConfidence())
+                .explanation(explanation)
+                .build();
     }
 
     private DecisionResult fuseParetoOptimal(List<DecisionResult> results, Map<String, Double> weights) {
@@ -136,19 +142,23 @@ public class WeightedFusionEngine implements FusionEngine {
             factorScores.put(result.getNodeId(), result.getScore());
         }
 
-        DecisionExplanation explanation = new DecisionExplanation(
-                "fusion",
-                "Pareto optimal selection from " + paretoSet.size() + " candidates",
-                factorWeights, factorScores,
-                List.of("Pareto set size: " + paretoSet.size()),
-                Map.of("paretoSetSize", paretoSet.size())
-        );
+        DecisionExplanation explanation = DecisionExplanation.builder()
+                .decisionId("fusion")
+                .primaryReason("Pareto optimal selection from " + paretoSet.size() + " candidates")
+                .factorWeights(factorWeights)
+                .factorScores(factorScores)
+                .contributingFactors(List.of("Pareto set size: " + paretoSet.size()))
+                .metadata(Map.of("paretoSetSize", paretoSet.size()))
+                .build();
 
-        return new DecisionResult(
-                "fusion", DecisionResult.DecisionStatus.SUCCESS,
-                best.getValue(), best.getScore(), best.getConfidence(),
-                explanation, null, null
-        );
+        return DecisionResult.builder()
+                .nodeId("fusion")
+                .status(DecisionResult.DecisionStatus.SUCCESS)
+                .value(best.getValue())
+                .score(best.getScore())
+                .confidence(best.getConfidence())
+                .explanation(explanation)
+                .build();
     }
 
     private DecisionResult fusePriorityBased(List<DecisionResult> results, Map<String, Double> weights) {
@@ -168,19 +178,22 @@ public class WeightedFusionEngine implements FusionEngine {
             factorScores.put(result.getNodeId(), result.getScore());
         }
 
-        DecisionExplanation explanation = new DecisionExplanation(
-                "fusion",
-                "Priority-based selection, top choice: " + best.getNodeId(),
-                factorWeights, factorScores,
-                List.of("Priority order: " + sorted.stream().map(DecisionResult::getNodeId).toList()),
-                null
-        );
+        DecisionExplanation explanation = DecisionExplanation.builder()
+                .decisionId("fusion")
+                .primaryReason("Priority-based selection, top choice: " + best.getNodeId())
+                .factorWeights(factorWeights)
+                .factorScores(factorScores)
+                .contributingFactors(List.of("Priority order: " + sorted.stream().map(DecisionResult::getNodeId).toList()))
+                .build();
 
-        return new DecisionResult(
-                "fusion", DecisionResult.DecisionStatus.SUCCESS,
-                best.getValue(), best.getScore(), best.getConfidence(),
-                explanation, null, null
-        );
+        return DecisionResult.builder()
+                .nodeId("fusion")
+                .status(DecisionResult.DecisionStatus.SUCCESS)
+                .value(best.getValue())
+                .score(best.getScore())
+                .confidence(best.getConfidence())
+                .explanation(explanation)
+                .build();
     }
 
     private double calculateUtility(DecisionResult result, Map<String, Double> weights) {
@@ -215,9 +228,12 @@ public class WeightedFusionEngine implements FusionEngine {
     }
 
     private DecisionResult createEmptyResult() {
-        return new DecisionResult(
-                "fusion", DecisionResult.DecisionStatus.SKIPPED, null,
-                0.0, 0.0, null, null, List.of("No results to fuse")
-        );
+        return DecisionResult.builder()
+                .nodeId("fusion")
+                .status(DecisionResult.DecisionStatus.SKIPPED)
+                .score(0.0)
+                .confidence(0.0)
+                .warnings(List.of("No results to fuse"))
+                .build();
     }
 }

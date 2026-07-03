@@ -27,12 +27,12 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * API璁块棶鎺у埗杩囨护鍣細URL/Method 绮剧粏鍖栨潈闄愭牎楠岋紝鏀寔鐧藉悕鍗曘€佹梺璺拰 Sentinel 鐔旀柇锟?
+ * API访问控制过滤器：URL/Method 精细化权限校验，支持白名单、旁路和 Sentinel 熔断保护
  *
  * <p>REFACTORED: Now depends on PermissionService interface (common/core)
  * instead of PermissionAccessPort. This decouples from business modules.
  *
- * <p>浣跨敤 Sentinel 杩涜鐔旀柇闄嶇骇淇濇姢锛屾浛浠ｅ師鏈夌殑 SimpleCircuitBreaker
+ * <p>使用 Sentinel 进行熔断降级保护，替代原有的 SimpleCircuitBreaker
  *
  * <p>Sentinel Resource: "api-access-control"
  *
@@ -50,8 +50,8 @@ public class ApiAccessControlFilter extends OncePerRequestFilter {
     private final ApiAccessControlProperties properties;
 
     @Override
-    protected void doFilterInternal(@Nonnull HttpServletRequest request, @Nonnull HttpServletResponse response,
-                                    @Nonnull FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
+                                    FilterChain filterChain) throws ServletException, IOException {
 
         if (!properties.isEnabled()) {
             filterChain.doFilter(request, response);
@@ -69,7 +69,7 @@ public class ApiAccessControlFilter extends OncePerRequestFilter {
         SecurityUser principal = SecurityUtils.getCurrentUser();
         UUID userId = principal != null ? principal.getUserId() : SecurityUtils.getCurrentUserUuid().orElse(null);
         if (userId == null) {
-            // 鏈櫥褰曪紝锟絁wtAuthenticationFilter 澶勭悊
+            // 未登录，由JwtAuthenticationFilter 处理
             filterChain.doFilter(request, response);
             return;
         }
@@ -161,11 +161,9 @@ public class ApiAccessControlFilter extends OncePerRequestFilter {
         String username = SecurityUtils.getCurrentUsername().orElse(null);
         log.info("Sensitive operation: user={}, method={}, uri={}",
                 username, method, uri);
-        // TODO: 鍙互鍙戦€佸疄鏃跺憡锟?
     }
 
     private void markBypass(HttpServletResponse response, String reason) {
         response.setHeader("X-Security-Bypass", reason);
     }
 }
-

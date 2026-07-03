@@ -34,7 +34,7 @@ public interface FusionEngine {
     /**
      * Conflict resolution strategies.
      */
-    enum ConflictStrategy {
+     enum ConflictStrategy {
         WEIGHTED_AVERAGE,
         PARETO_OPTIMAL,
         MAX_UTILITY,

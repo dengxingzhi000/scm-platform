@@ -1,11 +1,18 @@
 package com.scmcloud.decision.matrix.api;
 
-import java.util.List;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+
 import java.util.Map;
 
 /**
  * Execution step in a saga transaction.
  */
+@Getter
+@ToString
+@EqualsAndHashCode
 public class ExecutionStep {
 
     private final String stepId;
@@ -15,38 +22,15 @@ public class ExecutionStep {
     private final Map<String, Object> parameters;
     private final boolean critical;
 
-    public ExecutionStep(String stepId, String stepName, StepExecutor executor,
-                         StepCompensator compensator, Map<String, Object> parameters, boolean critical) {
+    @Builder
+    private ExecutionStep(String stepId, String stepName, StepExecutor executor,
+                          StepCompensator compensator, Map<String, Object> parameters, boolean critical) {
         this.stepId = stepId;
         this.stepName = stepName;
         this.executor = executor;
         this.compensator = compensator;
-        this.parameters = parameters != null ? parameters : Map.of();
+        this.parameters = parameters != null ? Map.copyOf(parameters) : Map.of();
         this.critical = critical;
-    }
-
-    public String getStepId() {
-        return stepId;
-    }
-
-    public String getStepName() {
-        return stepName;
-    }
-
-    public StepExecutor getExecutor() {
-        return executor;
-    }
-
-    public StepCompensator getCompensator() {
-        return compensator;
-    }
-
-    public Map<String, Object> getParameters() {
-        return parameters;
-    }
-
-    public boolean isCritical() {
-        return critical;
     }
 
     @FunctionalInterface

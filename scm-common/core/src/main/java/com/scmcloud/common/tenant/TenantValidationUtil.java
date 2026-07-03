@@ -292,7 +292,5 @@ public class TenantValidationUtil {
         UUID tenantId = TenantContextHolder.getTenantId();
         log.info("Tenant operation log - TenantID: {}, Operation: {}, ResourceType: {}, ResourceID: {}",
             tenantId, operation, resourceType, resourceId);
-
-        // TODO: Can integrate into tenant operation log table (tenant_operation_log)
     }
 }

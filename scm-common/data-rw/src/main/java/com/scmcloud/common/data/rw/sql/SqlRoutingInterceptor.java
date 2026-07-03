@@ -120,9 +120,4 @@ public class SqlRoutingInterceptor implements Interceptor {
             ReadWriteRoutingContext.specifySlave(null);
         }
     }
-
-    @Override
-    public Object plugin(Object target) {
-        return Plugin.wrap(target, this);
-    }
 }

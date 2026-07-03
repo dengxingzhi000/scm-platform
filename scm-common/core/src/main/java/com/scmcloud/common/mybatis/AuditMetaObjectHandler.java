@@ -29,8 +29,6 @@ import java.util.UUID;
  *
  * @author Claude Code
  * @since 2025-01-24
- * @version 1.1
- * @apiNote 1.1 修复匿名用户检测，精简 tenantId 填充逻辑，修复乱码注释
  */
 @Slf4j
 @Component
@@ -51,15 +49,11 @@ public class AuditMetaObjectHandler implements MetaObjectHandler {
 
         OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
         this.strictInsertFill(metaObject, "createTime", OffsetDateTime.class, now);
+        this.strictInsertFill(metaObject, "updateTime", OffsetDateTime.class, now);
 
         UUID currentUserId = getCurrentUserId();
         if (currentUserId != null) {
             this.strictInsertFill(metaObject, "createBy", UUID.class, currentUserId);
-        }
-
-        this.strictInsertFill(metaObject, "updateTime", OffsetDateTime.class, now);
-
-        if (currentUserId != null) {
             this.strictInsertFill(metaObject, "updateBy", UUID.class, currentUserId);
         }
 

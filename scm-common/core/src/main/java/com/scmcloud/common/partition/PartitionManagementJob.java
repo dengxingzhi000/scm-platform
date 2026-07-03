@@ -14,31 +14,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Database partition management scheduled task
-
- * Execution time: 1st day of every month at 01:00 (cron: 0 1 1 * ?)
-
- * Functions:
- * 1. Create new partition tables for the next month (pre-create to avoid month-end insertion failures)
- * 2. Clean up expired partitions (retain last 24 months, DETACH and archive beyond that)
- * 3. Supported partition tables:
- *    - ord_order (order table, partitioned by order_time)
- *    - ord_payment (payment record, partitioned by payment_time)
- *    - ord_refund (refund record, partitioned by refund_time)
- *    - inv_reservation (inventory reservation, partitioned by create_time)
- *    - inv_log (inventory log, partitioned by create_time)
- *    - inv_batch_flow (batch flow, partitioned by create_time)
- *    - sup_purchase_order (purchase order, partitioned by order_time)
- *    - tenant_operation_log (tenant operation log, partitioned by create_time)
- *    - payment_record (financial payment record, partitioned by payment_time)
-
- * XXL-Job configuration example:
- * - Executor: scm-common-executor
- * - JobHandler: partitionManagementJob
- * - Cron: 0 1 1 * ?
- * - Run mode: BEAN
- * - Blocking strategy: single machine serial
- * - Routing strategy: first
+ * 分区表管理定时任务
+ *
+ * <p>执行时间：每月1日 01:00（cron: 0 1 1 * ?）
+ *
+ * <p>功能：
+ * <ol>
+ *   <li>预创建下月分区表（避免月末插入失败）</li>
+ *   <li>清理过期分区（保留最近24个月，DETACH 归档）</li>
+ * </ol>
+ *
+ * <p>支持的分区表：ord_order, ord_payment, ord_refund, inv_reservation,
+ * inv_log, inv_batch_flow, sup_purchase_order, tenant_operation_log, payment_record
  *
  * @author Claude Code
  * @since 2025-01-24
@@ -54,15 +41,15 @@ public class PartitionManagementJob {
      * Partition tables to manage
      */
     private static final List<PartitionTable> PARTITION_TABLES = List.of(
-        new PartitionTable("ord_order", "order_time"),
-        new PartitionTable("ord_payment", "payment_time"),
-        new PartitionTable("ord_refund", "refund_time"),
-        new PartitionTable("inv_reservation", "create_time"),
-        new PartitionTable("inv_log", "create_time"),
-        new PartitionTable("inv_batch_flow", "create_time"),
-        new PartitionTable("sup_purchase_order", "order_time"),
-        new PartitionTable("tenant_operation_log", "create_time"),
-        new PartitionTable("payment_record", "payment_time")
+        new PartitionTable("ord_order"),
+        new PartitionTable("ord_payment"),
+        new PartitionTable("ord_refund"),
+        new PartitionTable("inv_reservation"),
+        new PartitionTable("inv_log"),
+        new PartitionTable("inv_batch_flow"),
+        new PartitionTable("sup_purchase_order"),
+        new PartitionTable("tenant_operation_log"),
+        new PartitionTable("payment_record")
     );
 
     /**
@@ -112,42 +99,20 @@ public class PartitionManagementJob {
     private int createPartitionsForMonth(YearMonth yearMonth) {
         int count = 0;
         String partitionSuffix = yearMonth.format(DateTimeFormatter.ofPattern("yyyyMM"));
+        LocalDate startDate = yearMonth.atDay(1);
+        LocalDate endDate = yearMonth.atEndOfMonth().plusDays(1);
 
         for (PartitionTable table : PARTITION_TABLES) {
             try {
                 String partitionName = table.tableName + "_" + partitionSuffix;
-
-                // Check if partition already exists
-                String checkSql = """
-                    SELECT COUNT(*) FROM pg_tables
-                    WHERE schemaname = 'public' AND tablename = ?
-                    """;
-                Integer exists = jdbcTemplate.queryForObject(checkSql, Integer.class, partitionName);
-
-                if (exists != null && exists > 0) {
-                    log.debug("Partition {} already exists, skipping creation", partitionName);
-                    continue;
-                }
-
-                // Calculate partition range
-                LocalDate startDate = yearMonth.atDay(1);
-                LocalDate endDate = yearMonth.atEndOfMonth().plusDays(1);
-
-                // Create partition table
-                String createSql = String.format("""
-                    CREATE TABLE IF NOT EXISTS %s PARTITION OF %s
-                    FOR VALUES FROM ('%s') TO ('%s')
-                    """,
-                    partitionName,
-                    table.tableName,
-                    startDate,
-                    endDate
+                String createSql = String.format(
+                    "CREATE TABLE IF NOT EXISTS %s PARTITION OF %s FOR VALUES FROM ('%s') TO ('%s')",
+                    partitionName, table.tableName, startDate, endDate
                 );
 
                 jdbcTemplate.execute(createSql);
-                log.info("Successfully created partition: {}", partitionName);
+                log.info("Created partition: {}", partitionName);
                 count++;
-
             } catch (Exception e) {
                 log.error("Failed to create partition: {}.{}", table.tableName, partitionSuffix, e);
             }
@@ -207,9 +172,6 @@ public class PartitionManagementJob {
         return count;
     }
 
-    /**
-     * Partition table configuration
-     */
-    private record PartitionTable(String tableName, String partitionColumn) {
+    private record PartitionTable(String tableName) {
     }
 }

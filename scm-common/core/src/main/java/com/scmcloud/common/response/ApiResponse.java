@@ -3,11 +3,10 @@ package com.scmcloud.common.response;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 /**
- * 缁熶竴鍝嶅簲锟?
+ * 统一响应体
  *
  * @author Deng
- * createData 2025/10/11 14:28
- * @version 1.0
+ * @since 2025-10-11
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record ApiResponse<T>(

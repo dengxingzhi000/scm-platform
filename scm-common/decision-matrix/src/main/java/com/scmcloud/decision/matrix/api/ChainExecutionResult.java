@@ -1,13 +1,21 @@
 package com.scmcloud.decision.matrix.api;
 
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Result of executing a decision chain.
  */
+@Getter
+@ToString
+@EqualsAndHashCode
 public class ChainExecutionResult {
-
     private final String chainId;
     private final String executionId;
     private final ChainStatus status;
@@ -18,56 +26,25 @@ public class ChainExecutionResult {
     private final long totalDurationMs;
     private final DecisionExplanation overallExplanation;
 
-    public ChainExecutionResult(String chainId, String executionId, ChainStatus status,
+    @Builder
+    private ChainExecutionResult(String chainId, String executionId, ChainStatus status,
                                  Map<String, DecisionResult> nodeResults,
                                  List<String> completedNodes, List<String> failedNodes,
                                  List<String> skippedNodes, long totalDurationMs,
                                  DecisionExplanation overallExplanation) {
-        this.chainId = chainId;
-        this.executionId = executionId;
-        this.status = status;
-        this.nodeResults = nodeResults != null ? nodeResults : Map.of();
-        this.completedNodes = completedNodes != null ? completedNodes : List.of();
-        this.failedNodes = failedNodes != null ? failedNodes : List.of();
-        this.skippedNodes = skippedNodes != null ? skippedNodes : List.of();
+        this.chainId = Objects.requireNonNull(chainId, "chainId");
+        this.executionId = Objects.requireNonNull(executionId, "executionId");
+        this.status = Objects.requireNonNull(status, "status");
+        this.nodeResults = nodeResults != null ? Map.copyOf(nodeResults) : Map.of();
+        this.completedNodes = completedNodes != null ? List.copyOf(completedNodes) : List.of();
+        this.failedNodes = failedNodes != null ? List.copyOf(failedNodes) : List.of();
+        this.skippedNodes = skippedNodes != null ? List.copyOf(skippedNodes) : List.of();
         this.totalDurationMs = totalDurationMs;
         this.overallExplanation = overallExplanation;
     }
 
-    public String getChainId() {
-        return chainId;
-    }
-
-    public String getExecutionId() {
-        return executionId;
-    }
-
-    public ChainStatus getStatus() {
-        return status;
-    }
-
-    public Map<String, DecisionResult> getNodeResults() {
-        return nodeResults;
-    }
-
-    public List<String> getCompletedNodes() {
-        return completedNodes;
-    }
-
-    public List<String> getFailedNodes() {
-        return failedNodes;
-    }
-
-    public List<String> getSkippedNodes() {
-        return skippedNodes;
-    }
-
-    public long getTotalDurationMs() {
-        return totalDurationMs;
-    }
-
-    public DecisionExplanation getOverallExplanation() {
-        return overallExplanation;
+    public DecisionResult getNodeResult(String nodeId) {
+        return nodeResults.get(nodeId);
     }
 
     public boolean isSuccess() {
@@ -76,6 +53,39 @@ public class ChainExecutionResult {
 
     public boolean isPartialSuccess() {
         return status == ChainStatus.PARTIAL_SUCCESS;
+    }
+
+    public boolean isFailure() {
+        return status == ChainStatus.FAILURE;
+    }
+
+    public boolean isTimeout() {
+        return status == ChainStatus.TIMEOUT;
+    }
+
+    public boolean isCancelled() {
+        return status == ChainStatus.CANCELLED;
+    }
+
+    public boolean hasFailures() {
+        return !failedNodes.isEmpty();
+    }
+
+    public boolean hasSkippedNodes() {
+        return !skippedNodes.isEmpty();
+    }
+
+    public int getNodeCount() {
+        return nodeResults.size();
+    }
+
+    public int getTotalNodeCount() {
+        return completedNodes.size() + failedNodes.size() + skippedNodes.size();
+    }
+
+    public double getSuccessRate() {
+        int total = getTotalNodeCount();
+        return total == 0 ? 0.0 : (double) completedNodes.size() / total;
     }
 
     public enum ChainStatus {

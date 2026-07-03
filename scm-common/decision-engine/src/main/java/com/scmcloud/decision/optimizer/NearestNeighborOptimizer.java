@@ -1,7 +1,6 @@
 package com.scmcloud.decision.optimizer;
 
 import com.scmcloud.decision.constraint.Constraint;
-import com.scmcloud.decision.scoring.ScoringContext;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;

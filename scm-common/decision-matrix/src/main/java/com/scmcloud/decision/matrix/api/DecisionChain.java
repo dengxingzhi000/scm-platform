@@ -35,10 +35,10 @@ public interface DecisionChain {
     /**
      * Add a decision node to the chain.
      */
-    DecisionChain addNode(DecisionNode node);
+    void addNode(DecisionNode node);
 
     /**
      * Add a fallback node for a specific node.
      */
-    DecisionChain addFallback(String nodeId, DecisionNode fallbackNode);
+    void addFallback(String nodeId, DecisionNode fallbackNode);
 }
