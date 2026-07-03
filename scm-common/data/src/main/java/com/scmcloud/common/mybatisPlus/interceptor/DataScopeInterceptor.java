@@ -11,14 +11,12 @@ import org.springframework.stereotype.Component;
 
 import java.sql.Connection;
 import java.util.Locale;
-import java.util.Properties;
 
 /**
- * MyBatis鎷︽埅锟? 鑷姩娣诲姞鏁版嵁鏉冮檺杩囨护
+ * MyBatis拦截器 - 自动添加数据权限过滤
  *
  * @author Deng
- * createData 2025/10/15 14:32
- * @version 1.0
+ * @since 2025-10-15
  */
 @Slf4j
 @Component
@@ -36,7 +34,7 @@ public class DataScopeInterceptor implements Interceptor {
         StatementHandler statementHandler = (StatementHandler) invocation.getTarget();
         MetaObject metaObject = SystemMetaObject.forObject(statementHandler);
 
-        // 鑾峰彇 SQL杩囨护鏉′欢
+        // 获取SQL过滤条件
         var filter = DataScopeContextHolder.get();
         if (filter != null && filter.getClause() != null && !filter.getClause().isEmpty()
                 && isSafeFilter(filter.getClause()) && isSelectStatement(metaObject)) {
@@ -46,7 +44,7 @@ public class DataScopeInterceptor implements Interceptor {
             String newSql = appendFilter(originalSql, filter.getClause());
 
             metaObject.setValue("delegate.boundSql.sql", newSql);
-            // 杩藉姞鍙傛暟浠ユ敮锟?{...} 鍗犱綅锟?
+            // 添加参数以支持 #{...} 占位符
             filter.getParams().forEach(boundSql::setAdditionalParameter);
 
             log.debug("Data scope filter applied: {}", filter.getClause());
@@ -160,7 +158,7 @@ public class DataScopeInterceptor implements Interceptor {
     /**
      * Appends data scope filter to SQL WHERE clause.
      * NOTE: This still uses string manipulation, but the filter is heavily validated.
-     *
+
      * IMPORTANT: The actual parameter values are passed separately via BoundSql.setAdditionalParameter(),
      * so they are properly escaped by JDBC PreparedStatement. Only the clause structure is concatenated.
      *
@@ -181,14 +179,5 @@ public class DataScopeInterceptor implements Interceptor {
             // No WHERE clause, add one
             return originalSql + " WHERE (" + filter + ")";
         }
-    }
-
-    @Override
-    public Object plugin(Object target) {
-        return Plugin.wrap(target, this);
-    }
-
-    @Override
-    public void setProperties(Properties properties) {
     }
 }

@@ -13,8 +13,8 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 /**
- * 鏉冮檺楠岃瘉宸ュ叿锟?
- * 鎻愪緵缂栫▼寮忔潈闄愰獙璇佹柟锟?
+ * 权限验证工具类
+ * 提供编程式权限验证方式
  *
  * @author Deng
  * createData 2025/10/30 13:43
@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 public class PermissionCheckUtil {
 
     /**
-     * 楠岃瘉褰撳墠鐢ㄦ埛鏄惁鎷ユ湁鎸囧畾鏉冮檺
+     * 验证当前用户是否拥有指定权限
      */
     public boolean hasPermission(String permission) {
         return executeWithUser(user -> {
@@ -34,7 +34,7 @@ public class PermissionCheckUtil {
     }
 
     /**
-     * 楠岃瘉褰撳墠鐢ㄦ埛鏄惁鎷ユ湁浠讳竴鏉冮檺
+     * 验证当前用户是否拥有任一权限
      */
     public boolean hasAnyPermission(String... permissions) {
         if (permissions == null || permissions.length == 0) {
@@ -57,7 +57,7 @@ public class PermissionCheckUtil {
     }
 
     /**
-     * 楠岃瘉褰撳墠鐢ㄦ埛鏄惁鎷ユ湁鎵€鏈夋潈锟?
+     * 验证当前用户是否拥有所有权限
      */
     public boolean hasAllPermissions(String... permissions) {
         if (permissions == null || permissions.length == 0) {
@@ -80,7 +80,7 @@ public class PermissionCheckUtil {
     }
 
     /**
-     * 楠岃瘉褰撳墠鐢ㄦ埛鏄惁鎷ユ湁鎸囧畾瑙掕壊
+     * 验证当前用户是否拥有指定角色
      */
     public boolean hasRole(String role) {
         return executeWithUser(user -> {
@@ -90,7 +90,7 @@ public class PermissionCheckUtil {
     }
 
     /**
-     * 楠岃瘉褰撳墠鐢ㄦ埛鏄惁鎷ユ湁浠讳竴瑙掕壊
+     * 验证当前用户是否拥有任一角色
      */
     public boolean hasAnyRole(String... roles) {
         if (roles == null || roles.length == 0) {
@@ -113,7 +113,7 @@ public class PermissionCheckUtil {
     }
 
     /**
-     * 楠岃瘉褰撳墠鐢ㄦ埛鏄惁鎷ユ湁鎵€鏈夎锟?
+     * 验证当前用户是否拥有所有角色
      */
     public boolean hasAllRoles(String... roles) {
         if (roles == null || roles.length == 0) {
@@ -136,49 +136,38 @@ public class PermissionCheckUtil {
     }
 
     /**
-     * 楠岃瘉鐢ㄦ埛鏄惁涓鸿秴绾х鐞嗗憳
+     * 验证用户是否为超级管理员
      */
     public boolean isSuperAdmin() {
         return hasRole("ROLE_SUPER_ADMIN");
     }
 
     /**
-     * 楠岃瘉鐢ㄦ埛鏄惁鏈夋潈璁块棶鎸囧畾閮ㄩ棬鐨勬暟锟?
+     * 验证用户是否有权访问指定部门的数据
      */
     public boolean canAccessDept(UUID deptId) {
         return executeWithUser(user -> {
-            // 瓒呯骇绠＄悊鍛樺彲浠ヨ闂墍鏈夐儴锟?
             if (isSuperAdmin()) {
                 return true;
             }
-
-            // 鐢ㄦ埛鑷繁鐨勯儴锟?
             return user.getDeptId() != null && user.getDeptId().equals(deptId);
-
-            // TODO: 鏍规嵁鏁版嵁鏉冮檺鑼冨洿鍒ゆ柇
-            // 闇€瑕佹煡璇㈢敤鎴风殑鏁版嵁鏉冮檺閰嶇疆
         });
     }
 
     /**
-     * 楠岃瘉鐢ㄦ埛鏄惁鏈夋潈璁块棶鎸囧畾鐢ㄦ埛鐨勬暟锟?
+     * 验证用户是否有权访问指定用户的数据
      */
     public boolean canAccessUser(UUID targetUserId) {
         return executeWithUser(user -> {
-            // 瓒呯骇绠＄悊鍛樺彲浠ヨ闂墍鏈夌敤锟?
             if (isSuperAdmin()) {
                 return true;
             }
-
-            // 鐢ㄦ埛鍙互璁块棶鑷繁鐨勬暟锟?
             return user.getUserId().equals(targetUserId);
-
-            // TODO: 鏍规嵁鏁版嵁鏉冮檺鑼冨洿鍒ゆ柇
         });
     }
 
     /**
-     * 鑾峰彇褰撳墠鐢ㄦ埛鐨勬墍鏈夋潈锟?
+     * 获取当前用户的所有权限
      */
     public Set<String> getCurrentUserPermissions() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -195,7 +184,7 @@ public class PermissionCheckUtil {
     }
 
     /**
-     * 鑾峰彇褰撳墠鐢ㄦ埛鐨勬墍鏈夎锟?
+     * 获取当前用户的所有角色
      */
     public Set<String> getCurrentUserRoles() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -208,14 +197,14 @@ public class PermissionCheckUtil {
         return authorities.stream()
                 .map(GrantedAuthority::getAuthority)
                 .filter(auth -> auth != null && auth.startsWith("ROLE_"))
-                .map(auth -> auth.substring(5)) // 绉婚櫎"ROLE_"鍓嶇紑
+                .map(auth -> auth.substring(5)) // 移除"ROLE_"前缀
                 .collect(Collectors.toSet());
     }
     
     /**
-     * 浣跨敤褰撳墠鐢ㄦ埛鎵ц鎿嶄綔鐨勯€氱敤鏂规硶(杩斿洖boolean绫诲瀷)
-     * @param function 瑕佹墽琛岀殑鎿嶄綔
-     * @return 鎿嶄綔缁撴灉鎴栭粯璁わ拷false
+     * 使用当前用户执行操作的通用方法(返回boolean类型)
+     * @param function 要执行的操作
+     * @return 操作结果或默认返回false
      */
     private boolean executeWithUser(Function<SecurityUser, Boolean> function) {
         SecurityUser user = SecurityUtils.getCurrentUser();

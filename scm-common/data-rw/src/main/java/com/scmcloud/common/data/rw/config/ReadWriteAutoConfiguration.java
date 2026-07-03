@@ -79,58 +79,74 @@ public class ReadWriteAutoConfiguration {
     }
 
     private void initializeDataSources() {
-        for (Map.Entry<String, ReadWriteProperties.DataSourceGroup> entry :
-                properties.getGroups().entrySet()) {
+        int initialSize = allDataSources.size();
+        try {
+            for (Map.Entry<String, ReadWriteProperties.DataSourceGroup> entry :
+                    properties.getGroups().entrySet()) {
 
-            String groupName = entry.getKey();
-            ReadWriteProperties.DataSourceGroup group = entry.getValue();
+                String groupName = entry.getKey();
+                ReadWriteProperties.DataSourceGroup group = entry.getValue();
 
-            log.debug("[RW-Config] Configuring group [{}] with {} slave(s)",
-                    groupName, group.getSlaves().size());
+                log.debug("[RW-Config] Configuring group [{}] with {} slave(s)",
+                        groupName, group.getSlaves().size());
 
-            HikariDataSource masterDataSource = createDataSource(groupName + "-master", group.getMaster());
-            allDataSources.add(masterDataSource);
+                HikariDataSource masterDataSource = createDataSource(groupName + "-master", group.getMaster());
+                allDataSources.add(masterDataSource);
 
-            Map<String, DataSource> slaveDataSources = new HashMap<>();
-            List<SlaveLoadBalancer.SlaveInfo> slaveInfos = new ArrayList<>();
+                Map<String, DataSource> slaveDataSources = new HashMap<>();
+                List<SlaveLoadBalancer.SlaveInfo> slaveInfos = new ArrayList<>();
 
-            for (ReadWriteProperties.SlaveDataSourceConfig slaveConfig : group.getSlaves()) {
-                String slaveName = slaveConfig.getName();
-                HikariDataSource slaveDataSource = createDataSource(groupName + "-" + slaveName, slaveConfig);
-                allDataSources.add(slaveDataSource);
-                slaveDataSources.put(slaveName, slaveDataSource);
+                for (ReadWriteProperties.SlaveDataSourceConfig slaveConfig : group.getSlaves()) {
+                    String slaveName = slaveConfig.getName();
+                    HikariDataSource slaveDataSource = createDataSource(groupName + "-" + slaveName, slaveConfig);
+                    allDataSources.add(slaveDataSource);
+                    slaveDataSources.put(slaveName, slaveDataSource);
 
-                slaveInfos.add(new SlaveLoadBalancer.SlaveInfo(
-                        slaveName,
-                        slaveConfig.getWeight(),
-                        0,
-                        slaveConfig.isAvailable()
-                ));
+                    slaveInfos.add(new SlaveLoadBalancer.SlaveInfo(
+                            slaveName,
+                            slaveConfig.getWeight(),
+                            0,
+                            slaveConfig.isAvailable()
+                    ));
+                }
+
+                slaveDataSourcesMap.put(groupName, slaveDataSources);
+
+                SlaveLoadBalancer loadBalancer = createLoadBalancer(
+                        group.getLoadBalance() != null ? group.getLoadBalance() : properties.getLoadBalance());
+
+                ReadWriteRoutingDataSource routingDataSource = new ReadWriteRoutingDataSource(
+                        groupName,
+                        masterDataSource,
+                        slaveDataSources,
+                        properties,
+                        loadBalancer,
+                        meterRegistry
+                );
+                routingDataSource.setSlaveInfos(slaveInfos);
+                routingDataSource.afterPropertiesSet();
+
+                routingDataSources.put(groupName, routingDataSource);
+
+                log.debug("[RW-Config] Group [{}] configured successfully. Master: {}, Slaves: {}",
+                        groupName,
+                        maskUrl(group.getMaster().getUrl()),
+                        slaveDataSources.keySet());
             }
-
-            slaveDataSourcesMap.put(groupName, slaveDataSources);
-
-            SlaveLoadBalancer loadBalancer = createLoadBalancer(
-                    group.getLoadBalance() != null ? group.getLoadBalance() : properties.getLoadBalance());
-
-            ReadWriteRoutingDataSource routingDataSource = new ReadWriteRoutingDataSource(
-                    groupName,
-                    masterDataSource,
-                    slaveDataSources,
-                    properties,
-                    loadBalancer,
-                    meterRegistry
-            );
-            routingDataSource.setSlaveInfos(slaveInfos);
-            routingDataSource.afterPropertiesSet();
-
-            routingDataSources.put(groupName, routingDataSource);
-
-            log.debug("[RW-Config] Group [{}] configured successfully. Master: {}, Slaves: {}",
-                    groupName,
-                    maskUrl(group.getMaster().getUrl()),
-                    slaveDataSources.keySet());
+        } catch (Exception e) {
+            cleanupDataSources(initialSize);
+            throw e;
         }
+    }
+
+    private void cleanupDataSources(int fromIndex) {
+        for (int i = allDataSources.size() - 1; i >= fromIndex; i--) {
+            try {
+                allDataSources.get(i).close();
+            } catch (Exception ignored) {
+            }
+        }
+        allDataSources.subList(fromIndex, allDataSources.size()).clear();
     }
 
     private HikariDataSource createDataSource(String poolName, ReadWriteProperties.DataSourceConfig config) {
@@ -147,19 +163,15 @@ public class ReadWriteAutoConfiguration {
         hikariConfig.setIdleTimeout(config.getIdleTimeout().toMillis());
         hikariConfig.setMaxLifetime(config.getMaxLifetime().toMillis());
 
-        hikariConfig.setConnectionTestQuery("SELECT 1");
+        if (config.getConnectionTestQuery() != null) {
+            hikariConfig.setConnectionTestQuery(config.getConnectionTestQuery());
+        }
 
         return new HikariDataSource(hikariConfig);
     }
 
     private SlaveLoadBalancer createLoadBalancer(ReadWriteProperties.LoadBalanceType type) {
-        return switch (type) {
-            case ROUND_ROBIN -> new RoundRobinLoadBalancer();
-            case WEIGHTED_ROUND_ROBIN -> new WeightedRoundRobinLoadBalancer();
-            case RANDOM -> new RandomLoadBalancer();
-            case WEIGHTED_RANDOM -> new WeightedRandomLoadBalancer();
-            case LEAST_CONNECTIONS -> new LeastConnectionsLoadBalancer();
-        };
+        return SlaveLoadBalancer.create(type);
     }
 
     private String maskUrl(String url) {
@@ -282,17 +294,19 @@ public class ReadWriteAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnClass(name = "org.springframework.boot.actuate.health.HealthIndicator")
-    public ReadWriteHealthIndicator readWriteHealthIndicator(SlaveHealthChecker healthChecker) {
+    public ReadWriteHealthIndicator readWriteHealthIndicator(
+            SlaveHealthChecker healthChecker, ReadWriteDataSourceProvider dataSourceProvider) {
         log.debug("[RW-Config] Registering ReadWriteHealthIndicator for Actuator");
-        return new ReadWriteHealthIndicator(healthChecker, readWriteDataSourceProvider());
+        return new ReadWriteHealthIndicator(healthChecker, dataSourceProvider);
     }
 
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnClass(name = "org.springframework.boot.actuate.endpoint.annotation.Endpoint")
-    public ReadWriteEndpoint readWriteEndpoint(SlaveHealthChecker healthChecker) {
+    public ReadWriteEndpoint readWriteEndpoint(
+            ReadWriteDataSourceProvider dataSourceProvider, SlaveHealthChecker healthChecker) {
         log.debug("[RW-Config] Registering ReadWriteEndpoint for Actuator");
-        return new ReadWriteEndpoint(readWriteDataSourceProvider(), healthChecker);
+        return new ReadWriteEndpoint(dataSourceProvider, healthChecker);
     }
 
     @PreDestroy

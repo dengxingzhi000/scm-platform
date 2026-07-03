@@ -12,9 +12,9 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 
 /**
- * 鏉冮檺鏌ヨ鏈嶅姟瀹炵幇锟?
-
- * 鎻愪緵鏉冮檺銆佽鑹层€佹暟鎹潈闄愮瓑鏌ヨ鍔熻兘锛屾敮鎸佺紦锟?
+ * 权限查询服务实现类
+ *
+ * 提供权限、角色、数据权限等查询功能，支持缓存
  *
  * @author Claude Code
  * @since 2025-01-24
@@ -29,7 +29,7 @@ public class PermissionQueryServiceImpl implements PermissionQueryService {
     private final SysRoleMapper roleMapper;
 
     /**
-     * 鏌ヨ鐢ㄦ埛鐨勬墍鏈夋潈闄愮紪鐮侊紙甯︾紦瀛橈級
+     * 查询用户的所有权限编码（带缓存）
      */
     @Override
     @Cacheable(value = "userPermissions", key = "#userId")
@@ -43,7 +43,7 @@ public class PermissionQueryServiceImpl implements PermissionQueryService {
     }
 
     /**
-     * 鏌ヨ鐢ㄦ埛鐨勬墍鏈夎鑹茬紪鐮侊紙甯︾紦瀛橈級
+     * 查询用户的所有角色编码（带缓存）
      */
     @Override
     @Cacheable(value = "userRoles", key = "#userId")
@@ -57,19 +57,19 @@ public class PermissionQueryServiceImpl implements PermissionQueryService {
     }
 
     /**
-     * 鑾峰彇鐢ㄦ埛鐨勬暟鎹潈闄愯寖鍥达紙甯︾紦瀛橈級
-
-     * 鍙栫敤鎴锋墍鏈夎鑹蹭腑鏉冮檺鑼冨洿鏈€澶х殑锛堟暟鍊兼渶灏忕殑锟?
-     * NULL = 1锛堝叏閮級, DEPT = 2锛堟湰閮ㄩ棬锟?DEPT_AND_SUB = 3锛堟湰閮ㄩ棬鍙婁笅绾э級, SELF = 4锛堜粎鏈汉锟?CUSTOM = 5锛堣嚜瀹氫箟锟?
+     * 获取用户的数据权限范围（带缓存）
+     *
+     * 取用户所有角色中权限范围最大的（数值最小的）
+     * NULL = 1（全部）, DEPT = 2（本部门）, DEPT_AND_SUB = 3（本部门及下级）, SELF = 4（仅本人）, CUSTOM = 5（自定义）
      */
     @Override
     @Cacheable(value = "userDataScope", key = "#userId")
     public String getUserDataScope(UUID userId) {
         if (userId == null) {
-            return "SELF"; // 榛樿浠呮湰锟?
+            return "SELF"; // 默认仅本人
         }
 
-        // 鑾峰彇鐢ㄦ埛鎵€鏈夋湁鏁堣鑹茬殑data_scope锛屽彇鏈€灏忓€硷紙鏉冮檺鏈€澶э級
+        // 获取用户所有有效角色的data_scope，取最小值（权限最大）
         Integer dataScopeValue = userRoleMapper.getUserDataScope(userId);
 
         if (dataScopeValue == null || dataScopeValue == 1) {
@@ -84,11 +84,11 @@ public class PermissionQueryServiceImpl implements PermissionQueryService {
             return "CUSTOM";
         }
 
-        return "SELF"; // 榛樿浠呮湰锟?
+        return "SELF"; // 默认仅本人
     }
 
     /**
-     * 鑾峰彇鐢ㄦ埛鐨勯儴闂↖D锛堝甫缂撳瓨锟?
+     * 获取用户的部门ID（带缓存）
      */
     @Override
     @Cacheable(value = "userDeptId", key = "#userId")
@@ -101,7 +101,7 @@ public class PermissionQueryServiceImpl implements PermissionQueryService {
     }
 
     /**
-     * 鑾峰彇閮ㄩ棬璺緞锛堝甫缂撳瓨锟?
+     * 获取部门路径（带缓存）
      */
     @Override
     @Cacheable(value = "deptPath", key = "#deptId")
@@ -115,7 +115,7 @@ public class PermissionQueryServiceImpl implements PermissionQueryService {
     }
 
     /**
-     * 鑾峰彇鐢ㄦ埛鍙闂殑閮ㄩ棬ID鍒楄〃锛堝甫缂撳瓨锟?
+     * 获取用户可访问的部门ID列表（带缓存）
      */
     @Override
     @Cacheable(value = "accessibleDeptIds", key = "#userId + ':' + #tenantId + ':' + #dataScope")
@@ -124,37 +124,36 @@ public class PermissionQueryServiceImpl implements PermissionQueryService {
             return Collections.emptyList();
         }
 
-        // ALL - 杩斿洖绌哄垪琛ㄨ〃绀哄彲浠ヨ闂墍鏈夐儴闂紙涓嶉渶瑕佽繃婊わ級
+        // ALL - 返回空列表表示可以访问所有部门（不需要过滤）
         if ("ALL".equals(dataScope)) {
             return Collections.emptyList();
         }
 
-        // SELF - 涓嶆秹鍙婇儴闂ㄨ繃锟?
+        // SELF - 不涉及部门过滤
         if ("SELF".equals(dataScope)) {
             return Collections.emptyList();
         }
 
-        // 鑾峰彇鐢ㄦ埛閮ㄩ棬 ID
+        // 获取用户部门 ID
         UUID userDeptId = getUserDeptId(userId);
         if (userDeptId == null) {
             return Collections.emptyList();
         }
 
-        // DEPT - 鍙兘璁块棶鏈儴锟?
+        // DEPT - 只能访问本部门
         if ("DEPT".equals(dataScope)) {
             return List.of(userDeptId);
         }
 
-        // DEPT_AND_SUB - 鍙互璁块棶鏈儴闂ㄥ強涓嬬骇閮ㄩ棬
+        // DEPT_AND_SUB - 可以访问本部门及下级部门
         if ("DEPT_AND_SUB".equals(dataScope)) {
             List<UUID> deptIds = deptMapper.selectDeptAndChildren(userDeptId);
             return deptIds != null ? deptIds : List.of(userDeptId);
         }
 
-        // CUSTOM - 鑷畾涔夎鍒欙紙鏌ヨ sys_role_dept 琛級
+        // CUSTOM - 自定义规则（查询 sys_role_dept 表）
         if ("CUSTOM".equals(dataScope)) {
-            // TODO: 瀹炵幇鑷畾涔夋暟鎹潈闄愯鍒欐煡锟?
-            log.warn("CUSTOM data scope not implemented yet for userId: {}", userId);
+            log.warn("CUSTOM data scope not yet implemented, falling back to user dept. userId: {}", userId);
             return List.of(userDeptId);
         }
 
@@ -162,7 +161,7 @@ public class PermissionQueryServiceImpl implements PermissionQueryService {
     }
 
     /**
-     * 鑾峰彇瑙掕壊绛夌骇锛堝甫缂撳瓨锟?
+     * 获取角色等级（带缓存）
      */
     @Override
     @Cacheable(value = "roleLevel", key = "#roleId")
@@ -176,7 +175,7 @@ public class PermissionQueryServiceImpl implements PermissionQueryService {
     }
 
     /**
-     * 鑾峰彇鐢ㄦ埛鐨勬渶楂樿鑹茬瓑绾э紙甯︾紦瀛橈級
+     * 获取用户的最高角色等级（带缓存）
      */
     @Override
     @Cacheable(value = "userMaxRoleLevel", key = "#userId")
@@ -185,13 +184,13 @@ public class PermissionQueryServiceImpl implements PermissionQueryService {
             return null;
         }
 
-        // 鑾峰彇鐢ㄦ埛鎵€鏈夋湁鏁堣锟絀D
+        // 获取用户所有有效角色ID
         List<UUID> roleIds = userRoleMapper.findEffectiveRoleIds(userId);
         if (roleIds == null || roleIds.isEmpty()) {
             return null;
         }
 
-        // 鏌ヨ鎵€鏈夎鑹茬殑绛夌骇锛屽彇鏈€澶э拷
+        // 查询所有角色的等级，取最大
         Integer maxLevel = null;
         for (UUID roleId : roleIds) {
             Integer level = getRoleLevel(roleId);

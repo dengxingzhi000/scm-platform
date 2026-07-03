@@ -116,15 +116,21 @@ class WeightedFusionEngineTest {
     }
 
     private DecisionResult createResult(String nodeId, double score, double confidence) {
-        DecisionExplanation explanation = new DecisionExplanation(
-                nodeId, "Test decision",
-                Map.of(nodeId, 1.0), Map.of(nodeId, score),
-                List.of(nodeId), null
-        );
+        DecisionExplanation explanation = DecisionExplanation.builder()
+                .decisionId(nodeId)
+                .primaryReason("Test decision")
+                .factorWeights(Map.of(nodeId, 1.0))
+                .factorScores(Map.of(nodeId, score))
+                .contributingFactors(List.of(nodeId))
+                .build();
 
-        return new DecisionResult(
-                nodeId, DecisionResult.DecisionStatus.SUCCESS,
-                "value", score, confidence, explanation, null, null
-        );
+        return DecisionResult.builder()
+                .nodeId(nodeId)
+                .status(DecisionResult.DecisionStatus.SUCCESS)
+                .value("value")
+                .score(score)
+                .confidence(confidence)
+                .explanation(explanation)
+                .build();
     }
 }

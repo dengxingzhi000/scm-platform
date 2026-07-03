@@ -44,6 +44,10 @@ public class ReadWriteRoutingContext {
             RoutingType popped = stack.pop();
             log.trace("[RW-Routing] Pop routing type: {}", popped);
         }
+        if (stack.isEmpty()) {
+            ROUTING_STACK.remove();
+            SPECIFIED_SLAVE.remove();
+        }
     }
 
     public static RoutingType current() {

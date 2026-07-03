@@ -1,11 +1,19 @@
 package com.scmcloud.decision.matrix.api;
 
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+
 import java.util.List;
 import java.util.Map;
 
 /**
  * Result of a saga execution.
  */
+@Getter
+@ToString
+@EqualsAndHashCode
 public class ExecutionResult {
 
     private final String executionId;
@@ -16,44 +24,17 @@ public class ExecutionResult {
     private final long totalDurationMs;
     private final String errorMessage;
 
-    public ExecutionResult(String executionId, ExecutionStatus status,
-                           Map<String, StepResult> stepResults, List<String> completedSteps,
-                           List<String> failedSteps, long totalDurationMs, String errorMessage) {
+    @Builder
+    private ExecutionResult(String executionId, ExecutionStatus status,
+                            Map<String, StepResult> stepResults, List<String> completedSteps,
+                            List<String> failedSteps, long totalDurationMs, String errorMessage) {
         this.executionId = executionId;
         this.status = status;
-        this.stepResults = stepResults != null ? stepResults : Map.of();
-        this.completedSteps = completedSteps != null ? completedSteps : List.of();
-        this.failedSteps = failedSteps != null ? failedSteps : List.of();
+        this.stepResults = stepResults != null ? Map.copyOf(stepResults) : Map.of();
+        this.completedSteps = completedSteps != null ? List.copyOf(completedSteps) : List.of();
+        this.failedSteps = failedSteps != null ? List.copyOf(failedSteps) : List.of();
         this.totalDurationMs = totalDurationMs;
         this.errorMessage = errorMessage;
-    }
-
-    public String getExecutionId() {
-        return executionId;
-    }
-
-    public ExecutionStatus getStatus() {
-        return status;
-    }
-
-    public Map<String, StepResult> getStepResults() {
-        return stepResults;
-    }
-
-    public List<String> getCompletedSteps() {
-        return completedSteps;
-    }
-
-    public List<String> getFailedSteps() {
-        return failedSteps;
-    }
-
-    public long getTotalDurationMs() {
-        return totalDurationMs;
-    }
-
-    public String getErrorMessage() {
-        return errorMessage;
     }
 
     public boolean isSuccess() {

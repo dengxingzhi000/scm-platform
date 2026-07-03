@@ -88,10 +88,12 @@ public class ReadWriteEndpoint {
     public Map<String, Object> operate(String groupName, String slaveName, String action, String strategy) {
         if ("markAvailable".equalsIgnoreCase(action)) {
             return doMarkAvailable(groupName, slaveName);
+        } else if ("markUnavailable".equalsIgnoreCase(action)) {
+            return doMarkUnavailable(groupName, slaveName);
         } else if ("switchLoadBalancer".equalsIgnoreCase(action)) {
             return doSwitchLoadBalancer(groupName, strategy);
         } else {
-            return doMarkUnavailable(groupName, slaveName);
+            return Map.of("success", false, "error", "Unknown action: " + action);
         }
     }
 
@@ -188,13 +190,6 @@ public class ReadWriteEndpoint {
     }
 
     private SlaveLoadBalancer createLoadBalancer(String strategy) {
-        return switch (strategy.toUpperCase()) {
-            case "ROUND_ROBIN" -> new RoundRobinLoadBalancer();
-            case "WEIGHTED_ROUND_ROBIN" -> new WeightedRoundRobinLoadBalancer();
-            case "RANDOM" -> new RandomLoadBalancer();
-            case "WEIGHTED_RANDOM" -> new WeightedRandomLoadBalancer();
-            case "LEAST_CONNECTIONS" -> new LeastConnectionsLoadBalancer();
-            default -> throw new IllegalArgumentException("Unknown load balance strategy: " + strategy);
-        };
+        return SlaveLoadBalancer.create(strategy);
     }
 }

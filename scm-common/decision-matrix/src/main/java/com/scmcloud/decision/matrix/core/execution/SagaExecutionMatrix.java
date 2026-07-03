@@ -2,8 +2,6 @@ package com.scmcloud.decision.matrix.core.execution;
 
 import com.scmcloud.decision.matrix.api.*;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
@@ -43,7 +41,7 @@ public class SagaExecutionMatrix implements ExecutionMatrix {
                     executedSteps.add(step);
 
                     // Enrich context with result
-                    context = context.withAttribute(step.getStepId() + ".result", result.getResult());
+                    context = context.withAttribute(step.getStepId() + ".result", result.result());
                 } else {
                     failedSteps.add(step.getStepId());
 
@@ -86,10 +84,15 @@ public class SagaExecutionMatrix implements ExecutionMatrix {
         log.info("[ExecutionMatrix] Saga [{}] completed: status={}, completed={}, failed={}, duration={}ms",
                 executionId, status, completedSteps.size(), failedSteps.size(), totalDuration);
 
-        return new ExecutionResult(
-                executionId, status, stepResults,
-                completedSteps, failedSteps, totalDuration, errorMessage
-        );
+        return ExecutionResult.builder()
+                .executionId(executionId)
+                .status(status)
+                .stepResults(stepResults)
+                .completedSteps(completedSteps)
+                .failedSteps(failedSteps)
+                .totalDurationMs(totalDuration)
+                .errorMessage(errorMessage)
+                .build();
     }
 
     @Override
@@ -115,7 +118,7 @@ public class SagaExecutionMatrix implements ExecutionMatrix {
                 if (result.isSuccess()) {
                     completedSteps.add(step.getStepId());
                     executedSteps.add(step);
-                    context = context.withAttribute(step.getStepId() + ".result", result.getResult());
+                    context = context.withAttribute(step.getStepId() + ".result", result.result());
                 } else {
                     failedSteps.add(step.getStepId());
 
@@ -144,20 +147,27 @@ public class SagaExecutionMatrix implements ExecutionMatrix {
         log.info("[ExecutionMatrix] Partial execution [{}] completed: completed={}, failed={}",
                 executionId, completedSteps.size(), failedSteps.size());
 
-        return new PartialExecutionResult(
-                executionId, stepResults, completedSteps, failedSteps,
-                compensations, totalDuration
-        );
+        return PartialExecutionResult.builder()
+                .executionId(executionId)
+                .stepResults(stepResults)
+                .completedSteps(completedSteps)
+                .failedSteps(failedSteps)
+                .compensations(compensations)
+                .totalDurationMs(totalDuration)
+                .build();
     }
 
     @Override
     public CompensationResult compensate(String executionId) {
         ExecutionRecord record = executionRecords.get(executionId);
         if (record == null) {
-            return new CompensationResult(
-                    executionId, CompensationResult.CompensationStatus.FAILURE,
-                    List.of(), 0, "Execution record not found"
-            );
+            return CompensationResult.builder()
+                    .executionId(executionId)
+                    .status(CompensationResult.CompensationStatus.FAILURE)
+                    .actions(List.of())
+                    .totalDurationMs(0)
+                    .errorMessage("Execution record not found")
+                    .build();
         }
 
         long startTime = System.currentTimeMillis();
@@ -207,7 +217,13 @@ public class SagaExecutionMatrix implements ExecutionMatrix {
         log.info("[ExecutionMatrix] Compensation [{}] completed: status={}, actions={}",
                 executionId, status, actions.size());
 
-        return new CompensationResult(executionId, status, actions, totalDuration, null);
+        return CompensationResult.builder()
+                .executionId(executionId)
+                .status(status)
+                .actions(actions)
+                .totalDurationMs(totalDuration)
+                .errorMessage(null)
+                .build();
     }
 
     private record ExecutionRecord(

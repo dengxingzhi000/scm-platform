@@ -1,11 +1,19 @@
 package com.scmcloud.decision.matrix.api;
 
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+
 import java.util.List;
 import java.util.Map;
 
 /**
  * Result of a partial execution.
  */
+@Getter
+@ToString
+@EqualsAndHashCode
 public class PartialExecutionResult {
 
     private final String executionId;
@@ -15,39 +23,16 @@ public class PartialExecutionResult {
     private final List<CompensationAction> compensations;
     private final long totalDurationMs;
 
-    public PartialExecutionResult(String executionId, Map<String, StepResult> stepResults,
+    @Builder
+    private PartialExecutionResult(String executionId, Map<String, StepResult> stepResults,
                                    List<String> completedSteps, List<String> failedSteps,
                                    List<CompensationAction> compensations, long totalDurationMs) {
         this.executionId = executionId;
-        this.stepResults = stepResults != null ? stepResults : Map.of();
-        this.completedSteps = completedSteps != null ? completedSteps : List.of();
-        this.failedSteps = failedSteps != null ? failedSteps : List.of();
-        this.compensations = compensations != null ? compensations : List.of();
+        this.stepResults = stepResults != null ? Map.copyOf(stepResults) : Map.of();
+        this.completedSteps = completedSteps != null ? List.copyOf(completedSteps) : List.of();
+        this.failedSteps = failedSteps != null ? List.copyOf(failedSteps) : List.of();
+        this.compensations = compensations != null ? List.copyOf(compensations) : List.of();
         this.totalDurationMs = totalDurationMs;
-    }
-
-    public String getExecutionId() {
-        return executionId;
-    }
-
-    public Map<String, StepResult> getStepResults() {
-        return stepResults;
-    }
-
-    public List<String> getCompletedSteps() {
-        return completedSteps;
-    }
-
-    public List<String> getFailedSteps() {
-        return failedSteps;
-    }
-
-    public List<CompensationAction> getCompensations() {
-        return compensations;
-    }
-
-    public long getTotalDurationMs() {
-        return totalDurationMs;
     }
 
     public boolean hasFailures() {

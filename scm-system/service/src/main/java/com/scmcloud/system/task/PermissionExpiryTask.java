@@ -13,11 +13,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 鏉冮檺杩囨湡妫€鏌ュ畾鏃朵换锟?
+ * 权限过期检查定时任务
  *
  * @author Deng
- * createData 2025/10/30 14:50
- * @version 1.0
+ * @since 2025-10-30
  */
 @Component
 @RequiredArgsConstructor
@@ -27,20 +26,20 @@ public class PermissionExpiryTask {
     private final NotificationService notificationService;
 
     /**
-     * 姣忓ぉ鍑屾櫒2鐐规鏌ュ苟澶勭悊杩囨湡鏉冮檺
+     * 每天凌晨2点检查并处理过期权限
      */
     @Scheduled(cron = "0 0 2 * * ?")
     public void checkExpiredPermissions() {
         log.info("Starting expired permissions check task");
 
         try {
-            // 1. 鏌ヨ宸茶繃鏈熺殑瑙掕壊
+            // 1. 查询已过期的角色
             List<Map<String, Object>> expiredRoles = userRoleMapper.findExpiredRolesForCleanup();
 
             if (!expiredRoles.isEmpty()) {
                 log.warn("Found {} expired roles", expiredRoles.size());
 
-                // 璁板綍杩囨湡淇℃伅
+                // 记录过期信息
                 for (Map<String, Object> role : expiredRoles) {
                     log.info("Expired role: user={}, role={}, expireTime={}",
                             role.get("username"),
@@ -48,11 +47,11 @@ public class PermissionExpiryTask {
                             role.get("expire_time"));
                 }
 
-                // 2. 鏇存柊杩囨湡瑙掕壊鐘舵€侊紙涓嶇洿鎺ュ垹闄わ紝渚夸簬瀹¤锟?
+                // 2. 更新过期角色状态（不直接删除，便于审计）
                 int updatedCount = userRoleMapper.updateExpiredRolesStatus();
                 log.info("Updated {} expired role assignments", updatedCount);
 
-                // 3. 鍙戦€佽繃鏈熼€氱煡锛圱ODO: 闆嗘垚閭欢/鐭俊鏈嶅姟锟?
+                // 3. 发送过期通知
                 sendExpiryNotifications(expiredRoles);
             }
 
@@ -64,27 +63,26 @@ public class PermissionExpiryTask {
     }
 
     /**
-     * 姣忓ぉ涓婂崍9鐐规鏌ュ嵆灏嗚繃鏈熺殑鏉冮檺锛堟彁锟藉ぉ閫氱煡锟?
+     * 每天上午9点检查即将过期的权限（提前7天通知）
      */
     @Scheduled(cron = "0 0 9 * * ?")
     public void checkExpiringPermissions() {
         log.info("Starting expiring permissions check task");
 
         try {
-            // 鏌ヨ7澶╁唴鍗冲皢杩囨湡鐨勮锟?
+            // 查询7天内即将过期的权限
             List<Map<String, Object>> expiringRoles = userRoleMapper.findExpiringRolesForNotification(7);
 
             if (!expiringRoles.isEmpty()) {
                 log.info("Found {} roles expiring in 7 days", expiringRoles.size());
 
-                // 鍙戦€佸嵆灏嗚繃鏈熼€氱煡
+                // 发送即将过期通知
                 for (Map<String, Object> role : expiringRoles) {
                     log.info("Role expiring soon: user={}, role={}, expireTime={}",
                             role.get("username"),
                             role.get("role_name"),
                             role.get("expire_time"));
 
-                    // TODO: 鍙戦€侀€氱煡閭欢
                     sendExpiringNotification(role);
                 }
             }
@@ -97,15 +95,15 @@ public class PermissionExpiryTask {
     }
 
     /**
-     * 姣忓懆涓€鍑屾櫒3鐐规竻鐞嗚繃鏈熸潈闄愭暟鎹紙鍙€夛級
-     * 濡傛灉涓嶉渶瑕佷繚鐣欒繃鏈熸暟鎹敤浜庡璁★紝鍙互鍚敤姝や换锟?
+     * 每周一凌晨3点清理过期权限数据（可选）
+     * 如果不需要保留过期数据用于审计，可以启用此任务
      */
     @Scheduled(cron = "0 0 3 ? * MON")
     public void cleanupExpiredPermissions() {
         log.info("Starting cleanup of expired permissions");
 
         try {
-            // 鍒犻櫎杩囨湡瓒呰繃30澶╃殑瑙掕壊鍒嗛厤璁板綍
+            // 删除过期超过30天的角色分配记录
             int deletedCount = userRoleMapper.deleteExpiredRoles();
             log.info("Cleaned up {} expired role assignments", deletedCount);
 
@@ -115,8 +113,7 @@ public class PermissionExpiryTask {
     }
 
     /**
-     * 鍙戦€佽繃鏈熼€氱煡
-     * TODO: 闆嗘垚瀹為檯鐨勯€氱煡鏈嶅姟锛堥偖锟界煭淇?绔欏唴淇★級
+     * 发送过期通知
      */
     private void sendExpiryNotifications(List<Map<String, Object>> expiredRoles) {
         for (Map<String, Object> role : expiredRoles) {
@@ -149,7 +146,7 @@ public class PermissionExpiryTask {
     }
 
     /**
-     * 鍙戦€佸嵆灏嗚繃鏈熼€氱煡
+     * 发送即将过期通知
      */
     private void sendExpiringNotification(Map<String, Object> role) {
         try {

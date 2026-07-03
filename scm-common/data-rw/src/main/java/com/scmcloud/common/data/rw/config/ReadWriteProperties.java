@@ -85,6 +85,7 @@ public class ReadWriteProperties {
         private Duration connectionTimeout = Duration.ofSeconds(30);
         private Duration idleTimeout = Duration.ofMinutes(10);
         private Duration maxLifetime = Duration.ofMinutes(30);
+        private String connectionTestQuery;
     }
 
     @Data

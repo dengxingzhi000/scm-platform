@@ -26,7 +26,7 @@ class DefaultDecisionChainTest {
         DecisionNode node = createMockNode("node1", true, 0.9);
         chain.addNode(node);
 
-        DecisionContext context = new DecisionContext("ctx1", "order", Map.of(), Map.of());
+        DecisionContext context = DecisionContext.builder().contextId("ctx1").businessType("order").build();
         ChainExecutionResult result = chain.execute(context);
 
         assertTrue(result.isSuccess());
@@ -43,7 +43,7 @@ class DefaultDecisionChainTest {
         chain.addNode(node1);
         chain.addNode(node2);
 
-        DecisionContext context = new DecisionContext("ctx1", "order", Map.of(), Map.of());
+        DecisionContext context = DecisionContext.builder().contextId("ctx1").businessType("order").build();
         ChainExecutionResult result = chain.execute(context);
 
         assertTrue(result.isSuccess());
@@ -61,7 +61,7 @@ class DefaultDecisionChainTest {
         chain.addNode(node2);
         chain.addNode(node3);
 
-        DecisionContext context = new DecisionContext("ctx1", "order", Map.of(), Map.of());
+        DecisionContext context = DecisionContext.builder().contextId("ctx1").businessType("order").build();
         ChainExecutionResult result = chain.execute(context);
 
         assertFalse(result.isSuccess());
@@ -77,7 +77,7 @@ class DefaultDecisionChainTest {
         chain.addNode(primary);
         chain.addFallback("primary", fallback);
 
-        DecisionContext context = new DecisionContext("ctx1", "order", Map.of(), Map.of());
+        DecisionContext context = DecisionContext.builder().contextId("ctx1").businessType("order").build();
         ChainExecutionResult result = chain.execute(context);
 
         assertTrue(result.isSuccess());
@@ -94,7 +94,7 @@ class DefaultDecisionChainTest {
         chain.addNode(node1);
         chain.addNode(node2);
 
-        DecisionContext context = new DecisionContext("ctx1", "order", Map.of(), Map.of());
+        DecisionContext context = DecisionContext.builder().contextId("ctx1").businessType("order").build();
         ChainExecutionResult result = chain.execute(context);
 
         assertFalse(result.isSuccess());
@@ -117,13 +117,22 @@ class DefaultDecisionChainTest {
                 DecisionResult.DecisionStatus status = success ?
                         DecisionResult.DecisionStatus.SUCCESS : DecisionResult.DecisionStatus.FAILURE;
 
-                DecisionExplanation explanation = new DecisionExplanation(
-                        nodeId, "Mock decision", Map.of("score", score),
-                        Map.of(nodeId, score), List.of(nodeId), null
-                );
+                DecisionExplanation explanation = DecisionExplanation.builder()
+                        .decisionId(nodeId)
+                        .primaryReason("Mock decision")
+                        .factorWeights(Map.of("score", score))
+                        .factorScores(Map.of(nodeId, score))
+                        .contributingFactors(List.of(nodeId))
+                        .build();
 
-                return new DecisionResult(nodeId, status, "value",
-                        score, score, explanation, null, null);
+                return DecisionResult.builder()
+                        .nodeId(nodeId)
+                        .status(status)
+                        .value("value")
+                        .score(score)
+                        .confidence(score)
+                        .explanation(explanation)
+                        .build();
             }
 
             @Override
