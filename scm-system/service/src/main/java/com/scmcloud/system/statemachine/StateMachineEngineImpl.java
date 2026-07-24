@@ -21,7 +21,6 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class StateMachineEngineImpl implements StateMachineEngine {
-
     private final ISysStatusDictService statusDictService;
 
     @Override

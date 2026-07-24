@@ -1,14 +1,9 @@
 package com.scmcloud.system.statemachine;
 
-import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.baomidou.mybatisplus.extension.service.IService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.ibatis.annotations.Param;
-import org.apache.ibatis.annotations.Update;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -32,7 +27,6 @@ import java.util.function.Function;
 @Component
 @RequiredArgsConstructor
 public class TransitionExecutor {
-
     private final StateMachineEngine stateMachineEngine;
 
     /**

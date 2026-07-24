@@ -279,8 +279,8 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         // 7. 跨库操作：插入用户角色关联（db_permission
         if (userDTO.getRoleIds() != null && !userDTO.getRoleIds().isEmpty()) {
             int inserted = userRoleCommandService.batchInsertUserRoles(user.getId(), userDTO.getRoleIds(),
-                    SecurityUtils.getCurrentUserUuid().orElse(null));
-            log.debug("创建用户时分配角 user={}, roleCount={}", user.getUsername(), inserted);
+                    operatorId);
+            log.debug("创建用户时分配角色: user={}, roleCount={}", user.getUsername(), inserted);
         }
 
         // 8. 发布同步事件
@@ -337,8 +337,8 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 
             if (!userDTO.getRoleIds().isEmpty()) {
                 int inserted = userRoleCommandService.batchInsertUserRoles(user.getId(), userDTO.getRoleIds(),
-                        SecurityUtils.getCurrentUserUuid().orElse(null));
-                log.debug("更新用户时重新分配角 user={}, newRoleCount={}", user.getUsername(), inserted);
+                        operatorId);
+                log.debug("更新用户时重新分配角色: user={}, newRoleCount={}", user.getUsername(), inserted);
             }
         }
 
@@ -390,7 +390,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
                     ResultCode.USER_CANNOT_DELETE_ADMIN.getMessage());
         }
 
-        if (user.getId().equals(SecurityUtils.getCurrentUserUuid().orElse(null))) {
+        if (user.getId().equals(operatorId)) {
             throw new BusinessException(ResultCode.USER_CANNOT_DELETE_SELF.getCode(),
                     ResultCode.USER_CANNOT_DELETE_SELF.getMessage());
         }
@@ -539,8 +539,8 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         log.debug("授权操作清除原有角色: user={}, deletedCount={}", user.getUsername(), deleted);
 
         if (roleIds != null && !roleIds.isEmpty()) {
-            int inserted = userRoleCommandService.batchInsertUserRoles(userId, roleIds, SecurityUtils.getCurrentUserUuid().orElse(null));
-            log.debug("授权操作分配新角 user={}, grantedCount={}", user.getUsername(), inserted);
+            int inserted = userRoleCommandService.batchInsertUserRoles(userId, roleIds, operatorId);
+            log.debug("授权操作分配新角色: user={}, grantedCount={}", user.getUsername(), inserted);
         }
 
         // 7. 记录日志
@@ -609,13 +609,14 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 
         // 通过 CrossDatabaseQueryService 跨库操作：插入临时用户角色关联（db_permission
         if (roleIds != null && !roleIds.isEmpty()) {
+            UUID operatorId = SecurityUtils.getCurrentUserUuid().orElse(null);
             int inserted = userRoleCommandService.batchInsertTemporaryUserRoles(
                     userId, roleIds,
                     effectiveTime != null ? effectiveTime : LocalDateTime.now(),
                     expireTime,
-                    SecurityUtils.getCurrentUserUuid().orElse(null)
+                    operatorId
             );
-            log.debug("为用户{} 授予 {} 个临时角色", user.getUsername(), inserted);
+            log.debug("为用户 {} 授予 {} 个临时角色", user.getUsername(), inserted);
         }
 
         log.info("Temporary roles granted to user: {}, roles: {}, expireTime: {}, by: {}",
