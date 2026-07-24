@@ -1,6 +1,5 @@
 package com.scmcloud.system.service.Impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.scmcloud.system.cache.StatusDictCacheManager;
 import com.scmcloud.system.cache.StatusDictEventPublisher;
 import com.scmcloud.system.domain.entity.SysStatusDict;
@@ -17,7 +16,6 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class SysStatusDictServiceImpl implements ISysStatusDictService {
-
     private final SysStatusDictMapper statusDictMapper;
     private final SysStatusTransitionMapper transitionMapper;
     private final StatusDictCacheManager cacheManager;

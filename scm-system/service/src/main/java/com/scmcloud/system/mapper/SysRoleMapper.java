@@ -6,6 +6,7 @@ import com.scmcloud.system.domain.entity.SysRole;
 import org.apache.ibatis.annotations.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -86,4 +87,21 @@ public interface SysRoleMapper extends BaseMapper<SysRole> {
             WHERE id = #{roleId} AND NOT deleted
             """)
     UUID getRoleTenantId(@Param("roleId") UUID roleId);
+
+    /**
+     * 批量查询角色等级
+     *
+     * @param roleIds 角色 ID 列表
+     * @return 角色 ID -> 等级的映射
+     */
+    @Select("""
+            SELECT id, role_level FROM sys_role
+            WHERE id IN
+            <foreach collection="roleIds" item="roleId" open="(" separator="," close=")">
+                #{roleId}
+            </foreach>
+            AND NOT deleted
+            """)
+    @MapKey("id")
+    Map<UUID, Integer> getRoleLevelsByRoleIds(@Param("roleIds") List<UUID> roleIds);
 }

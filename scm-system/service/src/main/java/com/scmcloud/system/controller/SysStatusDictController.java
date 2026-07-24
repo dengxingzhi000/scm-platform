@@ -19,7 +19,6 @@ import java.util.UUID;
 @RequestMapping("/api/system/status")
 @RequiredArgsConstructor
 public class SysStatusDictController {
-
     private final ISysStatusDictService statusDictService;
     private final StateMachineEngine stateMachineEngine;
 

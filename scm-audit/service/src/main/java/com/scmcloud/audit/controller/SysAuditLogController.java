@@ -14,7 +14,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/sys-audit-log")
 public class SysAuditLogController {
-
     private final ISysAuditLogService auditLogService;
 
     @PostMapping
