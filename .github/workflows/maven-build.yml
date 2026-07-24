@@ -65,6 +65,16 @@ jobs:
           sudo apt-get install -y postgresql-client
           cd scripts/db && bash init-all-databases.sh
 
+      - name: Validate schema — all tables must have tenant_id
+        if: github.event_name == 'push'
+        env:
+          PGPASSWORD: admin123
+        run: |
+          for db in db_user db_org db_permission db_product db_inventory db_order db_warehouse db_logistics db_supplier db_purchase db_finance db_audit db_notify db_approval; do
+            echo "Checking $db..."
+            psql -h localhost -U admin -d "$db" -f scripts/db/ci_validate_tenant_id.sql || exit 1
+          done
+
       - name: Build and Run Unit Tests (PR)
         if: github.event_name == 'pull_request'
         run: |
