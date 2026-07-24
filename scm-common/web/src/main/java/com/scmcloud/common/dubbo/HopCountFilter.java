@@ -10,16 +10,8 @@ import org.apache.dubbo.rpc.Result;
 import org.apache.dubbo.rpc.RpcContext;
 import org.apache.dubbo.rpc.RpcException;
 
-/**
- * Dubbo Filter enforcing the 3-hop rule for synchronous RPC chains.
- *
- * Prevents cascading timeout risk by limiting synchronous call depth.
- * Beyond hop 3, the call is rejected with an RpcException.
- *
- * The hop count is propagated via RpcContext attachment across service boundaries.
- */
 @Slf4j
-@Activate(group = CommonConstants.PROVIDER, order = -9999)
+@Activate(group = {CommonConstants.PROVIDER, CommonConstants.CONSUMER}, order = -9000)
 public class HopCountFilter implements Filter {
 
     private static final String HOP_COUNT_KEY = "rpc-hop-count";
@@ -27,19 +19,32 @@ public class HopCountFilter implements Filter {
 
     @Override
     public Result invoke(Invoker<?> invoker, Invocation invocation) throws RpcException {
-        String raw = RpcContext.getServiceContext().getAttachment(HOP_COUNT_KEY);
-        int hops = (raw == null || raw.isBlank()) ? 1 : Integer.parseInt(raw) + 1;
-
-        if (hops > MAX_HOPS) {
-            String service = invoker.getInterface().getSimpleName();
-            String method = invocation.getMethodName();
-            throw new RpcException("RPC chain depth exceeded: " + hops
-                    + " hops. Max allowed: " + MAX_HOPS
-                    + ". Service: " + service + "." + method
-                    + ". Use async (Kafka outbox) for downstream calls.");
+        String side = invoker.getUrl().getParameter("side", "");
+        if ("provider".equals(side)) {
+            return handleProvider(invoker, invocation);
+        } else {
+            return handleConsumer(invoker, invocation);
         }
+    }
 
-        RpcContext.getClientAttachment().setAttachment(HOP_COUNT_KEY, String.valueOf(hops));
+    private Result handleConsumer(Invoker<?> invoker, Invocation invocation) {
+        String hopCountStr = RpcContext.getClientAttachment().getAttachment(HOP_COUNT_KEY);
+        int hopCount = hopCountStr != null ? Integer.parseInt(hopCountStr) : 0;
+        hopCount++;
+        RpcContext.getClientAttachment().setAttachment(HOP_COUNT_KEY, String.valueOf(hopCount));
+        return invoker.invoke(invocation);
+    }
+
+    private Result handleProvider(Invoker<?> invoker, Invocation invocation) {
+        String hopCountStr = RpcContext.getServiceContext().getAttachment(HOP_COUNT_KEY);
+        if (hopCountStr != null) {
+            int hopCount = Integer.parseInt(hopCountStr);
+            if (hopCount > MAX_HOPS) {
+                log.warn("RPC hop count {} exceeds maximum of {}, rejecting request", hopCount, MAX_HOPS);
+                throw new RpcException(RpcException.LIMIT_EXCEEDED_EXCEPTION,
+                        "RPC hop count " + hopCount + " exceeds maximum of " + MAX_HOPS);
+            }
+        }
         return invoker.invoke(invocation);
     }
 }
