@@ -2,7 +2,7 @@
   {
     "resource": "userService",
     "grade": 0,
-    "count": 1000,
+    "count": 300,
     "timeWindow": 10,
     "minRequestAmount": 5,
     "statIntervalMs": 1000,
