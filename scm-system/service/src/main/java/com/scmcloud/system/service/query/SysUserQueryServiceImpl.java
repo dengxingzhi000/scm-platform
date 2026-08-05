@@ -41,7 +41,6 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class SysUserQueryServiceImpl implements ISysUserQueryService {
-
     private static final String KEY_GEN = "tenantAwareCacheKeyGenerator";
 
     private final SysUserMapper userMapper;
