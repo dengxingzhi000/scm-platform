@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
-import java.math.BigDecimal;
+import com.scmcloud.common.domain.Money;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -45,16 +45,16 @@ public class OrdOrderCommandService {
         order.setDeleted(false);
 
         if (order.getTotalAmount() == null) {
-            BigDecimal totalAmount = items.stream()
+            Money totalAmount = items.stream()
                     .map(OrdOrderItem::getSubtotal)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+                    .reduce(Money.ZERO, Money::add);
             order.setTotalAmount(totalAmount);
         }
 
         if (order.getPayableAmount() == null) {
-            BigDecimal payable = order.getTotalAmount()
-                    .subtract(order.getDiscountAmount() != null ? order.getDiscountAmount() : BigDecimal.ZERO)
-                    .add(order.getFreightAmount() != null ? order.getFreightAmount() : BigDecimal.ZERO);
+            Money discount = order.getDiscountAmount() != null ? order.getDiscountAmount() : Money.ZERO;
+            Money freight = order.getFreightAmount() != null ? order.getFreightAmount() : Money.ZERO;
+            Money payable = order.getTotalAmount().subtract(discount).add(freight);
             order.setPayableAmount(payable);
         }
 

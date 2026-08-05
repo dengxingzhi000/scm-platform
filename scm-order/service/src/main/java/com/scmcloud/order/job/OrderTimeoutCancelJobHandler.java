@@ -143,11 +143,12 @@ public class OrderTimeoutCancelJobHandler {
         // 2. 释放库存（RPC 调用，参与分布式事务
         inventoryService.releaseStock(
                 Long.parseLong(order.getSkuId()),
-                order.getQuantity(),
+                order.getQuantity() != null ? order.getQuantity().getValue() : 0,
                 "TIMEOUT_CANCEL:" + order.getOrderNo()
         );
 
         log.info("订单超时自动取消成功: orderNo={}, skuId={}, quantity={}",
-                order.getOrderNo(), order.getSkuId(), order.getQuantity());
+                order.getOrderNo(), order.getSkuId(),
+                order.getQuantity() != null ? order.getQuantity().getValue() : 0);
     }
 }
