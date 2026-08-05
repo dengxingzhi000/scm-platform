@@ -7,6 +7,8 @@ import com.scmcloud.order.api.request.CreateOrderRequest;
 import com.scmcloud.order.domain.entity.OrdOrder;
 import com.scmcloud.order.mapper.OrdOrderMapper;
 
+import com.scmcloud.common.domain.Money;
+import com.scmcloud.common.domain.Quantity;
 import com.scmcloud.common.status.StatusValidator;
 import io.seata.core.context.RootContext;
 import io.seata.spring.annotation.GlobalTransactional;
@@ -76,8 +78,8 @@ public class OrderTccServiceImpl {
             order.setOrderNo(generateOrderNo());
             order.setUserId(String.valueOf(request.getUserId()));
             order.setSkuId(String.valueOf(request.getSkuId()));
-            order.setQuantity(request.getQuantity() != null ? request.getQuantity().intValue() : null);
-            order.setTotalAmount(request.getTotalAmount());
+            order.setQuantity(request.getQuantity() != null ? Quantity.of(request.getQuantity()) : null);
+            order.setTotalAmount(Money.of(request.getTotalAmount()));
             order.setStatus(0); // PENDING_PAYMENT
             order.setRemark("[TCC模式] " + request.getRemark());
             order.setCreateTime(LocalDateTime.now());

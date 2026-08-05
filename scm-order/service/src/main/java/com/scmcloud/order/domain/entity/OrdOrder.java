@@ -1,6 +1,5 @@
 package com.scmcloud.order.domain.entity;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -13,13 +12,15 @@ import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.Version;
+import com.scmcloud.common.domain.Money;
+import com.scmcloud.common.domain.Quantity;
+import com.scmcloud.common.domain.TenantId;
 import com.scmcloud.common.domain.event.DomainEvent;
 import com.scmcloud.order.domain.event.OrderCancelledEvent;
 import com.scmcloud.order.domain.event.OrderCreatedEvent;
 import com.scmcloud.order.domain.event.OrderPaidEvent;
 import com.scmcloud.order.domain.event.OrderShippedEvent;
 
-import java.io.Serializable;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
@@ -39,7 +40,7 @@ import lombok.experimental.Accessors;
 public class OrdOrder {
 
     @TableField(value = "tenant_id", fill = FieldFill.INSERT)
-    private String tenantId;
+    private TenantId tenantId;
 
     @TableId(value = "id", type = IdType.ASSIGN_ID)
     private Long id;
@@ -59,19 +60,19 @@ public class OrdOrder {
     @TableField("version")
     private Integer version;
     @TableField("total_amount")
-    private BigDecimal totalAmount;
+    private Money totalAmount;
     @TableField("discount_amount")
-    private BigDecimal discountAmount;
+    private Money discountAmount;
     @TableField("freight_amount")
-    private BigDecimal freightAmount;
+    private Money freightAmount;
     @TableField("payable_amount")
-    private BigDecimal payableAmount;
+    private Money payableAmount;
     @TableField("payment_method")
     private Integer paymentMethod;
     @TableField("payment_no")
     private String paymentNo;
     @TableField("paid_amount")
-    private BigDecimal paidAmount;
+    private Money paidAmount;
     @TableField("paid_at")
     private LocalDateTime paidAt;
     @TableField("shipping_address")
@@ -85,7 +86,7 @@ public class OrdOrder {
     @TableField("sku_id")
     private String skuId;
     @TableField("quantity")
-    private Integer quantity;
+    private Quantity quantity;
     @TableField("waybill_no")
     private String waybillNo;
     @TableField("carrier")
@@ -212,12 +213,12 @@ public class OrdOrder {
 
         // Register domain event
         registerEvent(new OrderCancelledEvent(
-                UUID.fromString(this.tenantId),
+                this.tenantId.toUUID(),
                 this.id,
                 this.orderNo,
                 this.userId != null ? UUID.fromString(this.userId) : null,
                 reason,
-                this.payableAmount,
+                this.payableAmount != null ? this.payableAmount.getAmount() : null,
                 this.reservationId
         ));
 
@@ -227,7 +228,7 @@ public class OrdOrder {
     /**
      * Mark the order as paid. Only PENDING_PAYMENT orders can be paid.
      */
-    public OrdOrder pay(BigDecimal amount, String paymentNo) {
+    public OrdOrder pay(Money amount, String paymentNo) {
         transitionTo(OrderStatus.PAID);
         this.paidAmount = amount;
         this.paidAt = LocalDateTime.now();
@@ -235,11 +236,11 @@ public class OrdOrder {
 
         // Register domain event
         registerEvent(new OrderPaidEvent(
-                UUID.fromString(this.tenantId),
+                this.tenantId.toUUID(),
                 this.id,
                 this.orderNo,
                 this.userId != null ? UUID.fromString(this.userId) : null,
-                amount,
+                amount != null ? amount.getAmount() : null,
                 paymentNo,
                 this.paymentMethod
         ));
@@ -250,7 +251,7 @@ public class OrdOrder {
     /**
      * Confirm payment (alias for pay, used by payment callback).
      */
-    public OrdOrder confirmPayment(BigDecimal amount, String paymentNo) {
+    public OrdOrder confirmPayment(Money amount, String paymentNo) {
         return pay(amount, paymentNo);
     }
 
@@ -265,7 +266,7 @@ public class OrdOrder {
 
         // Register domain event
         registerEvent(new OrderShippedEvent(
-                UUID.fromString(this.tenantId),
+                this.tenantId.toUUID(),
                 this.id,
                 this.orderNo,
                 this.userId != null ? UUID.fromString(this.userId) : null,

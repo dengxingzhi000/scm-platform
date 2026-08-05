@@ -1,6 +1,7 @@
 package com.scmcloud.common.mybatis;
 
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
+import com.scmcloud.common.domain.TenantId;
 import com.scmcloud.common.tenant.TenantContextHolder;
 import com.scmcloud.common.util.UUIDv7Util;
 import lombok.extern.slf4j.Slf4j;
@@ -44,7 +45,12 @@ public class AuditMetaObjectHandler implements MetaObjectHandler {
 
         UUID tenantId = TenantContextHolder.getTenantId();
         if (tenantId != null) {
-            this.strictInsertFill(metaObject, "tenantId", String.class, tenantId.toString());
+            Class<?> fieldType = metaObject.getGetterType("tenantId");
+            if (TenantId.class.isAssignableFrom(fieldType)) {
+                this.strictInsertFill(metaObject, "tenantId", TenantId.class, TenantId.from(tenantId));
+            } else {
+                this.strictInsertFill(metaObject, "tenantId", String.class, tenantId.toString());
+            }
         } else {
             log.warn("Tenant ID is null when inserting, entity: {}", metaObject.getOriginalObject().getClass().getName());
         }
@@ -52,16 +58,11 @@ public class AuditMetaObjectHandler implements MetaObjectHandler {
         OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
         this.strictInsertFill(metaObject, "createTime", OffsetDateTime.class, now);
 
-        UUID currentUserId = getCurrentUserId();
-        if (currentUserId != null) {
-            this.strictInsertFill(metaObject, "createBy", UUID.class, currentUserId);
-        }
+        fillCreateBy(metaObject);
 
         this.strictInsertFill(metaObject, "updateTime", OffsetDateTime.class, now);
 
-        if (currentUserId != null) {
-            this.strictInsertFill(metaObject, "updateBy", UUID.class, currentUserId);
-        }
+        fillUpdateBy(metaObject);
 
         this.strictInsertFill(metaObject, "deleted", Boolean.class, false);
     }
@@ -73,9 +74,30 @@ public class AuditMetaObjectHandler implements MetaObjectHandler {
         OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
         this.strictUpdateFill(metaObject, "updateTime", OffsetDateTime.class, now);
 
-        UUID currentUserId = getCurrentUserId();
-        if (currentUserId != null) {
-            this.strictUpdateFill(metaObject, "updateBy", UUID.class, currentUserId);
+        fillUpdateBy(metaObject);
+    }
+
+    private void fillCreateBy(MetaObject metaObject) {
+        UUID userId = getCurrentUserId();
+        if (userId == null) return;
+
+        Object createByValue = metaObject.getValue("createBy");
+        if (createByValue instanceof String) {
+            this.strictInsertFill(metaObject, "createBy", String.class, userId.toString());
+        } else {
+            this.strictInsertFill(metaObject, "createBy", UUID.class, userId);
+        }
+    }
+
+    private void fillUpdateBy(MetaObject metaObject) {
+        UUID userId = getCurrentUserId();
+        if (userId == null) return;
+
+        Object updateByValue = metaObject.getValue("updateBy");
+        if (updateByValue instanceof String) {
+            this.strictInsertFill(metaObject, "updateBy", String.class, userId.toString());
+        } else {
+            this.strictInsertFill(metaObject, "updateBy", UUID.class, userId);
         }
     }
 

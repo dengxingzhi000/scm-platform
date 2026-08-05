@@ -10,7 +10,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
+import com.scmcloud.common.domain.Money;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -33,8 +33,8 @@ class OrderLifecycleIntegrationTest {
         OrdOrder order = new OrdOrder();
         order.setOrderNo("ORD-TEST-001");
         order.setUserId("user-001");
-        order.setTotalAmount(new BigDecimal("100.00"));
-        order.setPayableAmount(new BigDecimal("100.00"));
+        order.setTotalAmount(Money.of("100.00"));
+        order.setPayableAmount(Money.of("100.00"));
         order.setStatus(OrderStatus.PENDING_PAYMENT.getCode());
 
         // Save order
@@ -42,7 +42,7 @@ class OrderLifecycleIntegrationTest {
         assertNotNull(order.getId());
 
         // Pay order
-        order.pay(new BigDecimal("100.00"), "PAY-001");
+        order.pay(Money.of("100.00"), "PAY-001");
         assertEquals(OrderStatus.PAID.getCode(), order.getStatus());
         assertEquals("PAY-001", order.getPaymentNo());
         assertTrue(order.hasDomainEvents());
@@ -92,6 +92,6 @@ class OrderLifecycleIntegrationTest {
         order.setStatus(OrderStatus.CANCELLED.getCode());
 
         assertThrows(IllegalStateException.class, () -> 
-            order.pay(new BigDecimal("100.00"), "PAY-004"));
+            order.pay(Money.of("100.00"), "PAY-004"));
     }
 }

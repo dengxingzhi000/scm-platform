@@ -20,6 +20,8 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
 
+import com.scmcloud.common.domain.Quantity;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 @RequiredArgsConstructor
@@ -99,7 +101,7 @@ public class SeataAtModeIntegrationTest {
         );
         assertNotNull(orderInDb, "Order should exist in database");
         assertEquals(TEST_SKU_ID, orderInDb.getSkuId(), "SKU ID should match");
-        assertEquals(10, orderInDb.getQuantity(), "Quantity should match");
+        assertEquals(Quantity.of(10), orderInDb.getQuantity(), "Quantity should match");
 
         log.info("Database order verification passed");
 
