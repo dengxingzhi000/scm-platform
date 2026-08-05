@@ -22,6 +22,8 @@ import java.math.BigDecimal;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.scmcloud.common.domain.Quantity;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 @RequiredArgsConstructor
@@ -105,7 +107,7 @@ public class SeataTccModeIntegrationTest {
         );
         assertNotNull(orderInDb, "Order should exist in database");
         assertEquals(TEST_SKU_ID, orderInDb.getSkuId(), "SKU ID should match");
-        assertEquals(10, orderInDb.getQuantity(), "Quantity should match");
+        assertEquals(Quantity.of(10), orderInDb.getQuantity(), "Quantity should match");
 
         log.info("Database order verification passed");
 

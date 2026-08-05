@@ -14,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.scmcloud.order.domain.entity.OrdOrder;
 import com.scmcloud.order.service.IOrdOrderService;
 
-import java.math.BigDecimal;
+import com.scmcloud.common.domain.Money;
 import java.time.LocalDateTime;
 
 /**
@@ -53,10 +53,10 @@ public class OrderDubboServiceImpl implements OrderDubboService {
         order.setOrderType(1); // 普通订单
         order.setOrderSource("API");
         order.setStatus(0); // 待支付
-        order.setTotalAmount(request.getTotalAmount());
-        order.setDiscountAmount(BigDecimal.ZERO);
-        order.setFreightAmount(BigDecimal.ZERO);
-        order.setPayableAmount(request.getTotalAmount());
+        order.setTotalAmount(Money.of(request.getTotalAmount()));
+        order.setDiscountAmount(Money.ZERO);
+        order.setFreightAmount(Money.ZERO);
+        order.setPayableAmount(Money.of(request.getTotalAmount()));
         order.setBuyerMessage(request.getRemark());
         order.setDeleted(false);
         order.setCreateTime(LocalDateTime.now());
@@ -147,7 +147,7 @@ public class OrderDubboServiceImpl implements OrderDubboService {
         vo.setOrderNo(order.getOrderNo());
         vo.setUserId(order.getUserId() != null ? Long.parseLong(order.getUserId()) : null);
         vo.setStatus(order.getStatus() != null ? String.valueOf(order.getStatus()) : null);
-        vo.setTotalAmount(order.getTotalAmount());
+        vo.setTotalAmount(order.getTotalAmount() != null ? order.getTotalAmount().getAmount() : null);
         vo.setRemark(order.getBuyerMessage());
         vo.setCreateTime(order.getCreateTime());
         return vo;

@@ -1,10 +1,11 @@
 package com.scmcloud.order.domain.entity;
 
-import java.math.BigDecimal;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.scmcloud.common.domain.Money;
+import com.scmcloud.common.domain.TenantId;
 import java.time.LocalDateTime;
 import com.baomidou.mybatisplus.annotation.TableId;
 import java.io.Serializable;
@@ -29,7 +30,7 @@ public class OrdRefund implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @TableField(value = "tenant_id", fill = FieldFill.INSERT)
-    private String tenantId;
+    private TenantId tenantId;
 
     @TableId(value = "id", type = IdType.ASSIGN_ID)
     private Long id;
@@ -61,7 +62,7 @@ public class OrdRefund implements Serializable {
     private String refundItems;
 
     @TableField("refund_amount")
-    private BigDecimal refundAmount;
+    private Money refundAmount;
     @TableField("status")
     private Integer status;
 

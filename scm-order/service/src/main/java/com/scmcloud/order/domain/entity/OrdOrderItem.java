@@ -1,13 +1,14 @@
 package com.scmcloud.order.domain.entity;
 
-import java.math.BigDecimal;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.scmcloud.common.domain.Money;
+import com.scmcloud.common.domain.Quantity;
+import com.scmcloud.common.domain.TenantId;
 import java.time.LocalDateTime;
 import com.baomidou.mybatisplus.annotation.TableId;
-import java.io.Serializable;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
@@ -27,7 +28,7 @@ import lombok.experimental.Accessors;
 public class OrdOrderItem {
 
     @TableField(value = "tenant_id", fill = FieldFill.INSERT)
-    private String tenantId;
+    private TenantId tenantId;
 
     @TableId(value = "id", type = IdType.ASSIGN_ID)
     private Long id;
@@ -59,31 +60,31 @@ public class OrdOrderItem {
     private String imageUrl;
 
     @TableField("original_price")
-    private BigDecimal originalPrice;
+    private Money originalPrice;
 
     @TableField("selling_price")
-    private BigDecimal sellingPrice;
+    private Money sellingPrice;
 
     @TableField("quantity")
-    private Integer quantity;
+    private Quantity quantity;
 
     @TableField("subtotal")
-    private BigDecimal subtotal;
+    private Money subtotal;
 
     @TableField("discount_amount")
-    private BigDecimal discountAmount;
+    private Money discountAmount;
 
     @TableField("final_amount")
-    private BigDecimal finalAmount;
+    private Money finalAmount;
 
     @TableField("warehouse_id")
     private String warehouseId;
 
     @TableField("refund_quantity")
-    private Integer refundQuantity;
+    private Quantity refundQuantity;
 
     @TableField("refund_amount")
-    private BigDecimal refundAmount;
+    private Money refundAmount;
 
     @TableField("create_time")
     private LocalDateTime createTime;
