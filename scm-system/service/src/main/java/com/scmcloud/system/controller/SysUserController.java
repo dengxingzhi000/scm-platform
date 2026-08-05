@@ -9,7 +9,9 @@ import com.scmcloud.common.dto.user.ChangePasswordRequest;
 import com.scmcloud.common.dto.role.TemporaryRoleGrantDTO;
 import com.scmcloud.common.dto.user.UserDTO;
 import com.scmcloud.common.web.util.SecurityUtils;
-import com.scmcloud.system.service.ISysUserService;
+import com.scmcloud.system.service.command.ISysUserCommandService;
+import com.scmcloud.system.service.command.IUserRoleCommandService;
+import com.scmcloud.system.service.query.ISysUserQueryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -32,7 +34,9 @@ import java.util.UUID;
 @RequestMapping("/api/system/users")
 @RequiredArgsConstructor
 public class SysUserController {
-    private final ISysUserService userService;
+    private final ISysUserQueryService userQueryService;
+    private final ISysUserCommandService userCommandService;
+    private final IUserRoleCommandService userRoleCommandService;
     private final SysAuthServiceClient authServiceClient;
 
     /**
@@ -44,7 +48,7 @@ public class SysUserController {
                                                  @RequestParam(defaultValue = "10") Integer size,
                                                  @RequestParam(required = false) String username,
                                                  @RequestParam(required = false) Integer status) {
-        Page<UserDTO> result = userService.listUsers(page, size, username, status);
+        Page<UserDTO> result = userQueryService.listUsers(page, size, username, status);
 
         return ApiResponse.success(PageResult.of(result));
     }
@@ -55,7 +59,7 @@ public class SysUserController {
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('system:user:list')")
     public ApiResponse<UserDTO> getById(@PathVariable UUID id) {
-        UserDTO user = userService.getUserById(id);
+        UserDTO user = userQueryService.getUserById(id);
 
         return ApiResponse.success(user);
     }
@@ -70,7 +74,7 @@ public class SysUserController {
             businessType = "USER"
     )
     public ApiResponse<Void> add(@Validated @RequestBody UserDTO userDTO) {
-        userService.addUser(userDTO);
+        userCommandService.addUser(userDTO);
 
         return ApiResponse.success();
     }
@@ -86,7 +90,7 @@ public class SysUserController {
     )
     public ApiResponse<Void> update(@PathVariable UUID id, @Validated @RequestBody UserDTO userDTO) {
         userDTO.setId(id);
-        userService.updateUser(userDTO);
+        userCommandService.updateUser(userDTO);
 
         return ApiResponse.success();
     }
@@ -102,7 +106,7 @@ public class SysUserController {
             riskLevel = 4
     )
     public ApiResponse<Void> delete(@PathVariable UUID id) {
-        userService.deleteUser(id);
+        userCommandService.deleteUser(id);
 
         return ApiResponse.success();
     }
@@ -113,7 +117,7 @@ public class SysUserController {
     @PostMapping("/change-password")
     public ApiResponse<Void> changePassword(@Validated @RequestBody ChangePasswordRequest request) {
         UUID userId = SecurityUtils.getCurrentUserUuid().orElse(null);
-        userService.changePassword(userId, request.getOldPassword(), request.getNewPassword());
+        userCommandService.changePassword(userId, request.getOldPassword(), request.getNewPassword());
 
         return ApiResponse.success();
     }
@@ -129,7 +133,7 @@ public class SysUserController {
             riskLevel = 3
     )
     public ApiResponse<String> resetPassword(@PathVariable UUID id) {
-        String newPassword = userService.resetPassword(id);
+        String newPassword = userCommandService.resetPassword(id);
 
         return ApiResponse.success(newPassword);
     }
@@ -145,7 +149,7 @@ public class SysUserController {
             riskLevel = 4
     )
     public ApiResponse<Void> grantRoles(@PathVariable UUID id, @RequestBody List<UUID> roleIds) {
-        userService.grantRoles(id, roleIds);
+        userCommandService.grantRoles(id, roleIds);
 
         return ApiResponse.success();
     }
@@ -161,7 +165,7 @@ public class SysUserController {
             riskLevel = 3
     )
     public ApiResponse<Void> lockUser(@PathVariable UUID id, @RequestParam Boolean lock) {
-        userService.lockUser(id, lock);
+        userCommandService.lockUser(id, lock);
 
         return ApiResponse.success();
     }
@@ -194,7 +198,7 @@ public class SysUserController {
     )
     public ApiResponse<Void> grantTemporaryRoles(@PathVariable UUID id,
                                                  @RequestBody @Validated TemporaryRoleGrantDTO dto) {
-        userService.grantTemporaryRoles(
+        userRoleCommandService.grantTemporaryRoles(
                 id,
                 dto.getRoleIds(),
                 dto.getEffectiveTime(),
@@ -218,7 +222,7 @@ public class SysUserController {
             @PathVariable UUID userId,
             @PathVariable UUID roleId,
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime newExpireTime) {
-        userService.extendTemporaryRole(userId, roleId, newExpireTime);
+        userRoleCommandService.extendTemporaryRole(userId, roleId, newExpireTime);
 
         return ApiResponse.success();
     }
@@ -234,7 +238,7 @@ public class SysUserController {
             riskLevel = 3
     )
     public ApiResponse<Void> terminateTemporaryRole(@PathVariable UUID userId, @PathVariable UUID roleId) {
-        userService.terminateTemporaryRole(userId, roleId);
+        userRoleCommandService.terminateTemporaryRole(userId, roleId);
 
         return ApiResponse.success();
     }
@@ -245,7 +249,7 @@ public class SysUserController {
     @GetMapping("/{id}/temporary-roles")
     @PreAuthorize("hasAuthority('system:user:list')")
     public ApiResponse<List<Map<String, Object>>> getUserTemporaryRoles(@PathVariable UUID id) {
-        List<Map<String, Object>> roles = userService.getUserTemporaryRoles(id);
+        List<Map<String, Object>> roles = userQueryService.getUserTemporaryRoles(id);
 
         return ApiResponse.success(roles);
     }
@@ -256,7 +260,7 @@ public class SysUserController {
     @GetMapping("/{id}/statistics")
     @PreAuthorize("hasAuthority('system:user:list')")
     public ApiResponse<Map<String, Object>> getUserStatistics(@PathVariable UUID id) {
-        Map<String, Object> stats = userService.getUserStatistics(id);
+        Map<String, Object> stats = userQueryService.getUserStatistics(id);
 
         return ApiResponse.success(stats);
     }
@@ -266,7 +270,7 @@ public class SysUserController {
      */
     @GetMapping("/{userId}/update-login")
     public ApiResponse<Void> updateLastLogin(@PathVariable UUID userId, @RequestParam("ipAddress") String ipAddress) {
-        userService.updateLastLogin(userId, ipAddress);
+        userCommandService.updateLastLogin(userId, ipAddress);
 
         return ApiResponse.success();
     }
