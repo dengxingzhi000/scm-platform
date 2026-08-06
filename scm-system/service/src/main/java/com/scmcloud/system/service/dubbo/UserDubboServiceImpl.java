@@ -4,7 +4,8 @@ import com.scmcloud.common.dto.user.UserDTO;
 import com.scmcloud.common.dto.user.UserInfo;
 import com.scmcloud.common.web.domain.SecurityUser;
 import com.scmcloud.system.service.ISysPermissionService;
-import com.scmcloud.system.service.ISysUserService;
+import com.scmcloud.system.service.command.ISysUserCommandService;
+import com.scmcloud.system.service.query.ISysUserQueryService;
 import com.scmcloud.system.api.UserDubboService;
 import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboService;
@@ -25,12 +26,13 @@ import java.util.UUID;
 @DubboService
 @Component
 public class UserDubboServiceImpl implements UserDubboService {
-    private final ISysUserService sysUserService;
+    private final ISysUserQueryService sysUserQueryService;
+    private final ISysUserCommandService sysUserCommandService;
     private final ISysPermissionService sysPermissionService;
 
     @Override
     public SecurityUser getUserByUsername(String username) {
-        return sysUserService.getUserByUsername(username);
+        return sysUserQueryService.getUserByUsername(username);
     }
 
     @Override
@@ -45,18 +47,18 @@ public class UserDubboServiceImpl implements UserDubboService {
 
     @Override
     public UserInfo getUserInfo(UUID userId) {
-        return sysUserService.getUserInfo(userId);
+        return sysUserQueryService.getUserInfo(userId);
     }
 
     @Override
     public void updateLastLogin(UUID userId, String ipAddress, LocalDateTime loginTime) {
         // 璋冪敤鐜版湁鏂规硶锛涘鏋滀笉闇€瑕侊紝鍒欏拷锟絣oginTime 鍙傛暟锟?
-        sysUserService.updateLastLogin(userId, ipAddress);
+        sysUserCommandService.updateLastLogin(userId, ipAddress);
     }
 
     @Override
     public UserDTO getUserById(UUID userId) {
-        return sysUserService.getUserById(userId);
+        return sysUserQueryService.getUserById(userId);
     }
 
     @Override

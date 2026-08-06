@@ -37,6 +37,8 @@ public enum ResultCode {
     USER_EXIST(1006, "User Already Exists"),
     USER_CANNOT_DELETE_ADMIN(1007, "Cannot Delete Admin User"),
     USER_CANNOT_DELETE_SELF(1008, "Cannot Delete Self"),
+    USER_PASSWORD_INCORRECT_OLD(1010, "Old Password Incorrect"),
+    USER_PASSWORD_SAME_AS_OLD(1011, "New Password Must Differ From Old"),
     USER_NEED_LOGIN(1009, "Login Required"),
 
 
