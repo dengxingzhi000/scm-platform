@@ -13,7 +13,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
-import org.springframework.security.authentication.TestAuthenticationToken;
+import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextImpl;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -150,7 +150,7 @@ class IdentityPropagationWebFilterTest {
     @Test
     @DisplayName("Should skip when authentication is not JWT")
     void testFilter_NonJwtAuthentication() {
-        TestAuthenticationToken auth = new TestAuthenticationToken("user", "pass",
+        TestingAuthenticationToken auth = new TestingAuthenticationToken("user", "pass",
                 List.of(() -> "ROLE_USER"));
 
         SecurityContextImpl context = new SecurityContextImpl(auth);
