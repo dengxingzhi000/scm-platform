@@ -78,8 +78,8 @@ seata:
       namespace: ${NACOS_NAMESPACE:}
       group: SEATA_GROUP
       data-id: seataServer.properties
-      username: nacos
-      password: nacos
+      username: ${NACOS_USERNAME:nacos}
+      password: ${NACOS_PASSWORD:nacos}
 
   # Use Nacos as registry center
   registry:
@@ -90,8 +90,8 @@ seata:
       namespace: ${NACOS_NAMESPACE:}
       group: SEATA_GROUP
       cluster: default
-      username: nacos
-      password: nacos
+      username: ${NACOS_USERNAME:nacos}
+      password: ${NACOS_PASSWORD:nacos}
 
   # Client config
   client:

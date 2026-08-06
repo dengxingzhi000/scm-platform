@@ -35,7 +35,7 @@ seata:
       namespace: ""
       cluster: default
       username: nacos
-      password: nacos
+      password: nacos # 开发默认值，生产环境务必通过安全方式注入
 
   # 存储模式
   store:
@@ -47,7 +47,7 @@ seata:
       driver-class-name: org.postgresql.Driver
       url: jdbc:postgresql://postgres:5432/seata
       user: admin
-      password: admin123
+      password: admin123 # 开发默认值，生产环境务必修改
       min-conn: 5
       max-conn: 100
       global-table: global_table

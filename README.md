@@ -122,6 +122,30 @@
 - **Node.js 20+** (for frontend)
 - **Docker & Docker Compose**
 
+All components run locally with sensible development defaults; no external
+accounts or cloud credentials are required. See
+[Environment Variables](#environment-variables) for optional overrides.
+
+### Environment Variables
+
+Everything has a local-development default, so you can start without setting
+anything. Override via your shell or a `.env` file (never commit one):
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `JWT_SECRET` | dev placeholder | JWT signing key — **must be ≥ 512 bits (64 bytes)**; required in production |
+| `NACOS_SERVER` | `localhost:8848` | Nacos config/registry address |
+| `NACOS_USERNAME` / `NACOS_PASSWORD` | `nacos` / `nacos` | Nacos auth credentials |
+| `DB_HOST` / `DB_PORT` | `localhost` / `5432` | PostgreSQL host / port |
+| `DB_USERNAME` / `DB_PASSWORD` | `admin` / `changeme` | PostgreSQL credentials |
+| `REDIS_HOST` / `REDIS_PORT` | `localhost` / `6379` | Redis host / port |
+| `REDIS_PASSWORD` | `changeme` | Redis password |
+| `SEATA_SERVER_ADDR` | `127.0.0.1:8091` | Seata server address |
+
+> **Security note:** the checked-in `docker-compose.yml`, Helm `values*.yaml`, and
+> `deploy/k8s/secrets.yml` contain **placeholder** credentials only. Set real
+> values via the environment / secrets manager before any production deployment.
+
 ### 1. Start Infrastructure
 
 ```bash
@@ -404,6 +428,9 @@ Contributions are welcome! Please read the [contributing guidelines](./CONTRIBUT
 3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
+
+Please also review the [code of conduct](./CODE_OF_CONDUCT.md). All notable
+changes are tracked in [CHANGELOG.md](./CHANGELOG.md).
 
 ## License
 

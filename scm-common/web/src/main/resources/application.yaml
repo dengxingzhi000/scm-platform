@@ -1,6 +1,8 @@
 # JWT 配置
 jwt:
-  secret: ${JWT_SECRET:t+gG4GvjtxpXiYSW64mTNVK2TmnwtvHNXrp0TGjrGz9sd5XzzFJ7bw83puCeMoVS8Yp+9pRl78FK0L8XI3zlcg==}
+  # 生产环境必须通过 JWT_SECRET 环境变量覆盖（至少 512 bits / 64 字节）
+  # 以下仅为本地开发占位符，严禁用于生产
+  secret: ${JWT_SECRET:CHANGE-ME-dev-only-secret-key-0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab}
   expiration: 7200000 # 2小时
   refresh-expiration: 604800000 # 7天
   issuer: nearsync-auth-service

@@ -17,7 +17,8 @@ env:
 
 secrets:
   dbUsername: "admin"
-  dbPassword: "admin123"
+  # Override at install time via --set secrets.dbPassword or a secrets values file
+  dbPassword: "change-me"
 
 resources:
   auth:

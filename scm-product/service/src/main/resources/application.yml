@@ -75,8 +75,8 @@ seata:
       namespace: ${NACOS_NAMESPACE:}
       group: SEATA_GROUP
       data-id: seataServer.properties
-      username: nacos
-      password: nacos
+      username: ${NACOS_USERNAME:nacos}
+      password: ${NACOS_PASSWORD:nacos}
 
   registry:
     type: nacos
@@ -86,8 +86,8 @@ seata:
       namespace: ${NACOS_NAMESPACE:}
       group: SEATA_GROUP
       cluster: default
-      username: nacos
-      password: nacos
+      username: ${NACOS_USERNAME:nacos}
+      password: ${NACOS_PASSWORD:nacos}
 
   # 客户端配置
   client:

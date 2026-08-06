@@ -39,3 +39,15 @@ desktop.ini
 *.key
 *.p12
 !scripts/**/*.p12
+
+# Secrets / credentials (never commit real values)
+*.env
+.env
+.env.*
+secrets.*
+secrets/
+*.jks
+*.jceks
+nacos-log/
+application-local.yml
+application-local.yaml

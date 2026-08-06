@@ -18,14 +18,15 @@ services:
 # Dev infrastructure
 postgresql:
   auth:
-    postgresPassword: dev123
+    # Override via --set postgresql.auth.postgresPassword or values override
+    postgresPassword: change-me-dev
   primary:
     persistence:
       size: 2Gi
 
 redis:
   auth:
-    password: dev123
+    password: change-me-dev
   master:
     persistence:
       size: 1Gi

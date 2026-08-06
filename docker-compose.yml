@@ -18,9 +18,10 @@ services:
       MYSQL_SERVICE_DB_NAME: nacos
       MYSQL_SERVICE_PORT: 3306
       MYSQL_SERVICE_USER: nacos
-      MYSQL_SERVICE_PASSWORD: nacos
+      MYSQL_SERVICE_PASSWORD: ${NACOS_MYSQL_PASSWORD:-nacos}
       NACOS_AUTH_ENABLE: true
-      NACOS_AUTH_TOKEN: SecretKey012345678901234567890123456789012345678901234567890123456789
+      # 生产环境必须通过 NACOS_AUTH_TOKEN 环境变量覆盖
+      NACOS_AUTH_TOKEN: ${NACOS_AUTH_TOKEN:-SecretKey012345678901234567890123456789012345678901234567890123456789}
       NACOS_AUTH_IDENTITY_KEY: nacos
       NACOS_AUTH_IDENTITY_VALUE: nacos
     ports:
@@ -44,10 +45,10 @@ services:
     image: mysql:8.0
     container_name: scm-mysql-nacos
     environment:
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: ${NACOS_MYSQL_ROOT_PASSWORD:-root}
       MYSQL_DATABASE: nacos
       MYSQL_USER: nacos
-      MYSQL_PASSWORD: nacos
+      MYSQL_PASSWORD: ${NACOS_MYSQL_PASSWORD:-nacos}
     volumes:
       - mysql_nacos_data:/var/lib/mysql
     networks:
@@ -60,8 +61,8 @@ services:
     image: postgres:16-alpine
     container_name: scm-postgres
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: admin123
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-admin123}
       POSTGRES_DB: postgres
       PGDATA: /var/lib/postgresql/data/pgdata
     ports:
@@ -91,7 +92,7 @@ services:
     networks:
       - scm-network
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "admin123", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-admin123}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -209,7 +210,7 @@ services:
     container_name: scm-rabbitmq
     environment:
       RABBITMQ_DEFAULT_USER: admin
-      RABBITMQ_DEFAULT_PASS: admin123
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-admin123}
     ports:
       - "5672:5672"   # AMQP
       - "15672:15672" # Management UI
@@ -290,7 +291,7 @@ services:
       PARAMS: >
         --spring.datasource.url=jdbc:mysql://mysql-xxljob:3306/xxl_job?useUnicode=true&characterEncoding=UTF-8&autoReconnect=true&serverTimezone=Asia/Shanghai
         --spring.datasource.username=root
-        --spring.datasource.password=root
+        --spring.datasource.password=${XXLJOB_MYSQL_PASSWORD:-root}
     volumes:
       - xxljob_data:/data/applogs
     depends_on:
@@ -302,7 +303,7 @@ services:
     image: mysql:8.0
     container_name: scm-mysql-xxljob
     environment:
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: ${XXLJOB_MYSQL_PASSWORD:-root}
       MYSQL_DATABASE: xxl_job
     volumes:
       - mysql_xxljob_data:/var/lib/mysql
@@ -346,7 +347,7 @@ services:
       - "3000:3000"
     environment:
       GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
       GF_INSTALL_PLUGINS: redis-datasource
     volumes:
       - grafana_data:/var/lib/grafana
