@@ -1,8 +1,8 @@
 package com.scmcloud.system.service.Impl;
 
+import com.scmcloud.common.entity.SysDataPermissionRule;
 import com.scmcloud.common.security.PermissionQueryService;
 import com.scmcloud.system.domain.entity.SysDept;
-import com.scmcloud.system.domain.entity.SysRole;
 import com.scmcloud.system.mapper.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,8 +12,8 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 
 /**
- * 权限查询服务实现类
- *
+ * 权限查询服务实现
+ * <p>
  * 提供权限、角色、数据权限等查询功能，支持缓存
  *
  * @author Claude Code
@@ -28,94 +28,72 @@ public class PermissionQueryServiceImpl implements PermissionQueryService {
     private final SysDeptMapper deptMapper;
     private final SysRoleMapper roleMapper;
 
-    /**
-     * 查询用户的所有权限编码（带缓存）
-     */
     @Override
     @Cacheable(value = "userPermissions", key = "#userId")
     public Set<String> getUserPermissions(UUID userId) {
         if (userId == null) {
             return Collections.emptySet();
         }
-
         Set<String> permissions = userRoleMapper.findPermissionCodesByUserId(userId);
         return permissions != null ? permissions : Collections.emptySet();
     }
 
-    /**
-     * 查询用户的所有角色编码（带缓存）
-     */
     @Override
     @Cacheable(value = "userRoles", key = "#userId")
     public Set<String> getUserRoles(UUID userId) {
         if (userId == null) {
             return Collections.emptySet();
         }
-
         Set<String> roles = userRoleMapper.findRoleCodesByUserId(userId);
         return roles != null ? roles : Collections.emptySet();
     }
 
     /**
      * 获取用户的数据权限范围（带缓存）
-     *
+     * <p>
      * 取用户所有角色中权限范围最大的（数值最小的）
-     * NULL = 1（全部）, DEPT = 2（本部门）, DEPT_AND_SUB = 3（本部门及下级）, SELF = 4（仅本人）, CUSTOM = 5（自定义）
+     * 1=ALL, 2=DEPT, 3=DEPT_AND_SUB, 4=SELF, 5=CUSTOM
      */
     @Override
     @Cacheable(value = "userDataScope", key = "#userId")
     public String getUserDataScope(UUID userId) {
         if (userId == null) {
-            return "SELF"; // 默认仅本人
+            return "SELF";
         }
 
-        // 获取用户所有有效角色的data_scope，取最小值（权限最大）
         Integer dataScopeValue = userRoleMapper.getUserDataScope(userId);
 
-        if (dataScopeValue == null || dataScopeValue == 1) {
-            return "ALL";
-        } else if (dataScopeValue == 2) {
-            return "DEPT";
-        } else if (dataScopeValue == 3) {
-            return "DEPT_AND_SUB";
-        } else if (dataScopeValue == 4) {
-            return "SELF";
-        } else if (dataScopeValue == 5) {
-            return "CUSTOM";
-        }
-
-        return "SELF"; // 默认仅本人
+        return switch (dataScopeValue) {
+            case 1 -> "ALL";
+            case 2 -> "DEPT";
+            case 3 -> "DEPT_AND_SUB";
+            case 4 -> "SELF";
+            case 5 -> "CUSTOM";
+            default -> "SELF";
+        };
     }
 
-    /**
-     * 获取用户的部门ID（带缓存）
-     */
     @Override
     @Cacheable(value = "userDeptId", key = "#userId")
     public UUID getUserDeptId(UUID userId) {
         if (userId == null) {
             return null;
         }
-
         return userMapper.getUserDeptId(userId);
     }
 
-    /**
-     * 获取部门路径（带缓存）
-     */
     @Override
     @Cacheable(value = "deptPath", key = "#deptId")
     public String getDeptPath(UUID deptId) {
         if (deptId == null) {
             return null;
         }
-
         SysDept dept = deptMapper.selectById(deptId);
         return dept != null ? dept.getDeptPath() : null;
     }
 
     /**
-     * 获取用户可访问的部门ID列表（带缓存）
+     * 获取用户可访问的部门 ID 列表（带缓存）
      */
     @Override
     @Cacheable(value = "accessibleDeptIds", key = "#userId + ':' + #tenantId + ':' + #dataScope")
@@ -124,54 +102,35 @@ public class PermissionQueryServiceImpl implements PermissionQueryService {
             return Collections.emptyList();
         }
 
-        // ALL - 返回空列表表示可以访问所有部门（不需要过滤）
-        if ("ALL".equals(dataScope)) {
-            return Collections.emptyList();
-        }
-
-        // SELF - 不涉及部门过滤
-        if ("SELF".equals(dataScope)) {
-            return Collections.emptyList();
-        }
-
-        // 获取用户部门 ID
-        UUID userDeptId = getUserDeptId(userId);
-        if (userDeptId == null) {
-            return Collections.emptyList();
-        }
-
-        // DEPT - 只能访问本部门
-        if ("DEPT".equals(dataScope)) {
-            return List.of(userDeptId);
-        }
-
-        // DEPT_AND_SUB - 可以访问本部门及下级部门
-        if ("DEPT_AND_SUB".equals(dataScope)) {
-            List<UUID> deptIds = deptMapper.selectDeptAndChildren(userDeptId);
-            return deptIds != null ? deptIds : List.of(userDeptId);
-        }
-
-        // CUSTOM - 自定义规则（查询 sys_role_dept 表）
-        if ("CUSTOM".equals(dataScope)) {
-            log.warn("CUSTOM data scope not yet implemented, falling back to user dept. userId: {}", userId);
-            return List.of(userDeptId);
-        }
-
-        return Collections.emptyList();
+        return switch (dataScope) {
+            case "DEPT" -> {
+                UUID userDeptId = getUserDeptId(userId);
+                yield userDeptId != null ? List.of(userDeptId) : Collections.emptyList();
+            }
+            case "DEPT_AND_SUB" -> {
+                UUID userDeptId = getUserDeptId(userId);
+                if (userDeptId == null) {
+                    yield Collections.emptyList();
+                }
+                List<UUID> deptIds = deptMapper.selectDeptAndChildren(userDeptId);
+                yield deptIds != null ? deptIds : List.of(userDeptId);
+            }
+            case "CUSTOM" -> {
+                UUID userDeptId = getUserDeptId(userId);
+                log.warn("CUSTOM data scope not implemented yet for userId: {}", userId);
+                yield userDeptId != null ? List.of(userDeptId) : Collections.emptyList();
+            }
+            default -> Collections.emptyList();
+        };
     }
 
-    /**
-     * 获取角色等级（带缓存）
-     */
     @Override
     @Cacheable(value = "roleLevel", key = "#roleId")
     public Integer getRoleLevel(UUID roleId) {
         if (roleId == null) {
             return null;
         }
-
-        SysRole role = roleMapper.selectById(roleId);
-        return role != null ? role.getRoleLevel() : null;
+        return roleMapper.getRoleLevel(roleId);
     }
 
     /**
@@ -184,21 +143,24 @@ public class PermissionQueryServiceImpl implements PermissionQueryService {
             return null;
         }
 
-        // 获取用户所有有效角色ID
         List<UUID> roleIds = userRoleMapper.findEffectiveRoleIds(userId);
         if (roleIds == null || roleIds.isEmpty()) {
             return null;
         }
 
-        // 查询所有角色的等级，取最大
-        Integer maxLevel = null;
-        for (UUID roleId : roleIds) {
-            Integer level = getRoleLevel(roleId);
-            if (level != null && (maxLevel == null || level > maxLevel)) {
-                maxLevel = level;
-            }
-        }
+        Map<UUID, Integer> roleLevels = roleMapper.getRoleLevelsByRoleIds(roleIds);
+        return roleLevels.values().stream()
+                .filter(Objects::nonNull)
+                .max(Integer::compareTo)
+                .orElse(null);
+    }
 
-        return maxLevel;
+    @Override
+    public List<SysDataPermissionRule> getCustomDataPermissionRules(UUID userId, String resourceType) {
+        if (userId == null) {
+            return Collections.emptyList();
+        }
+        log.warn("getCustomDataPermissionRules not fully implemented for userId: {}", userId);
+        return Collections.emptyList();
     }
 }

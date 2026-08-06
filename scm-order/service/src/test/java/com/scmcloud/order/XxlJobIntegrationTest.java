@@ -17,6 +17,9 @@ import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+import com.scmcloud.common.domain.Money;
+import com.scmcloud.common.domain.Quantity;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 @RequiredArgsConstructor
@@ -287,8 +290,8 @@ public class XxlJobIntegrationTest {
         order.setOrderNo("TEST" + System.currentTimeMillis() + userId);
         order.setUserId(String.valueOf(userId));
         order.setSkuId(String.valueOf(skuId));
-        order.setQuantity(quantity);
-        order.setTotalAmount(new BigDecimal("99.00").multiply(new BigDecimal(quantity)));
+        order.setQuantity(Quantity.of(quantity));
+        order.setTotalAmount(Money.of(new BigDecimal("99.00").multiply(new BigDecimal(quantity))));
         order.setStatus(OrderStatus.valueOf(status).getCode());
         order.setRemark("XXL-Job test order");
         order.setCreateTime(LocalDateTime.now());

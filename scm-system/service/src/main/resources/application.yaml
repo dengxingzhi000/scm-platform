@@ -339,3 +339,7 @@ logging:
 
     # MyBatis SQL logging (disable in production)
     com.scmcloud.system.mapper: ${SQL_LOG_LEVEL:INFO}
+
+app:
+  security:
+    admin-user-id: 019a0aee-3b74-7bfc-b34f-48b5428d4875

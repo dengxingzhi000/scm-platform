@@ -8,8 +8,10 @@ import com.baomidou.mybatisplus.extension.plugins.inner.OptimisticLockerInnerInt
 import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor;
 import com.scmcloud.common.domain.Money;
 import com.scmcloud.common.domain.Quantity;
+import com.scmcloud.common.domain.TenantId;
 import com.scmcloud.common.mybatisPlus.handler.MoneyTypeHandler;
 import com.scmcloud.common.mybatisPlus.handler.QuantityTypeHandler;
+import com.scmcloud.common.mybatisPlus.handler.TenantIdTypeHandler;
 import com.scmcloud.common.mybatisPlus.handler.UUIDTypeHandler;
 import com.scmcloud.common.mybatisPlus.properties.MybatisPlusProperties;
 import org.apache.ibatis.type.TypeHandlerRegistry;
@@ -59,9 +61,10 @@ public class MybatisPlusConfig {
             TypeHandlerRegistry typeHandlerRegistry = configuration.getTypeHandlerRegistry();
             // 娉ㄥ唽 UUID绫诲瀷澶勭悊锟?
             typeHandlerRegistry.register(UUID.class, UUIDTypeHandler.class);
-            // 娉ㄥ唽鍊煎璞＄被鍨嬪鐞嗗櫒
+            // 娉ㄥ唽鍊煎璞＄被鍨嬪鐞嗗櫒
             typeHandlerRegistry.register(Money.class, MoneyTypeHandler.class);
             typeHandlerRegistry.register(Quantity.class, QuantityTypeHandler.class);
+            typeHandlerRegistry.register(TenantId.class, TenantIdTypeHandler.class);
         };
     }
 
