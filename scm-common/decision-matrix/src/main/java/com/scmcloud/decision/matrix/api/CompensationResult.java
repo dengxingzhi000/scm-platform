@@ -1,11 +1,18 @@
 package com.scmcloud.decision.matrix.api;
 
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+
 import java.util.List;
-import java.util.Map;
 
 /**
  * Result of a compensation operation.
  */
+@Getter
+@ToString
+@EqualsAndHashCode
 public class CompensationResult {
 
     private final String executionId;
@@ -14,33 +21,14 @@ public class CompensationResult {
     private final long totalDurationMs;
     private final String errorMessage;
 
-    public CompensationResult(String executionId, CompensationStatus status,
+    @Builder
+    private CompensationResult(String executionId, CompensationStatus status,
                                List<CompensationAction> actions, long totalDurationMs, String errorMessage) {
         this.executionId = executionId;
         this.status = status;
-        this.actions = actions != null ? actions : List.of();
+        this.actions = actions != null ? List.copyOf(actions) : List.of();
         this.totalDurationMs = totalDurationMs;
         this.errorMessage = errorMessage;
-    }
-
-    public String getExecutionId() {
-        return executionId;
-    }
-
-    public CompensationStatus getStatus() {
-        return status;
-    }
-
-    public List<CompensationAction> getActions() {
-        return actions;
-    }
-
-    public long getTotalDurationMs() {
-        return totalDurationMs;
-    }
-
-    public String getErrorMessage() {
-        return errorMessage;
     }
 
     public boolean isSuccess() {

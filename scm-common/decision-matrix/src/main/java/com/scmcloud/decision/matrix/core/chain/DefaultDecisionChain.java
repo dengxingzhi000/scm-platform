@@ -2,11 +2,10 @@ package com.scmcloud.decision.matrix.core.chain;
 
 import com.scmcloud.decision.matrix.api.*;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.*;
+import jakarta.annotation.PreDestroy;
 
 /**
  * Default implementation of DecisionChain.
@@ -24,17 +23,23 @@ public class DefaultDecisionChain implements DecisionChain {
     private final List<DecisionNode> nodes;
     private final Map<String, DecisionNode> fallbackNodes;
     private final ExecutorService executorService;
+    private final boolean ownsExecutor;
 
     public DefaultDecisionChain(String chainId, String chainName) {
-        this(chainId, chainName, Executors.newCachedThreadPool());
+        this(chainId, chainName, Executors.newCachedThreadPool(), true);
     }
 
     public DefaultDecisionChain(String chainId, String chainName, ExecutorService executorService) {
+        this(chainId, chainName, executorService, false);
+    }
+
+    private DefaultDecisionChain(String chainId, String chainName, ExecutorService executorService, boolean ownsExecutor) {
         this.chainId = chainId;
         this.chainName = chainName;
         this.nodes = new ArrayList<>();
         this.fallbackNodes = new HashMap<>();
         this.executorService = executorService;
+        this.ownsExecutor = ownsExecutor;
     }
 
     @Override
@@ -53,15 +58,20 @@ public class DefaultDecisionChain implements DecisionChain {
     }
 
     @Override
-    public DecisionChain addNode(DecisionNode node) {
+    public void addNode(DecisionNode node) {
         nodes.add(node);
-        return this;
     }
 
     @Override
-    public DecisionChain addFallback(String nodeId, DecisionNode fallbackNode) {
+    public void addFallback(String nodeId, DecisionNode fallbackNode) {
         fallbackNodes.put(nodeId, fallbackNode);
-        return this;
+    }
+
+    @PreDestroy
+    public void destroy() {
+        if (ownsExecutor && executorService != null && !executorService.isShutdown()) {
+            executorService.shutdown();
+        }
     }
 
     @Override
@@ -72,6 +82,7 @@ public class DefaultDecisionChain implements DecisionChain {
         log.info("[DecisionChain] Starting chain [{}] execution [{}]", chainId, executionId);
 
         Map<String, DecisionResult> nodeResults = new LinkedHashMap<>();
+        Set<String> completedNodeIds = new HashSet<>();
         List<String> completedNodes = new ArrayList<>();
         List<String> failedNodes = new ArrayList<>();
         List<String> skippedNodes = new ArrayList<>();
@@ -81,7 +92,7 @@ public class DefaultDecisionChain implements DecisionChain {
 
         for (DecisionNode node : sortedNodes) {
             // Check if dependencies are satisfied
-            if (!areDependenciesSatisfied(node, completedNodes)) {
+            if (!completedNodeIds.containsAll(node.dependencies())) {
                 log.warn("[DecisionChain] Skipping node [{}] - dependencies not satisfied", node.nodeId());
                 skippedNodes.add(node.nodeId());
                 continue;
@@ -91,6 +102,7 @@ public class DefaultDecisionChain implements DecisionChain {
             DecisionResult result = executeNode(node, context);
 
             if (result.isSuccess()) {
+                completedNodeIds.add(node.nodeId());
                 completedNodes.add(node.nodeId());
                 nodeResults.put(node.nodeId(), result);
 
@@ -104,13 +116,14 @@ public class DefaultDecisionChain implements DecisionChain {
                     DecisionResult fallbackResult = executeNode(fallback, context);
 
                     if (fallbackResult.isSuccess()) {
+                        completedNodeIds.add(node.nodeId());
                         completedNodes.add(node.nodeId());
                         nodeResults.put(node.nodeId(), fallbackResult);
                         context = context.withAttribute(node.nodeId() + ".result", fallbackResult.getValue());
                     } else if (node.isCritical()) {
                         failedNodes.add(node.nodeId());
                         nodeResults.put(node.nodeId(), fallbackResult);
-                        log.error("[DecisionChain] Critical node [{}] failed, stopping chain", node.nodeId());
+                        log.error("[DecisionChain] Critical node [{}] fallback also failed, stopping chain", node.nodeId());
                         break;
                     } else {
                         failedNodes.add(node.nodeId());
@@ -144,11 +157,17 @@ public class DefaultDecisionChain implements DecisionChain {
         log.info("[DecisionChain] Chain [{}] completed: status={}, completed={}, failed={}, skipped={}, duration={}ms",
                 chainId, status, completedNodes.size(), failedNodes.size(), skippedNodes.size(), totalDuration);
 
-        return new ChainExecutionResult(
-                chainId, executionId, status,
-                nodeResults, completedNodes, failedNodes, skippedNodes,
-                totalDuration, overallExplanation
-        );
+        return ChainExecutionResult.builder()
+                .chainId(chainId)
+                .executionId(executionId)
+                .status(status)
+                .nodeResults(nodeResults)
+                .completedNodes(completedNodes)
+                .failedNodes(failedNodes)
+                .skippedNodes(skippedNodes)
+                .totalDurationMs(totalDuration)
+                .overallExplanation(overallExplanation)
+                .build();
     }
 
     private DecisionResult executeNode(DecisionNode node, DecisionContext context) {
@@ -157,21 +176,23 @@ public class DefaultDecisionChain implements DecisionChain {
             return future.get(node.timeoutMs(), TimeUnit.MILLISECONDS);
         } catch (TimeoutException e) {
             log.error("[DecisionChain] Node [{}] timed out after {}ms", node.nodeId(), node.timeoutMs());
-            return new DecisionResult(
-                    node.nodeId(), DecisionResult.DecisionStatus.TIMEOUT, null,
-                    0.0, 0.0, null, null, List.of("Timeout after " + node.timeoutMs() + "ms")
-            );
+            return DecisionResult.builder()
+                    .nodeId(node.nodeId())
+                    .status(DecisionResult.DecisionStatus.TIMEOUT)
+                    .score(0.0)
+                    .confidence(0.0)
+                    .warnings(List.of("Timeout after " + node.timeoutMs() + "ms"))
+                    .build();
         } catch (Exception e) {
             log.error("[DecisionChain] Node [{}] failed with exception: {}", node.nodeId(), e.getMessage());
-            return new DecisionResult(
-                    node.nodeId(), DecisionResult.DecisionStatus.FAILURE, null,
-                    0.0, 0.0, null, null, List.of(e.getMessage())
-            );
+            return DecisionResult.builder()
+                    .nodeId(node.nodeId())
+                    .status(DecisionResult.DecisionStatus.FAILURE)
+                    .score(0.0)
+                    .confidence(0.0)
+                    .warnings(List.of(e.getMessage()))
+                    .build();
         }
-    }
-
-    private boolean areDependenciesSatisfied(DecisionNode node, List<String> completedNodes) {
-        return completedNodes.containsAll(node.dependencies());
     }
 
     private List<DecisionNode> topologicalSort(List<DecisionNode> nodes) {
@@ -200,10 +221,13 @@ public class DefaultDecisionChain implements DecisionChain {
                 .average()
                 .orElse(0.0);
 
-        return new DecisionExplanation(
-                chainId,
-                "Chain executed " + nodeResults.size() + " nodes",
-                factorWeights, factorScores, contributingFactors, Map.of("averageScore", avgScore)
-        );
+        return DecisionExplanation.builder()
+                .decisionId(chainId)
+                .primaryReason("Chain executed " + nodeResults.size() + " nodes")
+                .factorWeights(factorWeights)
+                .factorScores(factorScores)
+                .contributingFactors(contributingFactors)
+                .metadata(Map.of("averageScore", avgScore))
+                .build();
     }
 }

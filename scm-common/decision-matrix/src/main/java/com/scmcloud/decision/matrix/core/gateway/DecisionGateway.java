@@ -1,12 +1,9 @@
 package com.scmcloud.decision.matrix.core.gateway;
 
 import com.scmcloud.decision.matrix.api.*;
-import com.scmcloud.decision.matrix.core.chain.DefaultDecisionChain;
 import com.scmcloud.decision.matrix.core.execution.SagaExecutionMatrix;
 import com.scmcloud.decision.matrix.core.fusion.WeightedFusionEngine;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -94,10 +91,14 @@ public class DecisionGateway {
 
         log.info("[Gateway] Route [{}] completed in {}ms", routeId, totalDuration);
 
-        return new GatewayResult(
-                routeId, chainResults, fusedResult, executionResult,
-                totalDuration, fusedResult.getExplanation()
-        );
+        return GatewayResult.builder()
+                .routeId(routeId)
+                .chainResults(chainResults)
+                .fusedResult(fusedResult)
+                .executionResult(executionResult)
+                .totalDurationMs(totalDuration)
+                .explanation(fusedResult.getExplanation())
+                .build();
     }
 
     /**
@@ -130,5 +131,11 @@ public class DecisionGateway {
             Map<String, Double> weights,
             boolean autoExecute,
             List<ExecutionStep> executionSteps
-    ) {}
+    ) {
+        public GatewayRoute {
+            chainIds = chainIds != null ? List.copyOf(chainIds) : List.of();
+            weights = weights != null ? Map.copyOf(weights) : Map.of();
+            executionSteps = executionSteps != null ? List.copyOf(executionSteps) : List.of();
+        }
+    }
 }

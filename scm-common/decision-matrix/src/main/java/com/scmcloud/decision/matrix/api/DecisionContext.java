@@ -1,39 +1,32 @@
 package com.scmcloud.decision.matrix.api;
 
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+
+import java.util.HashMap;
 import java.util.Map;
 
 /**
  * Decision context that carries data through the decision chain.
  */
+@Getter
+@ToString
+@EqualsAndHashCode
 public class DecisionContext {
-
     private final String contextId;
     private final String businessType;
     private final Map<String, Object> attributes;
     private final Map<String, Object> metadata;
 
-    public DecisionContext(String contextId, String businessType,
-                           Map<String, Object> attributes, Map<String, Object> metadata) {
+    @Builder
+    private DecisionContext(String contextId, String businessType,
+                            Map<String, Object> attributes, Map<String, Object> metadata) {
         this.contextId = contextId;
         this.businessType = businessType;
-        this.attributes = attributes != null ? attributes : Map.of();
-        this.metadata = metadata != null ? metadata : Map.of();
-    }
-
-    public String getContextId() {
-        return contextId;
-    }
-
-    public String getBusinessType() {
-        return businessType;
-    }
-
-    public Map<String, Object> getAttributes() {
-        return attributes;
-    }
-
-    public Map<String, Object> getMetadata() {
-        return metadata;
+        this.attributes = attributes != null ? Map.copyOf(attributes) : Map.of();
+        this.metadata = metadata != null ? Map.copyOf(metadata) : Map.of();
     }
 
     @SuppressWarnings("unchecked")
@@ -47,8 +40,13 @@ public class DecisionContext {
     }
 
     public DecisionContext withAttribute(String key, Object value) {
-        Map<String, Object> newAttrs = new java.util.HashMap<>(attributes);
+        Map<String, Object> newAttrs = new HashMap<>(attributes);
         newAttrs.put(key, value);
-        return new DecisionContext(contextId, businessType, newAttrs, metadata);
+        return DecisionContext.builder()
+                .contextId(contextId)
+                .businessType(businessType)
+                .attributes(newAttrs)
+                .metadata(metadata)
+                .build();
     }
 }

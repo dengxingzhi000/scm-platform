@@ -1,7 +1,6 @@
 package com.scmcloud.decision.matrix.api;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Execution matrix interface.

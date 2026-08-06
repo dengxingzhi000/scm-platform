@@ -36,21 +36,13 @@ public class DynamicDataSourceRefresher {
     @EventListener
     public void onApplicationEvent(ApplicationEvent event) {
         String eventClassName = event.getClass().getName();
-
-        if (eventClassName.equals(REFRESH_EVENT_CLASS) ||
-                eventClassName.equals(ENV_CHANGE_EVENT_CLASS)) {
-
-            log.debug("[Dynamic-DS] Configuration refresh detected ({}), reloading datasource settings...",
-                    event.getClass().getSimpleName());
-
-            try {
-                rebindProperties();
-                refreshSlaveSettings();
-                log.debug("[Dynamic-DS] Datasource settings refreshed successfully");
-            } catch (Exception e) {
-                log.error("[Dynamic-DS] Failed to refresh datasource settings", e);
-            }
+        if (!REFRESH_EVENT_CLASS.equals(eventClassName) && !ENV_CHANGE_EVENT_CLASS.equals(eventClassName)) {
+            return;
         }
+
+        log.debug("[Dynamic-DS] Configuration refresh detected ({}), reloading datasource settings...",
+                event.getClass().getSimpleName());
+        doRefresh();
     }
 
     private void rebindProperties() {
@@ -125,8 +117,17 @@ public class DynamicDataSourceRefresher {
 
     public void forceRefresh() {
         log.debug("[Dynamic-DS] Force refresh triggered");
-        rebindProperties();
-        refreshSlaveSettings();
+        doRefresh();
+    }
+
+    private void doRefresh() {
+        try {
+            rebindProperties();
+            refreshSlaveSettings();
+            log.debug("[Dynamic-DS] Datasource settings refreshed successfully");
+        } catch (Exception e) {
+            log.error("[Dynamic-DS] Failed to refresh datasource settings", e);
+        }
     }
 
     public Map<String, Object> getConfigSnapshot() {
