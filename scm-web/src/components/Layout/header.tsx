@@ -1,7 +1,7 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
-import { Layout, Avatar, Dropdown, Space, Tooltip, Switch } from 'antd'
+import { useRouter, usePathname } from 'next/navigation'
+import { Layout, Avatar, Dropdown, Space, Tooltip, Switch, Button, Breadcrumb } from 'antd'
 import {
   UserOutlined,
   LogoutOutlined,
@@ -16,11 +16,13 @@ import { useAuthStore } from '@/stores/useAuthStore'
 import { useUIStore } from '@/stores/ui-store'
 import TenantSwitcher from '@/components/business/tenant-switcher'
 import NotificationBell from '@/features/notification/components/notification-bell'
+import { getBreadcrumb } from './menu-config'
 
 const { Header: AntHeader } = Layout
 
 export default function AppHeader() {
   const router = useRouter()
+  const pathname = usePathname()
   const { user, logout } = useAuthStore()
   const { sidebarCollapsed, toggleSidebar, themeMode, setThemeMode } =
     useUIStore()
@@ -64,34 +66,38 @@ export default function AppHeader() {
   return (
     <AntHeader
       style={{
-        padding: '0 24px',
-        background: 'var(--color-bg-container, #fff)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        borderBottom: '1px solid var(--color-border-secondary, #f0f0f0)',
-        height: 64,
+        background: 'var(--color-bg-header)',
+        borderBottom: '1px solid var(--color-border-secondary)',
+        height: 'var(--header-height)',
         position: 'sticky',
         top: 0,
         zIndex: 100,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-        <div
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Button
+          type="text"
+          aria-label={sidebarCollapsed ? '展开侧边栏' : '收起侧边栏'}
+          icon={sidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
           onClick={toggleSidebar}
-          style={{ cursor: 'pointer', fontSize: 18, padding: '0 8px' }}
-        >
-          {sidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-        </div>
+        />
+        <Breadcrumb
+          items={getBreadcrumb(pathname).map((item) => ({ title: item.title }))}
+        />
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <TenantSwitcher />
 
         <Tooltip title="全屏">
-          <ExpandOutlined
+          <Button
+            type="text"
+            aria-label="全屏"
+            icon={<ExpandOutlined />}
             onClick={toggleFullscreen}
-            style={{ cursor: 'pointer', fontSize: 16 }}
           />
         </Tooltip>
 

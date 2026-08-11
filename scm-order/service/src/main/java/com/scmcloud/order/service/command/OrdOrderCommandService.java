@@ -5,6 +5,7 @@ import com.scmcloud.order.domain.entity.OrderStatus;
 import com.scmcloud.order.domain.entity.OrdOrder;
 import com.scmcloud.order.domain.entity.OrdOrderItem;
 import com.scmcloud.order.domain.entity.OrdStatusHistory;
+import com.scmcloud.order.domain.repository.OrdOrderRepository;
 import com.scmcloud.order.mapper.OrdOrderMapper;
 import com.scmcloud.system.api.StatusMachineDubboService;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,7 @@ public class OrdOrderCommandService {
     private final OrdOrderMapper ordOrderMapper;
     private final OrdOrderItemCommandService ordOrderItemCommandService;
     private final OrdStatusHistoryCommandService ordStatusHistoryCommandService;
+    private final OrdOrderRepository ordOrderRepository;
 
     @DubboReference
     private StatusMachineDubboService statusMachine;
@@ -147,5 +149,33 @@ public class OrdOrderCommandService {
     @Transactional(rollbackFor = Exception.class)
     public int saveBatch(List<OrdOrder> list) {
         return list.stream().map(ordOrderMapper::insert).reduce(0, Integer::sum);
+    }
+
+    /**
+     * 取消超时订单。
+     *
+     * <p>复用领域取消逻辑（状态校验 + 状态流转 + 取消元数据），并通过
+     * {@link OrdOrderRepository#save} 在同一本地事务内写入 outbox，
+     * 保证 OrderCancelledEvent 的原子发布，供下游补偿库存等使用。</p>
+     *
+     * @param order 待取消的订单（须已持久化，含 id）
+     */
+    @Master(reason = "超时取消订单")
+    @Transactional(rollbackFor = Exception.class)
+    public void cancelTimeoutOrder(OrdOrder order) {
+        if (order == null || order.getId() == null) {
+            throw new IllegalArgumentException("待取消订单不能为空且必须包含 id");
+        }
+
+        OrdOrder existing = ordOrderMapper.selectById(order.getId());
+        if (existing == null) {
+            throw new IllegalArgumentException("订单不存在: id=" + order.getId());
+        }
+
+        existing.cancel("订单超时未支付，系统自动取消");
+
+        ordOrderRepository.save(existing);
+
+        log.info("超时订单已取消: orderNo={}, id={}", existing.getOrderNo(), existing.getId());
     }
 }

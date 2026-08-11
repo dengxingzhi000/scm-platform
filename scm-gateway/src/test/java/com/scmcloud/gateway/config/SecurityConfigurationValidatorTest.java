@@ -36,8 +36,6 @@ class SecurityConfigurationValidatorTest {
         ReflectionTestUtils.setField(validator, "webAppSecret", "test-web-app-secret-32-chars-long");
         ReflectionTestUtils.setField(validator, "internalServiceSecret", "test-internal-service-secret-32-chars");
         ReflectionTestUtils.setField(validator, "identitySignatureSecret", "test-identity-signature-secret-64-chars-long-for-hmac-sha256-algorithm");
-        ReflectionTestUtils.setField(validator, "keystorePassword", "test-keystore-password");
-        ReflectionTestUtils.setField(validator, "truststorePassword", "test-truststore-password");
         ReflectionTestUtils.setField(validator, "activeProfile", "dev");
     }
 

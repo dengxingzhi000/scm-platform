@@ -3,3 +3,8 @@ spring:
     nacos:
       discovery:
         server-addr: ${NACOS_SERVER:localhost:8848}
+
+security:
+  oauth2:
+    resource-server:
+      jwk-set-uri: http://localhost:8106/oauth2/jwks

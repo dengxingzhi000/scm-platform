@@ -9,7 +9,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -48,7 +47,6 @@ class IpAccessControlFilterTest {
     @Mock
     private Counter blockedCounter;
 
-    @InjectMocks
     private IpAccessControlFilter filter;
 
     private IpAccessControlProperties properties;
@@ -64,11 +62,11 @@ class IpAccessControlFilterTest {
         properties.setForwardedHeaders(List.of("X-Forwarded-For"));
         properties.setBlockMessage("Access denied");
 
-        // Re-create filter with fresh properties
-        filter = new IpAccessControlFilter(redisTemplate, properties, meterRegistry);
-
         when(meterRegistry.counter("gateway.ip.access.allowed")).thenReturn(allowedCounter);
         when(meterRegistry.counter("gateway.ip.access.blocked")).thenReturn(blockedCounter);
+
+        // Re-create filter with fresh properties
+        filter = new IpAccessControlFilter(redisTemplate, properties, meterRegistry);
 
         MockServerHttpRequest request = MockServerHttpRequest
                 .get("/api/test")
@@ -77,7 +75,7 @@ class IpAccessControlFilterTest {
                 .build();
         exchange = MockServerWebExchange.from(request);
 
-        when(chain.filter(exchange)).thenReturn(Mono.empty());
+        lenient().when(chain.filter(exchange)).thenReturn(Mono.empty());
     }
 
     @Test
@@ -126,7 +124,6 @@ class IpAccessControlFilterTest {
     void testFilter_WhitelistOnly_NotWhitelisted() {
         properties.setWhitelistOnly(true);
         filter = new IpAccessControlFilter(redisTemplate, properties, meterRegistry);
-        when(meterRegistry.counter("gateway.ip.access.blocked")).thenReturn(blockedCounter);
 
         when(redisTemplate.hasKey("security:ip:blacklist:127.0.0.1"))
                 .thenReturn(Mono.just(false));
@@ -145,7 +142,6 @@ class IpAccessControlFilterTest {
     void testFilter_WhitelistOnly_Whitelisted() {
         properties.setWhitelistOnly(true);
         filter = new IpAccessControlFilter(redisTemplate, properties, meterRegistry);
-        when(meterRegistry.counter("gateway.ip.access.allowed")).thenReturn(allowedCounter);
 
         when(redisTemplate.hasKey("security:ip:blacklist:127.0.0.1"))
                 .thenReturn(Mono.just(false));

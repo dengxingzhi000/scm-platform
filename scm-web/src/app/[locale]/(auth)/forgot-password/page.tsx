@@ -2,16 +2,20 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Form, Input, Button, Card, Typography, message, Steps } from 'antd'
+import { useLocale } from 'next-intl'
+import { Form, Input, Button, App, Typography, Steps } from 'antd'
 import { MailOutlined, LockOutlined, SafetyOutlined } from '@ant-design/icons'
+import AuthBrandCard from '@/components/ui/auth-brand-card'
 
-const { Title, Text, Link } = Typography
+const { Link, Text } = Typography
 
 export default function ForgotPasswordPage() {
   const [currentStep, setCurrentStep] = useState(0)
   const [loading, setLoading] = useState(false)
   const [email, setEmail] = useState('')
   const router = useRouter()
+  const locale = useLocale()
+  const { message } = App.useApp()
 
   const onEmailSubmit = async (values: { email: string }) => {
     setLoading(true)
@@ -32,7 +36,7 @@ export default function ForgotPasswordPage() {
 
   const onPasswordSubmit = async () => {
     message.success('密码重置成功')
-    router.push('/login')
+    router.push(`/${locale}/login`)
   }
 
   const steps = [
@@ -82,13 +86,12 @@ export default function ForgotPasswordPage() {
   ]
 
   return (
-    <Card style={{ width: 440 }} bordered={false}>
-      <Title level={3} style={{ textAlign: 'center', marginBottom: 24 }}>找回密码</Title>
-      <Steps current={currentStep} items={steps} style={{ marginBottom: 24 }} />
+    <AuthBrandCard title="找回密码" subtitle="通过已验证邮箱重置您的密码" maxWidth={440}>
+      <Steps current={currentStep} items={steps} style={{ marginBottom: 'var(--spacing-lg)' }} />
       {steps[currentStep].content}
       <div style={{ textAlign: 'center', marginTop: 16 }}>
-        <Link href="/login">返回登录</Link>
+        <Link href={`/${locale}/login`}>返回登录</Link>
       </div>
-    </Card>
+    </AuthBrandCard>
   )
 }

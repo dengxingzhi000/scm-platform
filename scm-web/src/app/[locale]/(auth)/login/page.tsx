@@ -2,14 +2,16 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Form, Input, Button, Card, Typography, message, Checkbox, Space } from 'antd'
+import { useLocale } from 'next-intl'
+import { Form, Input, Button, App, Typography, Checkbox, Space } from 'antd'
 import { UserOutlined, LockOutlined, SafetyOutlined } from '@ant-design/icons'
 import { useMutation } from '@tanstack/react-query'
 import { authApi } from '@/lib/api/endpoints'
 import { useAuthStore } from '@/stores/useAuthStore'
 import type { LoginRequest, LoginResponse } from '@/lib/api/types'
+import AuthBrandCard from '@/components/ui/auth-brand-card'
 
-const { Title, Text, Link } = Typography
+const { Link } = Typography
 
 interface LoginForm {
   username: string
@@ -26,11 +28,34 @@ export default function LoginPage() {
   const [tempToken, setTempToken] = useState('')
   const [totpLoading, setTotpLoading] = useState(false)
   const router = useRouter()
+  const locale = useLocale()
+  const { message } = App.useApp()
   const { login, setPermissions } = useAuthStore()
 
   const loginMutation = useMutation({
     mutationFn: (data: LoginRequest) => authApi.login(data),
   })
+
+  const handleLoginSuccess = (response: LoginResponse) => {
+    const { user, accessToken, refreshToken, permissions } = response
+    login(
+      {
+        id: user.id,
+        username: user.username,
+        displayName: user.displayName,
+        email: user.email,
+        avatar: user.avatar,
+        roles: user.roleNames,
+      },
+      accessToken,
+      refreshToken
+    )
+    if (permissions) {
+      setPermissions(permissions)
+    }
+    message.success('登录成功')
+    router.push(`/${locale}/dashboard`)
+  }
 
   const onLoginFinish = async (values: LoginForm) => {
     try {
@@ -43,24 +68,7 @@ export default function LoginPage() {
         setTempToken(response.data.tempToken!)
         setShowTOTP(true)
       } else {
-        const { user, accessToken, refreshToken, permissions } = response.data
-        login(
-          {
-            id: user.id,
-            username: user.username,
-            displayName: user.displayName,
-            email: user.email,
-            avatar: user.avatar,
-            roles: user.roleNames,
-          },
-          accessToken,
-          refreshToken
-        )
-        if (permissions) {
-          setPermissions(permissions)
-        }
-        message.success('登录成功')
-        router.push('/dashboard')
+        handleLoginSuccess(response.data)
       }
     } catch (error: unknown) {
       const err = error as { response?: { data?: { message?: string } } }
@@ -75,25 +83,7 @@ export default function LoginPage() {
         tempToken,
         code: values.code,
       })) as unknown as { data: LoginResponse }
-
-      const { user, accessToken, refreshToken, permissions } = response.data
-      login(
-        {
-          id: user.id,
-          username: user.username,
-          displayName: user.displayName,
-          email: user.email,
-          avatar: user.avatar,
-          roles: user.roleNames,
-        },
-        accessToken,
-        refreshToken
-      )
-      if (permissions) {
-        setPermissions(permissions)
-      }
-      message.success('登录成功')
-      router.push('/dashboard')
+      handleLoginSuccess(response.data)
     } catch (error: unknown) {
       const err = error as { response?: { data?: { message?: string } } }
       message.error(err.response?.data?.message || '验证码错误')
@@ -104,30 +94,39 @@ export default function LoginPage() {
 
   if (showTOTP) {
     return (
-      <Card style={{ width: 400 }} bordered={false}>
-        <Title level={3} style={{ textAlign: 'center', marginBottom: 8 }}>
-          两步验证
-        </Title>
-        <Text type="secondary" style={{ display: 'block', textAlign: 'center', marginBottom: 24 }}>
-          请输入您的TOTP验证码
-        </Text>
+      <AuthBrandCard title="两步验证" subtitle="请输入您的 TOTP 验证码">
         <Form name="totp" onFinish={onTOTPFinish} layout="vertical">
-          <Form.Item name="code" rules={[{ required: true, message: '请输入验证码' }, { len: 6, message: '验证码为6位数字' }, { pattern: /^\d+$/, message: '验证码只能包含数字' }]}>
-            <Input prefix={<SafetyOutlined />} placeholder="6位验证码" maxLength={6} style={{ textAlign: 'center', fontSize: 24, letterSpacing: 8 }} />
+          <Form.Item
+            name="code"
+            rules={[
+              { required: true, message: '请输入验证码' },
+              { len: 6, message: '验证码为6位数字' },
+              { pattern: /^\d+$/, message: '验证码只能包含数字' },
+            ]}
+          >
+            <Input
+              prefix={<SafetyOutlined />}
+              placeholder="6位验证码"
+              maxLength={6}
+              size="large"
+              style={{ textAlign: 'center', fontSize: 24, letterSpacing: 8 }}
+            />
           </Form.Item>
           <Form.Item>
-            <Button type="primary" htmlType="submit" loading={totpLoading} block size="large">验证</Button>
+            <Button type="primary" htmlType="submit" loading={totpLoading} block size="large">
+              验证
+            </Button>
           </Form.Item>
-          <Button type="link" block onClick={() => setShowTOTP(false)}>返回登录</Button>
+          <Button type="link" block onClick={() => setShowTOTP(false)}>
+            返回登录
+          </Button>
         </Form>
-      </Card>
+      </AuthBrandCard>
     )
   }
 
   return (
-    <Card style={{ width: 400 }} bordered={false}>
-      <Title level={3} style={{ textAlign: 'center', marginBottom: 8 }}>SCM Platform</Title>
-      <Text type="secondary" style={{ display: 'block', textAlign: 'center', marginBottom: 32 }}>供应链管理平台</Text>
+    <AuthBrandCard title="欢迎回来" subtitle="登录您的供应链管理中台">
       <Form name="login" onFinish={onLoginFinish} layout="vertical" initialValues={{ remember: true }}>
         <Form.Item name="username" rules={[{ required: true, message: '请输入用户名' }]}>
           <Input prefix={<UserOutlined />} placeholder="用户名" size="large" />
@@ -137,14 +136,18 @@ export default function LoginPage() {
         </Form.Item>
         <Form.Item>
           <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-            <Form.Item name="remember" valuePropName="checked" noStyle><Checkbox>记住我</Checkbox></Form.Item>
-            <Link href="/forgot-password">忘记密码?</Link>
+            <Form.Item name="remember" valuePropName="checked" noStyle>
+              <Checkbox>记住我</Checkbox>
+            </Form.Item>
+            <Link href={`/${locale}/forgot-password`}>忘记密码?</Link>
           </Space>
         </Form.Item>
         <Form.Item>
-          <Button type="primary" htmlType="submit" loading={loginMutation.isPending} block size="large">登录</Button>
+          <Button type="primary" htmlType="submit" loading={loginMutation.isPending} block size="large">
+            登录
+          </Button>
         </Form.Item>
       </Form>
-    </Card>
+    </AuthBrandCard>
   )
 }

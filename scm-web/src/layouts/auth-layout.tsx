@@ -10,12 +10,18 @@ interface AuthLayoutProps {
 
 export default function AuthLayout({ children }: AuthLayoutProps) {
   return (
-    <Layout style={{ minHeight: '100vh', background: '#f0f2f5' }}>
+    <Layout
+      style={{
+        minHeight: '100vh',
+        background: 'var(--auth-bg)',
+      }}
+    >
       <Content
         style={{
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
+          padding: 'var(--spacing-lg)',
         }}
       >
         {children}

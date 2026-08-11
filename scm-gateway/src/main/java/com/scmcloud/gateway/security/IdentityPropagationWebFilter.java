@@ -3,7 +3,7 @@ package com.scmcloud.gateway.security;
 import com.scmcloud.gateway.properties.IdentityPropagationProperties;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
-import lombok.RequiredArgsConstructor;
+import lombok.NonNull;
 import org.springframework.core.Ordered;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
@@ -34,9 +34,7 @@ import java.util.stream.Collectors;
  * @author deng
  */
 @Component
-@RequiredArgsConstructor
 public class IdentityPropagationWebFilter implements WebFilter, Ordered {
-
     private final IdentityPropagationProperties properties;
     private final IdentityTokenEncoder tokenEncoder;
 
@@ -57,8 +55,9 @@ public class IdentityPropagationWebFilter implements WebFilter, Ordered {
         return SecurityWebFiltersOrder.AUTHORIZATION.getOrder() + 1;
     }
 
+    @NonNull
     @Override
-    public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
+    public Mono<Void> filter(@NonNull ServerWebExchange exchange, @NonNull WebFilterChain chain) {
         if (!properties.isEnabled()) {
             return chain.filter(exchange);
         }
@@ -68,11 +67,14 @@ public class IdentityPropagationWebFilter implements WebFilter, Ordered {
                 .filter(Authentication::isAuthenticated)
                 .filter(auth -> auth instanceof JwtAuthenticationToken)
                 .cast(JwtAuthenticationToken.class)
-                .flatMap(auth -> propagate(exchange, chain, auth))
-                .switchIfEmpty(Mono.defer(() -> {
-                    skipCounter.increment();
-                    return chain.filter(exchange);
-                }));
+                .flatMap(auth -> propagate(exchange, chain, auth).then(Mono.just(true)))
+                .defaultIfEmpty(false)
+                .flatMap(propagated -> propagated
+                        ? Mono.empty()
+                        : Mono.defer(() -> {
+                            skipCounter.increment();
+                            return chain.filter(exchange);
+                        }));
     }
 
     private Mono<Void> propagate(ServerWebExchange exchange, WebFilterChain chain,

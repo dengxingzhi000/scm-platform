@@ -1,8 +1,8 @@
 import { ReactNode } from "react";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
-import { AntdRegistry } from "@ant-design/cssinjs";
-import { App } from "antd";
+import { AntdRegistry } from "@ant-design/nextjs-registry";
+import ThemeProvider from "@/providers/theme-provider";
 import QueryProvider from "@/components/providers/QueryProvider";
 
 type Props = {
@@ -19,9 +19,9 @@ export default async function LocaleLayout({ children, params }: Props) {
       <body>
         <NextIntlClientProvider messages={messages}>
           <AntdRegistry>
-            <App>
+            <ThemeProvider>
               <QueryProvider>{children}</QueryProvider>
-            </App>
+            </ThemeProvider>
           </AntdRegistry>
         </NextIntlClientProvider>
       </body>

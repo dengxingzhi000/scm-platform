@@ -1,6 +1,8 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { Card, Table, Tag } from 'antd'
+import { useLocale } from 'next-intl'
 import type { ColumnsType } from 'antd/es/table'
 import type { RecentOrder } from '../types'
 
@@ -22,8 +24,16 @@ const columns: ColumnsType<RecentOrder> = [
 ]
 
 export default function RecentOrders({ orders, loading }: RecentOrdersProps) {
+  const router = useRouter()
+  const locale = useLocale()
+
   return (
-    <Card title="最近订单">
+    <Card
+      title="最近订单"
+      extra={
+        <a onClick={() => router.push(`/${locale}/order`)}>查看全部</a>
+      }
+    >
       <Table columns={columns} dataSource={orders} loading={loading} rowKey="id" pagination={false} size="small" />
     </Card>
   )
