@@ -28,10 +28,11 @@ spring:
                 - Path=/system/**
               filters:
                 - StripPrefix=1
-          default-filters:
-            - StripPrefix=1
 
 security:
+  oauth2:
+    resource-server:
+      jwk-set-uri: http://localhost:8106/oauth2/jwks
   signature:
     enabled: true
     default-version: HMAC-SHA256-V2
@@ -39,6 +40,7 @@ security:
     nonce-ttl: 5m
     nonce-key-prefix: "api:nonce:"
     whitelist:
+      - /auth/**
       - /public/**
       - /actuator/**
     # Local dev app secrets, replace with config-center values in production

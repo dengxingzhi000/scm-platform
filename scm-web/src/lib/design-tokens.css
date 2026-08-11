@@ -5,7 +5,7 @@
   --sidebar-collapsed-width: 80px;
   --content-padding: 24px;
 
-  /* Spacing */
+  /* Spacing (8px grid) */
   --spacing-xs: 4px;
   --spacing-sm: 8px;
   --spacing-md: 16px;
@@ -13,17 +13,50 @@
   --spacing-xl: 32px;
   --spacing-xxl: 48px;
 
-  /* Colors */
-  --color-primary: #1677ff;
-  --color-success: #52c41a;
-  --color-warning: #faad14;
-  --color-error: #ff4d4f;
+  /* Colors — brand (indigo) */
+  --color-primary: #4f46e5;
+  --color-primary-hover: #6366f1;
+  --color-primary-active: #4338ca;
+  --color-primary-bg: #eef2ff;
+  --color-success: #16a34a;
+  --color-success-hover: #22c55e;
+  --color-warning: #d97706;
+  --color-warning-hover: #f59e0b;
+  --color-error: #dc2626;
+  --color-error-hover: #ef4444;
+  --color-info: #4f46e5;
+
+  /* Colors — surfaces */
+  --color-bg-layout: #f4f5f7;
+  --color-bg-container: #ffffff;
+  --color-bg-elevated: #ffffff;
+  --color-bg-sider: #ffffff;
+  --color-bg-header: #ffffff;
+
+  /* Colors — border & divider */
+  --color-border: #e2e5ea;
+  --color-border-secondary: #eef0f4;
+
+  /* Colors — text */
+  --color-text: #1f2329;
+  --color-text-secondary: #6b7280;
+  --color-text-tertiary: #9ca3af;
+
+  /* Auth page background */
+  --auth-bg:
+    radial-gradient(1200px 600px at 10% -10%, rgba(79, 70, 229, 0.12), transparent 60%),
+    radial-gradient(900px 500px at 110% 20%, rgba(14, 165, 233, 0.08), transparent 55%),
+    linear-gradient(160deg, #f5f6ff 0%, #f4f5f7 55%, #eef2ff 100%);
+  --auth-card-shadow: 0 20px 60px -12px rgba(79, 70, 229, 0.18);
+  --auth-brand-bg: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
 
   /* Typography */
   --font-size-xs: 12px;
   --font-size-sm: 13px;
   --font-size-base: 14px;
   --font-size-lg: 16px;
+  --font-size-xl: 20px;
+  --font-size-xxl: 24px;
 
   /* Radius */
   --radius-xs: 4px;
@@ -32,6 +65,12 @@
   --radius-lg: 12px;
   --radius-xl: 16px;
 
+  /* Shadows */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02);
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+  --shadow-base: 0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 3px 6px -4px rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0 12px 40px 0 rgba(0, 0, 0, 0.12), 0 8px 20px -6px rgba(0, 0, 0, 0.16);
+
   /* Duration */
   --duration-fast: 100ms;
   --duration-normal: 200ms;
@@ -39,8 +78,40 @@
 }
 
 [data-theme='dark'] {
-  --color-primary: #1668dc;
-  --color-success: #49aa19;
-  --color-warning: #d89614;
-  --color-error: #dc4446;
+  /* Colors — brand (indigo, lightened for contrast on dark surfaces) */
+  --color-primary: #6366f1;
+  --color-primary-hover: #818cf8;
+  --color-primary-active: #4f46e5;
+  --color-primary-bg: rgba(99, 102, 241, 0.16);
+  --color-success: #22c55e;
+  --color-success-hover: #4ade80;
+  --color-warning: #f59e0b;
+  --color-warning-hover: #fbbf24;
+  --color-error: #ef4444;
+  --color-error-hover: #f87171;
+  --color-info: #6366f1;
+
+  /* Colors — surfaces */
+  --color-bg-layout: #0b0d12;
+  --color-bg-container: #14171f;
+  --color-bg-elevated: #1c2029;
+  --color-bg-sider: #14171f;
+  --color-bg-header: #14171f;
+
+  /* Colors — border & divider */
+  --color-border: #2d3445;
+  --color-border-secondary: #232a36;
+
+  /* Colors — text */
+  --color-text: rgba(255, 255, 255, 0.88);
+  --color-text-secondary: rgba(255, 255, 255, 0.65);
+  --color-text-tertiary: rgba(255, 255, 255, 0.45);
+
+  /* Auth page background */
+  --auth-bg:
+    radial-gradient(1200px 600px at 10% -10%, rgba(99, 102, 241, 0.18), transparent 60%),
+    radial-gradient(900px 500px at 110% 20%, rgba(14, 165, 233, 0.1), transparent 55%),
+    linear-gradient(160deg, #0b0d12 0%, #10131b 55%, #141722 100%);
+  --auth-card-shadow: 0 20px 60px -12px rgba(0, 0, 0, 0.5);
+  --auth-brand-bg: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
 }

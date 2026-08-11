@@ -32,12 +32,6 @@ public class SecurityConfigurationValidator {
     @Value("${security.identity.signature-secret:}")
     private String identitySignatureSecret;
 
-    @Value("${security.mtls.keystore-password:}")
-    private String keystorePassword;
-
-    @Value("${security.mtls.truststore-password:}")
-    private String truststorePassword;
-
     @Value("${spring.profiles.active:dev}")
     private String activeProfile;
 
@@ -66,16 +60,6 @@ public class SecurityConfigurationValidator {
 
         if (!StringUtils.hasText(identitySignatureSecret)) {
             String error = "security.identity.signature-secret (env: IDENTITY_SIGNATURE_SECRET)";
-            missingConfigs.add(error);
-        }
-
-        if (!StringUtils.hasText(keystorePassword)) {
-            String error = "security.mtls.keystore-password (env: KEYSTORE_PASSWORD)";
-            missingConfigs.add(error);
-        }
-
-        if (!StringUtils.hasText(truststorePassword)) {
-            String error = "security.mtls.truststore-password (env: TRUSTSTORE_PASSWORD)";
             missingConfigs.add(error);
         }
 
@@ -183,8 +167,6 @@ public class SecurityConfigurationValidator {
               export API_SECRET_WEB_APP='your-secret-here'
               export API_SECRET_INTERNAL_SERVICE='your-secret-here'
               export IDENTITY_SIGNATURE_SECRET='your-secret-here'
-              export KEYSTORE_PASSWORD='your-password-here'
-              export TRUSTSTORE_PASSWORD='your-password-here'
 
             For production deployment, use HashiCorp Vault, AWS Secrets Manager, or equivalent.
             """.formatted(missingConfigs.size(), String.join("\n  - ", missingConfigs));

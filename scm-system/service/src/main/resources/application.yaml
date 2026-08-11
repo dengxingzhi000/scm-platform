@@ -216,6 +216,12 @@ spring:
               password: ${DB_PASSWORD:changeme}
               driver-class-name: org.postgresql.Driver
               weight: 1
+  kafka:
+    bootstrap-servers: ${KAFKA_HOST:127.0.0.1}:${KAFKA_PORT:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
   security:
     default-password: ${DEFAULT_PASSWORD:changeme}
 

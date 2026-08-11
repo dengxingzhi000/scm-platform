@@ -162,6 +162,9 @@ public class IpAccessControlFilter implements GlobalFilter, Ordered {
         if (decisionCache.size() >= cacheMaxSize) {
             decisionCache.entrySet().removeIf(e -> e.getValue().isExpired());
         }
+        if (decisionCache.size() >= cacheMaxSize) {
+            decisionCache.remove(decisionCache.keySet().iterator().next());
+        }
         decisionCache.put(clientIp, CacheEntry.of(decision, cacheTtlMillis));
     }
 

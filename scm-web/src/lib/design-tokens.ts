@@ -38,11 +38,27 @@ export const tokens = {
 
   // Colors (light theme)
   colors: {
-    primary: '#1677ff',
-    success: '#52c41a',
-    warning: '#faad14',
-    error: '#ff4d4f',
-    info: '#1677ff',
+    primary: '#4f46e5',
+    primaryHover: '#6366f1',
+    primaryActive: '#4338ca',
+    primaryBg: '#eef2ff',
+    primaryDark: '#6366f1',
+    success: '#16a34a',
+    warning: '#d97706',
+    error: '#dc2626',
+    info: '#4f46e5',
+    bgLayout: '#f4f5f7',
+    bgContainer: '#ffffff',
+    bgElevated: '#ffffff',
+    text: '#1f2329',
+    textSecondary: '#6b7280',
+    border: '#e2e5ea',
+    borderSecondary: '#eef0f4',
+    darkBgLayout: '#0b0d12',
+    darkBgContainer: '#14171f',
+    darkBgElevated: '#1c2029',
+    darkText: 'rgba(255,255,255,0.88)',
+    darkTextSecondary: 'rgba(255,255,255,0.65)',
   },
 
   // Shadows

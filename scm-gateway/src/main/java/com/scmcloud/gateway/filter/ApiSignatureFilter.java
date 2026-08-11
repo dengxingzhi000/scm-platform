@@ -36,9 +36,14 @@ import java.time.Duration;
 @Slf4j
 @RequiredArgsConstructor
 public class ApiSignatureFilter implements GlobalFilter, Ordered {
-
     private static final DefaultDataBufferFactory BUFFER_FACTORY = new DefaultDataBufferFactory();
     private static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
+
+    /**
+     * 参与签名校验的请求体大小上限（防止大文件/大请求打爆内存）。
+     * 超过该上限直接返回 413，不进行全量缓存。
+     */
+    private static final long MAX_CACHED_BODY_BYTES = 4 * 1024 * 1024L;
 
     private final ReactiveRedisTemplate<String, String> redisTemplate;
     private final SignatureAlgorithmRegistry algorithmRegistry;
@@ -65,13 +70,20 @@ public class ApiSignatureFilter implements GlobalFilter, Ordered {
         }
         return DataBufferUtils.join(request.getBody())
                 .defaultIfEmpty(BUFFER_FACTORY.wrap(new byte[0]))
-                .map(buffer -> {
+                .flatMap(buffer -> {
                     try {
-                        byte[] bytes = new byte[buffer.readableByteCount()];
+                        int readable = buffer.readableByteCount();
+                        if (readable > MAX_CACHED_BODY_BYTES) {
+                            meterRegistry.counter("gateway.signature.body_too_large").increment();
+                            return errorResponse(exchange, HttpStatus.PAYLOAD_TOO_LARGE, "BODY_TOO_LARGE",
+                                    "Request body exceeds signature verification limit")
+                                    .then(Mono.empty());
+                        }
+                        byte[] bytes = new byte[readable];
                         buffer.read(bytes);
-                        return exchange.mutate()
+                        return Mono.just(exchange.mutate()
                                 .request(new CachedBodyRequestDecorator(request, bytes))
-                                .build();
+                                .build());
                     } finally {
                         DataBufferUtils.release(buffer);
                     }
@@ -187,12 +199,16 @@ public class ApiSignatureFilter implements GlobalFilter, Ordered {
     }
 
     private Mono<Void> unauthorized(ServerWebExchange exchange, String code, String message) {
-        exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+        return errorResponse(exchange, HttpStatus.UNAUTHORIZED, code, message);
+    }
+
+    private Mono<Void> errorResponse(ServerWebExchange exchange, HttpStatus status, String code, String message) {
+        exchange.getResponse().setStatusCode(status);
         exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_JSON);
 
         String body = String.format(
-                "{\"code\":401,\"error\":\"%s\",\"message\":\"%s\",\"path\":\"%s\"}",
-                escapeJson(code), escapeJson(message),
+                "{\"code\":%d,\"error\":\"%s\",\"message\":\"%s\",\"path\":\"%s\"}",
+                status.value(), escapeJson(code), escapeJson(message),
                 escapeJson(exchange.getRequest().getURI().getPath()));
 
         byte[] bytes = body.getBytes(StandardCharsets.UTF_8);

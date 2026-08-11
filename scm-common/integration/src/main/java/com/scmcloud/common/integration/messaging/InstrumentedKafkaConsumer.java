@@ -15,7 +15,6 @@ import java.util.function.Consumer;
 
 @Slf4j
 @RequiredArgsConstructor
-@SuppressWarnings("ClassCanBeRecord")
 public class InstrumentedKafkaConsumer {
     private final ObservationRegistry observationRegistry;
     private final Tracer tracer;
