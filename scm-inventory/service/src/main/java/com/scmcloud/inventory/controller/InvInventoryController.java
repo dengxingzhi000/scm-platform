@@ -11,7 +11,8 @@ import com.scmcloud.inventory.dto.InventoryQueryRequest;
 import com.scmcloud.inventory.dto.InventoryResponse;
 import com.scmcloud.inventory.dto.InventoryStatsResponse;
 import com.scmcloud.inventory.dto.InventoryTransferRequest;
-import com.scmcloud.inventory.service.IInvInventoryService;
+import com.scmcloud.inventory.service.command.InvInventoryCommandService;
+import com.scmcloud.inventory.service.query.InvInventoryQueryService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -55,8 +56,8 @@ import java.util.concurrent.TimeUnit;
 @RequestMapping("/api/v1/inventory")
 public class InvInventoryController {
 
-  private final IInvInventoryService inventoryService;
-
+  private final InvInventoryQueryService queryService;
+  private final InvInventoryCommandService commandService;
   /**
    * 查询单个SKU在指定仓库的库存
    */
@@ -68,7 +69,7 @@ public class InvInventoryController {
       @RequestParam @NotBlank(message = "SKU ID 不能为空") String skuId,
       @RequestParam @NotBlank(message = "仓库 ID 不能为空") String warehouseId) {
 
-    InventoryResponse response = inventoryService.getInventory(skuId, warehouseId);
+    InventoryResponse response = queryService.getInventory(skuId, warehouseId);
     return response == null
         ? ApiResponse.fail(ResultCode.NOT_FOUND.getCode(), "库存不存在")
         : ApiResponse.success(response);
@@ -87,7 +88,7 @@ public class InvInventoryController {
       @Size(max = 100, message = "批量查询 SKU 数量不能超过 100") List<String> skuIds,
       @RequestParam(required = false) String warehouseId) {
 
-    List<InventoryResponse> responses = inventoryService.batchGetInventory(skuIds, warehouseId);
+    List<InventoryResponse> responses = queryService.batchGetInventory(skuIds, warehouseId);
     return ApiResponse.success(responses);
   }
 
@@ -99,7 +100,7 @@ public class InvInventoryController {
   public ApiResponse<Page<InventoryResponse>> queryInventory(
       @RequestBody @Valid InventoryQueryRequest request) {
 
-    Page<InventoryResponse> page = inventoryService.queryInventory(request);
+    Page<InventoryResponse> page = queryService.queryInventory(request);
     return ApiResponse.success(page);
   }
 
@@ -114,7 +115,7 @@ public class InvInventoryController {
       @RequestBody @Valid InventoryAdjustRequest request) {
 
     LogUtils.business("inventory.adjust", "start", request);
-    InventoryResponse response = inventoryService.adjustInventory(request);
+    InventoryResponse response = commandService.adjustInventory(request);
     LogUtils.business("inventory.adjust", "success", response);
     return ApiResponse.success(response);
   }
@@ -130,7 +131,7 @@ public class InvInventoryController {
       @RequestBody @Valid InventoryTransferRequest request) {
 
     LogUtils.business("inventory.transfer", "start", request);
-    boolean success = inventoryService.transferInventory(request);
+    boolean success = commandService.transferInventory(request);
     LogUtils.business("inventory.transfer", success ? "success" : "fail", request);
     return ApiResponse.success(success);
   }
@@ -147,7 +148,7 @@ public class InvInventoryController {
       @RequestParam @NotBlank(message = "仓库 ID 不能为空") String warehouseId,
       @RequestParam @Positive(message = "数量必须大于0") Integer quantity) {
 
-    boolean available = inventoryService.checkStockAvailable(skuId, warehouseId, quantity);
+    boolean available = queryService.checkStockAvailable(skuId, warehouseId, quantity);
     return ApiResponse.success(available);
   }
 
@@ -158,7 +159,7 @@ public class InvInventoryController {
   @Cacheable(value = "inventoryStats", key = "'global'")
   @SentinelResource("inventory.stats")
   public ApiResponse<InventoryStatsResponse> getInventoryStats() {
-    return ApiResponse.success(inventoryService.getInventoryStats());
+    return ApiResponse.success(queryService.getInventoryStats());
   }
 
   /**
@@ -174,7 +175,7 @@ public class InvInventoryController {
       @RequestParam(required = false) Integer initialStock) {
 
     LogUtils.business("inventory.init", "start", new Object[]{skuId, warehouseId, initialStock});
-    InventoryResponse response = inventoryService.initInventory(skuId, warehouseId, initialStock);
+    InventoryResponse response = commandService.initInventory(skuId, warehouseId, initialStock);
     LogUtils.business("inventory.init", "success", response);
     return ApiResponse.success(response);
   }
