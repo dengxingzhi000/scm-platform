@@ -1,5 +1,7 @@
 package com.scmcloud.inventory.dto;
 
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.Data;
 
 import java.util.List;
@@ -60,11 +62,14 @@ public class InventoryQueryRequest {
   /**
    * 椤电爜锛堜粠1寮€濮嬶級
    */
+  @Min(value = 1, message = "页码不能小于1")
   private Integer page = 1;
 
   /**
    * 姣忛〉鏉℃暟
    */
+  @Min(value = 1, message = "每页数量不能小于1")
+  @Max(value = 500, message = "每页数量不能超过500")
   private Integer size = 20;
 
   /**

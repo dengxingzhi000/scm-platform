@@ -66,7 +66,10 @@ public class RedisConfig {
             Map.entry("deptChildren", Duration.ofHours(1)),
             Map.entry("accessibleDeptIds", Duration.ofHours(1)),
             // 临时角色
-            Map.entry("userTemporaryRoles", Duration.ofMinutes(15))
+            Map.entry("userTemporaryRoles", Duration.ofMinutes(15)),
+            // 库存
+            Map.entry("inventory", Duration.ofSeconds(60)),
+            Map.entry("inventoryStats", Duration.ofSeconds(60))
     );
 
     @Bean
