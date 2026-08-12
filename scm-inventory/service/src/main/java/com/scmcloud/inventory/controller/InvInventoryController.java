@@ -1,7 +1,6 @@
 package com.scmcloud.inventory.controller;
 
 import com.alibaba.csp.sentinel.annotation.SentinelResource;
-import com.alibaba.csp.sentinel.slots.block.BlockException;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.scmcloud.common.lock.Idempotent;
 import com.scmcloud.common.log.util.LogUtils;
@@ -42,7 +41,7 @@ import java.util.concurrent.TimeUnit;
  *   <li>全部接口返回 {@link ApiResponse} 统一包装</li>
  *   <li>热点查询走 Caffeine + Redis 两级缓存</li>
  *   <li>写接口走 Redis 幂等保护（24h TTL）</li>
- *   <li>全部接口走 Sentinel 限流</li>
+ *   <li>限流由全局 {@code SentinelAutoConfiguration.blockExceptionHandler} 统一处理</li>
  *   <li>异常处理由 GlobalExceptionHandler 统一接管</li>
  * </ul>
  *
@@ -64,7 +63,7 @@ public class InvInventoryController {
   @GetMapping
   @Cacheable(value = "inventory", key = "#skuId + ':' + #warehouseId",
              unless = "#result == null || #result.data() == null")
-  @SentinelResource(value = "inventory.get", blockHandler = "handleGetBlock")
+  @SentinelResource("inventory.get")
   public ApiResponse<InventoryResponse> getInventory(
       @RequestParam @NotBlank(message = "SKU ID 不能为空") String skuId,
       @RequestParam @NotBlank(message = "仓库 ID 不能为空") String warehouseId) {
@@ -75,11 +74,6 @@ public class InvInventoryController {
         : ApiResponse.success(response);
   }
 
-  public ApiResponse<InventoryResponse> handleGetBlock(String skuId, String warehouseId, BlockException e) {
-    log.warn("Sentinel block: inventory.get skuId={}, warehouseId={}", skuId, warehouseId);
-    return ApiResponse.fail(ResultCode.TOO_MANY_REQUESTS.getCode(), "请求过于频繁，请稍后再试");
-  }
-
   /**
    * 批量查询库存
    */
@@ -87,7 +81,7 @@ public class InvInventoryController {
   @Cacheable(value = "inventory",
              key = "(#warehouseId ?: 'ALL') + ':' + (#skuIds?.toString() ?: '')",
              unless = "#result == null")
-  @SentinelResource(value = "inventory.batchGet", blockHandler = "handleBatchGetBlock")
+  @SentinelResource("inventory.batchGet")
   public ApiResponse<List<InventoryResponse>> batchGetInventory(
       @RequestBody @NotEmpty(message = "SKU ID 列表不能为空")
       @Size(max = 100, message = "批量查询 SKU 数量不能超过 100") List<String> skuIds,
@@ -97,27 +91,16 @@ public class InvInventoryController {
     return ApiResponse.success(responses);
   }
 
-  public ApiResponse<List<InventoryResponse>> handleBatchGetBlock(List<String> skuIds, String warehouseId, BlockException e) {
-    int size = skuIds == null ? 0 : skuIds.size();
-    log.warn("Sentinel block: inventory.batchGet size={}", size);
-    return ApiResponse.fail(ResultCode.TOO_MANY_REQUESTS.getCode(), "请求过于频繁，请稍后再试");
-  }
-
   /**
    * 分页查询库存（支持多种过滤条件）
    */
   @PostMapping("/query")
-  @SentinelResource(value = "inventory.query", blockHandler = "handleQueryBlock")
+  @SentinelResource("inventory.query")
   public ApiResponse<Page<InventoryResponse>> queryInventory(
       @RequestBody @Valid InventoryQueryRequest request) {
 
     Page<InventoryResponse> page = inventoryService.queryInventory(request);
     return ApiResponse.success(page);
-  }
-
-  public ApiResponse<Page<InventoryResponse>> handleQueryBlock(InventoryQueryRequest request, BlockException e) {
-    log.warn("Sentinel block: inventory.query");
-    return ApiResponse.fail(ResultCode.TOO_MANY_REQUESTS.getCode(), "请求过于频繁，请稍后再试");
   }
 
   /**
@@ -126,7 +109,7 @@ public class InvInventoryController {
   @PostMapping("/adjust")
   @Idempotent(key = "#request.referenceNo", ttl = 24, unit = TimeUnit.HOURS,
               errorMessage = "重复的库存调整请求，请勿重复提交")
-  @SentinelResource(value = "inventory.adjust", blockHandler = "handleAdjustBlock")
+  @SentinelResource("inventory.adjust")
   public ApiResponse<InventoryResponse> adjustInventory(
       @RequestBody @Valid InventoryAdjustRequest request) {
 
@@ -136,18 +119,13 @@ public class InvInventoryController {
     return ApiResponse.success(response);
   }
 
-  public ApiResponse<InventoryResponse> handleAdjustBlock(InventoryAdjustRequest request, BlockException e) {
-    log.warn("Sentinel block: inventory.adjust skuId={}", request.getSkuId());
-    return ApiResponse.fail(ResultCode.TOO_MANY_REQUESTS.getCode(), "请求过于频繁，请稍后再试");
-  }
-
   /**
    * 库存调拨（从一个仓库转移到另一个仓库）
    */
   @PostMapping("/transfer")
   @Idempotent(key = "#request.transferNo", ttl = 24, unit = TimeUnit.HOURS,
               errorMessage = "重复的库存调拨请求，请勿重复提交")
-  @SentinelResource(value = "inventory.transfer", blockHandler = "handleTransferBlock")
+  @SentinelResource("inventory.transfer")
   public ApiResponse<Boolean> transferInventory(
       @RequestBody @Valid InventoryTransferRequest request) {
 
@@ -157,18 +135,13 @@ public class InvInventoryController {
     return ApiResponse.success(success);
   }
 
-  public ApiResponse<Boolean> handleTransferBlock(InventoryTransferRequest request, BlockException e) {
-    log.warn("Sentinel block: inventory.transfer skuId={}", request.getSkuId());
-    return ApiResponse.fail(ResultCode.TOO_MANY_REQUESTS.getCode(), "请求过于频繁，请稍后再试");
-  }
-
   /**
    * 检查库存是否充足
    */
   @GetMapping("/check")
   @Cacheable(value = "inventory", key = "#skuId + ':' + #warehouseId + ':' + #quantity",
              unless = "#result == null")
-  @SentinelResource(value = "inventory.check", blockHandler = "handleCheckBlock")
+  @SentinelResource("inventory.check")
   public ApiResponse<Boolean> checkStockAvailable(
       @RequestParam @NotBlank(message = "SKU ID 不能为空") String skuId,
       @RequestParam @NotBlank(message = "仓库 ID 不能为空") String warehouseId,
@@ -178,24 +151,14 @@ public class InvInventoryController {
     return ApiResponse.success(available);
   }
 
-  public ApiResponse<Boolean> handleCheckBlock(String skuId, String warehouseId, Integer quantity, BlockException e) {
-    log.warn("Sentinel block: inventory.check skuId={}", skuId);
-    return ApiResponse.fail(ResultCode.TOO_MANY_REQUESTS.getCode(), "请求过于频繁，请稍后再试");
-  }
-
   /**
    * 获取库存统计信息
    */
   @GetMapping("/stats")
   @Cacheable(value = "inventoryStats", key = "'global'")
-  @SentinelResource(value = "inventory.stats", blockHandler = "handleStatsBlock")
+  @SentinelResource("inventory.stats")
   public ApiResponse<InventoryStatsResponse> getInventoryStats() {
     return ApiResponse.success(inventoryService.getInventoryStats());
-  }
-
-  public ApiResponse<InventoryStatsResponse> handleStatsBlock(BlockException e) {
-    log.warn("Sentinel block: inventory.stats");
-    return ApiResponse.fail(ResultCode.TOO_MANY_REQUESTS.getCode(), "请求过于频繁，请稍后再试");
   }
 
   /**
@@ -204,7 +167,7 @@ public class InvInventoryController {
   @PostMapping("/init")
   @Idempotent(key = "#skuId + ':' + #warehouseId", ttl = 24, unit = TimeUnit.HOURS,
               errorMessage = "重复的库存初始化请求，请勿重复提交")
-  @SentinelResource(value = "inventory.init", blockHandler = "handleInitBlock")
+  @SentinelResource("inventory.init")
   public ApiResponse<InventoryResponse> initInventory(
       @RequestParam @NotBlank(message = "SKU ID 不能为空") String skuId,
       @RequestParam @NotBlank(message = "仓库 ID 不能为空") String warehouseId,
@@ -214,10 +177,5 @@ public class InvInventoryController {
     InventoryResponse response = inventoryService.initInventory(skuId, warehouseId, initialStock);
     LogUtils.business("inventory.init", "success", response);
     return ApiResponse.success(response);
-  }
-
-  public ApiResponse<InventoryResponse> handleInitBlock(String skuId, String warehouseId, Integer initialStock, BlockException e) {
-    log.warn("Sentinel block: inventory.init skuId={}", skuId);
-    return ApiResponse.fail(ResultCode.TOO_MANY_REQUESTS.getCode(), "请求过于频繁，请稍后再试");
   }
 }
