@@ -33,6 +33,8 @@ DATABASES=(
     "db_warehouse:仓储服务"
     "db_logistics:物流服务"
     "db_supplier:供应商服务"
+    "db_purchase:采购服务"
+    "db_finance:财务服务"
 )
 
 echo -e "${GREEN}========================================${NC}"
@@ -108,6 +110,23 @@ SCM_SCRIPTS=(
     "microservices/013_db_warehouse.sql:db_warehouse"
     "microservices/014_db_logistics.sql:db_logistics"
     "microservices/015_db_supplier.sql:db_supplier"
+    "microservices/017_db_finance.sql:db_finance"
+    "microservices/018_db_purchase.sql:db_purchase"
+    # 028 is the forward migration that adds tenant_id to the 32 business
+    # tables covered by scripts/db/ci_validate_tenant_id.sql. It is
+    # idempotent (information_schema-guarded) so it is also safe to run
+    # against freshly-initialized databases where Track B has already
+    # declared tenant_id inline.
+    #
+    # The script is per-database: it processes only tables that exist in
+    # the current connection, so it must be applied to every database
+    # that hosts one of the 32 tables.
+    "microservices/028_add_tenant_id_columns.sql:db_product"
+    "microservices/028_add_tenant_id_columns.sql:db_inventory"
+    "microservices/028_add_tenant_id_columns.sql:db_order"
+    "microservices/028_add_tenant_id_columns.sql:db_warehouse"
+    "microservices/028_add_tenant_id_columns.sql:db_logistics"
+    "microservices/028_add_tenant_id_columns.sql:db_supplier"
 )
 
 for script_entry in "${SCM_SCRIPTS[@]}"; do
