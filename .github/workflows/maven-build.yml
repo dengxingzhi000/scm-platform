@@ -170,16 +170,14 @@ jobs:
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: |
-          NVD_ARGS=""
-          if [ -n "${NVD_API_KEY}" ]; then
-            NVD_ARGS="-DnvdApiKey=${NVD_API_KEY}"
+          # OWASP plugin treats an empty NVD_API_KEY env as "key present but
+          # invalid" and aborts. Strip the empty variable so the plugin
+          # falls back to the cached feed.
+          if [ -z "${NVD_API_KEY}" ]; then
+            unset NVD_API_KEY
+            NVD_ARGS=""
           else
-            # No NVD_API_KEY configured — skip remote NVD update and rely
-            # on the cache populated by previous runs. This avoids the
-            # "Invalid API Key, length of 0" plugin abort while still
-            # letting the scan flag any CVSS >= 9 vulnerability against
-            # the cached feed.
-            NVD_ARGS="-Dnvd.update.skip=true"
+            NVD_ARGS="-DnvdApiKey=${NVD_API_KEY}"
           fi
           mvn org.owasp:dependency-check-maven:check \
             -f com.scm.parent/pom.xml \
