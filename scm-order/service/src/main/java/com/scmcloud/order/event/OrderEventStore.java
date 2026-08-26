@@ -39,7 +39,9 @@ public class OrderEventStore {
             entity.setEventType(event.getEventType());
             entity.setEventData(objectMapper.writeValueAsString(event));
             eventMapper.insert(entity);
-        } catch (DuplicateKeyException e) {
+        }
+        // 幂等依赖 uk_ord_order_event_event_id;若未来新增其他唯一约束需重新评估此处吞异常的范围
+        catch (DuplicateKeyException e) {
             log.warn("Duplicate order event ignored: eventId={}, orderId={}",
                     event.getEventId(), event.getOrderId());
         } catch (JsonProcessingException e) {
@@ -49,30 +51,31 @@ public class OrderEventStore {
 
     /**
      * 按写入顺序取全部事件(create_time ASC, id ASC 兜底保证稳定排序)。
+     * 全量加载无上限,大订单量场景请用分页重载。
      */
     public List<OrderEvent> getEvents(Long orderId) {
-        LambdaQueryWrapper<OrdOrderEvent> wrapper = Wrappers.lambdaQuery(OrdOrderEvent.class)
-                .eq(OrdOrderEvent::getOrderId, orderId)
-                .orderByAsc(OrdOrderEvent::getCreateTime)
-                .orderByAsc(OrdOrderEvent::getId);
-        return eventMapper.selectList(wrapper).stream()
+        return eventMapper.selectList(byOrderId(orderId)).stream()
                 .map(this::deserialize)
                 .toList();
     }
 
     /**
      * 分页取事件(pageNo 从 1 开始),替代原 .last() 字符串拼接。
+     * pageSize 上限受全局 PaginationInnerInterceptor maxLimit(1000) 约束。
      */
     public List<OrderEvent> getEvents(Long orderId, int pageNo, int pageSize) {
         Page<OrdOrderEvent> result = eventMapper.selectPage(
-                new Page<>(pageNo, pageSize),
-                Wrappers.<OrdOrderEvent>lambdaQuery()
-                        .eq(OrdOrderEvent::getOrderId, orderId)
-                        .orderByAsc(OrdOrderEvent::getCreateTime)
-                        .orderByAsc(OrdOrderEvent::getId));
+                new Page<>(pageNo, pageSize), byOrderId(orderId));
         return result.getRecords().stream()
                 .map(this::deserialize)
                 .toList();
+    }
+
+    private LambdaQueryWrapper<OrdOrderEvent> byOrderId(Long orderId) {
+        return Wrappers.lambdaQuery(OrdOrderEvent.class)
+                .eq(OrdOrderEvent::getOrderId, orderId)
+                .orderByAsc(OrdOrderEvent::getCreateTime)
+                .orderByAsc(OrdOrderEvent::getId);
     }
 
     private OrderEvent deserialize(OrdOrderEvent entity) {

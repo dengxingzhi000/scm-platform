@@ -1,5 +1,8 @@
 package com.scmcloud.order.event;
 
+import com.baomidou.mybatisplus.core.MybatisConfiguration;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -7,10 +10,12 @@ import com.scmcloud.common.exception.ServiceException;
 import com.scmcloud.order.domain.entity.OrderStatus;
 import com.scmcloud.order.domain.entity.OrdOrderEvent;
 import com.scmcloud.order.mapper.OrdOrderEventMapper;
+import org.apache.ibatis.builder.MapperBuilderAssistant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DuplicateKeyException;
@@ -35,12 +40,20 @@ class OrderEventStoreTest {
     @Mock
     private OrdOrderEventMapper eventMapper;
 
+    @Captor
+    private ArgumentCaptor<LambdaQueryWrapper<OrdOrderEvent>> listWrapperCaptor;
+
+    @Captor
+    private ArgumentCaptor<LambdaQueryWrapper<OrdOrderEvent>> pageWrapperCaptor;
+
     private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
     private OrderEventStore store;
 
     @BeforeEach
     void setUp() {
+        TableInfoHelper.initTableInfo(
+                new MapperBuilderAssistant(new MybatisConfiguration(), ""), OrdOrderEvent.class);
         store = new OrderEventStore(eventMapper, objectMapper);
     }
 
@@ -99,8 +112,8 @@ class OrderEventStoreTest {
     }
 
     @Test
-    void getEventsShouldDeserializeInInsertionOrder() throws JsonProcessingException {
-        when(eventMapper.selectList(any()))
+    void getEventsShouldQueryWithStableOrderAndMapRecords() throws JsonProcessingException {
+        when(eventMapper.selectList(listWrapperCaptor.capture()))
                 .thenReturn(List.of(entity(createdEvent()), entity(statusEvent())));
 
         List<OrderEvent> events = store.getEvents(1L);
@@ -108,6 +121,12 @@ class OrderEventStoreTest {
         assertEquals(2, events.size());
         assertInstanceOf(OrderCreatedEvent.class, events.get(0));
         assertInstanceOf(OrderStatusChangedEvent.class, events.get(1));
+
+        String sql = listWrapperCaptor.getValue().getSqlSegment();
+        assertTrue(sql.contains("order_id"));
+        assertTrue(sql.contains("ORDER BY"));
+        assertTrue(sql.contains("create_time ASC"));
+        assertTrue(sql.contains("id ASC"));
     }
 
     @Test
@@ -121,15 +140,21 @@ class OrderEventStoreTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void pagedGetEventsShouldUsePageQuery() throws JsonProcessingException {
         Page<OrdOrderEvent> page = new Page<>(2, 10);
         page.setRecords(List.of(entity(createdEvent())));
-        when(eventMapper.selectPage(any(), any())).thenReturn(page);
+        when(eventMapper.selectPage(any(), pageWrapperCaptor.capture())).thenReturn(page);
 
         List<OrderEvent> events = store.getEvents(1L, 2, 10);
 
         assertEquals(1, events.size());
+
+        String sql = pageWrapperCaptor.getValue().getSqlSegment();
+        assertTrue(sql.contains("order_id"));
+        assertTrue(sql.contains("ORDER BY"));
+        assertTrue(sql.contains("create_time ASC"));
+        assertTrue(sql.contains("id ASC"));
+
         verify(eventMapper).selectPage(
                 argThat(p -> p instanceof Page<?> pg && pg.getCurrent() == 2 && pg.getSize() == 10),
                 any());
