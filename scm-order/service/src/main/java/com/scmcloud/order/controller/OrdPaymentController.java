@@ -37,7 +37,7 @@ public class OrdPaymentController {
     @PutMapping("/{id}/status")
     public boolean updateStatus(
             @PathVariable Long id,
-@RequestParam Integer status) {
+    @RequestParam Integer status) {
         log.info("[API] 更新支付状态 id={}, status={}", id, status);
         return paymentService.updatePaymentStatus(id, status);
     }

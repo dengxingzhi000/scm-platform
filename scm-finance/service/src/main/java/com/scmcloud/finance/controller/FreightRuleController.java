@@ -8,6 +8,7 @@ import com.scmcloud.finance.domain.entity.FreightRule;
 import com.scmcloud.finance.service.IFreightRuleService;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RequiredArgsConstructor
@@ -26,8 +27,8 @@ public class FreightRuleController {
     @PostMapping
     public ApiResponse<FreightRule> create(@RequestBody FreightRule rule) {
         rule.setDeleted(false);
-        rule.setCreateTime(java.time.LocalDateTime.now());
-        rule.setUpdateTime(java.time.LocalDateTime.now());
+        rule.setCreateTime(LocalDateTime.now());
+        rule.setUpdateTime(LocalDateTime.now());
         freightRuleService.save(rule);
         log.info("运费规则创建成功: id={}", rule.getId());
         return ApiResponse.success(rule);
@@ -36,7 +37,7 @@ public class FreightRuleController {
     @PutMapping("/{id}")
     public ApiResponse<FreightRule> update(@PathVariable String id, @RequestBody FreightRule rule) {
         rule.setId(id);
-        rule.setUpdateTime(java.time.LocalDateTime.now());
+        rule.setUpdateTime(LocalDateTime.now());
         freightRuleService.updateById(rule);
         log.info("运费规则更新成功: id={}", id);
         return ApiResponse.success(rule);
@@ -47,7 +48,7 @@ public class FreightRuleController {
         FreightRule rule = freightRuleService.getById(id);
         if (rule != null) {
             rule.setDeleted(true);
-            rule.setUpdateTime(java.time.LocalDateTime.now());
+            rule.setUpdateTime(LocalDateTime.now());
             freightRuleService.updateById(rule);
             log.info("运费规则删除成功: id={}", id);
         }

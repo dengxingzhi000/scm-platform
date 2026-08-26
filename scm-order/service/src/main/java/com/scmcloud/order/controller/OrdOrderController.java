@@ -32,8 +32,8 @@ public class OrdOrderController {
 
     @GetMapping("/page")
     public Page<OrdOrder> page(
-@RequestParam(defaultValue = "1") Integer pageNum,
-@RequestParam(defaultValue = "10") Integer pageSize) {
+    @RequestParam(defaultValue = "1") Integer pageNum,
+    @RequestParam(defaultValue = "10") Integer pageSize) {
         log.info("[API] 分页查询订单: pageNum={}, pageSize={}", pageNum, pageSize);
         return orderService.page(new Page<>(pageNum, pageSize));
     }
@@ -67,8 +67,8 @@ public class OrdOrderController {
     @GetMapping("/user/{userId}/page")
     public Page<OrdOrder> pageByUserId(
             @PathVariable String userId,
-@RequestParam(defaultValue = "1") Integer pageNum,
-@RequestParam(defaultValue = "10") Integer pageSize) {
+    @RequestParam(defaultValue = "1") Integer pageNum,
+    @RequestParam(defaultValue = "10") Integer pageSize) {
         log.info("[API] 分页查询用户订单: userId={}, pageNum={}, pageSize={}", userId, pageNum, pageSize);
         return orderService.pageByUserId(userId, pageNum, pageSize);
     }
