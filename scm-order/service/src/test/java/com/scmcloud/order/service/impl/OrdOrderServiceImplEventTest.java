@@ -24,6 +24,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -76,6 +77,8 @@ class OrdOrderServiceImplEventTest {
         assertEquals("NO1001", event.getOrderNo());
         assertEquals(order.getTenantId().toUUID(), event.getTenantId());
         assertEquals("00000000-0000-0000-0000-000000000001", event.getUserId());
+        assertEquals(new BigDecimal("99.90"), event.getTotalAmount());
+        assertEquals(new BigDecimal("89.90"), event.getPayableAmount());
     }
 
     @Test
@@ -95,6 +98,7 @@ class OrdOrderServiceImplEventTest {
                 assertInstanceOf(OrderStatusChangedEvent.class, captor.getValue());
         assertEquals(OrderStatus.PAID, event.getFromStatus());
         assertEquals(OrderStatus.PENDING_SHIP, event.getToStatus());
+        assertEquals(existing.getTenantId().toUUID(), event.getTenantId());
     }
 
     @Test
@@ -108,7 +112,7 @@ class OrdOrderServiceImplEventTest {
 
         boolean updated = service.updateOrderStatus(1L, OrderStatus.PENDING_SHIP.getCode());
 
-        assertEquals(false, updated);
+        assertFalse(updated);
         verify(eventStore, never()).append(any());
     }
 }
