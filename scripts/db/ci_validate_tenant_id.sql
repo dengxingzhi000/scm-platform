@@ -14,7 +14,7 @@ DECLARE
         -- Inventory
         'inv_inventory', 'inv_reservation', 'inv_log', 'inv_snapshot', 'inv_alert', 'inv_tcc_reservation',
         -- Order
-        'ord_order', 'ord_order_item', 'ord_status_history', 'ord_payment', 'ord_refund',
+        'ord_order', 'ord_order_item', 'ord_status_history', 'ord_payment', 'ord_refund', 'ord_order_event',
         -- Warehouse
         'wms_warehouse', 'wms_location', 'wms_inbound', 'wms_inbound_item',
         'wms_outbound', 'wms_outbound_item', 'wms_wave_picking',
