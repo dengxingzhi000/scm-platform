@@ -12,7 +12,6 @@ concurrency:
 
 env:
   JAVA_VERSION: '21'
-  MAVEN_OPTS: -Dmaven.repo.local=${{ github.workspace }}/.m2/repository
 
 jobs:
   build:
@@ -62,7 +61,7 @@ jobs:
           PG_ADMIN_USER: admin
           PG_ADMIN_PASSWORD: admin123
         run: |
-          sudo apt-get install -y postgresql-client
+          apt-get install -y postgresql-client
           cd scripts/db && bash init-all-databases.sh
 
       - name: Validate schema — all tables must have tenant_id
@@ -88,6 +87,7 @@ jobs:
       - name: Upload Coverage to Codecov
         if: github.event_name == 'push'
         uses: codecov/codecov-action@v7
+        continue-on-error: true
         with:
           files: '**/target/site/jacoco/jacoco.xml'
           flags: unittests

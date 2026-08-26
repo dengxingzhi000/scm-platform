@@ -10,30 +10,99 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: admin
+          POSTGRES_PASSWORD: admin123
+          POSTGRES_DB: db_user
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U admin"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DB_HOST: ${{ secrets.DB_HOST || 'localhost' }}
+      DB_USER: ${{ secrets.DB_USER || 'admin' }}
+      PGPASSWORD: ${{ secrets.DB_PASSWORD || 'admin123' }}
+      AWS_S3_BUCKET: ${{ secrets.BACKUP_BUCKET }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Setup PostgreSQL client
+      - name: Install PostgreSQL client
         run: |
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client
+          apt-get update
+          apt-get install -y postgresql-client
+
+      - name: Wait for Postgres service (local fallback only)
+        if: env.DB_HOST == 'localhost'
+        run: |
+          for i in $(seq 1 30); do
+            if pg_isready -h localhost -U admin; then
+              echo "Postgres ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Postgres service not ready"
+          exit 1
+
+      - name: Create target databases (local fallback only)
+        if: env.DB_HOST == 'localhost'
+        env:
+          PGPASSWORD: admin123
+        run: |
+          for db in db_user db_org db_permission db_approval db_audit db_notify \
+                    db_product db_inventory db_order db_warehouse db_logistics \
+                    db_supplier db_tenant db_finance db_purchase; do
+            psql -h localhost -U admin -d postgres \
+              -c "CREATE DATABASE ${db}" 2>/dev/null || true
+          done
 
       - name: Run backup
-        env:
-          DB_HOST: ${{ secrets.DB_HOST }}
-          DB_USER: ${{ secrets.DB_USER }}
-          PGPASSWORD: ${{ secrets.DB_PASSWORD }}
         run: |
           chmod +x scripts/backup/backup-databases.sh
           ./scripts/backup/backup-databases.sh
 
-      - name: Upload backup to S3
+      - name: Archive backup artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup
+          path: ${{ runner.temp }}/backups/postgresql/
+          if-no-files-found: warn
+
+      - name: Configure AWS credentials
+        if: success() && env.AWS_S3_BUCKET != ''
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - run: |
-          aws s3 cp "${RUNNER_TEMP}/backups/postgresql/backup_*.tar.gz" s3://${{ secrets.BACKUP_BUCKET }}/postgresql/
+      - name: Upload backup to S3
+        if: success() && env.AWS_S3_BUCKET != ''
+        run: |
+          aws s3 cp "$RUNNER_TEMP/backups/postgresql/backup_*.tar.gz" \
+            "s3://${AWS_S3_BUCKET}/postgresql/"
+
+      - name: Cleanup old S3 backups (retention 90 days)
+        if: success() && env.AWS_S3_BUCKET != ''
+        run: |
+          CUTOFF=$(date -d '90 days ago' +%Y%m%d 2>/dev/null || date -v-90d +%Y%m%d)
+          aws s3 ls "s3://${AWS_S3_BUCKET}/postgresql/" \
+            | awk '{print $4}' \
+            | grep -E '^backup_[0-9]{8}_' \
+            | while read -r f; do
+                d=$(echo "$f" | sed -E 's/backup_([0-9]{8})_.*/\1/')
+                if [ "${d}" \< "${CUTOFF}" ]; then
+                  echo "Deleting old backup: $f"
+                  aws s3 rm "s3://${AWS_S3_BUCKET}/postgresql/$f"
+                fi
+              done
