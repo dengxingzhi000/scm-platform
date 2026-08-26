@@ -10,7 +10,7 @@
 [![Issues](https://img.shields.io/github/issues/dengxingzhi000/scm-platform?color=ff80eb&labelColor=black&style=flat-square&logo=github)](https://github.com/dengxingzhi000/scm-platform/issues)
 [![License](https://img.shields.io/badge/license-Apache%202.0-white?labelColor=black&style=flat-square)](https://github.com/dengxingzhi000/scm-platform/blob/master/LICENSE)
 
-[English](./README.md) | [简体中文](./README.zh-CN.md)
+[English](./README.md)
 
 </div>
 
@@ -32,13 +32,13 @@
 | 🏢 | **Multi-Tenant** | Tenant isolation with dynamic data source routing and configurable feature flags |
 | 🖥️ | **Modern Frontend** | Next.js 15 App Router, Ant Design 5 Pro, Zustand state management, TanStack Query |
 | 📦 | **Domain-Driven Design** | Clean CQRS separation, aggregate roots, domain events via Kafka/RabbitMQ |
-| ☸️ | **Cloud Native** | Kubernetes manifests for all services, Helm charts, ArgoCD GitOps, canary deployments |
+| ☸️ | **Cloud Native** | Kubernetes manifests for core services, Helm charts, ArgoCD GitOps, canary deployments (auth) |
 
 ## Tech Stack
 
 | Layer | Components |
 |-------|-----------|
-| **Backend** | Java 21 (Virtual Threads), Spring Boot 4.0.6, Spring Cloud 2025.1.1 |
+| **Backend** | Java 21 (Virtual Threads), Spring Boot 4.0.6, Spring Cloud 2025.1.2 |
 | **Alibaba** | Spring Cloud Alibaba 2025.1.0.0 (Nacos, Sentinel, Seata) |
 | **Database** | PostgreSQL, MyBatis-Plus 3.5.15, ShardingSphere 5.5.1 |
 | **Cache** | Redis (distributed cache, Lua scripts for atomic operations) |
@@ -54,37 +54,43 @@
 ## Architecture
 
 ```
-                         ┌──────────────────────┐
-                         │   Frontend (scm-web)  │
-                         │   Next.js 15 / React  │
-                         │   Ant Design 5        │
-                         └──────────┬───────────┘
-                                    │
-                         ┌──────────▼───────────┐
-                         │     API Gateway      │ :8761
-                         └──────────┬───────────┘
-                                    │
-     ┌──────────┬──────────┬────────┼────────┬──────────┬──────────┐
-     │          │          │        │        │          │          │
-  ┌──▼───┐  ┌───▼───┐  ┌──▼───┐ ┌─▼────┐ ┌─▼────┐  ┌──▼───┐  ┌──▼───┐
-  │ Auth  │  │System │  │Product│ │Order │ │ WMS  │  │Logist│  │Notify │
-  │ :8106 │  │ :8081 │  │:8201  │ │:8203 │ │:8204 │  │:8205 │  │       │
-  └───────┘  └───────┘  └───────┘ └──────┘ └──────┘  └──────┘  └───────┘
-     │          │          │        │        │          │          │
-  ┌──▼───┐  ┌───▼───┐  ┌──▼───┐ ┌─▼────┐ ┌─▼────┐  ┌──▼───┐  ┌──▼───┐
-  │Approv│  │ Audit │  │ INV  │ │Finance│ │Suppl │  │Purch │  │Tenant│
-  │      │  │       │  │:8202 │ │:8208  │ │:8206 │  │:8207 │  │      │
-  └──────┘  └───────┘  └──────┘ └───────┘ └──────┘  └──────┘  └──────┘
-                                    │
-     ┌──────────┬──────────┬────────┼────────┬──────────┬──────────┐
-     │          │          │        │        │          │          │
-  ┌──▼───┐  ┌───▼───┐  ┌──▼───┐ ┌─▼────┐ ┌─▼────┐  ┌──▼───┐  ┌──▼───┐
-  │Member│  │Promo  │  │Pay   │ │Search│ │OrdCtr│  │Mall  │  │Fulfill│
-  │:8209 │  │:8210  │  │:8211 │ │:8212 │ │:8213 │  │:8214 │  │:8215 │
-  └──────┘  └───────┘  └──────┘ └──────┘ └──────┘  └──────┘  └──────┘
+   ┌──────────────────┐
+   │  Frontend        │
+   │  scm-web :3000   │
+   └────────┬─────────┘
+            │
+   ┌────────▼─────────┐
+   │  API Gateway     │
+   │  scm-gateway     │
+   │  :8761           │
+   └────────┬─────────┘
+            │
+   ┌────────▼───────────────────────────────────────────────┐
+   │  Supply-chain core — Dubbo RPC over Nacos registry      │
+   │  auth :8106 · system :8081 · file :8201⚠ · product :8201⚠│
+   │  inventory :8202 · order :8203 · warehouse :8204        │
+   │  logistics :8205 · supplier :8206 · purchase :8207      │
+   │  finance :8208 · message :8209⚠ · approval :8209⚠       │
+   │  audit :8210 · notify :8211 · tenant :8212              │
+   └────────┬───────────────────────────────────────────────┘
+            │
+   ┌────────▼───────────────────────────────────────────────┐
+   │  E-commerce layer                                        │
+   │  mall :8301 · member :8302 · promotion :8303             │
+   │  payment :8304 · order-center :8305 · fulfillment :8306  │
+   │  search :8307                                            │
+   └─────────────────────────────────────────────────────────┘
 ```
 
+> **Port collisions (local dev only):** `scm-file` ↔ `scm-product` both 8201;
+> `scm-message` ↔ `scm-approval` both 8209. Don't run both of a pair without
+> overriding `server.port`.
+
 ## Modules
+
+> Ports in the **8201–8212** range form the supply-chain core, the **8301–8307**
+> range is the e-commerce layer. `scm-tenant` carries a per-DB routing flag
+> rather than a public port.
 
 | Module | Port | Description |
 |--------|------|-------------|
@@ -92,26 +98,34 @@
 | `scm-gateway` | 8761 | API Gateway — routing, rate limiting, cross-cutting concerns |
 | `scm-auth` | 8106 | Authentication — OAuth2, JWT, WebAuthn passwordless login |
 | `scm-system` | 8081 | System management — users, roles, permissions, departments |
-| `scm-product` | 8201 | Product catalog — SPU/SKU, categories, brands, attributes |
+| `scm-file` | 8201 ⚠ | File service — upload, storage abstraction (S3/MinIO/local), OCR |
+| `scm-product` | 8201 ⚠ | Product catalog — SPU/SKU, categories, brands, attributes |
 | `scm-inventory` | 8202 | Inventory — real-time stock, reservations, alerts, snapshots |
-| `scm-order` | 8203 | Orders — lifecycle, state machine, payments, refunds |
+| `scm-order` | 8203 | Orders — lifecycle state machine, payments, refunds |
 | `scm-warehouse` | 8204 | Warehouse — inbound/outbound, wave picking, location management |
 | `scm-logistics` | 8205 | Logistics — carriers, waybills, tracking, route optimization |
 | `scm-supplier` | 8206 | Suppliers — onboarding, evaluation, settlements |
 | `scm-purchase` | 8207 | Procurement — RFQ, quotations, contracts, purchase orders |
 | `scm-finance` | 8208 | Finance — settlements, invoices, freight rules, reconciliation |
-| `scm-member` | 8209 | Member management — profiles, addresses, points, loyalty programs |
-| `scm-promotion` | 8210 | Promotions — campaigns, coupons, discounts, flash sales |
-| `scm-payment` | 8211 | Payment — payment processing, refunds, reconciliation |
-| `scm-search` | 8212 | Search — Elasticsearch-powered full-text product search |
-| `scm-order-center` | 8213 | Order center — centralized order orchestration |
-| `scm-mall` | 8214 | Mall — e-commerce storefront, product display, cart |
-| `scm-fulfillment` | 8215 | Fulfillment — order fulfillment, shipping, delivery tracking |
-| `scm-tenant` | — | Multi-tenant — tenant lifecycle, packages, feature flags |
-| `scm-approval` | — | Approval workflows — configurable approval processes |
-| `scm-audit` | — | Audit — operation logs, sensitive operation tracking |
-| `scm-notify` | — | Notifications — templates, multi-channel delivery, audit |
-| `scm-decision` | — | Decision engine — intelligent pricing, inventory prediction, A/B testing |
+| `scm-message` | 8209 ⚠ | Messaging — SMS / email / push dispatch, channel adapters |
+| `scm-approval` | 8209 ⚠ | Approval workflows — configurable approval processes |
+| `scm-audit` | 8210 | Audit — operation logs, sensitive operation tracking |
+| `scm-notify` | 8211 | In-app notifications — templates, multi-channel delivery |
+| `scm-tenant` | 8212 | Multi-tenant — tenant lifecycle, packages, feature flags |
+| `scm-mall` | 8301 | Mall — e-commerce storefront, product display, cart |
+| `scm-member` | 8302 | Member management — profiles, addresses, points, loyalty programs |
+| `scm-promotion` | 8303 | Promotions — campaigns, coupons, discounts, flash sales |
+| `scm-payment` | 8304 | Payment — payment processing, refunds, reconciliation |
+| `scm-order-center` | 8305 | Order center — centralized order orchestration |
+| `scm-fulfillment` | 8306 | Fulfillment — order fulfillment, shipping, delivery tracking |
+| `scm-search` | 8307 | Search — Elasticsearch-powered full-text product search |
+| `scm-common` | — | Shared libraries — core, data, data-rw, cache, web, monitoring, integration, decision-matrix, decision-engine, security |
+
+> **Port collisions:** `scm-file` ↔ `scm-product` (8201) and
+> `scm-message` ↔ `scm-approval` (8209). Override `server.port` when running
+> both locally. The decision engine (`scm-common/decision-engine`,
+> `scm-common/decision-matrix`) is a library, not a separately deployed
+> service.
 
 ## Quick Start
 
@@ -198,7 +212,7 @@ cd scm-order/service && mvn spring-boot:run
 |---------|-----|
 | API Gateway | http://localhost:8761 |
 | Nacos Console | http://localhost:8848/nacos |
-| Sentinel Dashboard | http://localhost:8080 |
+| Sentinel Dashboard | http://localhost:8858 |
 | XXL-Job Admin | http://localhost:8088/xxl-job-admin |
 | Prometheus | http://localhost:9090 |
 | Grafana | http://localhost:3000 |
@@ -224,7 +238,11 @@ The frontend runs at **http://localhost:3000** with built-in zh-CN and en-US lan
 
 ## Kubernetes Deployment
 
-All 22 services have deployment + service manifests in `deploy/k8s/`. Deploy with:
+Manifests in `deploy/k8s/` currently cover the **infrastructure and
+supply-chain core** services — the e-commerce layer services (`scm-mall`,
+`scm-member`, `scm-promotion`, `scm-payment`, `scm-order-center`,
+`scm-fulfillment`, `scm-search`) still rely on Docker Compose for local runs
+and need manifests added before K8s deployment.
 
 ```bash
 # Apply all K8s resources
@@ -234,6 +252,10 @@ kubectl apply -f deploy/k8s/secrets.yml
 kubectl apply -f deploy/k8s/scm-*-deployment.yml
 kubectl apply -f deploy/k8s/scm-*-service.yml
 
+# Canary (auth only)
+kubectl apply -f deploy/k8s/scm-auth-canary-deployment.yml
+kubectl apply -f deploy/k8s/scm-auth-canary-service.yml
+
 # Or use Helm
 helm install scm-platform deploy/helm/scm-platform/
 
@@ -241,27 +263,20 @@ helm install scm-platform deploy/helm/scm-platform/
 kubectl apply -f deploy/argocd/application.yaml
 ```
 
-### Services Port Map
+### Services With K8s Manifests
 
-| Service | Port | Replicas |
-|---------|------|----------|
-| scm-gateway | 8761 | 3 |
-| scm-system | 8081 | 3 |
-| scm-product | 8201 | 2 |
-| scm-inventory | 8202 | 2 |
-| scm-order | 8203 | 2 |
-| scm-warehouse | 8204 | 2 |
-| scm-logistics | 8205 | 2 |
-| scm-supplier | 8206 | 2 |
-| scm-purchase | 8207 | 2 |
-| scm-finance | 8208 | 2 |
-| scm-member | 8209 | 2 |
-| scm-promotion | 8210 | 2 |
-| scm-payment | 8211 | 2 |
-| scm-search | 8212 | 2 |
-| scm-order-center | 8213 | 2 |
-| scm-mall | 8214 | 2 |
-| scm-fulfillment | 8215 | 2 |
+| Service | Port | Notes |
+|---------|------|-------|
+| scm-gateway | 8761 | HPA-enabled |
+| scm-system | 8081 | |
+| scm-auth | 8106 | Plus canary deployment |
+| scm-product | 8201 ⚠ | Shares 8201 with `scm-file` |
+| scm-inventory | 8202 | |
+| scm-warehouse | 8204 | |
+| scm-logistics | 8205 | |
+| scm-supplier | 8206 | |
+| scm-purchase | 8207 | |
+| scm-finance | 8208 | |
 
 ## Load Testing
 
@@ -342,44 +357,53 @@ public Order createOrder(OrderDTO dto) {
 
 ```
 scm-platform/
-├── com.scm.parent/          # Parent POM (dependency management)
-├── scm-web/                 # Frontend (Next.js 15, React 19, Ant Design 5)
-├── scm-common/              # Shared modules
-│   ├── core/                # Utilities, exceptions, tenant context
-│   ├── data/                # Data access, read-write separation, multi-tenant routing
-│   ├── data-rw/             # Read-write separation module
-│   ├── cache/               # Redis cache, Lua script center, distributed locks
+├── com.scm.parent/          # Parent POM (dependency management) — always build via -f
+├── scm-web/                 # Frontend (Next.js 15, React 19, Ant Design 5) — separate npm project
+├── scm-common/              # Shared libraries (no Spring Boot main)
+│   ├── core/                # Utilities, exceptions, TenantContextHolder
+│   ├── data/                # MyBatis-Plus integration, dynamic-datasource routing
+│   ├── data-rw/             # @Master / @Slave read-write separation
+│   ├── data-rw-stub/        # Stub variant for tests
+│   ├── cache/               # Caffeine + Redis, Lua script center, idempotency, locks
 │   ├── web/                 # Web filters, REST clients, security config
 │   ├── monitoring/          # Sentinel circuit breaker
-│   ├── integration/         # Kafka & RabbitMQ messaging
-│   ├── decision-matrix/     # Decision engine core
-│   └── security/            # Security core & API
-├── scm-gateway/             # API Gateway
-├── scm-auth/                # Authentication service
+│   ├── integration/         # Kafka / RabbitMQ messaging (JacksonJsonSerializer)
+│   ├── decision-matrix/     # Decision engine core types
+│   ├── decision-engine/     # Weighted-fusion engine, A/B testing
+│   └── security/            # Security core + api
+├── scm-gateway/             # API Gateway (Spring Cloud Gateway, flat module)
+├── scm-auth/                # Authentication (OAuth2, JWT, WebAuthn — flat module)
 ├── scm-system/              # System management (users, roles, permissions)
-├── scm-product/             # Product catalog
-├── scm-inventory/           # Inventory management
-├── scm-order/               # Order processing
+├── scm-approval/            # Approval workflows
+├── scm-audit/               # Audit logging
+├── scm-notify/              # In-app notifications
+├── scm-tenant/              # Multi-tenant management
+├── scm-product/             # Product catalog (api + service)
+├── scm-inventory/           # Inventory (api + service, Redis Lua hot path)
+├── scm-order/               # Order processing (api + service, state machine)
 ├── scm-warehouse/           # Warehouse operations
 ├── scm-logistics/           # Logistics tracking
 ├── scm-purchase/            # Procurement
 ├── scm-supplier/            # Supplier management
 ├── scm-finance/             # Financial settlement
-├── scm-member/              # Member management (profiles, addresses, points)
+├── scm-file/                # File service (upload, storage abstraction, OCR)
+├── scm-message/             # SMS / email / push dispatch
+├── scm-member/              # Member management
 ├── scm-promotion/           # Promotions (campaigns, coupons, discounts)
 ├── scm-payment/             # Payment processing
 ├── scm-search/              # Elasticsearch full-text search
 ├── scm-order-center/        # Centralized order orchestration
 ├── scm-mall/                # E-commerce storefront
 ├── scm-fulfillment/         # Order fulfillment & shipping
-├── scm-tenant/              # Multi-tenant management
-├── scm-approval/            # Approval workflows
-├── scm-audit/               # Audit logging
-├── scm-notify/              # Notification service
-├── deploy/                  # Deployment configs (K8s, Helm, ArgoCD, PgBouncer)
-├── scripts/                 # Database init scripts, partition mgmt, load tests
-└── docs/                    # Documentation, audits, data dictionary
+├── deploy/                  # K8s manifests, Helm, ArgoCD, PgBouncer, Redis, Istio, chaos
+├── scripts/                 # DB init, partition mgmt, load tests, retention, quality
+└── docs/                    # Architecture, runbooks, design specs, audits
 ```
+
+> Business services (`scm-{name}/`) follow an **api / service split** — the
+> `api/` module holds the Dubbo RPC interfaces and DTOs, the `service/`
+> module is the Spring Boot deployable. `scm-gateway`, `scm-auth`,
+> `scm-system`, and the modules under `scm-common` are flat (single module).
 
 ## Database Management
 
