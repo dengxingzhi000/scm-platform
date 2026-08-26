@@ -2,7 +2,6 @@ package com.scmcloud.order.domain.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.IdType;
 import lombok.Data;
@@ -30,6 +29,6 @@ public class OrdOrderEvent {
 
     private String eventData;
 
-    @TableField(fill = FieldFill.INSERT)
+    @TableField("create_time")
     private LocalDateTime createTime;
 }

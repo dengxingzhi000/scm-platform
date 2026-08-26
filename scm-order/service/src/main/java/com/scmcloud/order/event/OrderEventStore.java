@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Slf4j
@@ -39,6 +40,7 @@ public class OrderEventStore {
             entity.setOrderNo(event.getOrderNo());
             entity.setEventType(event.getEventType());
             entity.setEventData(objectMapper.writeValueAsString(event));
+            entity.setCreateTime(LocalDateTime.now());
             eventMapper.insert(entity);
         }
         // 幂等依赖 uk_ord_order_event_event_id;若未来新增其他唯一约束需重新评估此处吞异常的范围
