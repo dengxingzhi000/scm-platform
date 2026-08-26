@@ -51,3 +51,6 @@ secrets/
 nacos-log/
 application-local.yml
 application-local.yaml
+
+# Superpowers worktrees
+.worktrees/
