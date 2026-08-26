@@ -167,11 +167,17 @@ jobs:
           restore-keys: ${{ runner.os }}-owasp-nvd
 
       - name: Run OWASP Dependency Check
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: |
+          NVD_ARGS=""
+          if [ -n "${NVD_API_KEY}" ]; then
+            NVD_ARGS="-DnvdApiKey=${NVD_API_KEY}"
+          fi
           mvn org.owasp:dependency-check-maven:check \
             -f com.scm.parent/pom.xml \
             -DfailBuildOnCVSS=9 \
-            -DnvdApiKey=${{ secrets.NVD_API_KEY }}
+            ${NVD_ARGS}
 
       - name: Upload Security Report
         if: always()
