@@ -27,6 +27,7 @@ class OrderAggregateTest {
         assertEquals(tenantId, aggregate.getTenantId());
         assertEquals("u-1", aggregate.getUserId());
         assertEquals(1, aggregate.getUncommittedEvents().size());
+        assertEquals(1, aggregate.getVersion());
     }
 
     @Test
@@ -47,6 +48,7 @@ class OrderAggregateTest {
 
         assertEquals(OrderStatus.PAID, aggregate.getStatus());
         assertEquals(2, aggregate.getUncommittedEvents().size());
+        assertEquals(2, aggregate.getVersion());
         OrderStatusChangedEvent event =
                 assertInstanceOf(OrderStatusChangedEvent.class,
                         aggregate.getUncommittedEvents().get(1));
@@ -69,6 +71,7 @@ class OrderAggregateTest {
         assertEquals(OrderStatus.PENDING_SHIP, aggregate.getStatus());
         assertEquals("u-1", aggregate.getUserId());
         assertEquals(new BigDecimal("99.90"), aggregate.getTotalAmount());
+        assertEquals(3, aggregate.getVersion());
         assertNull(aggregate.getUncommittedEvents()); // replay must not create uncommitted events
     }
 
@@ -76,6 +79,64 @@ class OrderAggregateTest {
     void rehydrateShouldRejectHistoryWithoutCreationEvent() {
         List<OrderEvent> history = List.of(new OrderStatusChangedEvent(
                 tenantId, 1L, "NO1001", OrderStatus.PAID, OrderStatus.CANCELLED));
+
+        assertThrows(IllegalStateException.class, () -> OrderAggregate.rehydrate(history));
+    }
+
+    @Test
+    void changeStatusShouldRejectTerminalState() {
+        OrderAggregate aggregate = OrderAggregate.create(
+                tenantId, 1L, "NO1001", "u-1", BigDecimal.TEN, BigDecimal.TEN);
+        aggregate.changeStatus(OrderStatus.PAID);
+        aggregate.changeStatus(OrderStatus.CANCELLED);
+
+        assertEquals(OrderStatus.CANCELLED, aggregate.getStatus());
+        assertThrows(IllegalStateException.class,
+                () -> aggregate.changeStatus(OrderStatus.PAID));
+    }
+
+    @Test
+    void changeStatusShouldLeaveStateUntouchedOnFailure() {
+        OrderAggregate aggregate = OrderAggregate.create(
+                tenantId, 1L, "NO1001", "u-1", BigDecimal.TEN, BigDecimal.TEN);
+        OrderStatus statusBefore = aggregate.getStatus();
+        int uncommittedSizeBefore = aggregate.getUncommittedEvents().size();
+        long versionBefore = aggregate.getVersion();
+
+        assertThrows(IllegalStateException.class,
+                () -> aggregate.changeStatus(OrderStatus.COMPLETED));
+
+        assertEquals(statusBefore, aggregate.getStatus());
+        assertEquals(uncommittedSizeBefore, aggregate.getUncommittedEvents().size());
+        assertEquals(versionBefore, aggregate.getVersion());
+    }
+
+    @Test
+    void rehydrateShouldRejectCorruptedHistory() {
+        List<OrderEvent> history = List.of(
+                new OrderCreatedEvent(tenantId, 1L, "NO1001", "u-1",
+                        new BigDecimal("99.90"), new BigDecimal("89.90")),
+                new OrderStatusChangedEvent(tenantId, 1L, "NO1001",
+                        OrderStatus.PAID, OrderStatus.PENDING_SHIP));
+
+        assertThrows(IllegalStateException.class, () -> OrderAggregate.rehydrate(history));
+    }
+
+    @Test
+    void rehydrateShouldRejectDuplicateCreatedInHistory() {
+        List<OrderEvent> history = List.of(
+                new OrderCreatedEvent(tenantId, 1L, "NO1001", "u-1", BigDecimal.TEN, BigDecimal.TEN),
+                new OrderCreatedEvent(tenantId, 1L, "NO1001", "u-1", BigDecimal.TEN, BigDecimal.TEN));
+
+        assertThrows(IllegalStateException.class, () -> OrderAggregate.rehydrate(history));
+    }
+
+    @Test
+    void rehydrateShouldRejectMismatchedOrderId() {
+        List<OrderEvent> history = List.of(
+                new OrderCreatedEvent(tenantId, 1L, "NO1001", "u-1", BigDecimal.TEN, BigDecimal.TEN),
+                new OrderStatusChangedEvent(tenantId, 99L, "NO1001",
+                        OrderStatus.PENDING_PAYMENT, OrderStatus.PAID));
 
         assertThrows(IllegalStateException.class, () -> OrderAggregate.rehydrate(history));
     }
