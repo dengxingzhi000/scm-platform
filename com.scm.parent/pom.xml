@@ -91,7 +91,7 @@
     <jjwt.version>0.13.0</jjwt.version>
 
     <!-- Utility Libraries -->
-    <org.projectlombok.version>1.18.38</org.projectlombok.version>
+    <org.projectlombok.version>1.18.46</org.projectlombok.version>
     <uuid-creator.version>6.1.1</uuid-creator.version>
     <hutool.version>5.8.40</hutool.version>
     <guava.version>33.5.0-jre</guava.version>
