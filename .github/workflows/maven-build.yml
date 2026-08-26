@@ -173,6 +173,13 @@ jobs:
           NVD_ARGS=""
           if [ -n "${NVD_API_KEY}" ]; then
             NVD_ARGS="-DnvdApiKey=${NVD_API_KEY}"
+          else
+            # No NVD_API_KEY configured — skip remote NVD update and rely
+            # on the cache populated by previous runs. This avoids the
+            # "Invalid API Key, length of 0" plugin abort while still
+            # letting the scan flag any CVSS >= 9 vulnerability against
+            # the cached feed.
+            NVD_ARGS="-Dnvd.update.skip=true"
           fi
           mvn org.owasp:dependency-check-maven:check \
             -f com.scm.parent/pom.xml \
