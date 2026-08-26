@@ -1,7 +1,6 @@
 package com.scmcloud.inventory.service.command;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.scmcloud.common.data.rw.annotation.Master;
 import com.scmcloud.inventory.dto.InventoryAdjustRequest;
 import com.scmcloud.inventory.dto.InventoryResponse;
@@ -22,7 +21,6 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class InvInventoryCommandService {
-
     private final InvInventoryMapper inventoryMapper;
 
     @Master(reason = "写操作必须走主库")

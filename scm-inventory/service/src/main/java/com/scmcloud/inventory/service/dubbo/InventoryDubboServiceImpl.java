@@ -27,7 +27,6 @@ import java.util.List;
 @Component
 @RequiredArgsConstructor
 public class InventoryDubboServiceImpl implements InventoryDubboService {
-
     private static final String DEFAULT_WAREHOUSE = "DEFAULT";
 
     private final RedisInventoryService redisInventoryService;

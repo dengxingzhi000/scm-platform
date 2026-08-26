@@ -5,6 +5,7 @@ import com.scmcloud.decision.engine.ConstraintResult;
 import com.scmcloud.decision.engine.ConstraintType;
 
 public class StockSufficientConstraint implements Constraint<WarehouseCandidate> {
+
     @Override
     public ConstraintResult validate(WarehouseCandidate context) {
         if (context.getAvailableStock() <= 0) {

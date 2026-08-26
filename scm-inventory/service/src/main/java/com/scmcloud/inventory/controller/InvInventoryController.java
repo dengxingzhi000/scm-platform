@@ -55,7 +55,6 @@ import java.util.concurrent.TimeUnit;
 @RestController
 @RequestMapping("/api/v1/inventory")
 public class InvInventoryController {
-
   private final InvInventoryQueryService queryService;
   private final InvInventoryCommandService commandService;
   /**
