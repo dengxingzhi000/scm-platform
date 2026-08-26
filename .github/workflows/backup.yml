@@ -37,8 +37,8 @@ jobs:
 
       - name: Install PostgreSQL client
         run: |
-          apt-get update
-          apt-get install -y postgresql-client
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
 
       - name: Wait for Postgres service (local fallback only)
         if: env.DB_HOST == 'localhost'

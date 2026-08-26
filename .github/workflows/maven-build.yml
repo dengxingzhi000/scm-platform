@@ -61,7 +61,8 @@ jobs:
           PG_ADMIN_USER: admin
           PG_ADMIN_PASSWORD: admin123
         run: |
-          apt-get install -y postgresql-client
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
           cd scripts/db && bash init-all-databases.sh
 
       - name: Validate schema — all tables must have tenant_id
