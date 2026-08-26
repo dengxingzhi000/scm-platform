@@ -1,8 +1,9 @@
 version: 2
 updates:
   # Maven dependencies (Java)
+  # The parent BOM lives at com.scm.parent/pom.xml — there is no repo-root pom.
   - package-ecosystem: "maven"
-    directory: "/"
+    directory: "/com.scm.parent"
     schedule:
       interval: "weekly"
       day: "monday"
@@ -41,14 +42,7 @@ updates:
       prefix: "ci"
 
   # Docker
-  - package-ecosystem: "docker"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-    open-pull-requests-limit: 5
-    labels:
-      - "dependencies"
-      - "docker"
-    commit-message:
-      prefix: "docker"
+  # Disabled: there is no Dockerfile at the repo root. Dockerfiles live per
+  # service under scm-*/Dockerfile and are pinned to the JDK base image via
+  # the maven-build workflow. Re-enable per-service if automated base-image
+  # bumps become useful.
