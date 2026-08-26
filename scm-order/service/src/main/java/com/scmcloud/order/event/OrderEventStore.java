@@ -26,8 +26,10 @@ public class OrderEventStore {
     public void append(OrderEvent event) {
         try {
             OrdOrderEvent entity = new OrdOrderEvent();
+            entity.setTenantId(event.getTenantId());
             entity.setEventId(event.getEventId());
             entity.setOrderId(event.getOrderId());
+            entity.setOrderNo(event.getOrderNo());
             entity.setEventType(event.getEventType());
             entity.setEventData(objectMapper.writeValueAsString(event));
             eventMapper.insert(entity);

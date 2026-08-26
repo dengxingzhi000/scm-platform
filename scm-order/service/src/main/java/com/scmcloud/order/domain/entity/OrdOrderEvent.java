@@ -18,7 +18,13 @@ public class OrdOrderEvent {
 
     private UUID eventId;
 
-    private UUID orderId;
+    @TableField("tenant_id")
+    private UUID tenantId;
+
+    private Long orderId;
+
+    @TableField("order_no")
+    private String orderNo;
 
     private String eventType;
 

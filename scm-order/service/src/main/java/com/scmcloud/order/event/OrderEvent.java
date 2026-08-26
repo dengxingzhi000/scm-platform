@@ -5,7 +5,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -15,80 +14,55 @@ import java.util.UUID;
     @JsonSubTypes.Type(value = OrderStatusChangedEvent.class, name = "ORDER_STATUS_CHANGED")
 })
 public abstract class OrderEvent {
+
     private final UUID eventId;
-    private final UUID orderId;
+    private final UUID tenantId;
+    private final Long orderId;
+    private final String orderNo;
     private final Instant timestamp;
     private final String eventType;
 
-    protected OrderEvent(UUID orderId, String eventType) {
-        this(UUID.randomUUID(), orderId, Instant.now(), eventType);
+    protected OrderEvent(UUID tenantId, Long orderId, String orderNo, String eventType) {
+        this(UUID.randomUUID(), tenantId, orderId, orderNo, Instant.now(), eventType);
     }
 
     @JsonCreator
     protected OrderEvent(@JsonProperty("eventId") UUID eventId,
-                          @JsonProperty("orderId") UUID orderId,
+                          @JsonProperty("tenantId") UUID tenantId,
+                          @JsonProperty("orderId") Long orderId,
+                          @JsonProperty("orderNo") String orderNo,
                           @JsonProperty("timestamp") Instant timestamp,
                           @JsonProperty("eventType") String eventType) {
         this.eventId = eventId;
+        this.tenantId = tenantId;
         this.orderId = orderId;
+        this.orderNo = orderNo;
         this.timestamp = timestamp;
         this.eventType = eventType;
     }
 
     public UUID getEventId() { return eventId; }
-    public UUID getOrderId() { return orderId; }
+    public UUID getTenantId() { return tenantId; }
+    public Long getOrderId() { return orderId; }
+    public String getOrderNo() { return orderNo; }
     public Instant getTimestamp() { return timestamp; }
     public String getEventType() { return eventType; }
-}
 
-class OrderCreatedEvent extends OrderEvent {
-    private final String customerName;
-    private final BigDecimal totalAmount;
-
-    public OrderCreatedEvent(UUID orderId, String customerName, BigDecimal totalAmount) {
-        super(orderId, "ORDER_CREATED");
-        this.customerName = customerName;
-        this.totalAmount = totalAmount;
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof OrderEvent other)) return false;
+        return eventId.equals(other.eventId);
     }
 
-    @JsonCreator
-    public OrderCreatedEvent(@JsonProperty("eventId") UUID eventId,
-                              @JsonProperty("orderId") UUID orderId,
-                              @JsonProperty("timestamp") Instant timestamp,
-                              @JsonProperty("eventType") String eventType,
-                              @JsonProperty("customerName") String customerName,
-                              @JsonProperty("totalAmount") BigDecimal totalAmount) {
-        super(eventId, orderId, timestamp, eventType);
-        this.customerName = customerName;
-        this.totalAmount = totalAmount;
+    @Override
+    public int hashCode() {
+        return eventId.hashCode();
     }
 
-    public String getCustomerName() { return customerName; }
-    public BigDecimal getTotalAmount() { return totalAmount; }
-}
-
-class OrderStatusChangedEvent extends OrderEvent {
-    private final String oldStatus;
-    private final String newStatus;
-
-    public OrderStatusChangedEvent(UUID orderId, String oldStatus, String newStatus) {
-        super(orderId, "ORDER_STATUS_CHANGED");
-        this.oldStatus = oldStatus;
-        this.newStatus = newStatus;
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "{eventId=" + eventId + ", orderId=" + orderId
+                + ", orderNo='" + orderNo + "', eventType='" + eventType + "'}";
     }
-
-    @JsonCreator
-    public OrderStatusChangedEvent(@JsonProperty("eventId") UUID eventId,
-                                    @JsonProperty("orderId") UUID orderId,
-                                    @JsonProperty("timestamp") Instant timestamp,
-                                    @JsonProperty("eventType") String eventType,
-                                    @JsonProperty("oldStatus") String oldStatus,
-                                    @JsonProperty("newStatus") String newStatus) {
-        super(eventId, orderId, timestamp, eventType);
-        this.oldStatus = oldStatus;
-        this.newStatus = newStatus;
-    }
-
-    public String getOldStatus() { return oldStatus; }
-    public String getNewStatus() { return newStatus; }
 }
