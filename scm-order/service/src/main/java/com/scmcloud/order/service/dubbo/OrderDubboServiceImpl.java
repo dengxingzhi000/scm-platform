@@ -12,6 +12,10 @@ import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import com.scmcloud.order.domain.entity.OrdOrder;
+import com.scmcloud.order.domain.entity.OrderStatus;
+import com.scmcloud.order.event.OrderCreatedEvent;
+import com.scmcloud.order.event.OrderEventStore;
+import com.scmcloud.order.event.OrderStatusChangedEvent;
 import com.scmcloud.order.service.IOrdOrderService;
 
 import com.scmcloud.common.domain.Money;
@@ -32,6 +36,7 @@ import java.time.LocalDateTime;
 public class OrderDubboServiceImpl implements OrderDubboService {
 
     private final IOrdOrderService orderService;
+    private final OrderEventStore eventStore;
 
     @DubboReference
     private StatusMachineDubboService statusMachine;
@@ -67,6 +72,14 @@ public class OrderDubboServiceImpl implements OrderDubboService {
         if (!success) {
             throw new RuntimeException("创建订单失败");
         }
+
+        eventStore.append(new OrderCreatedEvent(
+                order.getTenantId() != null ? order.getTenantId().toUUID() : null,
+                order.getId(),
+                order.getOrderNo(),
+                order.getUserId(),
+                order.getTotalAmount() != null ? order.getTotalAmount().getAmount() : null,
+                order.getPayableAmount() != null ? order.getPayableAmount().getAmount() : null));
 
         log.info("Dubbo创建订单成功: orderNo={}, id={}", order.getOrderNo(), order.getId());
 
@@ -121,12 +134,20 @@ public class OrderDubboServiceImpl implements OrderDubboService {
                     + ", status=" + currentStatus + ", reason=" + result.errorMessage());
         }
 
+        OrderStatus previousStatus = order.getStatusEnum();
         order.cancel("Dubbo接口取消");
 
         boolean success = orderService.updateById(order);
         if (!success) {
             throw new RuntimeException("取消订单失败: " + orderNo);
         }
+
+        eventStore.append(new OrderStatusChangedEvent(
+                order.getTenantId() != null ? order.getTenantId().toUUID() : null,
+                order.getId(),
+                order.getOrderNo(),
+                previousStatus,
+                OrderStatus.CANCELLED));
 
         log.info("Dubbo取消订单成功: orderNo={}", orderNo);
     }
