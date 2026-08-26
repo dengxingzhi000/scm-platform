@@ -11,7 +11,6 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class InstantUploadService {
-    
     private final FileMetadataService metadataService;
     
     public Optional<FileMetadata> checkExist(String md5, Long tenantId) {

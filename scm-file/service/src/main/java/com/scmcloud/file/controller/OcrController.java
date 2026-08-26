@@ -5,19 +5,22 @@ import com.scmcloud.file.service.ocr.OcrService;
 import com.scmcloud.file.service.ocr.OcrService.ContractInfo;
 import com.scmcloud.file.service.ocr.OcrService.InvoiceInfo;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 
 /**
  * OCR控制器 - 提供图片文字识别API。
  */
+@Slf4j
 @RestController
 @RequestMapping("/file/ocr")
 @RequiredArgsConstructor
 public class OcrController {
-
     private final OcrService ocrService;
 
     /**
@@ -41,13 +44,13 @@ public class OcrController {
     @PostMapping("/invoice")
     public ApiResponse<InvoiceInfo> extractInvoice(@RequestParam("file") MultipartFile file) throws IOException {
         // 保存到临时文件
-        java.io.File tempFile = java.io.File.createTempFile("invoice-", "-" + file.getOriginalFilename());
+        File tempFile = File.createTempFile("invoice-", "-" + file.getOriginalFilename());
         file.transferTo(tempFile);
         try {
             InvoiceInfo info = ocrService.extractInvoiceInfo(tempFile);
             return ApiResponse.success(info);
         } finally {
-            tempFile.delete();
+            deleteTempFile(tempFile);
         }
     }
 
@@ -59,13 +62,21 @@ public class OcrController {
      */
     @PostMapping("/contract")
     public ApiResponse<ContractInfo> extractContract(@RequestParam("file") MultipartFile file) throws IOException {
-        java.io.File tempFile = java.io.File.createTempFile("contract-", "-" + file.getOriginalFilename());
+        File tempFile = File.createTempFile("contract-", "-" + file.getOriginalFilename());
         file.transferTo(tempFile);
         try {
             ContractInfo info = ocrService.extractContractInfo(tempFile);
             return ApiResponse.success(info);
         } finally {
-            tempFile.delete();
+            deleteTempFile(tempFile);
+        }
+    }
+
+    private void deleteTempFile(File tempFile) {
+        try {
+            Files.deleteIfExists(tempFile.toPath());
+        } catch (IOException e) {
+            log.warn("临时文件清理失败: {}", tempFile.getAbsolutePath(), e);
         }
     }
 }

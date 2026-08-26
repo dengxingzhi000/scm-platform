@@ -11,7 +11,6 @@ import java.util.Map;
 @Slf4j
 @Component
 public class StorageFactory {
-    
     private final List<StorageEngine> engineList;
     private final Map<StorageType, StorageEngine> engineMap = new EnumMap<>(StorageType.class);
     

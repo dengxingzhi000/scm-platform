@@ -48,6 +48,6 @@ public class FileController {
         return instantUploadService.checkExist(md5, tenantId)
                 .map(fileMetadataConvert::toDTO)
                 .map(ApiResponse::success)
-                .orElse(ApiResponse.success(null));
+                .orElse(ApiResponse.success());
     }
 }

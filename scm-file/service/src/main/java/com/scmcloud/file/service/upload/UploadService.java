@@ -18,7 +18,6 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class UploadService {
-    
     private final StorageFactory storageFactory;
     private final FileMetadataService metadataService;
     private final InstantUploadService instantUploadService;
