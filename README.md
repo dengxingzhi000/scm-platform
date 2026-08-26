@@ -10,7 +10,7 @@
 [![Issues](https://img.shields.io/github/issues/dengxingzhi000/scm-platform?color=ff80eb&labelColor=black&style=flat-square&logo=github)](https://github.com/dengxingzhi000/scm-platform/issues)
 [![License](https://img.shields.io/badge/license-Apache%202.0-white?labelColor=black&style=flat-square)](https://github.com/dengxingzhi000/scm-platform/blob/master/LICENSE)
 
-[English](./README.md)
+[English](./README.md) | [简体中文](./README.zh-CN.md)
 
 </div>
 
