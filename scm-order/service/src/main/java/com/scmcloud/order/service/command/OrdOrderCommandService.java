@@ -6,6 +6,9 @@ import com.scmcloud.order.domain.entity.OrdOrder;
 import com.scmcloud.order.domain.entity.OrdOrderItem;
 import com.scmcloud.order.domain.entity.OrdStatusHistory;
 import com.scmcloud.order.domain.repository.OrdOrderRepository;
+import com.scmcloud.order.event.OrderCreatedEvent;
+import com.scmcloud.order.event.OrderEventStore;
+import com.scmcloud.order.event.OrderStatusChangedEvent;
 import com.scmcloud.order.mapper.OrdOrderMapper;
 import com.scmcloud.system.api.StatusMachineDubboService;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +31,7 @@ public class OrdOrderCommandService {
     private final OrdOrderItemCommandService ordOrderItemCommandService;
     private final OrdStatusHistoryCommandService ordStatusHistoryCommandService;
     private final OrdOrderRepository ordOrderRepository;
+    private final OrderEventStore eventStore;
 
     @DubboReference
     private StatusMachineDubboService statusMachine;
@@ -82,6 +86,14 @@ public class OrdOrderCommandService {
         history.setTransitionedAt(LocalDateTime.now());
         ordStatusHistoryCommandService.save(history);
 
+        eventStore.append(new OrderCreatedEvent(
+                order.getTenantId() != null ? order.getTenantId().toUUID() : null,
+                order.getId(),
+                order.getOrderNo(),
+                order.getUserId(),
+                order.getTotalAmount() != null ? order.getTotalAmount().getAmount() : null,
+                order.getPayableAmount() != null ? order.getPayableAmount().getAmount() : null));
+
         log.info("订单创建成功: id={}, orderNo={}", order.getId(), order.getOrderNo());
         return order;
     }
@@ -134,6 +146,13 @@ public class OrdOrderCommandService {
             history.setEvent("STATUS_CHANGED");
             history.setTransitionedAt(LocalDateTime.now());
             ordStatusHistoryCommandService.save(history);
+
+            eventStore.append(new OrderStatusChangedEvent(
+                    order.getTenantId() != null ? order.getTenantId().toUUID() : null,
+                    order.getId(),
+                    order.getOrderNo(),
+                    OrderStatus.fromCode(fromStatus),
+                    targetStatus));
         }
 
         return updated > 0;
@@ -172,9 +191,17 @@ public class OrdOrderCommandService {
             throw new IllegalArgumentException("订单不存在: id=" + order.getId());
         }
 
+        OrderStatus previousStatus = existing.getStatusEnum();
         existing.cancel("订单超时未支付，系统自动取消");
 
         ordOrderRepository.save(existing);
+
+        eventStore.append(new OrderStatusChangedEvent(
+                existing.getTenantId() != null ? existing.getTenantId().toUUID() : null,
+                existing.getId(),
+                existing.getOrderNo(),
+                previousStatus,
+                OrderStatus.CANCELLED));
 
         log.info("超时订单已取消: orderNo={}, id={}", existing.getOrderNo(), existing.getId());
     }
