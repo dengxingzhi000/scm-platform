@@ -44,7 +44,7 @@ jobs:
         if: env.DB_HOST == 'localhost'
         run: |
           for i in $(seq 1 30); do
-            if pg_isready -h localhost -U admin; then
+            if pg_isready -h localhost -U admin -d postgres; then
               echo "Postgres ready"
               exit 0
             fi
