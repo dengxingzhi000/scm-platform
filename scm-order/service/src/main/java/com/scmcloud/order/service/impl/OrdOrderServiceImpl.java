@@ -15,6 +15,9 @@ import org.springframework.util.CollectionUtils;
 import com.scmcloud.order.domain.entity.OrdOrder;
 import com.scmcloud.order.domain.entity.OrdOrderItem;
 import com.scmcloud.order.domain.entity.OrdStatusHistory;
+import com.scmcloud.order.event.OrderCreatedEvent;
+import com.scmcloud.order.event.OrderEventStore;
+import com.scmcloud.order.event.OrderStatusChangedEvent;
 import com.scmcloud.order.mapper.OrdOrderMapper;
 import com.scmcloud.order.service.IOrdOrderItemService;
 import com.scmcloud.order.service.IOrdOrderService;
@@ -31,6 +34,7 @@ public class OrdOrderServiceImpl extends ServiceImpl<OrdOrderMapper, OrdOrder> i
 
     private final IOrdOrderItemService orderItemService;
     private final IOrdStatusHistoryService statusHistoryService;
+    private final OrderEventStore eventStore;
 
     @DubboReference
     private StatusMachineDubboService statusMachine;
@@ -85,6 +89,14 @@ public class OrdOrderServiceImpl extends ServiceImpl<OrdOrderMapper, OrdOrder> i
         history.setTransitionedAt(LocalDateTime.now());
         statusHistoryService.save(history);
 
+        eventStore.append(new OrderCreatedEvent(
+                order.getTenantId() != null ? order.getTenantId().toUUID() : null,
+                order.getId(),
+                order.getOrderNo(),
+                order.getUserId(),
+                order.getTotalAmount() != null ? order.getTotalAmount().getAmount() : null,
+                order.getPayableAmount() != null ? order.getPayableAmount().getAmount() : null));
+
         log.info("订单创建成功: id={}, orderNo={}", order.getId(), order.getOrderNo());
         return order;
     }
@@ -125,6 +137,13 @@ public class OrdOrderServiceImpl extends ServiceImpl<OrdOrderMapper, OrdOrder> i
             history.setEvent("STATUS_CHANGED");
             history.setTransitionedAt(LocalDateTime.now());
             statusHistoryService.save(history);
+
+            eventStore.append(new OrderStatusChangedEvent(
+                    order.getTenantId() != null ? order.getTenantId().toUUID() : null,
+                    order.getId(),
+                    order.getOrderNo(),
+                    OrderStatus.fromCode(fromStatus),
+                    targetStatus));
         }
 
         return updated;
