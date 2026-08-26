@@ -4,7 +4,9 @@
 set -e
 
 # Configuration
-BACKUP_DIR="/backups/postgresql"
+# Use RUNNER_TEMP when invoked from GitHub Actions (read-only root filesystem);
+# fall back to /tmp/backups/postgresql for local runs.
+BACKUP_DIR="${RUNNER_TEMP:-/tmp}/backups/postgresql"
 RETENTION_DAYS=30
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 DATABASES=(

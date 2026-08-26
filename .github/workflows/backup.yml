@@ -36,4 +36,4 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
 
       - run: |
-          aws s3 cp /backups/postgresql/backup_*.tar.gz s3://${{ secrets.BACKUP_BUCKET }}/postgresql/
+          aws s3 cp "${RUNNER_TEMP}/backups/postgresql/backup_*.tar.gz" s3://${{ secrets.BACKUP_BUCKET }}/postgresql/
