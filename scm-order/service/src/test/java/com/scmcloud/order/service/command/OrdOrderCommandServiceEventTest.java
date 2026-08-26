@@ -24,6 +24,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -115,5 +116,20 @@ class OrdOrderCommandServiceEventTest {
         assertEquals(OrderStatus.PAID, event.getFromStatus());
         assertEquals(OrderStatus.CANCELLED, event.getToStatus());
         verify(ordOrderRepository).save(existing);
+    }
+
+    @Test
+    void updateOrderStatusShouldNotAppendWhenUpdateMisses() {
+        OrdOrder existing = order(OrderStatus.PAID.getCode());
+        when(ordOrderMapper.selectById(1L)).thenReturn(existing);
+        when(statusMachine.canTransition("ORDER", "PAID", "PENDING_SHIP"))
+                .thenReturn(new StatusMachineDubboService.TransitionCheckDTO(
+                        true, "ORDER", "PAID", "PENDING_SHIP", null));
+        when(ordOrderMapper.updateById(any(OrdOrder.class))).thenReturn(0);
+
+        boolean updated = service.updateOrderStatus(1L, OrderStatus.PENDING_SHIP.getCode());
+
+        assertEquals(false, updated);
+        verify(eventStore, never()).append(any());
     }
 }
