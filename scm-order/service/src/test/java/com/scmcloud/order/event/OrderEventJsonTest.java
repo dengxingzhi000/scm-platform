@@ -21,10 +21,12 @@ class OrderEventJsonTest {
 
     @Test
     void shouldRoundTripOrderCreatedEventPolymorphically() throws Exception {
+        java.time.Instant ts = java.time.Instant.parse("2026-08-26T00:00:00Z");
         OrderCreatedEvent original = new OrderCreatedEvent(
                 UUID.fromString("550e8400-e29b-41d4-a716-446655440000"),
-                1L, "NO1001", "u-1",
-                new BigDecimal("99.90"), new BigDecimal("89.90"));
+                UUID.fromString("660e8400-e29b-41d4-a716-446655440001"),
+                1L, "NO1001", ts, "ORDER_CREATED",
+                "u-1", new BigDecimal("99.90"), new BigDecimal("89.90"));
 
         String json = objectMapper.writeValueAsString(original);
         OrderEvent deserialized = objectMapper.readValue(json, OrderEvent.class);
@@ -37,13 +39,18 @@ class OrderEventJsonTest {
         assertEquals(original.getUserId(), restored.getUserId());
         assertEquals(original.getTotalAmount(), restored.getTotalAmount());
         assertEquals(original.getPayableAmount(), restored.getPayableAmount());
+        assertEquals(original.getEventId(), restored.getEventId());
+        assertEquals(ts, restored.getTimestamp());
     }
 
     @Test
     void shouldRoundTripOrderStatusChangedEventPolymorphically() throws Exception {
+        java.time.Instant ts = java.time.Instant.parse("2026-08-26T01:00:00Z");
         OrderStatusChangedEvent original = new OrderStatusChangedEvent(
                 UUID.fromString("550e8400-e29b-41d4-a716-446655440000"),
-                2L, "NO1002", OrderStatus.PAID, OrderStatus.PENDING_SHIP);
+                UUID.fromString("660e8400-e29b-41d4-a716-446655440001"),
+                2L, "NO1002", ts, "ORDER_STATUS_CHANGED",
+                OrderStatus.PAID, OrderStatus.PENDING_SHIP);
 
         String json = objectMapper.writeValueAsString(original);
         OrderEvent deserialized = objectMapper.readValue(json, OrderEvent.class);
@@ -52,6 +59,10 @@ class OrderEventJsonTest {
         assertEquals(OrderStatus.PAID, restored.getFromStatus());
         assertEquals(OrderStatus.PENDING_SHIP, restored.getToStatus());
         assertEquals(2L, restored.getOrderId());
+        assertEquals(original.getTenantId(), restored.getTenantId());
+        assertEquals("NO1002", restored.getOrderNo());
+        assertEquals(original.getEventId(), restored.getEventId());
+        assertEquals(ts, restored.getTimestamp());
     }
 
     @Test
