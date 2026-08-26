@@ -16,6 +16,7 @@ CREATE EXTENSION IF NOT EXISTS "pg_trgm";  -- 全文搜索
 -- ======================================================================
 CREATE TABLE IF NOT EXISTS prod_category (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL,
     category_code VARCHAR(64) NOT NULL UNIQUE,
     category_name VARCHAR(128) NOT NULL,
     parent_id UUID,
@@ -46,6 +47,7 @@ CREATE INDEX idx_category_parent ON prod_category(parent_id) WHERE NOT deleted;
 CREATE INDEX idx_category_code ON prod_category(category_code) WHERE NOT deleted;
 CREATE INDEX idx_category_enabled ON prod_category(enabled, is_leaf) WHERE NOT deleted;
 CREATE INDEX idx_category_sort ON prod_category(sort_order);
+CREATE INDEX idx_category_tenant ON prod_category(tenant_id) WHERE NOT deleted;
 
 COMMENT ON TABLE prod_category IS '商品分类表';
 COMMENT ON COLUMN prod_category.is_leaf IS '是否叶子分类（只有叶子分类可以挂商品）';
@@ -55,6 +57,7 @@ COMMENT ON COLUMN prod_category.is_leaf IS '是否叶子分类（只有叶子分
 -- ======================================================================
 CREATE TABLE IF NOT EXISTS prod_brand (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL,
     brand_code VARCHAR(64) NOT NULL UNIQUE,
     brand_name VARCHAR(128) NOT NULL,
     brand_name_en VARCHAR(128),
@@ -83,6 +86,7 @@ CREATE INDEX idx_brand_code ON prod_brand(brand_code) WHERE NOT deleted;
 CREATE INDEX idx_brand_enabled ON prod_brand(enabled) WHERE NOT deleted;
 CREATE INDEX idx_brand_featured ON prod_brand(featured) WHERE enabled = TRUE AND NOT deleted;
 CREATE INDEX idx_brand_name_trgm ON prod_brand USING gin (brand_name gin_trgm_ops) WHERE NOT deleted;
+CREATE INDEX idx_brand_tenant ON prod_brand(tenant_id) WHERE NOT deleted;
 
 COMMENT ON TABLE prod_brand IS '商品品牌表';
 COMMENT ON COLUMN prod_brand.featured IS '是否推荐品牌';
@@ -92,6 +96,7 @@ COMMENT ON COLUMN prod_brand.featured IS '是否推荐品牌';
 -- ======================================================================
 CREATE TABLE IF NOT EXISTS prod_spu (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL,
     spu_code VARCHAR(128) NOT NULL UNIQUE,
     spu_name VARCHAR(256) NOT NULL,
     category_id UUID NOT NULL,
@@ -144,6 +149,7 @@ CREATE INDEX idx_spu_status ON prod_spu(status) WHERE NOT deleted;
 CREATE INDEX idx_spu_price ON prod_spu(min_price, max_price) WHERE status = 1 AND NOT deleted;
 CREATE INDEX idx_spu_sales ON prod_spu(total_sales DESC) WHERE status = 1 AND NOT deleted;
 CREATE INDEX idx_spu_name_trgm ON prod_spu USING gin (spu_name gin_trgm_ops) WHERE NOT deleted;
+CREATE INDEX idx_spu_tenant ON prod_spu(tenant_id) WHERE NOT deleted;
 
 COMMENT ON TABLE prod_spu IS 'SPU标准产品单元表';
 COMMENT ON COLUMN prod_spu.status IS '状态:0-草稿,1-上架,2-下架,3-删除';
@@ -154,6 +160,7 @@ COMMENT ON COLUMN prod_spu.images IS 'JSON数组，存储图片URL列表';
 -- ======================================================================
 CREATE TABLE IF NOT EXISTS prod_sku (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL,
     spu_id UUID NOT NULL,
     sku_code VARCHAR(128) NOT NULL UNIQUE,
     sku_name VARCHAR(256) NOT NULL,
