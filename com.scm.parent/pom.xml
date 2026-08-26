@@ -94,7 +94,7 @@
     <org.projectlombok.version>1.18.38</org.projectlombok.version>
     <uuid-creator.version>6.1.1</uuid-creator.version>
     <hutool.version>5.8.40</hutool.version>
-    <guava.version>33.5.0-jre</guava.version>
+    <guava.version>33.7.1-jre</guava.version>
     <fastjson2.version>2.0.53</fastjson2.version>
 
     <!-- Messaging -->
