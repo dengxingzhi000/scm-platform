@@ -200,7 +200,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build, code-quality]
     timeout-minutes: 20
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop') && vars.DOCKERHUB_USERNAME
 
     strategy:
       matrix:
@@ -276,7 +276,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: docker-build
     timeout-minutes: 15
-    if: github.ref == 'refs/heads/develop'
+    if: github.ref == 'refs/heads/develop' && vars.DOCKERHUB_USERNAME && vars.KUBE_DEPLOY_ENABLED
     environment: development
 
     steps:
@@ -309,7 +309,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: docker-build
     timeout-minutes: 15
-    if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/master' && vars.DOCKERHUB_USERNAME && vars.KUBE_DEPLOY_ENABLED
     environment: production
 
     steps:
