@@ -41,4 +41,25 @@ public abstract class OrderEvent {
         this.timestamp = timestamp;
         this.eventType = eventType;
     }
+
+    /**
+     * 事件相等性以 {@code eventId} 为准（语义上的幂等/去重标识），
+     * 与租户、订单、金额等其他字段无关。
+     */
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        OrderEvent that = (OrderEvent) o;
+        return java.util.Objects.equals(eventId, that.eventId);
+    }
+
+    @Override
+    public int hashCode() {
+        return java.util.Objects.hashCode(eventId);
+    }
 }
