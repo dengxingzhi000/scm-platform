@@ -57,6 +57,7 @@ import java.util.concurrent.TimeUnit;
 public class InvInventoryController {
   private final InvInventoryQueryService queryService;
   private final InvInventoryCommandService commandService;
+
   /**
    * 查询单个SKU在指定仓库的库存
    */
