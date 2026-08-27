@@ -11,9 +11,12 @@ export const API_PATHS = {
     BY_ID: (id: string) => `/api/users/${id}`,
   },
   ORDER: {
-    BASE: '/api/orders',
-    BY_ID: (orderNo: string) => `/api/orders/${orderNo}`,
-    STATUS: (orderNo: string) => `/api/orders/${orderNo}/status`,
+    BASE: '/api/v1/orders',
+    BY_ID: (id: string | number) => `/api/v1/orders/${id}`,
+    QUERY: '/api/v1/orders/query',
+    ITEMS: (id: string | number) => `/api/v1/orders/${id}/items`,
+    STATUS: (id: string | number) => `/api/v1/orders/${id}/status`,
+    CANCEL: (id: string | number) => `/api/v1/orders/${id}/cancel`,
   },
   PRODUCT: {
     BASE: '/api/products',
