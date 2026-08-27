@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.scmcloud.order.domain.entity.OrdStatusHistory;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * <p>
@@ -15,5 +16,5 @@ import java.util.List;
  */
 public interface IOrdStatusHistoryService extends IService<OrdStatusHistory> {
 
-    List<OrdStatusHistory> listByOrderId(Long orderId);
+    List<OrdStatusHistory> listByOrderId(UUID orderId);
 }

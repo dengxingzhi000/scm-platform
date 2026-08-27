@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * 订单超时自动取消任务
@@ -29,7 +30,6 @@ import java.util.List;
 @Slf4j
 @Component
 public class OrderTimeoutCancelJobHandler {
-
     private static final int DEFAULT_TIMEOUT_MINUTES = 30;
     private static final int DEFAULT_BATCH_SIZE = 1000;
     private static final String CANCEL_REASON = "订单超时未支付,系统自动取消";
@@ -52,10 +52,9 @@ public class OrderTimeoutCancelJobHandler {
      *
      * <p>任务参数: 超时分钟数（默认 30）
      *
-     * @throws Exception 任务执行异常
      */
     @XxlJob("orderTimeoutCancelJobHandler")
-    public void execute() throws Exception {
+    public void execute() {
         long startTime = System.currentTimeMillis();
         XxlJobHelper.log("[订单超时取消] 开始执行任务");
 

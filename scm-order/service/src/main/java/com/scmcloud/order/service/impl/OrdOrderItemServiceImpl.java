@@ -10,13 +10,14 @@ import com.scmcloud.order.mapper.OrdOrderItemMapper;
 import com.scmcloud.order.service.IOrdOrderItemService;
 
 import java.util.List;
+import java.util.UUID;
 
 @Slf4j
 @Service
 public class OrdOrderItemServiceImpl extends ServiceImpl<OrdOrderItemMapper, OrdOrderItem> implements IOrdOrderItemService {
 
     @Override
-    public List<OrdOrderItem> listByOrderId(Long orderId) {
+    public List<OrdOrderItem> listByOrderId(UUID orderId) {
         log.debug("查询订单明细: orderId={}", orderId);
         LambdaQueryWrapper<OrdOrderItem> wrapper = Wrappers.lambdaQuery();
         wrapper.eq(OrdOrderItem::getOrderId, orderId)

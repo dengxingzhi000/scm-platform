@@ -26,12 +26,12 @@ import com.scmcloud.order.service.IOrdStatusHistoryService;
 import com.scmcloud.common.domain.Money;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @RequiredArgsConstructor
 @Slf4j
 @Service
 public class OrdOrderServiceImpl extends ServiceImpl<OrdOrderMapper, OrdOrder> implements IOrdOrderService {
-
     private final IOrdOrderItemService orderItemService;
     private final IOrdStatusHistoryService statusHistoryService;
     private final OrderEventStore eventStore;
@@ -103,7 +103,7 @@ public class OrdOrderServiceImpl extends ServiceImpl<OrdOrderMapper, OrdOrder> i
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public boolean updateOrderStatus(Long orderId, Integer status) {
+    public boolean updateOrderStatus(UUID orderId, Integer status) {
         log.info("更新订单状态 orderId={}, status={}", orderId, status);
 
         OrdOrder order = getById(orderId);

@@ -20,6 +20,7 @@ import com.scmcloud.order.service.IOrdOrderService;
 
 import com.scmcloud.common.domain.Money;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 /**
  * 订单Dubbo服务实现
@@ -34,7 +35,6 @@ import java.time.LocalDateTime;
 @Component
 @RequiredArgsConstructor
 public class OrderDubboServiceImpl implements OrderDubboService {
-
     private final IOrdOrderService orderService;
     private final OrderEventStore eventStore;
 
@@ -166,9 +166,15 @@ public class OrderDubboServiceImpl implements OrderDubboService {
         OrderVO vo = new OrderVO();
         vo.setId(order.getId());
         vo.setOrderNo(order.getOrderNo());
-        vo.setUserId(order.getUserId() != null ? Long.parseLong(order.getUserId()) : null);
+        vo.setUserId(order.getUserId());
+        if (order.getSkuId() != null && !order.getSkuId().isBlank()) {
+            vo.setSkuId(UUID.fromString(order.getSkuId()));
+        }
         vo.setStatus(order.getStatus() != null ? String.valueOf(order.getStatus()) : null);
         vo.setTotalAmount(order.getTotalAmount() != null ? order.getTotalAmount().getAmount() : null);
+        if (order.getQuantity() != null) {
+            vo.setQuantity(order.getQuantity().getValue());
+        }
         vo.setRemark(order.getBuyerMessage());
         vo.setCreateTime(order.getCreateTime());
         return vo;

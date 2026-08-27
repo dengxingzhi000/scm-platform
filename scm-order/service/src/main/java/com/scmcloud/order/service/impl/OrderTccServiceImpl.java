@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Random;
+import java.util.UUID;
 
 /**
  * 订单 TCC 服务实现
@@ -40,7 +41,6 @@ import java.util.Random;
 @Slf4j
 @Service
 public class OrderTccServiceImpl {
-
     private final OrdOrderMapper orderMapper;
     private final StatusValidator statusValidator;
 

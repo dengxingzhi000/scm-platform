@@ -1,16 +1,18 @@
 package com.scmcloud.order.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.scmcloud.common.status.StatusValidator;
+import com.scmcloud.order.domain.entity.OrdPayment;
+import com.scmcloud.order.domain.entity.PaymentStatus;
+import com.scmcloud.order.mapper.OrdPaymentMapper;
+import com.scmcloud.order.service.IOrdPaymentService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.scmcloud.order.domain.entity.OrdPayment;
-import com.scmcloud.order.mapper.OrdPaymentMapper;
-import com.scmcloud.order.service.IOrdPaymentService;
-import com.scmcloud.common.status.StatusValidator;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -24,7 +26,7 @@ public class OrdPaymentServiceImpl extends ServiceImpl<OrdPaymentMapper, OrdPaym
     public OrdPayment createPayment(OrdPayment payment) {
         log.info("创建支付记录: orderNo={}, amount={}", payment.getOrderNo(), payment.getPaymentAmount());
 
-        payment.setStatus(0);
+        payment.setStatusEnum(PaymentStatus.PENDING);
         payment.setInitiatedAt(LocalDateTime.now());
         payment.setCreateTime(LocalDateTime.now());
         payment.setUpdateTime(LocalDateTime.now());
@@ -40,8 +42,9 @@ public class OrdPaymentServiceImpl extends ServiceImpl<OrdPaymentMapper, OrdPaym
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public boolean updatePaymentStatus(Long paymentId, Integer status) {
-        log.info("更新支付状态 paymentId={}, status={}", paymentId, status);
+    public boolean updatePaymentStatus(UUID paymentId, Integer status) {
+        PaymentStatus target = PaymentStatus.fromCode(status);
+        log.info("更新支付状态 paymentId={}, target={}", paymentId, target);
 
         OrdPayment payment = getById(paymentId);
         if (payment == null) {
@@ -49,34 +52,20 @@ public class OrdPaymentServiceImpl extends ServiceImpl<OrdPaymentMapper, OrdPaym
             return false;
         }
 
-        String fromStatus = paymentStatusName(payment.getStatus());
-        String toStatus = paymentStatusName(status);
-        statusValidator.validateTransition("PAYMENT", fromStatus, toStatus);
+        String fromName = payment.getStatusEnum().name();
+        String toName = target.name();
+        statusValidator.validateTransition("PAYMENT", fromName, toName);
 
-        payment.setStatus(status);
+        payment.setStatusEnum(target);
         payment.setUpdateTime(LocalDateTime.now());
 
-        if (status == 2) {
-            payment.setPaidAt(LocalDateTime.now());
-        } else if (status == 3) {
-            payment.setFailedAt(LocalDateTime.now());
-        } else if (status == 5) {
-            payment.setRefundedAt(LocalDateTime.now());
+        switch (target) {
+            case SUCCESS -> payment.setPaidAt(LocalDateTime.now());
+            case FAILED -> payment.setFailedAt(LocalDateTime.now());
+            case REFUNDED -> payment.setRefundedAt(LocalDateTime.now());
+            default -> { /* 其他状态不需要时间戳 */ }
         }
 
         return updateById(payment);
-    }
-
-    private String paymentStatusName(Integer status) {
-        return switch (status) {
-            case 0 -> "PENDING";
-            case 1 -> "PROCESSING";
-            case 2 -> "SUCCESS";
-            case 3 -> "FAILED";
-            case 4 -> "REFUNDING";
-            case 5 -> "REFUNDED";
-            case 6 -> "CANCELLED";
-            default -> String.valueOf(status);
-        };
     }
 }

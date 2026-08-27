@@ -2,6 +2,7 @@ package com.scmcloud.order.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.scmcloud.order.domain.entity.OrdPayment;
+import java.util.UUID;
 
 /**
  * <p>
@@ -15,5 +16,5 @@ public interface IOrdPaymentService extends IService<OrdPayment> {
 
     OrdPayment createPayment(OrdPayment payment);
 
-    boolean updatePaymentStatus(Long paymentId, Integer status);
+    boolean updatePaymentStatus(UUID paymentId, Integer status);
 }

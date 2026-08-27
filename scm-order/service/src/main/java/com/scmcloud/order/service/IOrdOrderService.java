@@ -6,12 +6,13 @@ import com.scmcloud.order.domain.entity.OrdOrder;
 import com.scmcloud.order.domain.entity.OrdOrderItem;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface IOrdOrderService extends IService<OrdOrder> {
 
     OrdOrder createOrder(OrdOrder order, List<OrdOrderItem> items);
 
-    boolean updateOrderStatus(Long orderId, Integer status);
+    boolean updateOrderStatus(UUID orderId, Integer status);
 
     List<OrdOrder> listByUserId(String userId);
 

@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.scmcloud.order.domain.entity.OrdOrderItem;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * <p>
@@ -15,5 +16,5 @@ import java.util.List;
  */
 public interface IOrdOrderItemService extends IService<OrdOrderItem> {
 
-    List<OrdOrderItem> listByOrderId(Long orderId);
+    List<OrdOrderItem> listByOrderId(UUID orderId);
 }

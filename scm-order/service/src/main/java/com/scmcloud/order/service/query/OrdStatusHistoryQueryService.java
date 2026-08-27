@@ -10,12 +10,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.UUID;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class OrdStatusHistoryQueryService {
-
     private final OrdStatusHistoryMapper ordStatusHistoryMapper;
 
     @Slave
@@ -24,7 +24,7 @@ public class OrdStatusHistoryQueryService {
     }
 
     @Slave
-    public List<OrdStatusHistory> listByOrderId(Long orderId) {
+    public List<OrdStatusHistory> listByOrderId(UUID orderId) {
         LambdaQueryWrapper<OrdStatusHistory> wrapper = Wrappers.lambdaQuery();
         wrapper.eq(OrdStatusHistory::getOrderId, orderId)
                 .orderByDesc(OrdStatusHistory::getTransitionedAt);

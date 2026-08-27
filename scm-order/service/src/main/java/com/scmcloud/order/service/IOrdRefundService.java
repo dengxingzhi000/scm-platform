@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.scmcloud.order.domain.entity.OrdRefund;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * <p>
@@ -17,5 +18,5 @@ public interface IOrdRefundService extends IService<OrdRefund> {
 
     OrdRefund createRefund(OrdRefund refund);
 
-    List<OrdRefund> listByOrderId(Long orderId);
+    List<OrdRefund> listByOrderId(UUID orderId);
 }

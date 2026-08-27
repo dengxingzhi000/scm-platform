@@ -5,7 +5,6 @@ import com.scmcloud.order.domain.entity.OrderStatus;
 import com.scmcloud.order.domain.entity.OrdOrder;
 import com.scmcloud.order.domain.entity.OrdOrderItem;
 import com.scmcloud.order.domain.entity.OrdStatusHistory;
-import com.scmcloud.order.domain.repository.OrdOrderRepository;
 import com.scmcloud.order.event.OrderCreatedEvent;
 import com.scmcloud.order.event.OrderEventStore;
 import com.scmcloud.order.event.OrderStatusChangedEvent;
@@ -21,6 +20,7 @@ import org.springframework.util.CollectionUtils;
 import com.scmcloud.common.domain.Money;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 
 @Slf4j
@@ -30,7 +30,6 @@ public class OrdOrderCommandService {
     private final OrdOrderMapper ordOrderMapper;
     private final OrdOrderItemCommandService ordOrderItemCommandService;
     private final OrdStatusHistoryCommandService ordStatusHistoryCommandService;
-    private final OrdOrderRepository ordOrderRepository;
     private final OrderEventStore eventStore;
 
     @DubboReference
@@ -112,7 +111,7 @@ public class OrdOrderCommandService {
 
     @Master(reason = "更新订单状态")
     @Transactional(rollbackFor = Exception.class)
-    public boolean updateOrderStatus(Long orderId, Integer status) {
+    public boolean updateOrderStatus(UUID orderId, Integer status) {
         log.info("更新订单状态: orderId={}, status={}", orderId, status);
 
         OrdOrder order = ordOrderMapper.selectById(orderId);
@@ -160,8 +159,66 @@ public class OrdOrderCommandService {
 
     @Master(reason = "删除订单")
     @Transactional(rollbackFor = Exception.class)
-    public int removeById(Long id) {
+    public int removeById(UUID id) {
         return ordOrderMapper.deleteById(id);
+    }
+
+    /**
+     * 取消订单（用户主动取消）。
+     *
+     * <p>复用领域取消逻辑（状态校验 + 状态流转 + 取消元数据），并通过状态机校验流转合法性，
+     * 在同一事务内写入 {@code ord_status_history} 与 {@code ORDER_STATUS_CHANGED} 事件，
+     * 供下游补偿库存、退款、通知等使用。</p>
+     *
+     * @param orderId 订单 ID
+     * @param reason  取消原因
+     * @return 取消成功返回 {@code true}；订单不存在返回 {@code false}
+     */
+    @Master(reason = "取消订单")
+    @Transactional(rollbackFor = Exception.class)
+    public boolean cancelOrder(UUID orderId, String reason) {
+        log.info("取消订单: orderId={}, reason={}", orderId, reason);
+
+        OrdOrder existing = ordOrderMapper.selectById(orderId);
+        if (existing == null) {
+            log.warn("订单不存在: orderId={}", orderId);
+            return false;
+        }
+
+        Integer fromStatus = existing.getStatus();
+        String fromName = existing.getStatusEnum().name();
+        String toName = OrderStatus.CANCELLED.name();
+
+        StatusMachineDubboService.TransitionCheckDTO check =
+                statusMachine.canTransition("ORDER", fromName, toName);
+        if (!check.allowed()) {
+            log.warn("非法状态流转: orderId={}, {} -> {}, reason={}", orderId, fromName, toName, check.reason());
+            throw new IllegalStateException("非法状态流转: " + fromName + " -> " + toName + ": " + check.reason());
+        }
+
+        OrderStatus previousStatus = existing.getStatusEnum();
+        existing.cancel(reason);
+        ordOrderMapper.updateById(existing);
+
+        OrdStatusHistory history = new OrdStatusHistory();
+        history.setOrderId(existing.getId());
+        history.setOrderNo(existing.getOrderNo());
+        history.setFromStatus(fromStatus);
+        history.setToStatus(OrderStatus.CANCELLED.getCode());
+        history.setEvent("ORDER_CANCELLED");
+        history.setOperatorId(existing.getUpdateBy());
+        history.setTransitionedAt(LocalDateTime.now());
+        ordStatusHistoryCommandService.save(history);
+
+        eventStore.append(new OrderStatusChangedEvent(
+                existing.getTenantId() != null ? existing.getTenantId().toUUID() : null,
+                existing.getId(),
+                existing.getOrderNo(),
+                previousStatus,
+                OrderStatus.CANCELLED));
+
+        log.info("订单已取消: orderNo={}, id={}", existing.getOrderNo(), existing.getId());
+        return true;
     }
 
     @Master(reason = "创建订单")
@@ -174,8 +231,8 @@ public class OrdOrderCommandService {
      * 取消超时订单。
      *
      * <p>复用领域取消逻辑（状态校验 + 状态流转 + 取消元数据），并通过
-     * {@link OrdOrderRepository#save} 在同一本地事务内写入 outbox，
-     * 保证 OrderCancelledEvent 的原子发布，供下游补偿库存等使用。</p>
+     * {@code OrderEventStore} 在同一事务内写入 {@code ORDER_STATUS_CHANGED} 事件，
+     * 供下游补偿库存等使用。</p>
      *
      * @param order 待取消的订单（须已持久化，含 id）
      */
@@ -194,7 +251,7 @@ public class OrdOrderCommandService {
         OrderStatus previousStatus = existing.getStatusEnum();
         existing.cancel("订单超时未支付，系统自动取消");
 
-        ordOrderRepository.save(existing);
+        ordOrderMapper.updateById(existing);
 
         eventStore.append(new OrderStatusChangedEvent(
                 existing.getTenantId() != null ? existing.getTenantId().toUUID() : null,
