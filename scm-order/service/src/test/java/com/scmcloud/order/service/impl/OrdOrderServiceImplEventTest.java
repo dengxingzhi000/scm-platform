@@ -30,6 +30,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import java.util.UUID;
 
 @ExtendWith(MockitoExtension.class)
 class OrdOrderServiceImplEventTest {
@@ -51,7 +52,7 @@ class OrdOrderServiceImplEventTest {
 
     private OrdOrder order(int statusCode) {
         OrdOrder order = new OrdOrder();
-        order.setId(1L);
+        order.setId(java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"));
         order.setOrderNo("NO1001");
         order.setStatus(statusCode);
         order.setUserId("00000000-0000-0000-0000-000000000001");
@@ -73,7 +74,7 @@ class OrdOrderServiceImplEventTest {
         ArgumentCaptor<OrderEvent> captor = ArgumentCaptor.forClass(OrderEvent.class);
         verify(eventStore).append(captor.capture());
         OrderCreatedEvent event = assertInstanceOf(OrderCreatedEvent.class, captor.getValue());
-        assertEquals(1L, event.getOrderId());
+        assertEquals(java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"), event.getOrderId());
         assertEquals("NO1001", event.getOrderNo());
         assertEquals(order.getTenantId().toUUID(), event.getTenantId());
         assertEquals("00000000-0000-0000-0000-000000000001", event.getUserId());
@@ -84,13 +85,13 @@ class OrdOrderServiceImplEventTest {
     @Test
     void updateOrderStatusShouldAppendStatusChangedEvent() {
         OrdOrder existing = order(OrderStatus.PAID.getCode());
-        when(ordOrderMapper.selectById(1L)).thenReturn(existing);
+        when(ordOrderMapper.selectById(java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"))).thenReturn(existing);
         when(statusMachine.canTransition("ORDER", "PAID", "PENDING_SHIP"))
                 .thenReturn(new StatusMachineDubboService.TransitionCheckDTO(
                         true, "ORDER", "PAID", "PENDING_SHIP", null));
         when(ordOrderMapper.updateById(any(OrdOrder.class))).thenReturn(1);
 
-        service.updateOrderStatus(1L, OrderStatus.PENDING_SHIP.getCode());
+        service.updateOrderStatus(java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"), OrderStatus.PENDING_SHIP.getCode());
 
         ArgumentCaptor<OrderEvent> captor = ArgumentCaptor.forClass(OrderEvent.class);
         verify(eventStore).append(captor.capture());
@@ -104,13 +105,13 @@ class OrdOrderServiceImplEventTest {
     @Test
     void updateOrderStatusShouldNotAppendWhenUpdateMisses() {
         OrdOrder existing = order(OrderStatus.PAID.getCode());
-        when(ordOrderMapper.selectById(1L)).thenReturn(existing);
+        when(ordOrderMapper.selectById(java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"))).thenReturn(existing);
         when(statusMachine.canTransition("ORDER", "PAID", "PENDING_SHIP"))
                 .thenReturn(new StatusMachineDubboService.TransitionCheckDTO(
                         true, "ORDER", "PAID", "PENDING_SHIP", null));
         when(ordOrderMapper.updateById(any(OrdOrder.class))).thenReturn(0);
 
-        boolean updated = service.updateOrderStatus(1L, OrderStatus.PENDING_SHIP.getCode());
+        boolean updated = service.updateOrderStatus(java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"), OrderStatus.PENDING_SHIP.getCode());
 
         assertFalse(updated);
         verify(eventStore, never()).append(any());

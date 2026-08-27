@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import com.scmcloud.common.domain.Quantity;
 
 import static org.junit.jupiter.api.Assertions.*;
+import java.util.UUID;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -244,7 +245,7 @@ public class SeataTccModeIntegrationTest {
                 new LambdaQueryWrapper<InvTccReservation>()
                         .eq(InvTccReservation::getBusinessKey, orderNo)
         );
-        assertEquals(1L, reservationCount, "Same businessKey should have exactly one reservation record");
+        assertEquals(java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"), reservationCount, "Same businessKey should have exactly one reservation record");
 
         log.info("Reservation record uniqueness verified");
 

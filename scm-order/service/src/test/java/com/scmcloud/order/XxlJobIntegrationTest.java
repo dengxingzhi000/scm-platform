@@ -21,6 +21,7 @@ import com.scmcloud.common.domain.Money;
 import com.scmcloud.common.domain.Quantity;
 
 import static org.junit.jupiter.api.Assertions.*;
+import java.util.UUID;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -59,7 +60,7 @@ public class XxlJobIntegrationTest {
         log.info("Test Scenario 1: Order timeout cancel (normal timeout)");
         log.info("========================================");
 
-        OrdOrder timeoutOrder = createTestOrder(TEST_USER_ID, 1L, 10, "PENDING_PAYMENT");
+        OrdOrder timeoutOrder = createTestOrder(TEST_USER_ID, "00000000-0000-0000-0000-000000000001", 10, "PENDING_PAYMENT");
         timeoutOrder.setCreateTime(LocalDateTime.now().minusMinutes(35));
         orderMapper.insert(timeoutOrder);
 
@@ -90,7 +91,7 @@ public class XxlJobIntegrationTest {
         log.info("Test Scenario 2: Order timeout cancel (not timed out)");
         log.info("========================================");
 
-        OrdOrder validOrder = createTestOrder(TEST_USER_ID, 2L, 10, "PENDING_PAYMENT");
+        OrdOrder validOrder = createTestOrder(TEST_USER_ID, "00000000-0000-0000-0000-000000000002", 10, "PENDING_PAYMENT");
         validOrder.setCreateTime(LocalDateTime.now().minusMinutes(10));
         orderMapper.insert(validOrder);
 
@@ -123,7 +124,7 @@ public class XxlJobIntegrationTest {
 
         int batchSize = 5;
         for (int i = 0; i < batchSize; i++) {
-            OrdOrder timeoutOrder = createTestOrder(TEST_USER_ID + i, (long) (100 + i), 10, "PENDING_PAYMENT");
+            OrdOrder timeoutOrder = createTestOrder(TEST_USER_ID + i, String.valueOf(100 + i), 10, "PENDING_PAYMENT");
             timeoutOrder.setCreateTime(LocalDateTime.now().minusMinutes(35 + i));
             orderMapper.insert(timeoutOrder);
             log.info("Created timed out order {}: OrderNo={}", i + 1, timeoutOrder.getOrderNo());
@@ -155,7 +156,7 @@ public class XxlJobIntegrationTest {
         log.info("Test Scenario 4: Order timeout cancel (custom timeout parameter)");
         log.info("========================================");
 
-        OrdOrder order = createTestOrder(TEST_USER_ID, 3L, 10, "PENDING_PAYMENT");
+        OrdOrder order = createTestOrder(TEST_USER_ID, "00000000-0000-0000-0000-000000000003", 10, "PENDING_PAYMENT");
         order.setCreateTime(LocalDateTime.now().minusMinutes(20));
         orderMapper.insert(order);
 
@@ -184,7 +185,7 @@ public class XxlJobIntegrationTest {
         log.info("Test Scenario 5: Order timeout cancel (paid order)");
         log.info("========================================");
 
-        OrdOrder paidOrder = createTestOrder(TEST_USER_ID, 4L, 10, "PAID");
+        OrdOrder paidOrder = createTestOrder(TEST_USER_ID, "00000000-0000-0000-0000-000000000004", 10, "PAID");
         paidOrder.setCreateTime(LocalDateTime.now().minusMinutes(35));
         paidOrder.setPaidAt(LocalDateTime.now().minusMinutes(30));
         orderMapper.insert(paidOrder);
@@ -215,7 +216,7 @@ public class XxlJobIntegrationTest {
         log.info("Test Scenario 6: Order timeout cancel (already cancelled order)");
         log.info("========================================");
 
-        OrdOrder cancelledOrder = createTestOrder(TEST_USER_ID, 5L, 10, "CANCELLED");
+        OrdOrder cancelledOrder = createTestOrder(TEST_USER_ID, "00000000-0000-0000-0000-000000000005", 10, "CANCELLED");
         cancelledOrder.setCreateTime(LocalDateTime.now().minusMinutes(35));
         cancelledOrder.setCancelledAt(LocalDateTime.now().minusMinutes(5));
         orderMapper.insert(cancelledOrder);
@@ -285,7 +286,7 @@ public class XxlJobIntegrationTest {
         log.info("XXL-Job test data cleanup completed");
     }
 
-    private OrdOrder createTestOrder(Long userId, Long skuId, Integer quantity, String status) {
+    private OrdOrder createTestOrder(Long userId, String skuId, Integer quantity, String status) {
         OrdOrder order = new OrdOrder();
         order.setOrderNo("TEST" + System.currentTimeMillis() + userId);
         order.setUserId(String.valueOf(userId));

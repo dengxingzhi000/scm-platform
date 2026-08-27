@@ -18,6 +18,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.*;
+import java.util.UUID;
 
 /**
  * Integration test for the timeout-cancel command.
@@ -50,7 +51,7 @@ class OrdOrderTimeoutCancelIntegrationTest {
     @Transactional
     @DisplayName("Timeout cancel: pending-payment order transitions to CANCELLED with metadata")
     void shouldCancelPendingPaymentOrderOnTimeout() {
-        OrdOrder order = createTestOrder(TEST_USER_ID, 1L, 10, OrderStatus.PENDING_PAYMENT);
+        OrdOrder order = createTestOrder(TEST_USER_ID, "00000000-0000-0000-0000-000000000001", 10, OrderStatus.PENDING_PAYMENT);
         order.setCreateTime(LocalDateTime.now().minusMinutes(35));
         orderMapper.insert(order);
 
@@ -69,7 +70,7 @@ class OrdOrderTimeoutCancelIntegrationTest {
     @Transactional
     @DisplayName("Timeout cancel: already-cancelled order is rejected")
     void shouldRejectCancellingAlreadyCancelledOrder() {
-        OrdOrder order = createTestOrder(TEST_USER_ID, 2L, 10, OrderStatus.CANCELLED);
+        OrdOrder order = createTestOrder(TEST_USER_ID, "00000000-0000-0000-0000-000000000002", 10, OrderStatus.CANCELLED);
         order.setCreateTime(LocalDateTime.now().minusMinutes(35));
         orderMapper.insert(order);
 
@@ -82,7 +83,7 @@ class OrdOrderTimeoutCancelIntegrationTest {
     @Transactional
     @DisplayName("Timeout cancel: completed order is rejected")
     void shouldRejectCancellingCompletedOrder() {
-        OrdOrder order = createTestOrder(TEST_USER_ID, 3L, 10, OrderStatus.COMPLETED);
+        OrdOrder order = createTestOrder(TEST_USER_ID, "00000000-0000-0000-0000-000000000003", 10, OrderStatus.COMPLETED);
         order.setCreateTime(LocalDateTime.now().minusMinutes(35));
         orderMapper.insert(order);
 
@@ -99,11 +100,11 @@ class OrdOrderTimeoutCancelIntegrationTest {
         );
     }
 
-    private OrdOrder createTestOrder(Long userId, Long skuId, Integer quantity, OrderStatus status) {
+    private OrdOrder createTestOrder(Long userId, String skuId, Integer quantity, OrderStatus status) {
         OrdOrder order = new OrdOrder();
         order.setOrderNo("TOC" + System.currentTimeMillis() + userId);
         order.setUserId(String.valueOf(userId));
-        order.setSkuId(String.valueOf(skuId));
+        order.setSkuId(skuId);
         order.setQuantity(Quantity.of(quantity));
         order.setTotalAmount(Money.of(new BigDecimal("99.00").multiply(new BigDecimal(quantity))));
         order.setPayableAmount(Money.of(new BigDecimal("99.00").multiply(new BigDecimal(quantity))));

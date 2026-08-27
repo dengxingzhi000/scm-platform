@@ -21,6 +21,7 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+import java.util.UUID;
 
 /**
  * Unit test for the timeout-cancel job handler.
@@ -49,7 +50,7 @@ class OrderTimeoutCancelJobHandlerTest {
 
     @Test
     void shouldDelegateCancellationToCommandService() throws Exception {
-        OrdOrder order = createTestOrder(1L, "1001", 5);
+        OrdOrder order = createTestOrder(java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"), "1001", 5);
         when(orderMapper.selectList(any())).thenReturn(List.of(order));
 
         handler.execute();
@@ -60,7 +61,7 @@ class OrderTimeoutCancelJobHandlerTest {
 
     @Test
     void shouldSkipInventoryReleaseWhenCancelFails() throws Exception {
-        OrdOrder order = createTestOrder(2L, "1002", 3);
+        OrdOrder order = createTestOrder(java.util.UUID.fromString("00000000-0000-0000-0000-000000000002"), "1002", 3);
         when(orderMapper.selectList(any())).thenReturn(List.of(order));
         doThrow(new IllegalStateException("Cannot cancel order")).when(ordOrderCommandService)
                 .cancelTimeoutOrder(any());
@@ -73,8 +74,8 @@ class OrderTimeoutCancelJobHandlerTest {
 
     @Test
     void shouldContinueProcessingRemainingOrdersWhenOneFails() throws Exception {
-        OrdOrder first = createTestOrder(3L, "1003", 1);
-        OrdOrder second = createTestOrder(4L, "1004", 2);
+        OrdOrder first = createTestOrder(java.util.UUID.fromString("00000000-0000-0000-0000-000000000003"), "1003", 1);
+        OrdOrder second = createTestOrder(java.util.UUID.fromString("00000000-0000-0000-0000-000000000004"), "1004", 2);
         when(orderMapper.selectList(any())).thenReturn(List.of(first, second));
         doThrow(new IllegalStateException("first fails")).when(ordOrderCommandService).cancelTimeoutOrder(first);
 
@@ -98,7 +99,7 @@ class OrderTimeoutCancelJobHandlerTest {
 
     @Test
     void shouldCountMalformedSkuAsFailure() throws Exception {
-        OrdOrder order = createTestOrder(5L, "not-a-number", 2);
+        OrdOrder order = createTestOrder(java.util.UUID.fromString("00000000-0000-0000-0000-000000000005"), "not-a-number", 2);
         when(orderMapper.selectList(any())).thenReturn(List.of(order));
 
         handler.execute();
@@ -107,7 +108,7 @@ class OrderTimeoutCancelJobHandlerTest {
         verify(inventoryService, never()).releaseStock(anyLong(), anyInt(), any());
     }
 
-    private OrdOrder createTestOrder(Long id, String skuId, Integer quantity) {
+    private OrdOrder createTestOrder(UUID id, String skuId, Integer quantity) {
         OrdOrder order = new OrdOrder();
         order.setId(id);
         order.setOrderNo("UT" + System.nanoTime() + id);

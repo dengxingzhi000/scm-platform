@@ -58,12 +58,12 @@ class OrderEventStoreTest {
     }
 
     private OrderCreatedEvent createdEvent() {
-        return new OrderCreatedEvent(UUID.randomUUID(), 1L, "NO1001", "u-1",
+        return new OrderCreatedEvent(UUID.randomUUID(), java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"), "NO1001", "u-1",
                 new BigDecimal("99.90"), new BigDecimal("89.90"));
     }
 
     private OrderStatusChangedEvent statusEvent() {
-        return new OrderStatusChangedEvent(UUID.randomUUID(), 1L, "NO1001",
+        return new OrderStatusChangedEvent(UUID.randomUUID(), java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"), "NO1001",
                 OrderStatus.PENDING_PAYMENT, OrderStatus.PAID);
     }
 
@@ -89,7 +89,7 @@ class OrderEventStoreTest {
         OrdOrderEvent saved = captor.getValue();
         assertEquals(event.getEventId(), saved.getEventId());
         assertEquals(event.getTenantId(), saved.getTenantId());
-        assertEquals(1L, saved.getOrderId());
+        assertEquals(java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"), saved.getOrderId());
         assertEquals("NO1001", saved.getOrderNo());
         assertEquals("ORDER_CREATED", saved.getEventType());
         assertTrue(saved.getEventData().contains("\"eventType\":\"ORDER_CREATED\""));
@@ -116,7 +116,7 @@ class OrderEventStoreTest {
         when(eventMapper.selectList(listWrapperCaptor.capture()))
                 .thenReturn(List.of(entity(createdEvent()), entity(statusEvent())));
 
-        List<OrderEvent> events = store.getEvents(1L);
+        List<OrderEvent> events = store.getEvents(java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"));
 
         assertEquals(2, events.size());
         assertInstanceOf(OrderCreatedEvent.class, events.get(0));
@@ -136,7 +136,7 @@ class OrderEventStoreTest {
         bad.setEventData("not-json");
         when(eventMapper.selectList(any())).thenReturn(List.of(bad));
 
-        assertThrows(ServiceException.class, () -> store.getEvents(1L));
+        assertThrows(ServiceException.class, () -> store.getEvents(java.util.UUID.fromString("00000000-0000-0000-0000-000000000001")));
     }
 
     @Test
@@ -145,7 +145,7 @@ class OrderEventStoreTest {
         page.setRecords(List.of(entity(createdEvent())));
         when(eventMapper.selectPage(any(), pageWrapperCaptor.capture())).thenReturn(page);
 
-        List<OrderEvent> events = store.getEvents(1L, 2, 10);
+        List<OrderEvent> events = store.getEvents(java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"), 2, 10);
 
         assertEquals(1, events.size());
 

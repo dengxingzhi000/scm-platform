@@ -19,9 +19,9 @@ class OrderAggregateTest {
     @Test
     void createShouldApplyCreatedEventAndStartPendingPayment() {
         OrderAggregate aggregate = OrderAggregate.create(
-                tenantId, 1L, "NO1001", "u-1", new BigDecimal("99.90"), new BigDecimal("89.90"));
+                tenantId, java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"), "NO1001", "u-1", new BigDecimal("99.90"), new BigDecimal("89.90"));
 
-        assertEquals(1L, aggregate.getOrderId());
+        assertEquals(java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"), aggregate.getOrderId());
         assertEquals("NO1001", aggregate.getOrderNo());
         assertEquals(OrderStatus.PENDING_PAYMENT, aggregate.getStatus());
         assertEquals(tenantId, aggregate.getTenantId());
@@ -33,7 +33,7 @@ class OrderAggregateTest {
     @Test
     void changeStatusShouldValidateTransition() {
         OrderAggregate aggregate = OrderAggregate.create(
-                tenantId, 1L, "NO1001", "u-1", BigDecimal.TEN, BigDecimal.TEN);
+                tenantId, java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"), "NO1001", "u-1", BigDecimal.TEN, BigDecimal.TEN);
 
         assertThrows(IllegalStateException.class,
                 () -> aggregate.changeStatus(OrderStatus.COMPLETED));
@@ -42,7 +42,7 @@ class OrderAggregateTest {
     @Test
     void changeStatusShouldAppendEventOnValidTransition() {
         OrderAggregate aggregate = OrderAggregate.create(
-                tenantId, 1L, "NO1001", "u-1", BigDecimal.TEN, BigDecimal.TEN);
+                tenantId, java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"), "NO1001", "u-1", BigDecimal.TEN, BigDecimal.TEN);
 
         aggregate.changeStatus(OrderStatus.PAID);
 
@@ -59,11 +59,11 @@ class OrderAggregateTest {
     @Test
     void rehydrateShouldRebuildStateFromHistory() {
         List<OrderEvent> history = List.of(
-                new OrderCreatedEvent(tenantId, 1L, "NO1001", "u-1",
+                new OrderCreatedEvent(tenantId, java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"), "NO1001", "u-1",
                         new BigDecimal("99.90"), new BigDecimal("89.90")),
-                new OrderStatusChangedEvent(tenantId, 1L, "NO1001",
+                new OrderStatusChangedEvent(tenantId, java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"), "NO1001",
                         OrderStatus.PENDING_PAYMENT, OrderStatus.PAID),
-                new OrderStatusChangedEvent(tenantId, 1L, "NO1001",
+                new OrderStatusChangedEvent(tenantId, java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"), "NO1001",
                         OrderStatus.PAID, OrderStatus.PENDING_SHIP));
 
         OrderAggregate aggregate = OrderAggregate.rehydrate(history);
@@ -78,7 +78,7 @@ class OrderAggregateTest {
     @Test
     void rehydrateShouldRejectHistoryWithoutCreationEvent() {
         List<OrderEvent> history = List.of(new OrderStatusChangedEvent(
-                tenantId, 1L, "NO1001", OrderStatus.PAID, OrderStatus.CANCELLED));
+                tenantId, java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"), "NO1001", OrderStatus.PAID, OrderStatus.CANCELLED));
 
         assertThrows(IllegalStateException.class, () -> OrderAggregate.rehydrate(history));
     }
@@ -86,7 +86,7 @@ class OrderAggregateTest {
     @Test
     void changeStatusShouldRejectTerminalState() {
         OrderAggregate aggregate = OrderAggregate.create(
-                tenantId, 1L, "NO1001", "u-1", BigDecimal.TEN, BigDecimal.TEN);
+                tenantId, java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"), "NO1001", "u-1", BigDecimal.TEN, BigDecimal.TEN);
         aggregate.changeStatus(OrderStatus.PAID);
         aggregate.changeStatus(OrderStatus.CANCELLED);
 
@@ -98,7 +98,7 @@ class OrderAggregateTest {
     @Test
     void changeStatusShouldLeaveStateUntouchedOnFailure() {
         OrderAggregate aggregate = OrderAggregate.create(
-                tenantId, 1L, "NO1001", "u-1", BigDecimal.TEN, BigDecimal.TEN);
+                tenantId, java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"), "NO1001", "u-1", BigDecimal.TEN, BigDecimal.TEN);
         OrderStatus statusBefore = aggregate.getStatus();
         int uncommittedSizeBefore = aggregate.getUncommittedEvents().size();
         long versionBefore = aggregate.getVersion();
@@ -114,9 +114,9 @@ class OrderAggregateTest {
     @Test
     void rehydrateShouldRejectCorruptedHistory() {
         List<OrderEvent> history = List.of(
-                new OrderCreatedEvent(tenantId, 1L, "NO1001", "u-1",
+                new OrderCreatedEvent(tenantId, java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"), "NO1001", "u-1",
                         new BigDecimal("99.90"), new BigDecimal("89.90")),
-                new OrderStatusChangedEvent(tenantId, 1L, "NO1001",
+                new OrderStatusChangedEvent(tenantId, java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"), "NO1001",
                         OrderStatus.PAID, OrderStatus.PENDING_SHIP));
 
         assertThrows(IllegalStateException.class, () -> OrderAggregate.rehydrate(history));
@@ -125,8 +125,8 @@ class OrderAggregateTest {
     @Test
     void rehydrateShouldRejectDuplicateCreatedInHistory() {
         List<OrderEvent> history = List.of(
-                new OrderCreatedEvent(tenantId, 1L, "NO1001", "u-1", BigDecimal.TEN, BigDecimal.TEN),
-                new OrderCreatedEvent(tenantId, 1L, "NO1001", "u-1", BigDecimal.TEN, BigDecimal.TEN));
+                new OrderCreatedEvent(tenantId, java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"), "NO1001", "u-1", BigDecimal.TEN, BigDecimal.TEN),
+                new OrderCreatedEvent(tenantId, java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"), "NO1001", "u-1", BigDecimal.TEN, BigDecimal.TEN));
 
         assertThrows(IllegalStateException.class, () -> OrderAggregate.rehydrate(history));
     }
@@ -134,8 +134,8 @@ class OrderAggregateTest {
     @Test
     void rehydrateShouldRejectMismatchedOrderId() {
         List<OrderEvent> history = List.of(
-                new OrderCreatedEvent(tenantId, 1L, "NO1001", "u-1", BigDecimal.TEN, BigDecimal.TEN),
-                new OrderStatusChangedEvent(tenantId, 99L, "NO1001",
+                new OrderCreatedEvent(tenantId, java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"), "NO1001", "u-1", BigDecimal.TEN, BigDecimal.TEN),
+                new OrderStatusChangedEvent(tenantId, java.util.UUID.fromString("00000000-0000-0000-0000-000000000063"), "NO1001",
                         OrderStatus.PENDING_PAYMENT, OrderStatus.PAID));
 
         assertThrows(IllegalStateException.class, () -> OrderAggregate.rehydrate(history));

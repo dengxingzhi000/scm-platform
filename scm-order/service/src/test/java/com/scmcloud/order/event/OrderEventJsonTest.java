@@ -25,7 +25,7 @@ class OrderEventJsonTest {
         OrderCreatedEvent original = new OrderCreatedEvent(
                 UUID.fromString("550e8400-e29b-41d4-a716-446655440000"),
                 UUID.fromString("660e8400-e29b-41d4-a716-446655440001"),
-                1L, "NO1001", ts, "ORDER_CREATED",
+                java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"), "NO1001", ts, "ORDER_CREATED",
                 "u-1", new BigDecimal("99.90"), new BigDecimal("89.90"));
 
         String json = objectMapper.writeValueAsString(original);
@@ -49,7 +49,7 @@ class OrderEventJsonTest {
         OrderStatusChangedEvent original = new OrderStatusChangedEvent(
                 UUID.fromString("550e8400-e29b-41d4-a716-446655440000"),
                 UUID.fromString("660e8400-e29b-41d4-a716-446655440001"),
-                2L, "NO1002", ts, "ORDER_STATUS_CHANGED",
+                java.util.UUID.fromString("00000000-0000-0000-0000-000000000002"), "NO1002", ts, "ORDER_STATUS_CHANGED",
                 OrderStatus.PAID, OrderStatus.PENDING_SHIP);
 
         String json = objectMapper.writeValueAsString(original);
@@ -58,7 +58,7 @@ class OrderEventJsonTest {
         OrderStatusChangedEvent restored = assertInstanceOf(OrderStatusChangedEvent.class, deserialized);
         assertEquals(OrderStatus.PAID, restored.getFromStatus());
         assertEquals(OrderStatus.PENDING_SHIP, restored.getToStatus());
-        assertEquals(2L, restored.getOrderId());
+        assertEquals(java.util.UUID.fromString("00000000-0000-0000-0000-000000000002"), restored.getOrderId());
         assertEquals(original.getTenantId(), restored.getTenantId());
         assertEquals("NO1002", restored.getOrderNo());
         assertEquals(original.getEventId(), restored.getEventId());
@@ -70,11 +70,11 @@ class OrderEventJsonTest {
         UUID eventId = UUID.randomUUID();
         UUID tenantA = UUID.randomUUID();
         UUID tenantB = UUID.randomUUID();
-        OrderCreatedEvent a = new OrderCreatedEvent(eventId, tenantA, 1L, "NO1001",
+        OrderCreatedEvent a = new OrderCreatedEvent(eventId, tenantA, java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"), "NO1001",
                 Instant.EPOCH, "ORDER_CREATED", "u-1", BigDecimal.ONE, BigDecimal.ONE);
-        OrderCreatedEvent b = new OrderCreatedEvent(eventId, tenantB, 1L, "NO2002",
+        OrderCreatedEvent b = new OrderCreatedEvent(eventId, tenantB, java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"), "NO2002",
                 Instant.EPOCH, "ORDER_CREATED", "u-2", BigDecimal.TEN, BigDecimal.TEN);
-        OrderCreatedEvent c = new OrderCreatedEvent(UUID.randomUUID(), tenantA, 1L, "NO1001",
+        OrderCreatedEvent c = new OrderCreatedEvent(UUID.randomUUID(), tenantA, java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"), "NO1001",
                 Instant.EPOCH, "ORDER_CREATED", "u-1", BigDecimal.ONE, BigDecimal.ONE);
 
         assertEquals(a, b);

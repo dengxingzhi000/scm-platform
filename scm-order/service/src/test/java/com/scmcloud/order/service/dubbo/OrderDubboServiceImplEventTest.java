@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import java.util.UUID;
 
 @ExtendWith(MockitoExtension.class)
 class OrderDubboServiceImplEventTest {
@@ -45,7 +46,7 @@ class OrderDubboServiceImplEventTest {
 
     private OrdOrder order(int statusCode) {
         OrdOrder order = new OrdOrder();
-        order.setId(1L);
+        order.setId(java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"));
         order.setOrderNo("NO1001");
         order.setStatus(statusCode);
         order.setUserId("00000000-0000-0000-0000-000000000001");
@@ -58,7 +59,7 @@ class OrderDubboServiceImplEventTest {
     @Test
     void createOrderShouldAppendOrderCreatedEvent() {
         when(orderService.save(any(OrdOrder.class))).thenAnswer(inv -> {
-            inv.getArgument(0, OrdOrder.class).setId(1L);
+            inv.getArgument(0, OrdOrder.class).setId(java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"));
             return true;
         });
         CreateOrderRequest request = new CreateOrderRequest();
@@ -69,11 +70,11 @@ class OrderDubboServiceImplEventTest {
 
         OrderVO vo = service.createOrder(request);
 
-        assertEquals(1L, vo.getId());
+        assertEquals(java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"), vo.getId());
         ArgumentCaptor<OrderEvent> captor = ArgumentCaptor.forClass(OrderEvent.class);
         verify(eventStore).append(captor.capture());
         OrderCreatedEvent event = assertInstanceOf(OrderCreatedEvent.class, captor.getValue());
-        assertEquals(1L, event.getOrderId());
+        assertEquals(java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"), event.getOrderId());
         assertEquals("12345", event.getUserId());
         assertEquals(new BigDecimal("99.90"), event.getTotalAmount());
     }

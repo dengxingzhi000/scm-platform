@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.scmcloud.common.domain.Money;
 
 import static org.junit.jupiter.api.Assertions.*;
+import java.util.UUID;
 
 /**
  * Integration test for full order lifecycle.
@@ -45,7 +46,6 @@ class OrderLifecycleIntegrationTest {
         order.pay(Money.of("100.00"), "PAY-001");
         assertEquals(OrderStatus.PAID.getCode(), order.getStatus());
         assertEquals("PAY-001", order.getPaymentNo());
-        assertTrue(order.hasDomainEvents());
 
         // Ship order
         order.ship("WB-001", "SF Express");

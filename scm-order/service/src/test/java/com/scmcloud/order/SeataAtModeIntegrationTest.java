@@ -23,6 +23,7 @@ import java.math.BigDecimal;
 import com.scmcloud.common.domain.Quantity;
 
 import static org.junit.jupiter.api.Assertions.*;
+import java.util.UUID;
 
 @RequiredArgsConstructor
 @Slf4j
