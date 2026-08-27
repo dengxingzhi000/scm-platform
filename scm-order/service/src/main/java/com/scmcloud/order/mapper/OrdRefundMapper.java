@@ -2,6 +2,7 @@ package com.scmcloud.order.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.scmcloud.order.domain.entity.OrdRefund;
+import java.util.UUID;
 
 /**
  * <p>
