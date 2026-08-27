@@ -1,99 +1,68 @@
 package com.scmcloud.order.domain.repository;
 
-import com.scmcloud.common.domain.event.DomainEvent;
-import com.scmcloud.common.domain.event.DomainEventPublisher;
-import com.scmcloud.common.integration.outbox.OutboxService;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import java.util.UUID;
 import com.scmcloud.order.domain.entity.OrdOrder;
-import com.scmcloud.order.domain.entity.OrdOrderItem;
-import com.scmcloud.order.mapper.OrdOrderItemMapper;
 import com.scmcloud.order.mapper.OrdOrderMapper;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import java.util.UUID;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
- * Repository for the OrdOrder aggregate root.
- * Handles persistence of the aggregate and publishing of domain events.
+ * Repository for the {@link OrdOrder} aggregate root.
  *
- * <p>Domain events are saved to the outbox table in the same transaction
- * as the aggregate mutation, ensuring exactly-once delivery semantics.</p>
+ * <p>仅做单表 CRUD 委托；订单事件由 {@code OrdOrderCommandService} 通过
+ * {@code OrderEventStore} 写入 {@code ord_order_event} 表，无需在此层处理。</p>
+ *
+ * @author deng
  */
 @Slf4j
 @Repository
 @RequiredArgsConstructor
 public class OrdOrderRepository {
-
     private final OrdOrderMapper orderMapper;
-    private final OrdOrderItemMapper orderItemMapper;
-    private final OutboxService outboxService;
-    private final DomainEventPublisher eventPublisher;
 
     /**
-     * Save the order aggregate and publish domain events.
-     * Events are written to the outbox table in the same transaction.
+     * 新增或更新订单。
      */
-    @Transactional(rollbackFor = Exception.class)
     public void save(OrdOrder order) {
-        // 1. Save or update the order
         if (order.getId() == null) {
             orderMapper.insert(order);
         } else {
             orderMapper.updateById(order);
         }
-
-        // 2. Save order items
-        if (order.getItems() != null) {
-            for (OrdOrderItem item : order.getItems()) {
-                if (item.getId() == null) {
-                    item.setOrderId(order.getId());
-                    orderItemMapper.insert(item);
-                } else {
-                    orderItemMapper.updateById(item);
-                }
-            }
-        }
-
-        // 3. Publish domain events via outbox
-        if (order.hasDomainEvents()) {
-            List<DomainEvent> events = order.pullDomainEvents();
-            for (DomainEvent event : events) {
-                outboxService.save(event);
-                log.debug("Saved domain event to outbox: type={}, orderId={}",
-                        event.getEventType(), order.getId());
-            }
-        }
     }
 
     /**
-     * Find order by ID.
+     * 按 ID 查找。
      */
-    public OrdOrder findById(Long id) {
+    public OrdOrder findById(UUID id) {
         return orderMapper.selectById(id);
     }
 
     /**
-     * Find order by order number.
+     * 按订单号查找。
      */
     public OrdOrder findByOrderNo(String orderNo) {
         return orderMapper.selectOne(
-                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<OrdOrder>()
+                new LambdaQueryWrapper<OrdOrder>()
                         .eq(OrdOrder::getOrderNo, orderNo)
-                        .eq(OrdOrder::getDeleted, false)
-        );
+                        .eq(OrdOrder::getDeleted, false));
     }
 
     /**
-     * Find orders by user ID.
+     * 按用户 ID 查找（按创建时间倒序）。
      */
     public List<OrdOrder> findByUserId(String userId) {
         return orderMapper.selectList(
-                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<OrdOrder>()
+                new LambdaQueryWrapper<OrdOrder>()
                         .eq(OrdOrder::getUserId, userId)
                         .eq(OrdOrder::getDeleted, false)
-                        .orderByDesc(OrdOrder::getCreateTime)
-        );
+                        .orderByDesc(OrdOrder::getCreateTime));
     }
 }
