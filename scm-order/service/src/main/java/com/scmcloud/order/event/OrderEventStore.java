@@ -14,11 +14,11 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Slf4j
 @Repository
 public class OrderEventStore {
-
     private final OrdOrderEventMapper eventMapper;
     private final ObjectMapper objectMapper;
 
@@ -56,7 +56,7 @@ public class OrderEventStore {
      * 按写入顺序取全部事件(create_time ASC, id ASC 兜底保证稳定排序)。
      * 全量加载无上限,大订单量场景请用分页重载。
      */
-    public List<OrderEvent> getEvents(Long orderId) {
+    public List<OrderEvent> getEvents(UUID orderId) {
         return eventMapper.selectList(byOrderId(orderId)).stream()
                 .map(this::deserialize)
                 .toList();
@@ -66,7 +66,7 @@ public class OrderEventStore {
      * 分页取事件(pageNo 从 1 开始),替代原 .last() 字符串拼接。
      * pageSize 上限受全局 PaginationInnerInterceptor maxLimit(1000) 约束。
      */
-    public List<OrderEvent> getEvents(Long orderId, int pageNo, int pageSize) {
+    public List<OrderEvent> getEvents(UUID orderId, int pageNo, int pageSize) {
         Page<OrdOrderEvent> result = eventMapper.selectPage(
                 new Page<>(pageNo, pageSize), byOrderId(orderId));
         return result.getRecords().stream()
@@ -74,7 +74,7 @@ public class OrderEventStore {
                 .toList();
     }
 
-    private LambdaQueryWrapper<OrdOrderEvent> byOrderId(Long orderId) {
+    private LambdaQueryWrapper<OrdOrderEvent> byOrderId(UUID orderId) {
         return Wrappers.lambdaQuery(OrdOrderEvent.class)
                 .eq(OrdOrderEvent::getOrderId, orderId)
                 .orderByAsc(OrdOrderEvent::getCreateTime)

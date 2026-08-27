@@ -1,8 +1,6 @@
 package com.scmcloud.order.domain.entity;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -15,11 +13,6 @@ import com.baomidou.mybatisplus.annotation.Version;
 import com.scmcloud.common.domain.Money;
 import com.scmcloud.common.domain.Quantity;
 import com.scmcloud.common.domain.TenantId;
-import com.scmcloud.common.domain.event.DomainEvent;
-import com.scmcloud.order.domain.event.OrderCancelledEvent;
-import com.scmcloud.order.domain.event.OrderCreatedEvent;
-import com.scmcloud.order.domain.event.OrderPaidEvent;
-import com.scmcloud.order.domain.event.OrderShippedEvent;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -42,8 +35,8 @@ public class OrdOrder {
     @TableField(value = "tenant_id", fill = FieldFill.INSERT)
     private TenantId tenantId;
 
-    @TableId(value = "id", type = IdType.ASSIGN_ID)
-    private Long id;
+    @TableId(value = "id", type = IdType.ASSIGN_UUID)
+    private UUID id;
     @TableField("order_no")
     private String orderNo;
     @TableField("user_id")
@@ -133,33 +126,7 @@ public class OrdOrder {
     // ─── Domain Events (transient, not persisted) ─────────────────
 
     @TableField(exist = false)
-    private List<DomainEvent> domainEvents = new ArrayList<>();
-
-    @TableField(exist = false)
     private List<OrdOrderItem> items;
-
-    /**
-     * Register a domain event for later publication.
-     */
-    protected void registerEvent(DomainEvent event) {
-        this.domainEvents.add(event);
-    }
-
-    /**
-     * Get and clear all pending domain events.
-     */
-    public List<DomainEvent> pullDomainEvents() {
-        List<DomainEvent> events = Collections.unmodifiableList(this.domainEvents);
-        this.domainEvents.clear();
-        return events;
-    }
-
-    /**
-     * Check if there are pending domain events.
-     */
-    public boolean hasDomainEvents() {
-        return !this.domainEvents.isEmpty();
-    }
 
     // ─── Domain Behavior ─────────────────────────────────────────
 
@@ -210,18 +177,6 @@ public class OrdOrder {
         transitionTo(OrderStatus.CANCELLED);
         this.cancelledAt = LocalDateTime.now();
         this.cancelReason = reason;
-
-        // Register domain event
-        registerEvent(new OrderCancelledEvent(
-                this.tenantId.toUUID(),
-                this.id,
-                this.orderNo,
-                this.userId != null ? UUID.fromString(this.userId) : null,
-                reason,
-                this.payableAmount != null ? this.payableAmount.getAmount() : null,
-                this.reservationId
-        ));
-
         return this;
     }
 
@@ -233,18 +188,6 @@ public class OrdOrder {
         this.paidAmount = amount;
         this.paidAt = LocalDateTime.now();
         this.paymentNo = paymentNo;
-
-        // Register domain event
-        registerEvent(new OrderPaidEvent(
-                this.tenantId.toUUID(),
-                this.id,
-                this.orderNo,
-                this.userId != null ? UUID.fromString(this.userId) : null,
-                amount != null ? amount.getAmount() : null,
-                paymentNo,
-                this.paymentMethod
-        ));
-
         return this;
     }
 
@@ -263,18 +206,6 @@ public class OrdOrder {
         this.waybillNo = waybillNo;
         this.carrier = carrier;
         this.shippedAt = LocalDateTime.now();
-
-        // Register domain event
-        registerEvent(new OrderShippedEvent(
-                this.tenantId.toUUID(),
-                this.id,
-                this.orderNo,
-                this.userId != null ? UUID.fromString(this.userId) : null,
-                waybillNo,
-                carrier,
-                this.estimatedArrival
-        ));
-
         return this;
     }
 

@@ -1,6 +1,7 @@
 package com.scmcloud.order.event;
 
 import com.scmcloud.order.domain.entity.OrderStatus;
+import lombok.Getter;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -14,23 +15,29 @@ import java.util.UUID;
  */
 public class OrderAggregate {
 
+    @Getter
     private UUID tenantId;
-    private Long orderId;
+    @Getter
+    private UUID orderId;
+    @Getter
     private String orderNo;
+    @Getter
     private BigDecimal totalAmount;
-    private BigDecimal payableAmount;
-    private OrderStatus status;
+    @Getter
     private String userId;
+    @Getter
+    private OrderStatus status;
     /**
      * 已应用事件总数(命令与重放均计入)。
      */
+    @Getter
     private long version;
     private List<OrderEvent> uncommittedEvents;
 
     private OrderAggregate() {
     }
 
-    public static OrderAggregate create(UUID tenantId, Long orderId, String orderNo, String userId,
+    public static OrderAggregate create(UUID tenantId, UUID orderId, String orderNo, String userId,
                                         BigDecimal totalAmount, BigDecimal payableAmount) {
         OrderAggregate aggregate = new OrderAggregate();
         OrderCreatedEvent event = new OrderCreatedEvent(
@@ -46,12 +53,12 @@ public class OrderAggregate {
      */
     public static OrderAggregate rehydrate(List<OrderEvent> history) {
         if (history == null || history.isEmpty()
-                || !(history.get(0) instanceof OrderCreatedEvent)) {
+                || !(history.getFirst() instanceof OrderCreatedEvent)) {
             throw new IllegalStateException(
                     "Cannot rehydrate order aggregate: history must start with ORDER_CREATED");
         }
         OrderAggregate aggregate = new OrderAggregate();
-        aggregate.apply(history.get(0));
+        aggregate.apply(history.getFirst());
         for (int i = 1; i < history.size(); i++) {
             OrderEvent event = history.get(i);
             aggregate.validateReplayEvent(event);
@@ -100,7 +107,6 @@ public class OrderAggregate {
             this.orderId = e.getOrderId();
             this.orderNo = e.getOrderNo();
             this.totalAmount = e.getTotalAmount();
-            this.payableAmount = e.getPayableAmount();
             this.userId = e.getUserId();
             this.status = OrderStatus.PENDING_PAYMENT;
         } else if (event instanceof OrderStatusChangedEvent e) {
@@ -112,22 +118,6 @@ public class OrderAggregate {
     public List<OrderEvent> getUncommittedEvents() {
         return uncommittedEvents == null ? null : Collections.unmodifiableList(uncommittedEvents);
     }
-
-    public void clearUncommittedEvents() {
-        if (uncommittedEvents != null) {
-            uncommittedEvents.clear();
-        }
-    }
-
-    public UUID getTenantId() { return tenantId; }
-    public Long getOrderId() { return orderId; }
-    public String getOrderNo() { return orderNo; }
-    public BigDecimal getTotalAmount() { return totalAmount; }
-    public BigDecimal getPayableAmount() { return payableAmount; }
-    public String getUserId() { return userId; }
-    public OrderStatus getStatus() { return status; }
-    /** 已应用事件总数(命令与重放均计入)。 */
-    public long getVersion() { return version; }
 
     private void ensureUncommitted() {
         if (uncommittedEvents == null) {

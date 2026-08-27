@@ -8,11 +8,12 @@ import com.scmcloud.common.domain.Money;
 import com.scmcloud.common.domain.Quantity;
 import com.scmcloud.common.domain.TenantId;
 import java.time.LocalDateTime;
+import java.util.UUID;
+
 import com.baomidou.mybatisplus.annotation.TableId;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
-
 /**
  * <p>
  * 璁㈠崟鏄庣粏锟?
@@ -30,20 +31,20 @@ public class OrdOrderItem {
     @TableField(value = "tenant_id", fill = FieldFill.INSERT)
     private TenantId tenantId;
 
-    @TableId(value = "id", type = IdType.ASSIGN_ID)
-    private Long id;
+    @TableId(value = "id", type = IdType.ASSIGN_UUID)
+    private UUID id;
 
     @TableField("order_id")
-    private Long orderId;
+    private UUID orderId;
 
     @TableField("order_no")
     private String orderNo;
 
     @TableField("sku_id")
-    private String skuId;
+    private UUID skuId;
 
     @TableField("spu_id")
-    private String spuId;
+    private UUID spuId;
 
     @TableField("sku_code")
     private String skuCode;
@@ -85,6 +86,13 @@ public class OrdOrderItem {
 
     @TableField("refund_amount")
     private Money refundAmount;
+
+    /**
+     * 剩余可退件数（DB 生成列 {@code GENERATED ALWAYS AS (quantity - refund_quantity) STORED}，
+     * 应用层只读）。{@code null} 表示 DB 尚未生成（旧数据兼容）。
+     */
+    @TableField("refund_remaining_quantity")
+    private Integer refundRemainingQuantity;
 
     @TableField("create_time")
     private LocalDateTime createTime;
