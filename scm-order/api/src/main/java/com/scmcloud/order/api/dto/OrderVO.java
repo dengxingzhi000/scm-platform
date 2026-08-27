@@ -2,6 +2,7 @@ package com.scmcloud.order.api.dto;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.UUID;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import lombok.Data;
@@ -12,10 +13,10 @@ import lombok.experimental.Accessors;
 public class OrderVO {
 
     @JsonSerialize(using = ToStringSerializer.class)
-    private Long id;
+    private UUID id;
     private String orderNo;
-    private Long userId;
-    private Long skuId;
+    private String userId;
+    private UUID skuId;
     private String skuName;
     private Integer quantity;
     private BigDecimal unitPrice;
