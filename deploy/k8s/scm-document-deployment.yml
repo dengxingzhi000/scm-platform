@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scm-document
+  namespace: scm-prod
+  labels:
+    app: scm-document
+    tier: business
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: scm-document
+  template:
+    metadata:
+      labels:
+        app: scm-document
+    spec:
+      containers:
+        - name: scm-document
+          image: docker.io/scmcloud/scm-document:latest
+          ports:
+            - containerPort: 8213
+          envFrom:
+            - configMapRef:
+                name: scm-config
+            - secretRef:
+                name: scm-secrets
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8213
+            initialDelaySeconds: 60
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8213
+            initialDelaySeconds: 30
+            periodSeconds: 5

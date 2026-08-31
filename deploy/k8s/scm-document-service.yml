@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: scm-document
+  namespace: scm-prod
+  labels:
+    app: scm-document
+spec:
+  selector:
+    app: scm-document
+  ports:
+    - port: 8213
+      targetPort: 8213
+      name: http
+  type: ClusterIP
