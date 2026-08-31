@@ -24,7 +24,7 @@ class InstantUploadServiceTest {
     void shouldReturnExistingFileWhenMd5Matches() {
         // Given
         String md5 = "abc123";
-        Long tenantId = 1L;
+        String tenantId = "tenant-1";
         FileMetadata existing = new FileMetadata();
         existing.setId("existing-id");
         existing.setMd5(md5);
@@ -42,7 +42,7 @@ class InstantUploadServiceTest {
     void shouldReturnEmptyWhenMd5NotExists() {
         // Given
         String md5 = "not-exists";
-        Long tenantId = 1L;
+        String tenantId = "tenant-1";
         when(metadataService.findByMd5(md5, tenantId)).thenReturn(Optional.empty());
         
         // When

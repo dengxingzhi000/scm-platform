@@ -10,10 +10,16 @@ spring:
     password: ${DB_PASSWORD:admin123}
   servlet:
     multipart:
-      max-file-size: 100MB
-      max-request-size: 100MB
+      max-file-size: 500MB
+      max-request-size: 500MB
 
 storage:
+  max-file-size: 536870912
+  presigned-url-expiry: 30m
+  virus-scan:
+    enabled: false
+    clamd-host: ${CLAMAV_HOST:localhost}
+    clamd-port: ${CLAMAV_PORT:3310}
   minio:
     endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
     access-key: ${MINIO_ACCESS_KEY:minioadmin}

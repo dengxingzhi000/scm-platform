@@ -53,7 +53,7 @@ class FileMetadataServiceTest {
         when(mapper.selectOne(any(LambdaQueryWrapper.class), any(Boolean.class))).thenReturn(metadata);
         
         // When
-        Optional<FileMetadata> result = service.findByMd5(md5, 1L);
+        Optional<FileMetadata> result = service.findByMd5(md5, "tenant-1");
         
         // Then
         assertTrue(result.isPresent());
