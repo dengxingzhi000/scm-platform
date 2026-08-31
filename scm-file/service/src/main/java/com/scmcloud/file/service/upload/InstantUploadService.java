@@ -13,7 +13,7 @@ import java.util.Optional;
 public class InstantUploadService {
     private final FileMetadataService metadataService;
     
-    public Optional<FileMetadata> checkExist(String md5, Long tenantId) {
+    public Optional<FileMetadata> checkExist(String md5, String tenantId) {
         return metadataService.findByMd5(md5, tenantId);
     }
 }

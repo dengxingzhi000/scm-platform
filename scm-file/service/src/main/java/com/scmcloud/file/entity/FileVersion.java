@@ -14,7 +14,7 @@ public class FileVersion {
     private String storageKey;
     private Long fileSize;
     private String md5;
-    private Long createBy;
+    private String createBy;
     private Date createTime;
-    private Long tenantId;
+    private String tenantId;
 }

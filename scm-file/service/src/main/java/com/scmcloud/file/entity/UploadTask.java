@@ -18,8 +18,8 @@ public class UploadTask {
     private Integer completedParts;
     private UploadTaskStatus status;
     private String uploadId;
-    private Long tenantId;
-    private Long createBy;
+    private String tenantId;
+    private String createBy;
     private Date createTime;
     private Date updateTime;
     @TableLogic

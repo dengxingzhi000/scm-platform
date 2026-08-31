@@ -17,8 +17,8 @@ public class FileMetadataDTO {
     private String bizId;
     private String status;
     private Integer refCount;
-    private Long tenantId;
-    private Long createBy;
+    private String tenantId;
+    private String createBy;
     private Long updateBy;
     private Date createTime;
     private Date updateTime;
