@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-08-31
+
+### Added
+
+- **New `scm-document` module** (modular monolith) registered under `com.scm.parent`. Comprises three bounded
+  contexts wired through Dubbo RPC and `scm-common-{data,web}` (#266):
+  - **file**: `DocumentFileService` proxies byte upload / download / presigned-URL through `scm-file`'s
+    `FileManageApi` + `FileQueryApi` (the new `byte[] upload` / `download` overloads added in this release).
+  - **template**: `Docx4jTemplateEngine` + `TemplateRenderService` for DOCX template rendering with
+    variable-schema validation via `TemplateSchemaService`.
+  - **document**: `DocumentService` for document lifecycle, `DocDocumentAudit` for change-trail.
+  - DB schema `V1_0_0__create_document_tables.sql` for `db_document` (7 tables, all carrying `tenant_id`).
+- **K8s deployment manifests for `scm-document`** (#265): `deploy/k8s/scm-document-deployment.yml` +
+  `scm-document-service.yml`, `scm-prod` namespace, port `8213`, replicas `2`, standard
+  `scm-config` / `scm-secrets` `envFrom` consumption, `/actuator/health` probes.
+- **CI `tenant_id` validation extended to `scm-document` tables** (#264): `doc_file_metadata`,
+  `doc_template`, `doc_template_version`, `doc_template_schema`, `doc_document`,
+  `doc_document_version`, `doc_document_audit` are now in the `expected_tables` array of
+  `scripts/db/ci_validate_tenant_id.sql` so CI fails fast on regression.
+
+### Changed
+
+- **`scm-file` aligned with platform UUID-string convention** (#262):
+  - `FileManageApi` / `FileQueryApi` switch `tenantId` parameter from `Long` to `String`. (**BREAKING**)
+  - `FileMetadata` / `FileVersion` / `UploadTask` entity fields `tenantId` / `createBy` typed
+    `Long` → `String`. (**BREAKING**)
+  - DB migration `V1_0_1__tenant_id_uuid.sql` widens `sys_file_metadata`, `sys_file_version`,
+    `sys_upload_task` `tenant_id` + `create_by` from `BIGINT` to `VARCHAR(36)` using
+    `USING col::TEXT` (lossless for existing rows). (**BREAKING** for any downstream consumer
+    that hand-wrote `Long` IDs.)
+  - API gains `FileManageApi#upload(byte[], ...)` and `FileQueryApi#download(String, String)`
+    for in-process / server-side flows (used by `scm-document` for render artifacts).
+  - `UploadService` gains `uploadBytes(...)`, `FileUploadValidator` / `FileValidationException`
+    guard rails, `ClamAVVirusScanner` + `NoOpVirusScanner` pluggable via `FileVirusScanner` SPI,
+    and orphan-object rollback on metadata-save failure.
+  - `StorageEngine` / `MinioStorageEngine`: typed-properties MinIO client, presigned URL expiry
+    from `StorageConfig`, `download(InputStream)` signature added.
+  - New RPC: `service.rpc.FileManageApiImpl` / `FileQueryApiImpl` expose Dubbo services;
+    `service.download.FileDownloadService` centralises resolve / presign / open-stream.
+  - New tests: `FileUploadValidatorTest`, `UploadServiceTest`.
+
+### Documentation
+
+- `OrderEventStore#append` javadoc: wrap the `REQUIRES_NEW` advisory onto its own line for
+  readability at default javadoc width (#261).
+
 ## [1.0.0] - 2026-08-06
 
 ### Added
