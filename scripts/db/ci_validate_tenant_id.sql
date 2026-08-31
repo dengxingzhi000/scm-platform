@@ -22,7 +22,11 @@ DECLARE
         'tms_carrier', 'tms_waybill', 'tms_tracking', 'tms_route', 'tms_delivery_area',
         -- Supplier
         'sup_supplier', 'sup_purchase_order', 'sup_purchase_order_item',
-        'sup_supplier_evaluation', 'sup_settlement'
+        'sup_supplier_evaluation', 'sup_settlement',
+        -- Document (scm-document, db_document)
+        'doc_file_metadata', 'doc_template', 'doc_template_version',
+        'doc_template_schema', 'doc_document', 'doc_document_version',
+        'doc_document_audit'
     ];
     rec RECORD;
 BEGIN
