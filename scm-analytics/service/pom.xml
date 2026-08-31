@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.scmcloud</groupId>
+        <artifactId>scm-analytics</artifactId>
+        <version>1.0.0-beta.1</version>
+    </parent>
+
+    <artifactId>scm-analytics-service</artifactId>
+    <packaging>jar</packaging>
+    <name>SCM Analytics Service Implementation</name>
+    <description>Analytics service with ClickHouse ODS/DWD/DWS/ADS and semantic query engine</description>
+
+    <dependencies>
+        <!-- API Module -->
+        <dependency>
+            <groupId>com.scmcloud</groupId>
+            <artifactId>scm-analytics-api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Common Modules -->
+        <dependency>
+            <groupId>com.scmcloud</groupId>
+            <artifactId>scm-common-core</artifactId>
+            <version>1.0.0-beta.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.scmcloud</groupId>
+            <artifactId>scm-common-integration</artifactId>
+            <version>1.0.0-beta.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.scmcloud</groupId>
+            <artifactId>scm-common-cache</artifactId>
+            <version>1.0.0-beta.1</version>
+        </dependency>
+
+        <!-- ClickHouse -->
+        <dependency>
+            <groupId>com.clickhouse</groupId>
+            <artifactId>clickhouse-client</artifactId>
+            <version>0.6.5</version>
+        </dependency>
+        <dependency>
+            <groupId>com.clickhouse</groupId>
+            <artifactId>client-v2</artifactId>
+            <version>0.6.5</version>
+        </dependency>
+
+        <!-- Kafka -->
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
+        </dependency>
+
+        <!-- MyBatis-Plus -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+        </dependency>
+
+        <!-- Test -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
