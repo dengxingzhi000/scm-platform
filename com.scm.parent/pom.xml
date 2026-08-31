@@ -41,6 +41,9 @@
     <!-- File Service -->
     <module>../scm-file</module>
 
+    <!-- Document Platform Service (file / template / document domains) -->
+    <module>../scm-document</module>
+
     <!-- Message Service -->
     <module>../scm-message</module>
 
