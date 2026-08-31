@@ -4,40 +4,66 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.scmcloud.common.domain.Money;
+import com.scmcloud.common.tenant.TenantContextHolder;
 import com.scmcloud.order.domain.entity.OrderStatus;
+import com.scmcloud.order.domain.entity.OrdOrder;
+import com.scmcloud.order.domain.entity.OrdOrderItem;
+import com.scmcloud.order.domain.entity.OrdStatusHistory;
+import com.scmcloud.order.domain.entity.OutboxEvent;
+import com.scmcloud.order.event.OrderCreatedEvent;
+import com.scmcloud.order.event.OrderEventStore;
+import com.scmcloud.order.event.OrderStatusChangedEvent;
+import com.scmcloud.order.mapper.OrdOrderMapper;
+import com.scmcloud.order.mapper.OutboxMapper;
+import com.scmcloud.order.service.IOrdOrderItemService;
+import com.scmcloud.order.service.IOrdOrderService;
+import com.scmcloud.order.service.IOrdStatusHistoryService;
 import com.scmcloud.system.api.StatusMachineDubboService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
-import com.scmcloud.order.domain.entity.OrdOrder;
-import com.scmcloud.order.domain.entity.OrdOrderItem;
-import com.scmcloud.order.domain.entity.OrdStatusHistory;
-import com.scmcloud.order.event.OrderCreatedEvent;
-import com.scmcloud.order.event.OrderEventStore;
-import com.scmcloud.order.event.OrderStatusChangedEvent;
-import com.scmcloud.order.mapper.OrdOrderMapper;
-import com.scmcloud.order.service.IOrdOrderItemService;
-import com.scmcloud.order.service.IOrdOrderService;
-import com.scmcloud.order.service.IOrdStatusHistoryService;
 
-import com.scmcloud.common.domain.Money;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
-@RequiredArgsConstructor
 @Slf4j
 @Service
 public class OrdOrderServiceImpl extends ServiceImpl<OrdOrderMapper, OrdOrder> implements IOrdOrderService {
     private final IOrdOrderItemService orderItemService;
     private final IOrdStatusHistoryService statusHistoryService;
     private final OrderEventStore eventStore;
+    private final OutboxMapper outboxMapper;
+    private final ObjectMapper objectMapper;
 
     @DubboReference
     private StatusMachineDubboService statusMachine;
+
+    public OrdOrderServiceImpl(IOrdOrderItemService orderItemService,
+                               IOrdStatusHistoryService statusHistoryService,
+                               OrderEventStore eventStore,
+                               OutboxMapper outboxMapper,
+                               ObjectMapper objectMapper) {
+        this.orderItemService = orderItemService;
+        this.statusHistoryService = statusHistoryService;
+        this.eventStore = eventStore;
+        this.outboxMapper = outboxMapper;
+        this.objectMapper = objectMapper != null ? objectMapper : new ObjectMapper();
+    }
+
+    // Backwards-compatible constructor for existing unit tests
+    public OrdOrderServiceImpl(IOrdOrderItemService orderItemService,
+                               IOrdStatusHistoryService statusHistoryService,
+                               OrderEventStore eventStore) {
+        this(orderItemService, statusHistoryService, eventStore, null, new ObjectMapper());
+    }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -96,6 +122,23 @@ public class OrdOrderServiceImpl extends ServiceImpl<OrdOrderMapper, OrdOrder> i
                 order.getUserId(),
                 order.getTotalAmount() != null ? order.getTotalAmount().getAmount() : null,
                 order.getPayableAmount() != null ? order.getPayableAmount().getAmount() : null));
+
+        // — Transactional Outbox: same DB TX as ord_order insert —
+        if (outboxMapper != null) {
+            try {
+                UUID tenantId = order.getTenantId() != null ? order.getTenantId().toUUID() : TenantContextHolder.getRequiredTenantId();
+                Map<String, Object> payloadMap = new HashMap<>();
+                payloadMap.put("orderId", order.getId() != null ? order.getId().toString() : null);
+                payloadMap.put("orderNo", order.getOrderNo());
+                payloadMap.put("userId", order.getUserId());
+                payloadMap.put("totalAmount", order.getTotalAmount() != null ? order.getTotalAmount().getAmount().toString() : null);
+                String payloadJson = objectMapper.writeValueAsString(payloadMap);
+                OutboxEvent outbox = OutboxEvent.of(tenantId, "OrdOrder", order.getId().toString(), "order.created", payloadJson);
+                outboxMapper.insert(outbox);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException("Failed to serialize outbox payload", e);
+            }
+        }
 
         log.info("订单创建成功: id={}, orderNo={}", order.getId(), order.getOrderNo());
         return order;

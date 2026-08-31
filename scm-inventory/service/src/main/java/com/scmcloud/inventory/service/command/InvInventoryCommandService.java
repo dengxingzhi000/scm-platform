@@ -5,9 +5,13 @@ import com.scmcloud.common.data.rw.annotation.Master;
 import com.scmcloud.inventory.dto.InventoryAdjustRequest;
 import com.scmcloud.inventory.dto.InventoryResponse;
 import com.scmcloud.inventory.dto.InventoryTransferRequest;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.scmcloud.common.tenant.TenantContextHolder;
 import com.scmcloud.inventory.domain.entity.Inventory;
+import com.scmcloud.inventory.domain.entity.OutboxEvent;
 import com.scmcloud.inventory.mapper.InvInventoryMapper;
-import lombok.RequiredArgsConstructor;
+import com.scmcloud.inventory.mapper.OutboxMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
@@ -15,13 +19,27 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class InvInventoryCommandService {
     private final InvInventoryMapper inventoryMapper;
+    private final OutboxMapper outboxMapper;
+    private final ObjectMapper objectMapper;
+
+    public InvInventoryCommandService(InvInventoryMapper inventoryMapper, OutboxMapper outboxMapper, ObjectMapper objectMapper) {
+        this.inventoryMapper = inventoryMapper;
+        this.outboxMapper = outboxMapper;
+        this.objectMapper = objectMapper != null ? objectMapper : new ObjectMapper();
+    }
+
+    // Backwards-compatible constructor for contexts without outbox
+    public InvInventoryCommandService(InvInventoryMapper inventoryMapper) {
+        this(inventoryMapper, null, new ObjectMapper());
+    }
 
     @Master(reason = "写操作必须走主库")
     @Transactional(rollbackFor = Exception.class)
@@ -53,6 +71,28 @@ public class InvInventoryCommandService {
             inventoryMapper.insert(inventory);
         } else {
             inventoryMapper.updateById(inventory);
+        }
+        // — Transactional Outbox (template): same TX as inventory mutation —
+        if (outboxMapper != null) {
+            try {
+                UUID tenantId;
+                try {
+                    tenantId = TenantContextHolder.getRequiredTenantId();
+                } catch (Exception ex) {
+                    tenantId = UUID.randomUUID(); // fallback for non-tenant context (e.g., tests)
+                    log.debug("TenantContext missing, using fallback tenantId for outbox: {}", tenantId);
+                }
+                Map<String, Object> payloadMap = new HashMap<>();
+                payloadMap.put("skuId", inventory.getSkuId());
+                payloadMap.put("warehouseId", inventory.getWarehouseId());
+                payloadMap.put("availableStock", inventory.getAvailableStock());
+                payloadMap.put("quantity", request.getQuantity());
+                String payloadJson = objectMapper.writeValueAsString(payloadMap);
+                OutboxEvent outbox = OutboxEvent.of(tenantId, "Inventory", inventory.getId(), "inventory.adjusted", payloadJson);
+                outboxMapper.insert(outbox);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException("Failed to serialize inventory outbox payload", e);
+            }
         }
         return convertToResponse(inventory);
     }

@@ -1,16 +1,20 @@
 package com.scmcloud.order.service.command;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.scmcloud.common.data.rw.annotation.Master;
+import com.scmcloud.common.tenant.TenantContextHolder;
 import com.scmcloud.order.domain.entity.OrderStatus;
 import com.scmcloud.order.domain.entity.OrdOrder;
 import com.scmcloud.order.domain.entity.OrdOrderItem;
 import com.scmcloud.order.domain.entity.OrdStatusHistory;
+import com.scmcloud.order.domain.entity.OutboxEvent;
 import com.scmcloud.order.event.OrderCreatedEvent;
 import com.scmcloud.order.event.OrderEventStore;
 import com.scmcloud.order.event.OrderStatusChangedEvent;
 import com.scmcloud.order.mapper.OrdOrderMapper;
+import com.scmcloud.order.mapper.OutboxMapper;
 import com.scmcloud.system.api.StatusMachineDubboService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.stereotype.Service;
@@ -19,21 +23,47 @@ import org.springframework.util.CollectionUtils;
 
 import com.scmcloud.common.domain.Money;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class OrdOrderCommandService {
     private final OrdOrderMapper ordOrderMapper;
     private final OrdOrderItemCommandService ordOrderItemCommandService;
     private final OrdStatusHistoryCommandService ordStatusHistoryCommandService;
     private final OrderEventStore eventStore;
+    private final OutboxMapper outboxMapper;
+    private final ObjectMapper objectMapper;
 
     @DubboReference
     private StatusMachineDubboService statusMachine;
+
+    // Full constructor used by Spring (includes outbox)
+    public OrdOrderCommandService(OrdOrderMapper ordOrderMapper,
+                                 OrdOrderItemCommandService ordOrderItemCommandService,
+                                 OrdStatusHistoryCommandService ordStatusHistoryCommandService,
+                                 OrderEventStore eventStore,
+                                 OutboxMapper outboxMapper,
+                                 ObjectMapper objectMapper) {
+        this.ordOrderMapper = ordOrderMapper;
+        this.ordOrderItemCommandService = ordOrderItemCommandService;
+        this.ordStatusHistoryCommandService = ordStatusHistoryCommandService;
+        this.eventStore = eventStore;
+        this.outboxMapper = outboxMapper;
+        this.objectMapper = objectMapper != null ? objectMapper : new ObjectMapper();
+    }
+
+    // Backwards-compatible constructor for existing unit tests (no outbox bean)
+    public OrdOrderCommandService(OrdOrderMapper ordOrderMapper,
+                                 OrdOrderItemCommandService ordOrderItemCommandService,
+                                 OrdStatusHistoryCommandService ordStatusHistoryCommandService,
+                                 OrderEventStore eventStore) {
+        this(ordOrderMapper, ordOrderItemCommandService, ordStatusHistoryCommandService, eventStore, null, new ObjectMapper());
+    }
 
     @Master(reason = "创建订单")
     @Transactional(rollbackFor = Exception.class)
@@ -92,6 +122,27 @@ public class OrdOrderCommandService {
                 order.getUserId(),
                 order.getTotalAmount() != null ? order.getTotalAmount().getAmount() : null,
                 order.getPayableAmount() != null ? order.getPayableAmount().getAmount() : null));
+
+        // — Transactional Outbox: same DB TX as ord_order insert —
+        // Uses TenantContextHolder for tenant isolation and guarantees CDC via Kafka relay.
+        // Guard null outboxMapper for unit-test contexts without DB.
+        if (outboxMapper != null) {
+            try {
+                UUID tenantId = order.getTenantId() != null ? order.getTenantId().toUUID() : TenantContextHolder.getRequiredTenantId();
+                Map<String, Object> payloadMap = new HashMap<>();
+                payloadMap.put("orderId", order.getId() != null ? order.getId().toString() : null);
+                payloadMap.put("orderNo", order.getOrderNo());
+                payloadMap.put("userId", order.getUserId());
+                payloadMap.put("totalAmount", order.getTotalAmount() != null ? order.getTotalAmount().getAmount().toString() : null);
+                payloadMap.put("payableAmount", order.getPayableAmount() != null ? order.getPayableAmount().getAmount().toString() : null);
+                String payloadJson = objectMapper.writeValueAsString(payloadMap);
+                OutboxEvent outbox = OutboxEvent.of(tenantId, "OrdOrder", order.getId().toString(), "order.created", payloadJson);
+                outboxMapper.insert(outbox);
+                log.debug("Outbox inserted in same TX: aggregateId={}, eventType={}", outbox.getAggregateId(), outbox.getEventType());
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException("Failed to serialize outbox payload", e);
+            }
+        }
 
         log.info("订单创建成功: id={}, orderNo={}", order.getId(), order.getOrderNo());
         return order;
