@@ -29,7 +29,8 @@ public class OrderEventStore {
 
     /**
      * 追加事件。event_id 唯一约束保证幂等:重复事件记 warn 跳过。
-     * <p>注意:PostgreSQL 中唯一约束冲突会使当前事务中止,吞掉 DuplicateKeyException 仅在同事务首次冲突可容忍;若未来需要重放历史事件再入库,请改用 REQUIRES_NEW 事务。</p>
+     * <p>注意:PostgreSQL 中唯一约束冲突会使当前事务中止,吞掉 DuplicateKeyException 仅在同事务首次冲突可容忍;
+     * 若未来需要重放历史事件再入库,请改用 REQUIRES_NEW 事务。</p>
      */
     public void append(OrderEvent event) {
         try {
