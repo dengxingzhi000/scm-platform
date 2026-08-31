@@ -471,6 +471,7 @@ services:
       - clickhouse_data:/var/lib/clickhouse
       - ./deploy/clickhouse/config.xml:/etc/clickhouse-server/config.d/custom.xml:ro
       - ./deploy/clickhouse/users.xml:/etc/clickhouse-server/users.d/custom.xml:ro
+      - ./deploy/clickhouse/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     depends_on:
       - clickhouse-keeper
     networks:
