@@ -452,6 +452,35 @@ services:
       timeout: 10s
       retries: 5
 
+  # ============================================================
+  # ClickHouse - OLAP Columnar Database for Analytics
+  # ============================================================
+  clickhouse-keeper:
+    image: clickhouse/clickhouse-keeper:24-alpine
+    container_name: scm-clickhouse-keeper
+    networks:
+      - scm-network
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24-alpine
+    container_name: scm-clickhouse
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - ./deploy/clickhouse/config.xml:/etc/clickhouse-server/config.d/custom.xml:ro
+      - ./deploy/clickhouse/users.xml:/etc/clickhouse-server/users.d/custom.xml:ro
+    depends_on:
+      - clickhouse-keeper
+    networks:
+      - scm-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8123/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 # ============================================================
 # 网络配置
 # ============================================================
@@ -495,6 +524,9 @@ volumes:
 
   # Redis Sentinel
   redis-master:
+
+  # ClickHouse
+  clickhouse_data:
 
   # 其他
 

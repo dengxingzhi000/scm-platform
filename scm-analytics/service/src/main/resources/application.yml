@@ -1,0 +1,52 @@
+server:
+  port: 8308
+
+spring:
+  application:
+    name: scm-analytics
+
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://${DB_HOST:localhost}:5432/db_analytics
+    username: ${DB_USERNAME:admin}
+    password: ${DB_PASSWORD:admin123}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9093}
+    consumer:
+      group-id: analytics-ods
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+clickhouse:
+  url: http://${CH_HOST:localhost}:8123
+  database: analytics
+  username: ${CH_USERNAME:default}
+  password: ${CH_PASSWORD:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    root: INFO
+    com.scmcloud.analytics: DEBUG
