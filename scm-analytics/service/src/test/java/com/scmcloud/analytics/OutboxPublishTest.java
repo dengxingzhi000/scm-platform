@@ -147,6 +147,39 @@ class OutboxPublishTest {
                 "Order service outbox must carry tenant_id via TenantContextHolder");
     }
 
+    @Test
+    void outboxAtomicityIsMandatoryAndTenantFailFast() throws IOException {
+        // Verifies reviewer fix 1 & 3: outbox insert must be mandatory (no null-guard) and tenant fail-fast
+        Path cmdSvc = findFile("scm-order/service/src/main/java/com/scmcloud/order/service/command/OrdOrderCommandService.java");
+        Path implSvc = findFile("scm-order/service/src/main/java/com/scmcloud/order/service/impl/OrdOrderServiceImpl.java");
+        Path invSvc = findFile("scm-inventory/service/src/main/java/com/scmcloud/inventory/service/command/InvInventoryCommandService.java");
+        for (Path svc : new Path[]{cmdSvc, implSvc, invSvc}) {
+            assertNotNull(svc, "Service file must exist: " + svc);
+            String content = Files.readString(svc, StandardCharsets.UTF_8);
+            assertFalse(content.contains("if (outboxMapper != null)"),
+                    "Outbox insert must be mandatory — no `if (outboxMapper != null)` guard allowed: " + svc);
+            // Fallback tenant fabrication must not exist: check for catch+randomUUID pattern
+            assertFalse(content.contains("catch (Exception") && content.contains("randomUUID"),
+                    "Tenant must be fail-fast via TenantContextHolder.getRequiredTenantId(), no UUID.randomUUID() fallback: " + svc);
+            assertFalse(content.contains("fallback for non-tenant") || content.contains("fallback tenantId"),
+                    "No tenant fallback comment allowed: " + svc);
+            assertTrue(content.contains("TenantContextHolder.getRequiredTenantId()"),
+                    "Service must use TenantContextHolder.getRequiredTenantId() fail-fast: " + svc);
+        }
+        // Check @Master on OrdOrderServiceImpl.createOrder and active @DistributedLockAnnotation on relay
+        assertNotNull(implSvc, "OrdOrderServiceImpl must exist");
+        String implContent = Files.readString(implSvc, StandardCharsets.UTF_8);
+        assertTrue(implContent.contains("@Master") && implContent.contains("createOrder"),
+                "OrdOrderServiceImpl.createOrder must have @Master alongside @Transactional");
+        Path relay = findFile("scm-analytics/service/src/main/java/com/scmcloud/analytics/ingest/OutboxRelayJob.java");
+        assertNotNull(relay, "OutboxRelayJob must exist");
+        String relayContent = Files.readString(relay, StandardCharsets.UTF_8);
+        assertTrue(relayContent.contains("@DistributedLockAnnotation") && relayContent.contains("outbox:relay"),
+                "OutboxRelayJob.relay() must have active @DistributedLockAnnotation(key = \"'outbox:relay'\")");
+        assertFalse(relayContent.contains("// @DistributedLock"),
+                "OutboxRelayJob must not have commented-out DistributedLock — annotation must be active");
+    }
+
     // ---- helpers ----
 
     private Path findOutboxSql() {

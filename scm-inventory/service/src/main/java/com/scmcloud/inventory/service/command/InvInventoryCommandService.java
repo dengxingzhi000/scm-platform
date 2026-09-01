@@ -36,11 +36,6 @@ public class InvInventoryCommandService {
         this.objectMapper = objectMapper != null ? objectMapper : new ObjectMapper();
     }
 
-    // Backwards-compatible constructor for contexts without outbox
-    public InvInventoryCommandService(InvInventoryMapper inventoryMapper) {
-        this(inventoryMapper, null, new ObjectMapper());
-    }
-
     @Master(reason = "写操作必须走主库")
     @Transactional(rollbackFor = Exception.class)
     public InventoryResponse adjustInventory(InventoryAdjustRequest request) {
@@ -72,27 +67,19 @@ public class InvInventoryCommandService {
         } else {
             inventoryMapper.updateById(inventory);
         }
-        // — Transactional Outbox (template): same TX as inventory mutation —
-        if (outboxMapper != null) {
-            try {
-                UUID tenantId;
-                try {
-                    tenantId = TenantContextHolder.getRequiredTenantId();
-                } catch (Exception ex) {
-                    tenantId = UUID.randomUUID(); // fallback for non-tenant context (e.g., tests)
-                    log.debug("TenantContext missing, using fallback tenantId for outbox: {}", tenantId);
-                }
-                Map<String, Object> payloadMap = new HashMap<>();
-                payloadMap.put("skuId", inventory.getSkuId());
-                payloadMap.put("warehouseId", inventory.getWarehouseId());
-                payloadMap.put("availableStock", inventory.getAvailableStock());
-                payloadMap.put("quantity", request.getQuantity());
-                String payloadJson = objectMapper.writeValueAsString(payloadMap);
-                OutboxEvent outbox = OutboxEvent.of(tenantId, "Inventory", inventory.getId(), "inventory.adjusted", payloadJson);
-                outboxMapper.insert(outbox);
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException("Failed to serialize inventory outbox payload", e);
-            }
+        // — Transactional Outbox: same TX as inventory mutation — mandatory, fail-fast on missing tenant.
+        try {
+            UUID tenantId = TenantContextHolder.getRequiredTenantId();
+            Map<String, Object> payloadMap = new HashMap<>();
+            payloadMap.put("skuId", inventory.getSkuId());
+            payloadMap.put("warehouseId", inventory.getWarehouseId());
+            payloadMap.put("availableStock", inventory.getAvailableStock());
+            payloadMap.put("quantity", request.getQuantity());
+            String payloadJson = objectMapper.writeValueAsString(payloadMap);
+            OutboxEvent outbox = OutboxEvent.of(tenantId, "Inventory", inventory.getId(), "inventory.adjusted", payloadJson);
+            outboxMapper.insert(outbox);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to serialize inventory outbox payload", e);
         }
         return convertToResponse(inventory);
     }

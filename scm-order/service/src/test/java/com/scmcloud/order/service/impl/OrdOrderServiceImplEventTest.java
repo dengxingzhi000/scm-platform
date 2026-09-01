@@ -8,10 +8,14 @@ import com.scmcloud.order.event.OrderCreatedEvent;
 import com.scmcloud.order.event.OrderEvent;
 import com.scmcloud.order.event.OrderEventStore;
 import com.scmcloud.order.event.OrderStatusChangedEvent;
+import com.scmcloud.common.tenant.TenantContextHolder;
+import com.scmcloud.order.domain.entity.OutboxEvent;
 import com.scmcloud.order.mapper.OrdOrderMapper;
+import com.scmcloud.order.mapper.OutboxMapper;
 import com.scmcloud.order.service.IOrdOrderItemService;
 import com.scmcloud.order.service.IOrdStatusHistoryService;
 import com.scmcloud.system.api.StatusMachineDubboService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,6 +42,7 @@ class OrdOrderServiceImplEventTest {
     @Mock private IOrdOrderItemService orderItemService;
     @Mock private IOrdStatusHistoryService statusHistoryService;
     @Mock private OrderEventStore eventStore;
+    @Mock private OutboxMapper outboxMapper;
     @Mock private StatusMachineDubboService statusMachine;
     @Mock private OrdOrderMapper ordOrderMapper;
 
@@ -45,9 +50,14 @@ class OrdOrderServiceImplEventTest {
 
     @BeforeEach
     void setUp() {
-        service = new OrdOrderServiceImpl(orderItemService, statusHistoryService, eventStore);
+        service = new OrdOrderServiceImpl(orderItemService, statusHistoryService, eventStore, outboxMapper, new com.fasterxml.jackson.databind.ObjectMapper());
         ReflectionTestUtils.setField(service, "baseMapper", ordOrderMapper);
         ReflectionTestUtils.setField(service, "statusMachine", statusMachine);
+    }
+
+    @AfterEach
+    void tearDown() {
+        TenantContextHolder.clear();
     }
 
     private OrdOrder order(int statusCode) {
@@ -65,7 +75,9 @@ class OrdOrderServiceImplEventTest {
     @Test
     void createOrderShouldAppendOrderCreatedEvent() {
         OrdOrder order = order(OrderStatus.PENDING_PAYMENT.getCode());
+        TenantContextHolder.setTenantId(order.getTenantId().toUUID());
         when(ordOrderMapper.insert(any(OrdOrder.class))).thenReturn(1);
+        when(outboxMapper.insert(any(OutboxEvent.class))).thenReturn(1);
 
         com.scmcloud.order.domain.entity.OrdOrderItem item = new com.scmcloud.order.domain.entity.OrdOrderItem();
         item.setSubtotal(Money.of(new BigDecimal("99.90")));

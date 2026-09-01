@@ -42,7 +42,6 @@ public class OrdOrderCommandService {
     @DubboReference
     private StatusMachineDubboService statusMachine;
 
-    // Full constructor used by Spring (includes outbox)
     public OrdOrderCommandService(OrdOrderMapper ordOrderMapper,
                                  OrdOrderItemCommandService ordOrderItemCommandService,
                                  OrdStatusHistoryCommandService ordStatusHistoryCommandService,
@@ -55,14 +54,6 @@ public class OrdOrderCommandService {
         this.eventStore = eventStore;
         this.outboxMapper = outboxMapper;
         this.objectMapper = objectMapper != null ? objectMapper : new ObjectMapper();
-    }
-
-    // Backwards-compatible constructor for existing unit tests (no outbox bean)
-    public OrdOrderCommandService(OrdOrderMapper ordOrderMapper,
-                                 OrdOrderItemCommandService ordOrderItemCommandService,
-                                 OrdStatusHistoryCommandService ordStatusHistoryCommandService,
-                                 OrderEventStore eventStore) {
-        this(ordOrderMapper, ordOrderItemCommandService, ordStatusHistoryCommandService, eventStore, null, new ObjectMapper());
     }
 
     @Master(reason = "创建订单")
@@ -125,23 +116,21 @@ public class OrdOrderCommandService {
 
         // — Transactional Outbox: same DB TX as ord_order insert —
         // Uses TenantContextHolder for tenant isolation and guarantees CDC via Kafka relay.
-        // Guard null outboxMapper for unit-test contexts without DB.
-        if (outboxMapper != null) {
-            try {
-                UUID tenantId = order.getTenantId() != null ? order.getTenantId().toUUID() : TenantContextHolder.getRequiredTenantId();
-                Map<String, Object> payloadMap = new HashMap<>();
-                payloadMap.put("orderId", order.getId() != null ? order.getId().toString() : null);
-                payloadMap.put("orderNo", order.getOrderNo());
-                payloadMap.put("userId", order.getUserId());
-                payloadMap.put("totalAmount", order.getTotalAmount() != null ? order.getTotalAmount().getAmount().toString() : null);
-                payloadMap.put("payableAmount", order.getPayableAmount() != null ? order.getPayableAmount().getAmount().toString() : null);
-                String payloadJson = objectMapper.writeValueAsString(payloadMap);
-                OutboxEvent outbox = OutboxEvent.of(tenantId, "OrdOrder", order.getId().toString(), "order.created", payloadJson);
-                outboxMapper.insert(outbox);
-                log.debug("Outbox inserted in same TX: aggregateId={}, eventType={}", outbox.getAggregateId(), outbox.getEventType());
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException("Failed to serialize outbox payload", e);
-            }
+        // Outbox insert is mandatory — same TX as ord_order, failure rolls back order.
+        try {
+            UUID tenantId = TenantContextHolder.getRequiredTenantId();
+            Map<String, Object> payloadMap = new HashMap<>();
+            payloadMap.put("orderId", order.getId() != null ? order.getId().toString() : null);
+            payloadMap.put("orderNo", order.getOrderNo());
+            payloadMap.put("userId", order.getUserId());
+            payloadMap.put("totalAmount", order.getTotalAmount() != null ? order.getTotalAmount().getAmount().toString() : null);
+            payloadMap.put("payableAmount", order.getPayableAmount() != null ? order.getPayableAmount().getAmount().toString() : null);
+            String payloadJson = objectMapper.writeValueAsString(payloadMap);
+            OutboxEvent outbox = OutboxEvent.of(tenantId, "OrdOrder", order.getId().toString(), "order.created", payloadJson);
+            outboxMapper.insert(outbox);
+            log.debug("Outbox inserted in same TX: aggregateId={}, eventType={}", outbox.getAggregateId(), outbox.getEventType());
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to serialize outbox payload", e);
         }
 
         log.info("订单创建成功: id={}, orderNo={}", order.getId(), order.getOrderNo());

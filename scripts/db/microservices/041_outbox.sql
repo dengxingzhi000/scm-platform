@@ -1,12 +1,14 @@
 -- ======================================================================
--- Transactional Outbox (db_order / db_inventory / db_analytics)
---职责：业务库与事务同写、异步投递至 Kafka 的 CDC 事件表
---设计：业务聚合变更与 outbox insert 在同一 DB 事务内完成，
+-- Transactional Outbox — RUN IN: db_order AND db_inventory (and db_analytics if central relay)
+-- 职责：业务库与事务同写、异步投递至 Kafka 的 CDC 事件表
+-- 设计：业务聚合变更与 outbox insert 在同一 DB 事务内完成，
 --      由 OutboxRelayJob / OutboxPoller 异步轮询 published=false 的记录
 --      投递至 Kafka topic "scm.<aggregate_type>"，成功后标记已发布
+-- 执行说明：本文件为单文件模板，必须在 db_order 与 db_inventory 分别执行一次；
+--           若 analytics 集中轮询则在 db_analytics 也执行一份。
 -- ======================================================================
 
--- 通用 outbox_event（建议在 db_order、db_inventory 各库执行此脚本）
+-- 通用 outbox_event（必须在 db_order 与 db_inventory 各库分别执行此脚本）
 -- 供 analytics 的 RelayJob 轮询；若集中投递可仅在 db_order 落表，inventory 作为模板复用
 
 CREATE TABLE IF NOT EXISTS outbox_event (

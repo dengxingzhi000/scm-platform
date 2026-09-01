@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.scmcloud.common.data.rw.annotation.Master;
 import com.scmcloud.common.domain.Money;
 import com.scmcloud.common.tenant.TenantContextHolder;
 import com.scmcloud.order.domain.entity.OrderStatus;
@@ -58,14 +59,8 @@ public class OrdOrderServiceImpl extends ServiceImpl<OrdOrderMapper, OrdOrder> i
         this.objectMapper = objectMapper != null ? objectMapper : new ObjectMapper();
     }
 
-    // Backwards-compatible constructor for existing unit tests
-    public OrdOrderServiceImpl(IOrdOrderItemService orderItemService,
-                               IOrdStatusHistoryService statusHistoryService,
-                               OrderEventStore eventStore) {
-        this(orderItemService, statusHistoryService, eventStore, null, new ObjectMapper());
-    }
-
     @Override
+    @Master(reason = "创建订单")
     @Transactional(rollbackFor = Exception.class)
     public OrdOrder createOrder(OrdOrder order, List<OrdOrderItem> items) {
         log.info("创建订单: orderNo={}, userId={}", order.getOrderNo(), order.getUserId());
@@ -123,21 +118,19 @@ public class OrdOrderServiceImpl extends ServiceImpl<OrdOrderMapper, OrdOrder> i
                 order.getTotalAmount() != null ? order.getTotalAmount().getAmount() : null,
                 order.getPayableAmount() != null ? order.getPayableAmount().getAmount() : null));
 
-        // — Transactional Outbox: same DB TX as ord_order insert —
-        if (outboxMapper != null) {
-            try {
-                UUID tenantId = order.getTenantId() != null ? order.getTenantId().toUUID() : TenantContextHolder.getRequiredTenantId();
-                Map<String, Object> payloadMap = new HashMap<>();
-                payloadMap.put("orderId", order.getId() != null ? order.getId().toString() : null);
-                payloadMap.put("orderNo", order.getOrderNo());
-                payloadMap.put("userId", order.getUserId());
-                payloadMap.put("totalAmount", order.getTotalAmount() != null ? order.getTotalAmount().getAmount().toString() : null);
-                String payloadJson = objectMapper.writeValueAsString(payloadMap);
-                OutboxEvent outbox = OutboxEvent.of(tenantId, "OrdOrder", order.getId().toString(), "order.created", payloadJson);
-                outboxMapper.insert(outbox);
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException("Failed to serialize outbox payload", e);
-            }
+        // — Transactional Outbox: same DB TX as ord_order insert — mandatory, failure rolls back order.
+        try {
+            UUID tenantId = TenantContextHolder.getRequiredTenantId();
+            Map<String, Object> payloadMap = new HashMap<>();
+            payloadMap.put("orderId", order.getId() != null ? order.getId().toString() : null);
+            payloadMap.put("orderNo", order.getOrderNo());
+            payloadMap.put("userId", order.getUserId());
+            payloadMap.put("totalAmount", order.getTotalAmount() != null ? order.getTotalAmount().getAmount().toString() : null);
+            String payloadJson = objectMapper.writeValueAsString(payloadMap);
+            OutboxEvent outbox = OutboxEvent.of(tenantId, "OrdOrder", order.getId().toString(), "order.created", payloadJson);
+            outboxMapper.insert(outbox);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to serialize outbox payload", e);
         }
 
         log.info("订单创建成功: id={}, orderNo={}", order.getId(), order.getOrderNo());

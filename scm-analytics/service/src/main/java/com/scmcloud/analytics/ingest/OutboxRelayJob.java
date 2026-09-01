@@ -1,6 +1,7 @@
 package com.scmcloud.analytics.ingest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.scmcloud.common.lock.DistributedLockAnnotation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.annotations.Mapper;
@@ -10,6 +11,8 @@ import org.apache.ibatis.annotations.Update;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+
+import java.util.concurrent.TimeUnit;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -39,8 +42,9 @@ public class OutboxRelayJob {
 
     private static final int BATCH_SIZE = 100;
 
-    // Uncomment to enforce single-instance execution via Redis lock:
-    // @DistributedLockAnnotation(key = "'outbox:relay'", ttl = 30)
+    // Primary concurrency control is FOR UPDATE SKIP LOCKED in the mapper query;
+    // DistributedLock is secondary safety for multi-instance scheduling.
+    @DistributedLockAnnotation(key = "'outbox:relay'", ttl = 30, unit = TimeUnit.SECONDS)
     @Scheduled(fixedDelay = 5000)
     public void relay() {
         List<OutboxEvent> events = outboxEventMapper.findUnpublished(BATCH_SIZE);
