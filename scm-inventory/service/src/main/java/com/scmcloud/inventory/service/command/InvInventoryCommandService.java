@@ -33,7 +33,7 @@ public class InvInventoryCommandService {
     public InvInventoryCommandService(InvInventoryMapper inventoryMapper, OutboxMapper outboxMapper, ObjectMapper objectMapper) {
         this.inventoryMapper = inventoryMapper;
         this.outboxMapper = outboxMapper;
-        this.objectMapper = objectMapper != null ? objectMapper : new ObjectMapper();
+        this.objectMapper = objectMapper;
     }
 
     @Master(reason = "写操作必须走主库")
@@ -68,6 +68,7 @@ public class InvInventoryCommandService {
             inventoryMapper.updateById(inventory);
         }
         // — Transactional Outbox: same TX as inventory mutation — mandatory, fail-fast on missing tenant.
+        // TODO: extract OutboxPayloadBuilder to scm-common
         try {
             UUID tenantId = TenantContextHolder.getRequiredTenantId();
             Map<String, Object> payloadMap = new HashMap<>();

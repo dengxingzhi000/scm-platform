@@ -53,7 +53,7 @@ public class OrdOrderCommandService {
         this.ordStatusHistoryCommandService = ordStatusHistoryCommandService;
         this.eventStore = eventStore;
         this.outboxMapper = outboxMapper;
-        this.objectMapper = objectMapper != null ? objectMapper : new ObjectMapper();
+        this.objectMapper = objectMapper;
     }
 
     @Master(reason = "创建订单")
@@ -117,6 +117,7 @@ public class OrdOrderCommandService {
         // — Transactional Outbox: same DB TX as ord_order insert —
         // Uses TenantContextHolder for tenant isolation and guarantees CDC via Kafka relay.
         // Outbox insert is mandatory — same TX as ord_order, failure rolls back order.
+        // TODO: extract OutboxPayloadBuilder to scm-common
         try {
             UUID tenantId = TenantContextHolder.getRequiredTenantId();
             Map<String, Object> payloadMap = new HashMap<>();
@@ -149,6 +150,7 @@ public class OrdOrderCommandService {
         return ordOrderMapper.updateById(order);
     }
 
+    // TODO: outbox for updateOrderStatus/cancelOrder
     @Master(reason = "更新订单状态")
     @Transactional(rollbackFor = Exception.class)
     public boolean updateOrderStatus(UUID orderId, Integer status) {

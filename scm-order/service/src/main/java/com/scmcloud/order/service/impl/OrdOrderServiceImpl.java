@@ -56,7 +56,7 @@ public class OrdOrderServiceImpl extends ServiceImpl<OrdOrderMapper, OrdOrder> i
         this.statusHistoryService = statusHistoryService;
         this.eventStore = eventStore;
         this.outboxMapper = outboxMapper;
-        this.objectMapper = objectMapper != null ? objectMapper : new ObjectMapper();
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -119,6 +119,7 @@ public class OrdOrderServiceImpl extends ServiceImpl<OrdOrderMapper, OrdOrder> i
                 order.getPayableAmount() != null ? order.getPayableAmount().getAmount() : null));
 
         // — Transactional Outbox: same DB TX as ord_order insert — mandatory, failure rolls back order.
+        // TODO: extract OutboxPayloadBuilder to scm-common
         try {
             UUID tenantId = TenantContextHolder.getRequiredTenantId();
             Map<String, Object> payloadMap = new HashMap<>();
@@ -137,6 +138,7 @@ public class OrdOrderServiceImpl extends ServiceImpl<OrdOrderMapper, OrdOrder> i
         return order;
     }
 
+    // TODO: outbox for updateOrderStatus/cancelOrder
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean updateOrderStatus(UUID orderId, Integer status) {

@@ -1,6 +1,5 @@
 package com.scmcloud.analytics.ingest;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.scmcloud.common.lock.DistributedLockAnnotation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,12 +10,14 @@ import org.apache.ibatis.annotations.Update;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-
-import java.util.concurrent.TimeUnit;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Transactional outbox relay for analytics CDC.
@@ -38,7 +39,6 @@ public class OutboxRelayJob {
 
     private final OutboxEventMapper outboxEventMapper;
     private final KafkaTemplate<String, String> kafkaTemplate;
-    private final ObjectMapper objectMapper;
 
     private static final int BATCH_SIZE = 100;
 
@@ -46,6 +46,7 @@ public class OutboxRelayJob {
     // DistributedLock is secondary safety for multi-instance scheduling.
     @DistributedLockAnnotation(key = "'outbox:relay'", ttl = 30, unit = TimeUnit.SECONDS)
     @Scheduled(fixedDelay = 5000)
+    @Transactional
     public void relay() {
         List<OutboxEvent> events = outboxEventMapper.findUnpublished(BATCH_SIZE);
         if (events.isEmpty()) {
@@ -56,10 +57,17 @@ public class OutboxRelayJob {
             try {
                 String topic = "scm." + event.getAggregateType().toLowerCase();
                 // payload already JSON string
-                kafkaTemplate.send(topic, event.getAggregateId(), event.getPayload());
+                kafkaTemplate.send(topic, event.getAggregateId(), event.getPayload()).get(5, TimeUnit.SECONDS);
                 outboxEventMapper.markPublished(event.getId());
                 log.debug("OutboxRelay published: id={}, topic={}, aggregate={}/{}",
                         event.getId(), topic, event.getAggregateType(), event.getAggregateId());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log.warn("OutboxRelay failed to publish id={}: {}", event.getId(), e.getMessage(), e);
+                // leave published=false for retry on next poll
+            } catch (ExecutionException | TimeoutException e) {
+                log.warn("OutboxRelay failed to publish id={}: {}", event.getId(), e.getMessage(), e);
+                // leave published=false for retry on next poll; optionally add retry_count
             } catch (Exception e) {
                 log.warn("OutboxRelay failed to publish id={}: {}", event.getId(), e.getMessage(), e);
                 // leave published=false for retry on next poll; optionally add retry_count
@@ -67,6 +75,7 @@ public class OutboxRelayJob {
         }
     }
 
+    // TODO: extract to domain/entity and mapper package
     // ——— Mapper & Entity inline for analytics relay ———
     // Kept in same file to avoid extra entity package for this demo relay.
     // Order/inventory services have their own OutboxEvent + OutboxMapper copies (template).
