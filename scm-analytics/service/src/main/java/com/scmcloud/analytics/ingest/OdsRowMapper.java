@@ -31,11 +31,14 @@ public final class OdsRowMapper {
         row.put("order_no", textOrNull(innerPayload, "orderNo"));
         row.put("order_id", textOrNull(innerPayload, "orderId"));
         row.put("user_id", textOrNull(innerPayload, "userId"));
+        // TODO: enrich order_status from OrderStatusChangedEvent (not present at ORDER_CREATED time).
         row.put("order_status", null);
         row.put("total_amount", decimalOrNull(innerPayload, "totalAmount"));
         row.put("pay_amount", decimalOrNull(innerPayload, "payableAmount"));
+        // TODO: enrich pay_time from a later payment event.
         row.put("pay_time", null);
-        row.put("order_source", null);
+        // Surface orderSource when the publisher includes it; null otherwise.
+        row.put("order_source", textOrNull(innerPayload, "orderSource"));
         row.put("remark", null);
         Instant now = Instant.now();
         row.put("create_time", now);
@@ -57,6 +60,8 @@ public final class OdsRowMapper {
         row.put("sku_id", textOrNull(innerPayload, "skuId"));
         row.put("warehouse_id", textOrNull(innerPayload, "warehouseId"));
         row.put("location_id", null);
+        // INVENTORY_ADJUSTED is the single inbound event type on this topic, so
+        // change_type is always an adjustment; biz_type mirrors the event type.
         row.put("change_type", "ADJUST");
         row.put("quantity", intOrNull(innerPayload, "quantity"));
         row.put("before_qty", null);

@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableField;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 
 import java.time.OffsetDateTime;
@@ -86,10 +87,12 @@ public class OutboxEvent {
         this.nextRetryAt = OffsetDateTime.now().plusSeconds(delaySeconds);
     }
 
+    @JsonIgnore
     public boolean isRetryable() {
         return "FAILED".equals(status) && retryCount < maxRetries;
     }
 
+    @JsonIgnore
     public boolean isPending() {
         return "PENDING".equals(status);
     }

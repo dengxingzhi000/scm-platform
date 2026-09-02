@@ -3,10 +3,12 @@ package com.scmcloud.analytics.ingest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.scmcloud.analytics.config.AnalyticsKafkaConfig;
+import com.scmcloud.common.integration.outbox.OutboxEvent;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.kafka.autoconfigure.KafkaProperties;
@@ -35,11 +37,17 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 import static org.awaitility.Awaitility.await;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -66,6 +74,17 @@ class OdsIngestConsumerTest {
     @Autowired
     OdsIngestConsumer consumer;
 
+    /**
+     * The Spring context is shared across test methods, so we reset the writer
+     * mock and any consumer-side circuit-break state after each test to keep
+     * them isolated.
+     */
+    @AfterEach
+    void resetState() {
+        reset(odsWriter);
+        consumer.resetCircuitForTest();
+    }
+
     @Test
     void consumeOrderCreatedRoutesRowToOdsOrder() throws Exception {
         String tenant = "tenant-" + UUID.randomUUID();
@@ -88,10 +107,16 @@ class OdsIngestConsumerTest {
     void duplicateEnvelopeIdIsDeduped() throws Exception {
         String tenant = "tenant-" + UUID.randomUUID();
         String orderNo = "ORD-DUP-" + UUID.randomUUID();
-        String envelope = buildOrderCreatedEnvelope(tenant, orderNo);
+        String stableEventId = "stable-" + UUID.randomUUID();
 
-        testProducer.send(OdsIngestConsumer.TOPIC_ORDER, orderNo, envelope).get(5, TimeUnit.SECONDS);
-        testProducer.send(OdsIngestConsumer.TOPIC_ORDER, orderNo, envelope).get(5, TimeUnit.SECONDS);
+        // Send two envelopes with DIFFERENT envelope.id but the SAME inner OutboxEvent.id.
+        // OutboxPoller regenerates envelope.id per publish (retry/republish), so the
+        // dedup key MUST come from the inner OutboxEvent.id, not from envelope.id.
+        String envelope1 = buildOutboxEventEnvelope(tenant, orderNo, stableEventId, "env-" + UUID.randomUUID());
+        String envelope2 = buildOutboxEventEnvelope(tenant, orderNo, stableEventId, "env-" + UUID.randomUUID());
+
+        testProducer.send(OdsIngestConsumer.TOPIC_ORDER, orderNo, envelope1).get(5, TimeUnit.SECONDS);
+        testProducer.send(OdsIngestConsumer.TOPIC_ORDER, orderNo, envelope2).get(5, TimeUnit.SECONDS);
 
         await().atMost(15, TimeUnit.SECONDS)
                 .pollInterval(100, TimeUnit.MILLISECONDS)
@@ -100,6 +125,53 @@ class OdsIngestConsumerTest {
 
         Thread.sleep(1500);
         verify(odsWriter, times(1)).insertBatch(eq("ods_order"), any());
+    }
+
+    @Test
+    void flushFailureReEnqueuesRows() throws Exception {
+        String tenant = "tenant-" + UUID.randomUUID();
+        String orderNo = "ORD-FAIL-" + UUID.randomUUID();
+        String envelope = buildOrderCreatedEnvelope(tenant, orderNo);
+
+        // Configure writer to throw for the upcoming flush attempt.
+        doThrow(new RuntimeException("ClickHouse down"))
+                .when(odsWriter).insertBatch(anyString(), any());
+
+        testProducer.send(OdsIngestConsumer.TOPIC_ORDER, orderNo, envelope).get(5, TimeUnit.SECONDS);
+
+        // The row should be in the queue (handleSingle succeeds regardless of writer health).
+        await().atMost(15, TimeUnit.SECONDS)
+                .pollInterval(100, TimeUnit.MILLISECONDS)
+                .untilAsserted(() -> assertTrue(consumer.pendingCount() > 0,
+                        "Row must reach the pending queue before the flush failure is exercised"));
+
+        // Trigger a manual flush. With the fix, the failed batch is re-enqueued at
+        // the front of the queue (preserving order). Without the fix, the catch
+        // block silently drops the drained rows.
+        consumer.flushNowForTest();
+
+        assertTrue(consumer.pendingCount() > 0,
+                "Failed flush should re-enqueue rows at the front of the queue");
+    }
+
+    @Test
+    void boundedQueueRejectsPastCapacity() throws Exception {
+        ClickHouseOdsWriter writer = mock(ClickHouseOdsWriter.class);
+        // Tiny queue capacity to exercise the bound without sending 10k records.
+        OdsIngestConsumer smallConsumer = new OdsIngestConsumer(
+                writer, new InMemoryOdsDedupService(), new ObjectMapper(), 2);
+
+        assertEquals(0, smallConsumer.pendingCount());
+
+        OdsRow r1 = new OdsRow("ods_order", new HashMap<>());
+        OdsRow r2 = new OdsRow("ods_order", new HashMap<>());
+        OdsRow r3 = new OdsRow("ods_order", new HashMap<>());
+
+        assertTrue(smallConsumer.offerNowForTest(r1), "First offer should succeed");
+        assertTrue(smallConsumer.offerNowForTest(r2), "Second offer should succeed (queue at capacity)");
+        assertFalse(smallConsumer.offerNowForTest(r3),
+                "Third offer must be rejected (queue full — backpressure to Kafka)");
+        assertEquals(2, smallConsumer.pendingCount(), "Queue must not exceed capacity");
     }
 
     @Test
@@ -157,6 +229,41 @@ class OdsIngestConsumerTest {
         root.put("source", "outbox");
         root.put("tenantId", tenantId);
         root.set("data", inner);
+        return mapper.writeValueAsString(root);
+    }
+
+    /**
+     * Build an envelope whose {@code data} field is the JSON-serialized
+     * {@link OutboxEvent} (matching the wire format produced by
+     * {@code OutboxPoller.publishEvent}). The {@code outboxEventId} is the
+     * STABLE inner event id used for dedup; {@code envelopeId} is the
+     * per-publish envelope id regenerated by {@code MessageEnvelope.of()}.
+     */
+    private static String buildOutboxEventEnvelope(String tenantId, String orderNo,
+                                                   String outboxEventId, String envelopeId) throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+
+        OutboxEvent outbox = new OutboxEvent();
+        outbox.setId(outboxEventId);
+        outbox.setEventType("ORDER_CREATED");
+        outbox.setAggregateType("ordorder");
+        outbox.setAggregateId(orderNo);
+        outbox.setPayload(
+                "{\"eventId\":\"" + UUID.randomUUID() + "\","
+                        + "\"tenantId\":\"" + tenantId + "\","
+                        + "\"orderNo\":\"" + orderNo + "\","
+                        + "\"userId\":\"user-1\","
+                        + "\"totalAmount\":99.99,"
+                        + "\"payableAmount\":99.99}");
+        outbox.setStatus("PUBLISHED");
+        String innerJson = mapper.writeValueAsString(outbox);
+
+        ObjectNode root = mapper.createObjectNode();
+        root.put("id", envelopeId);
+        root.put("type", "ORDER_CREATED");
+        root.put("source", "outbox");
+        root.put("tenantId", tenantId);
+        root.put("data", innerJson);
         return mapper.writeValueAsString(root);
     }
 
