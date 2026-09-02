@@ -5,12 +5,14 @@ import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import java.util.UUID;
 
 @SpringBootApplication(scanBasePackages = {"com.scmcloud.order", "com.scmcloud.common"})
 @EnableDiscoveryClient
 @EnableDubbo
+@EnableScheduling
 @EnableTransactionManagement
 @MapperScan("com.scmcloud.order.mapper")
 public class OrderServiceApplication {

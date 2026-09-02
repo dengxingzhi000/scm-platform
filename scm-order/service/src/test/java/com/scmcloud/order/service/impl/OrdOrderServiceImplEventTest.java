@@ -2,6 +2,7 @@ package com.scmcloud.order.service.impl;
 
 import com.scmcloud.common.domain.Money;
 import com.scmcloud.common.domain.TenantId;
+import com.scmcloud.common.integration.outbox.OutboxService;
 import com.scmcloud.order.domain.entity.OrdOrder;
 import com.scmcloud.order.domain.entity.OrderStatus;
 import com.scmcloud.order.event.OrderCreatedEvent;
@@ -9,9 +10,7 @@ import com.scmcloud.order.event.OrderEvent;
 import com.scmcloud.order.event.OrderEventStore;
 import com.scmcloud.order.event.OrderStatusChangedEvent;
 import com.scmcloud.common.tenant.TenantContextHolder;
-import com.scmcloud.order.domain.entity.OutboxEvent;
 import com.scmcloud.order.mapper.OrdOrderMapper;
-import com.scmcloud.order.mapper.OutboxMapper;
 import com.scmcloud.order.service.IOrdOrderItemService;
 import com.scmcloud.order.service.IOrdStatusHistoryService;
 import com.scmcloud.system.api.StatusMachineDubboService;
@@ -30,7 +29,11 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -42,7 +45,7 @@ class OrdOrderServiceImplEventTest {
     @Mock private IOrdOrderItemService orderItemService;
     @Mock private IOrdStatusHistoryService statusHistoryService;
     @Mock private OrderEventStore eventStore;
-    @Mock private OutboxMapper outboxMapper;
+    @Mock private OutboxService outboxService;
     @Mock private StatusMachineDubboService statusMachine;
     @Mock private OrdOrderMapper ordOrderMapper;
 
@@ -50,7 +53,7 @@ class OrdOrderServiceImplEventTest {
 
     @BeforeEach
     void setUp() {
-        service = new OrdOrderServiceImpl(orderItemService, statusHistoryService, eventStore, outboxMapper, new com.fasterxml.jackson.databind.ObjectMapper());
+        service = new OrdOrderServiceImpl(orderItemService, statusHistoryService, eventStore, outboxService);
         ReflectionTestUtils.setField(service, "baseMapper", ordOrderMapper);
         ReflectionTestUtils.setField(service, "statusMachine", statusMachine);
     }
@@ -77,7 +80,6 @@ class OrdOrderServiceImplEventTest {
         OrdOrder order = order(OrderStatus.PENDING_PAYMENT.getCode());
         TenantContextHolder.setTenantId(order.getTenantId().toUUID());
         when(ordOrderMapper.insert(any(OrdOrder.class))).thenReturn(1);
-        when(outboxMapper.insert(any(OutboxEvent.class))).thenReturn(1);
 
         com.scmcloud.order.domain.entity.OrdOrderItem item = new com.scmcloud.order.domain.entity.OrdOrderItem();
         item.setSubtotal(Money.of(new BigDecimal("99.90")));
@@ -92,6 +94,39 @@ class OrdOrderServiceImplEventTest {
         assertEquals("00000000-0000-0000-0000-000000000001", event.getUserId());
         assertEquals(new BigDecimal("99.90"), event.getTotalAmount());
         assertEquals(new BigDecimal("89.90"), event.getPayableAmount());
+    }
+
+    @Test
+    void createOrderShouldWriteOutboxEventWithOrdOrderAggregateType() {
+        OrdOrder order = order(OrderStatus.PENDING_PAYMENT.getCode());
+        TenantContextHolder.setTenantId(order.getTenantId().toUUID());
+        when(ordOrderMapper.insert(any(OrdOrder.class))).thenReturn(1);
+
+        com.scmcloud.order.domain.entity.OrdOrderItem item = new com.scmcloud.order.domain.entity.OrdOrderItem();
+        item.setSubtotal(Money.of(new BigDecimal("99.90")));
+        service.createOrder(order, List.of(item));
+
+        verify(outboxService).save(
+                eq("ORDER_CREATED"),
+                eq("OrdOrder"),
+                eq(order.getId().toString()),
+                any(OrderCreatedEvent.class),
+                eq(order.getTenantId().toUUID())
+        );
+    }
+
+    @Test
+    void createOrderShouldPropagateExceptionWhenOutboxSaveFails() {
+        OrdOrder order = order(OrderStatus.PENDING_PAYMENT.getCode());
+        TenantContextHolder.setTenantId(order.getTenantId().toUUID());
+        when(ordOrderMapper.insert(any(OrdOrder.class))).thenReturn(1);
+        doThrow(new RuntimeException("outbox save failed"))
+                .when(outboxService).save(anyString(), anyString(), anyString(), any(), any());
+
+        com.scmcloud.order.domain.entity.OrdOrderItem item = new com.scmcloud.order.domain.entity.OrdOrderItem();
+        item.setSubtotal(Money.of(new BigDecimal("99.90")));
+
+        assertThrows(RuntimeException.class, () -> service.createOrder(order, List.of(item)));
     }
 
     @Test

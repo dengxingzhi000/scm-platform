@@ -1,19 +1,16 @@
 package com.scmcloud.order.service.command;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.scmcloud.common.data.rw.annotation.Master;
+import com.scmcloud.common.integration.outbox.OutboxService;
 import com.scmcloud.common.tenant.TenantContextHolder;
 import com.scmcloud.order.domain.entity.OrderStatus;
 import com.scmcloud.order.domain.entity.OrdOrder;
 import com.scmcloud.order.domain.entity.OrdOrderItem;
 import com.scmcloud.order.domain.entity.OrdStatusHistory;
-import com.scmcloud.order.domain.entity.OutboxEvent;
 import com.scmcloud.order.event.OrderCreatedEvent;
 import com.scmcloud.order.event.OrderEventStore;
 import com.scmcloud.order.event.OrderStatusChangedEvent;
 import com.scmcloud.order.mapper.OrdOrderMapper;
-import com.scmcloud.order.mapper.OutboxMapper;
 import com.scmcloud.system.api.StatusMachineDubboService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
@@ -23,9 +20,7 @@ import org.springframework.util.CollectionUtils;
 
 import com.scmcloud.common.domain.Money;
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 
@@ -36,8 +31,7 @@ public class OrdOrderCommandService {
     private final OrdOrderItemCommandService ordOrderItemCommandService;
     private final OrdStatusHistoryCommandService ordStatusHistoryCommandService;
     private final OrderEventStore eventStore;
-    private final OutboxMapper outboxMapper;
-    private final ObjectMapper objectMapper;
+    private final OutboxService outboxService;
 
     @DubboReference
     private StatusMachineDubboService statusMachine;
@@ -46,14 +40,12 @@ public class OrdOrderCommandService {
                                  OrdOrderItemCommandService ordOrderItemCommandService,
                                  OrdStatusHistoryCommandService ordStatusHistoryCommandService,
                                  OrderEventStore eventStore,
-                                 OutboxMapper outboxMapper,
-                                 ObjectMapper objectMapper) {
+                                 OutboxService outboxService) {
         this.ordOrderMapper = ordOrderMapper;
         this.ordOrderItemCommandService = ordOrderItemCommandService;
         this.ordStatusHistoryCommandService = ordStatusHistoryCommandService;
         this.eventStore = eventStore;
-        this.outboxMapper = outboxMapper;
-        this.objectMapper = objectMapper;
+        this.outboxService = outboxService;
     }
 
     @Master(reason = "创建订单")
@@ -117,22 +109,20 @@ public class OrdOrderCommandService {
         // — Transactional Outbox: same DB TX as ord_order insert —
         // Uses TenantContextHolder for tenant isolation and guarantees CDC via Kafka relay.
         // Outbox insert is mandatory — same TX as ord_order, failure rolls back order.
-        // TODO: extract OutboxPayloadBuilder to scm-common
-        try {
-            UUID tenantId = TenantContextHolder.getRequiredTenantId();
-            Map<String, Object> payloadMap = new HashMap<>();
-            payloadMap.put("orderId", order.getId() != null ? order.getId().toString() : null);
-            payloadMap.put("orderNo", order.getOrderNo());
-            payloadMap.put("userId", order.getUserId());
-            payloadMap.put("totalAmount", order.getTotalAmount() != null ? order.getTotalAmount().getAmount().toString() : null);
-            payloadMap.put("payableAmount", order.getPayableAmount() != null ? order.getPayableAmount().getAmount().toString() : null);
-            String payloadJson = objectMapper.writeValueAsString(payloadMap);
-            OutboxEvent outbox = OutboxEvent.of(tenantId, "OrdOrder", order.getId().toString(), "order.created", payloadJson);
-            outboxMapper.insert(outbox);
-            log.debug("Outbox inserted in same TX: aggregateId={}, eventType={}", outbox.getAggregateId(), outbox.getEventType());
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException("Failed to serialize outbox payload", e);
-        }
+        UUID tenantId = TenantContextHolder.getRequiredTenantId();
+        OrderCreatedEvent orderCreatedEvent = new OrderCreatedEvent(
+                order.getTenantId() != null ? order.getTenantId().toUUID() : null,
+                order.getId(),
+                order.getOrderNo(),
+                order.getUserId(),
+                order.getTotalAmount() != null ? order.getTotalAmount().getAmount() : null,
+                order.getPayableAmount() != null ? order.getPayableAmount().getAmount() : null);
+        outboxService.save(
+                "ORDER_CREATED",
+                "OrdOrder",
+                order.getId().toString(),
+                orderCreatedEvent,
+                tenantId);
 
         log.info("订单创建成功: id={}, orderNo={}", order.getId(), order.getOrderNo());
         return order;

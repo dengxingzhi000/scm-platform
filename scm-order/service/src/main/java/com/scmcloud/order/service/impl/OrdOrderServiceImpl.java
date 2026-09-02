@@ -4,21 +4,18 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.scmcloud.common.data.rw.annotation.Master;
 import com.scmcloud.common.domain.Money;
+import com.scmcloud.common.integration.outbox.OutboxService;
 import com.scmcloud.common.tenant.TenantContextHolder;
 import com.scmcloud.order.domain.entity.OrderStatus;
 import com.scmcloud.order.domain.entity.OrdOrder;
 import com.scmcloud.order.domain.entity.OrdOrderItem;
 import com.scmcloud.order.domain.entity.OrdStatusHistory;
-import com.scmcloud.order.domain.entity.OutboxEvent;
 import com.scmcloud.order.event.OrderCreatedEvent;
 import com.scmcloud.order.event.OrderEventStore;
 import com.scmcloud.order.event.OrderStatusChangedEvent;
 import com.scmcloud.order.mapper.OrdOrderMapper;
-import com.scmcloud.order.mapper.OutboxMapper;
 import com.scmcloud.order.service.IOrdOrderItemService;
 import com.scmcloud.order.service.IOrdOrderService;
 import com.scmcloud.order.service.IOrdStatusHistoryService;
@@ -30,9 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
@@ -41,8 +36,7 @@ public class OrdOrderServiceImpl extends ServiceImpl<OrdOrderMapper, OrdOrder> i
     private final IOrdOrderItemService orderItemService;
     private final IOrdStatusHistoryService statusHistoryService;
     private final OrderEventStore eventStore;
-    private final OutboxMapper outboxMapper;
-    private final ObjectMapper objectMapper;
+    private final OutboxService outboxService;
 
     @DubboReference
     private StatusMachineDubboService statusMachine;
@@ -50,13 +44,11 @@ public class OrdOrderServiceImpl extends ServiceImpl<OrdOrderMapper, OrdOrder> i
     public OrdOrderServiceImpl(IOrdOrderItemService orderItemService,
                                IOrdStatusHistoryService statusHistoryService,
                                OrderEventStore eventStore,
-                               OutboxMapper outboxMapper,
-                               ObjectMapper objectMapper) {
+                               OutboxService outboxService) {
         this.orderItemService = orderItemService;
         this.statusHistoryService = statusHistoryService;
         this.eventStore = eventStore;
-        this.outboxMapper = outboxMapper;
-        this.objectMapper = objectMapper;
+        this.outboxService = outboxService;
     }
 
     @Override
@@ -119,20 +111,20 @@ public class OrdOrderServiceImpl extends ServiceImpl<OrdOrderMapper, OrdOrder> i
                 order.getPayableAmount() != null ? order.getPayableAmount().getAmount() : null));
 
         // — Transactional Outbox: same DB TX as ord_order insert — mandatory, failure rolls back order.
-        // TODO: extract OutboxPayloadBuilder to scm-common
-        try {
-            UUID tenantId = TenantContextHolder.getRequiredTenantId();
-            Map<String, Object> payloadMap = new HashMap<>();
-            payloadMap.put("orderId", order.getId() != null ? order.getId().toString() : null);
-            payloadMap.put("orderNo", order.getOrderNo());
-            payloadMap.put("userId", order.getUserId());
-            payloadMap.put("totalAmount", order.getTotalAmount() != null ? order.getTotalAmount().getAmount().toString() : null);
-            String payloadJson = objectMapper.writeValueAsString(payloadMap);
-            OutboxEvent outbox = OutboxEvent.of(tenantId, "OrdOrder", order.getId().toString(), "order.created", payloadJson);
-            outboxMapper.insert(outbox);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException("Failed to serialize outbox payload", e);
-        }
+        UUID tenantId = TenantContextHolder.getRequiredTenantId();
+        OrderCreatedEvent orderCreatedEvent = new OrderCreatedEvent(
+                order.getTenantId() != null ? order.getTenantId().toUUID() : null,
+                order.getId(),
+                order.getOrderNo(),
+                order.getUserId(),
+                order.getTotalAmount() != null ? order.getTotalAmount().getAmount() : null,
+                order.getPayableAmount() != null ? order.getPayableAmount().getAmount() : null);
+        outboxService.save(
+                "ORDER_CREATED",
+                "OrdOrder",
+                order.getId().toString(),
+                orderCreatedEvent,
+                tenantId);
 
         log.info("订单创建成功: id={}, orderNo={}", order.getId(), order.getOrderNo());
         return order;
