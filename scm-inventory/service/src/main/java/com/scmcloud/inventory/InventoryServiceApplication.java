@@ -5,20 +5,21 @@ import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 /**
  * 搴撳瓨鏈嶅姟鍚姩锟?
  *
- * <p>搴撳瓨鏈嶅姟璐熻矗锟?
+ * <p>搴撳瓨鏈嶅姟璐負矗锟?
  * <ul>
- *     <li>搴撳瓨绠＄悊锛堟煡璇€佽皟鏁淬€佽浆绉伙級</li>
- *     <li>搴撳瓨棰勫崰涓庨噴鏀撅紙璁㈠崟鍦烘櫙锟?li>
+ *     <li>搴撳瓨绠＄悊锟堟煡璇€佽皟鏁淬€佽浆绉伙級</li>
+ *     <li>搴撳瓨棰勫崰涓庨噴鏀撅紙璁㈠崟鍦烘櫙锟?/li>
  *     <li>搴撳瓨鍛婅锛堜綆搴撳瓨銆佺己璐э級</li>
- *     <li>搴撳瓨蹇収锛堟瘡鏃ョ粺璁★級</li>
- *     <li>搴撳瓨鏃ュ織锛堝璁¤拷韪級</li>
- *     <li>Redis 缂撳瓨锟絃ua 鑴氭湰闃茶秴锟?li>
- *     <li>鍒嗗竷寮忛攣锛堝簱瀛樺苟鍙戞帶鍒讹級</li>
+ *     <li>搴撳瓨蹇収锛庢瘡鏃ョ粺璁★級</li>
+ *     <li>搴撳瓨鏃ュ織锛庡畨鍏ㄨ拷韪級</li>
+ *     <li>Redis 缂撳瓨锟絃ua 鑴氭湰闃茶秴锟?/li>
+ *     <li>鍒嗗竷寮忛攣锟?
  * </ul>
  *
  * @author SCM Platform Team
@@ -27,6 +28,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @SpringBootApplication(scanBasePackages = {"com.scmcloud.inventory", "com.scmcloud.common"})
 @EnableDiscoveryClient
 @EnableDubbo
+@EnableScheduling
 @EnableTransactionManagement
 @MapperScan("com.scmcloud.inventory.mapper")
 public class InventoryServiceApplication {
