@@ -22,7 +22,7 @@ public class KafkaMessagePublisher {
     private final ObservationRegistry observationRegistry;
     private final Tracer tracer;
 
-    public <T> void send(String topic, String key, MessageEnvelope<T> envelope) {
+    public <T> CompletableFuture<SendResult<String, Object>> send(String topic, String key, MessageEnvelope<T> envelope) {
         Observation observation = Observation.start("messaging.kafka.publish", observationRegistry)
                 .lowCardinalityKeyValue("topic", topic)
                 .lowCardinalityKeyValue("type", envelope.getType() == null ? "unknown" : envelope.getType());
@@ -47,6 +47,7 @@ public class KafkaMessagePublisher {
                 observation.stop();
                 span.end();
             });
+            return future;
         } catch (Exception e) {
             span.recordException(e);
             span.setStatus(StatusCode.ERROR, e.getMessage());

@@ -10,6 +10,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Polls the outbox table for unpublished events and publishes to Kafka.
@@ -27,7 +28,8 @@ public class OutboxPoller {
     private final ObjectMapper objectMapper;
 
     private static final int BATCH_SIZE = 50;
-    private static final String OUTBOX_TOPIC = "domain.events";
+    private static final long KAFKA_ACK_TIMEOUT_SECONDS = 5;
+    private static final String TOPIC_PREFIX = "scm.";
 
     @Scheduled(fixedDelayString = "${outbox.poll-interval-ms:1000}")
     public void pollAndPublish() {
@@ -43,13 +45,13 @@ public class OutboxPoller {
             publishEvent(event);
         }
 
-        // 3. Cleanup old published events (run once per hour, checked by interval)
         if (!pending.isEmpty() || !retryable.isEmpty()) {
             log.debug("Outbox: processed {} pending, {} retryable", pending.size(), retryable.size());
         }
     }
 
-    private void publishEvent(OutboxEvent event) {
+    void publishEvent(OutboxEvent event) {
+        String topic = buildTopic(event.getAggregateType());
         try {
             MessageEnvelope<String> envelope = MessageEnvelope.of(
                     event.getEventType(),
@@ -59,13 +61,28 @@ public class OutboxPoller {
                     .tenantId(event.getTenantId() != null ? event.getTenantId().toString() : null)
                     .build();
 
-            kafkaPublisher.send(OUTBOX_TOPIC, event.getAggregateId(), envelope);
+            kafkaPublisher.send(topic, event.getAggregateId(), envelope)
+                    .get(KAFKA_ACK_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             outboxService.markPublished(event.getId());
-            log.debug("Published outbox event: type={}, id={}", event.getEventType(), event.getId());
+            log.debug("Published outbox event: type={}, topic={}, id={}",
+                    event.getEventType(), topic, event.getId());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("Interrupted while publishing outbox event id={}, topic={}: {}",
+                    event.getId(), topic, e.getMessage());
+            outboxService.markFailed(event.getId(), "interrupted: " + e.getMessage());
         } catch (Exception e) {
-            log.warn("Failed to publish outbox event id={}: {}", event.getId(), e.getMessage());
+            log.warn("Failed to publish outbox event id={}, topic={}: {}",
+                    event.getId(), topic, e.getMessage());
             outboxService.markFailed(event.getId(), e.getMessage());
         }
+    }
+
+    private static String buildTopic(String aggregateType) {
+        if (aggregateType == null || aggregateType.isBlank()) {
+            return TOPIC_PREFIX + "events";
+        }
+        return TOPIC_PREFIX + aggregateType.toLowerCase();
     }
 
     @Scheduled(cron = "0 0 3 * * ?")

@@ -14,6 +14,7 @@ import org.apache.ibatis.annotations.Update;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Service for writing domain events to the outbox table.
@@ -37,17 +38,35 @@ public class OutboxService {
      * Save a domain event to the outbox. Must be called within a @Transactional boundary.
      */
     public void save(DomainEvent event) {
+        save(event.getEventType(), event.getClass().getSimpleName(), event.getEventId(), event, event.getTenantId());
+    }
+
+    /**
+     * Save a domain event to the outbox with an explicit aggregate type.
+     *
+     * <p>Use this overload when the event does not extend {@link DomainEvent} or when
+     * the desired {@code aggregateType} differs from the event class's simple name
+     * (e.g. a generic event class routed to a specific aggregate).</p>
+     *
+     * <p>Must be called within a {@code @Transactional} boundary so the outbox row
+     * is inserted in the same transaction as the aggregate mutation.</p>
+     *
+     * @param eventType      event type identifier (e.g. {@code "ORDER_CREATED"})
+     * @param aggregateType  aggregate type used for topic routing (e.g. {@code "OrdOrder"})
+     * @param aggregateId    aggregate id (e.g. order id)
+     * @param payload        payload object; serialized to JSON
+     * @param tenantId       tenant id
+     */
+    public void save(String eventType, String aggregateType, String aggregateId,
+                     Object payload, UUID tenantId) {
         try {
-            String payload = objectMapper.writeValueAsString(event);
+            String payloadJson = objectMapper.writeValueAsString(payload);
             OutboxEvent outboxEvent = OutboxEvent.create(
-                    event.getEventType(),
-                    event.getClass().getSimpleName(),
-                    event.getEventId(),
-                    payload,
-                    event.getTenantId()
+                    eventType, aggregateType, aggregateId, payloadJson, tenantId
             );
             outboxEventMapper.insert(outboxEvent);
-            log.debug("Saved domain event to outbox: type={}, id={}", event.getEventType(), event.getEventId());
+            log.debug("Saved domain event to outbox: type={}, aggregateType={}, id={}",
+                    eventType, aggregateType, outboxEvent.getId());
         } catch (Exception e) {
             log.error("Failed to save domain event to outbox: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to save domain event to outbox", e);
