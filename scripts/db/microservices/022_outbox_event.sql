@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS outbox_event (
     aggregate_type VARCHAR(128) NOT NULL,
     aggregate_id VARCHAR(128) NOT NULL,
     payload JSONB NOT NULL,
-    tenant_id UUID,
+    tenant_id UUID NOT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
     retry_count INTEGER NOT NULL DEFAULT 0,
     max_retries INTEGER NOT NULL DEFAULT 5,
@@ -34,6 +34,10 @@ CREATE INDEX IF NOT EXISTS idx_outbox_retry
 CREATE INDEX IF NOT EXISTS idx_outbox_published
     ON outbox_event(published_at)
     WHERE status = 'PUBLISHED';
+
+-- Index for tenant-scoped queries (CQRS / audit)
+CREATE INDEX IF NOT EXISTS idx_outbox_tenant
+    ON outbox_event(tenant_id);
 
 -- Comments
 COMMENT ON TABLE outbox_event IS 'Transactional outbox for reliable event publishing to Kafka';
