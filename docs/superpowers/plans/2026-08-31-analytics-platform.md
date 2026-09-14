@@ -32,7 +32,7 @@ scm-analytics/                          # NEW — parent pom module
     src/main/resources/clickhouse/V1__ods_dwd_dws_ads.sql
 ```
 
-## Progress Checkpoint (2026-08-31 18:00)
+## Progress Checkpoint (2026-09-02 10:05)
 
 | Task | Status | Commit |
 |------|--------|--------|
@@ -40,8 +40,8 @@ scm-analytics/                          # NEW — parent pom module
 | Task 2 ClickHouse infra | ✅ DONE | a77d9f20 |
 | Task 3 PG Meta Schema | ✅ DONE | d9efe429 |
 | Task 4 CH DWH Schema | ✅ DONE | aadee78c |
-| Task 5 Outbox | ⏳ NEXT | — |
-| Task 6 ODS Consumer | ⬜ | — |
+| Task 5 Outbox | ✅ DONE | 6a8a48d9 → 76c64d97 → refactor: 0a98c32b / e5bc58a9 / 8f4528ee / f2282738 / cb2f1e5e |
+| Task 6 ODS Consumer | ⬜ NEXT | — |
 | Task 7 Semantic CRUD | ⬜ | — |
 | Task 8 Query Engine | ⬜ | — |
 | Task 9 Query API | ⬜ | — |
@@ -49,7 +49,7 @@ scm-analytics/                          # NEW — parent pom module
 | Task 11 BI Frontend | ⬜ | — |
 | Task 12 Governance | ⬜ | — |
 
-**Branch:** `master` (4 commits ahead of origin/master). To resume: `git checkout master` → continue with Task 5 via subagent-driven-development.
+**Branch:** `master` (8 commits ahead of origin/master). Task 5 refactor consolidated the parallel outbox into `scm-common/integration/.../outbox/{OutboxService,OutboxEvent,OutboxPoller}` (commit `0373113f`, predates Task 5). Each business service now runs `OutboxPoller` in-process (`@ConditionalOnBean(KafkaMessagePublisher.class)`), publishing to `scm.<aggregateType>` with retry/dead-letter support. To resume: `git checkout master` → continue with Task 6 via subagent-driven-development.
 
 ---
 
@@ -70,18 +70,8 @@ Verify: `MetaSchemaTest` 3 tests PASS
 Verify: `ClickHouseSchemaTest` 4 tests PASS (combined 7)
 
 ### Task 5: Transactional Outbox Pattern (Order + Inventory as template)
-**Files:**
-- Create: `scm-order/service/src/main/java/com/scmcloud/order/domain/entity/OutboxEvent.java`
-- Create: `scm-order/service/src/main/java/com/scmcloud/order/mapper/OutboxMapper.java`
-- Modify: `scm-order/service/src/main/java/com/scmcloud/order/service/impl/OrderServiceImpl.java`
-- Create: `scm-analytics/service/src/main/java/com/scmcloud/analytics/ingest/OutboxRelayJob.java`
-- Create: `scripts/db/microservices/041_outbox.sql`
-Steps:
-- [ ] Step 1: Write failing test `OutboxPublishTest.java` - createOrder inserts Outbox atomically
-- [ ] Step 2: Create outbox_event table per DB (db_order, db_inventory) with published index
-- [ ] Step 3: Modify business service same TX inserts outbox via TenantContextHolder.getRequiredTenantId()
-- [ ] Step 4: Create OutboxRelayJob @Scheduled(5s) + @DistributedLock + kafkaTemplate.send("scm."+aggregateType)
-- [ ] Step 5: Verify mvn test OutboxPublishTest PASS then commit
+*(已完成 — refactored to use existing scm-common/integration/outbox/*)* Files: `scripts/db/microservices/022_outbox_event.sql`, `scm-common/integration/.../outbox/{OutboxEvent,OutboxService,OutboxPoller}.java`, `scm-order/service/.../service/command/OrdOrderCommandService.java`, `scm-order/service/.../service/impl/OrdOrderServiceImpl.java`, `scm-inventory/service/.../service/command/InvInventoryCommandService.java`, `scm-inventory/service/.../event/InventoryAdjustedEvent.java`, `OrderServiceApplication.java` (+@EnableScheduling), `InventoryServiceApplication.java` (+@EnableScheduling), `OutboxAtomicityTest.java`
+Verify: `mvn test -Dsurefire.failIfNoSpecifiedTests=false -pl :scm-common-integration,:scm-order-service,:scm-inventory-service,:scm-analytics-service -am` BUILD SUCCESS — 62 tests pass (incl. new OutboxServiceTest×3, OutboxPollerTest×5, OutboxAtomicityTest×2, InvInventoryCommandServiceOutboxTest×2)
 
 ### Task 6: ODS Ingest Consumer (Kafka → ClickHouse)
 **Files:** `OdsIngestConsumer.java`, `AnalyticsKafkaConfig.java`, `ClickHouseOdsWriter.java`
@@ -131,4 +121,4 @@ Steps:
 ---
 
 ## Execution Handoff
-To resume: invoke `subagent-driven-development` skill, dispatch Task 5 implementer subagent with full Task 5 text above.
+To resume: invoke `subagent-driven-development` skill, dispatch Task 6 implementer subagent with full Task 6 text above.

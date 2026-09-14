@@ -1,0 +1,73 @@
+name: Mark Stale Issues & PRs
+
+# After 60 days of inactivity, stale-bot comments and labels issues/PRs as
+# stale. After another 14 days without activity they are closed. Anything
+# with the exempt labels below is skipped (security, pinned, in-progress).
+
+on:
+  schedule:
+    - cron: '23 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/stale@v10
+        with:
+          # ── Issues ──
+          days-before-issue-stale: 60
+          days-before-issue-close: 14
+          issues-to-stale: 50
+          issues-to-close: 25
+          stale-issue-label: 'stale'
+          close-issue-label: 'closed-stale'
+          exempt-issue-labels: |
+            pinned
+            security
+            bug
+            priority: high
+            priority: critical
+            in-progress
+            epic
+          stale-issue-message: |
+            This issue has been marked stale because it has had no activity
+            for 60 days. It will be closed in 14 days if no further activity
+            occurs. Please update with the latest status or mark it as
+            `pinned` / `in-progress` to keep it open.
+          close-issue-message: |
+            Closing this stale issue. If the problem still exists or this is
+            still relevant, please open a new issue with an up-to-date
+            reproduction and link back to this one.
+
+          # ── Pull Requests ──
+          days-before-pr-stale: 45
+          days-before-pr-close: 14
+          prs-to-stale: 25
+          prs-to-close: 10
+          stale-pr-label: 'stale'
+          close-pr-label: 'closed-stale'
+          exempt-pr-labels: |
+            pinned
+            security
+            in-progress
+            do-not-close
+            waiting-for-review
+          stale-pr-message: |
+            This PR has been marked stale because it has had no activity
+            for 45 days. Please rebase, push, or close. It will be closed
+            in 14 days if no further activity occurs.
+          close-pr-message: |
+            Closing this stale PR. Feel free to reopen once it's rebased
+            and ready for review.
+
+          # ── Operate in any repo state ──
+          operations-per-run: 100
+          remove-stale-when-updated: true
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          debug: false

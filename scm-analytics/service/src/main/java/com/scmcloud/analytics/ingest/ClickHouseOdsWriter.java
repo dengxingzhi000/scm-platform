@@ -26,7 +26,6 @@ import java.util.concurrent.TimeUnit;
 @Component
 @RequiredArgsConstructor
 public class ClickHouseOdsWriter {
-
     private final Client clickHouseClient;
     private final ClickHouseProperties properties;
     private final ObjectMapper objectMapper = new ObjectMapper();

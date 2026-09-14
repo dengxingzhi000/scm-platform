@@ -1,0 +1,14 @@
+# GitHub Issue chooser configuration
+# https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/configuring-issue-templates-for-your-repository
+
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 General Q&A / How-to / Discussion
+    url: https://github.com/dengxingzhi000/scm-platform/discussions
+    about: For questions, ideas, and general discussion — please use Discussions instead of filing an issue.
+  - name: 🔒 Security vulnerability
+    url: https://github.com/dengxingzhi000/scm-platform/blob/master/SECURITY.md
+    about: Please do NOT file a public issue. Follow the responsible disclosure process in SECURITY.md.
+  - name: 📖 Documentation
+    url: https://github.com/dengxingzhi000/scm-platform/blob/master/README.md
+    about: Read the README, AGENTS.md, and docs/ folder before filing a documentation issue.

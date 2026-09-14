@@ -14,11 +14,9 @@
     <artifactId>scm-analytics</artifactId>
     <packaging>pom</packaging>
     <name>SCM Analytics</name>
-    <description>Analytics platform with semantic layer and query engine</description>
 
     <modules>
         <module>api</module>
         <module>service</module>
     </modules>
-
 </project>

@@ -14,7 +14,7 @@ mvn verify -Djacoco.skip=false -f com.scm.parent/pom.xml         # full check in
 ```
 
 - `jacoco.skip=true` is set in the parent POM, so plain `mvn verify` does NOT enforce coverage (gates: 70% line / 60% branch). Pass `-Djacoco.skip=false` when coverage matters.
-- Maven/JDK are not on PATH by default on Windows dev machines — root `build.bat` pins GraalVM JDK 21 and a local Maven 3.9.12 path.
+- Maven/JDK are not on PATH by default on Windows dev machines — root `build.bat` pins GraalVM JDK 21 and a local Maven 3.9.16 path.
 - Java 21, Spring Boot 4.x, Spring Cloud 2025, Jakarta namespace throughout.
 
 Start order: `docker-compose up -d` → Gateway (8761) → Auth (8106) → System (8081) → business services (any order).
@@ -31,19 +31,21 @@ Verified from each service's `application.yml`:
 | Product | 8201 ⚠ | Audit | 8210 |
 | File | 8201 ⚠ | Notify | 8211 |
 | Inventory | 8202 | Tenant | 8212 |
-| Order | 8203 | Mall | 8301 |
-| Warehouse | 8204 | Member | 8302 |
-| Logistics | 8205 | Promotion | 8303 |
-| Supplier | 8206 | Payment | 8304 |
-| Purchase | 8207 | Order-Center | 8305 |
+| Order | 8203 | Document | 8213 |
+| Warehouse | 8204 | Mall | 8301 |
+| Logistics | 8205 | Member | 8302 |
+| Supplier | 8206 | Promotion | 8303 |
+| Purchase | 8207 | Payment | 8304 |
+| | | Order-Center | 8305 |
 | | | Fulfillment | 8306 |
 | | | Search | 8307 |
+| | | Analytics | 8308 |
 
-⚠ Real config collisions: `scm-file` vs `scm-product` both 8201; `scm-message` vs `scm-approval` both 8209. Don't run both of a pair locally without changing ports. Infra: Nacos 8848, Redis 6379, PostgreSQL 5432, XXL-Job admin 8088, Sentinel dashboard 8858, frontend 3000.
+⚠ Real config collisions: `scm-file` vs `scm-product` both 8201; `scm-message` vs `scm-approval` both 8209. Don't run both of a pair locally without changing ports. Infra: Nacos 8848, Redis 6379, PostgreSQL 5432, ClickHouse 8123 (scm-analytics), XXL-Job admin 8088, Sentinel dashboard 8858, frontend 3000.
 
 ## Module Layout
 
-- **Business services** (all have it): `scm-{name}/api/` (Dubbo RPC interfaces) + `scm-{name}/service/` (implementation). Includes approval, audit, file, finance, fulfillment, inventory, logistics, mall, member, message, notify, order, order-center, payment, product, promotion, purchase, search, supplier, system, tenant, warehouse.
+- **Business services** (all have it): `scm-{name}/api/` (Dubbo RPC interfaces) + `scm-{name}/service/` (implementation). Includes analytics, approval, audit, document, file, finance, fulfillment, inventory, logistics, mall, member, message, notify, order, order-center, payment, product, promotion, purchase, search, supplier, system, tenant, warehouse.
 - **Flat modules (no api/service split)**: `scm-auth`, `scm-gateway`.
 - **Common**: `scm-common/` — `core`, `data`, `data-rw`, `data-rw-stub`, `cache` (Redis + Lua + locks + idempotency), `web`, `monitoring`, `integration` (Kafka/RabbitMQ), `decision-matrix`, `decision-engine`, `security/{core,api}`.
 - **Frontend**: `scm-web/` (Next.js 15, separate npm project, not in parent POM).
@@ -113,7 +115,7 @@ npm run generate:api                       # regenerate typed API clients (opena
 
 ## K8s Deployment
 
-Only 10 services have deployment manifests in `deploy/k8s/`: auth (+ canary), finance, gateway, inventory, logistics, product, purchase, supplier, system, warehouse. The e-commerce layer has none yet.
+11 services have deployment manifests in `deploy/k8s/`: auth (+ canary), document, finance, gateway, inventory, logistics, product, purchase, supplier, system, warehouse. The e-commerce layer (analytics, mall, member, order-center, payment, fulfillment, search, promotion) and `scm-message` still rely on Docker Compose for local runs and need manifests added before K8s deployment.
 
 ```bash
 kubectl apply -f deploy/k8s/namespace.yml
@@ -129,7 +131,7 @@ Health check path: `/actuator/health` on each service's port.
 
 `.github/workflows/maven-build.yml` — triggers on push/PR to `master` or `develop`:
 - PR: runs tests but with `-Dmaven.test.failure.ignore=true` (CI stays green on test failures).
-- Push: full `mvn verify` + Codecov upload, plus schema validation requiring `tenant_id` on all listed tables across 14 DBs.
+- Push: full `mvn verify` + Codecov upload, plus schema validation requiring `tenant_id` on all listed tables across 16 DBs (incl. `db_document` added in v1.3.0 and `db_analytics` for the analytics module).
 - Docker build matrix covers only 15 services (infra + supply-chain core, not member/promotion/payment/search/mall/etc.). Deploy jobs only roll auth/gateway/system images (dev on `develop`, prod on `master`).
 
 `.github/workflows/backup.yml`: daily database backup at 2 AM.

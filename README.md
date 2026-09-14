@@ -22,7 +22,7 @@
 
 | Icon | Feature | Description |
 |------|---------|-------------|
-| 🏗️ | **Microservices Architecture** | 22+ independently deployable services with API Gateway, service discovery, and config management |
+| 🏗️ | **Microservices Architecture** | 24+ independently deployable services with API Gateway, service discovery, and config management |
 | 🔐 | **Enterprise Security** | OAuth2 + JWT + WebAuthn passwordless auth, RBAC with fine-grained data scope control |
 | 💰 | **Distributed Transactions** | Seata AT/TCC/Saga modes for cross-service data consistency |
 | ⚡ | **High Performance** | Redis Lua atomic stock deduction, read-write separation, database sharding |
@@ -71,14 +71,14 @@
    │  inventory :8202 · order :8203 · warehouse :8204        │
    │  logistics :8205 · supplier :8206 · purchase :8207      │
    │  finance :8208 · message :8209⚠ · approval :8209⚠       │
-   │  audit :8210 · notify :8211 · tenant :8212              │
+   │  audit :8210 · notify :8211 · tenant :8212 · document :8213│
    └────────┬───────────────────────────────────────────────┘
-            │
+             │
    ┌────────▼───────────────────────────────────────────────┐
    │  E-commerce layer                                        │
    │  mall :8301 · member :8302 · promotion :8303             │
    │  payment :8304 · order-center :8305 · fulfillment :8306  │
-   │  search :8307                                            │
+   │  search :8307 · analytics :8308                          │
    └─────────────────────────────────────────────────────────┘
 ```
 
@@ -88,7 +88,7 @@
 
 ## Modules
 
-> Ports in the **8201–8212** range form the supply-chain core, the **8301–8307**
+> Ports in the **8201–8213** range form the supply-chain core, the **8301–8308**
 > range is the e-commerce layer. `scm-tenant` carries a per-DB routing flag
 > rather than a public port.
 
@@ -98,7 +98,7 @@
 | `scm-gateway` | 8761 | API Gateway — routing, rate limiting, cross-cutting concerns |
 | `scm-auth` | 8106 | Authentication — OAuth2, JWT, WebAuthn passwordless login |
 | `scm-system` | 8081 | System management — users, roles, permissions, departments |
-| `scm-file` | 8201 ⚠ | File service — upload, storage abstraction (S3/MinIO/local), OCR |
+| `scm-file` | 8201 ⚠ | File service — upload, storage abstraction (S3/MinIO/local), virus scan; UUID-string `tenant_id` (v1.3.0) |
 | `scm-product` | 8201 ⚠ | Product catalog — SPU/SKU, categories, brands, attributes |
 | `scm-inventory` | 8202 | Inventory — real-time stock, reservations, alerts, snapshots |
 | `scm-order` | 8203 | Orders — lifecycle state machine, payments, refunds |
@@ -112,6 +112,7 @@
 | `scm-audit` | 8210 | Audit — operation logs, sensitive operation tracking |
 | `scm-notify` | 8211 | In-app notifications — templates, multi-channel delivery |
 | `scm-tenant` | 8212 | Multi-tenant — tenant lifecycle, packages, feature flags |
+| `scm-document` | 8213 | Document lifecycle — DOCX template rendering + audit trail, proxies `scm-file` for byte upload/download (v1.3.0) |
 | `scm-mall` | 8301 | Mall — e-commerce storefront, product display, cart |
 | `scm-member` | 8302 | Member management — profiles, addresses, points, loyalty programs |
 | `scm-promotion` | 8303 | Promotions — campaigns, coupons, discounts, flash sales |
@@ -119,6 +120,7 @@
 | `scm-order-center` | 8305 | Order center — centralized order orchestration |
 | `scm-fulfillment` | 8306 | Fulfillment — order fulfillment, shipping, delivery tracking |
 | `scm-search` | 8307 | Search — Elasticsearch-powered full-text product search |
+| `scm-analytics` | 8308 | Analytics — ClickHouse OLAP + PostgreSQL metadata (`db_analytics`), Kafka ODS ingestion |
 | `scm-common` | — | Shared libraries — core, data, data-rw, cache, web, monitoring, integration, decision-matrix, decision-engine, security |
 
 > **Port collisions:** `scm-file` ↔ `scm-product` (8201) and
@@ -241,8 +243,8 @@ The frontend runs at **http://localhost:3000** with built-in zh-CN and en-US lan
 Manifests in `deploy/k8s/` currently cover the **infrastructure and
 supply-chain core** services — the e-commerce layer services (`scm-mall`,
 `scm-member`, `scm-promotion`, `scm-payment`, `scm-order-center`,
-`scm-fulfillment`, `scm-search`) still rely on Docker Compose for local runs
-and need manifests added before K8s deployment.
+`scm-fulfillment`, `scm-search`, `scm-analytics`) still rely on Docker Compose
+for local runs and need manifests added before K8s deployment.
 
 ```bash
 # Apply all K8s resources
@@ -277,6 +279,7 @@ kubectl apply -f deploy/argocd/application.yaml
 | scm-supplier | 8206 | |
 | scm-purchase | 8207 | |
 | scm-finance | 8208 | |
+| scm-document | 8213 | Added in v1.3.0 |
 
 ## Load Testing
 
@@ -387,6 +390,7 @@ scm-platform/
 ├── scm-supplier/            # Supplier management
 ├── scm-finance/             # Financial settlement
 ├── scm-file/                # File service (upload, storage abstraction, OCR)
+├── scm-document/            # Document lifecycle & DOCX templates (v1.3.0)
 ├── scm-message/             # SMS / email / push dispatch
 ├── scm-member/              # Member management
 ├── scm-promotion/           # Promotions (campaigns, coupons, discounts)
@@ -395,6 +399,7 @@ scm-platform/
 ├── scm-order-center/        # Centralized order orchestration
 ├── scm-mall/                # E-commerce storefront
 ├── scm-fulfillment/         # Order fulfillment & shipping
+├── scm-analytics/           # ClickHouse OLAP + PG metadata
 ├── deploy/                  # K8s manifests, Helm, ArgoCD, PgBouncer, Redis, Istio, chaos
 ├── scripts/                 # DB init, partition mgmt, load tests, retention, quality
 └── docs/                    # Architecture, runbooks, design specs, audits

@@ -1,0 +1,73 @@
+# GitHub Release Notes categorization
+# https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes
+#
+# PR labels determine which section of the auto-generated release notes
+# the PR appears in. Labels referenced here MUST exist in the repo
+# (Settings → Labels) before they take effect.
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+      - duplicate
+      - invalid
+      - question
+      - wontfix
+    authors:
+      - dependabot[bot]
+      - renovate[bot]
+  categories:
+    - title: Breaking Changes
+      labels:
+        - breaking
+        - breaking-change
+        - 'type: breaking'
+    - title: Features
+      labels:
+        - feature
+        - enhancement
+        - 'type: feature'
+    - title: Bug Fixes
+      labels:
+        - bug
+        - fix
+        - 'type: bug'
+    - title: Performance
+      labels:
+        - performance
+        - perf
+    - title: Documentation
+      labels:
+        - documentation
+        - docs
+    - title: Refactoring
+      labels:
+        - refactor
+        - refactoring
+    - title: Tests
+      labels:
+        - test
+        - tests
+    - title: Build & CI
+      labels:
+        - build
+        - ci
+        - chore
+    - title: Dependencies
+      labels:
+        - dependencies
+    - title: Database Migrations
+      labels:
+        - migration
+        - db-migration
+        - flyway
+    - title: Module — Document
+      labels:
+        - module: document
+        - scm-document
+    - title: Module — Analytics
+      labels:
+        - module: analytics
+        - scm-analytics
+    - title: Other Changes
+      labels:
+        - '*'

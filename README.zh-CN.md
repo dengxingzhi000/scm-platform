@@ -22,7 +22,7 @@
 
 | 图标 | 特性 | 说明 |
 |------|------|------|
-| 🏗️ | **微服务架构** | 22+ 个可独立部署服务，含 API 网关、服务发现与配置中心 |
+| 🏗️ | **微服务架构** | 24+ 个可独立部署服务，含 API 网关、服务发现与配置中心 |
 | 🔐 | **企业级安全** | OAuth2 + JWT + WebAuthn 无密码登录，RBAC 细粒度数据权限控制 |
 | 💰 | **分布式事务** | Seata AT/TCC/Saga 多种模式保障跨服务数据一致性 |
 | ⚡ | **高性能** | Redis Lua 原子库存扣减、读写分离、数据库分库分表 |
@@ -71,14 +71,14 @@
    │  inventory :8202 · order :8203 · warehouse :8204        │
    │  logistics :8205 · supplier :8206 · purchase :8207      │
    │  finance :8208 · message :8209⚠ · approval :8209⚠       │
-   │  audit :8210 · notify :8211 · tenant :8212              │
+   │  audit :8210 · notify :8211 · tenant :8212 · document :8213│
    └────────┬───────────────────────────────────────────────┘
-            │
+             │
    ┌────────▼───────────────────────────────────────────────┐
    │  电商业务层                                              │
    │  mall :8301 · member :8302 · promotion :8303             │
    │  payment :8304 · order-center :8305 · fulfillment :8306  │
-   │  search :8307                                            │
+   │  search :8307 · analytics :8308                          │
    └─────────────────────────────────────────────────────────┘
 ```
 
@@ -88,7 +88,7 @@
 
 ## 模块
 
-> **8201–8212** 端口区间为供应链核心，**8301–8307** 区间为电商业务层。
+> **8201–8213** 端口区间为供应链核心，**8301–8308** 区间为电商业务层。
 > `scm-tenant` 通过动态数据源路由，不绑定公开端口。
 
 | 模块 | 端口 | 描述 |
@@ -97,7 +97,7 @@
 | `scm-gateway` | 8761 | API 网关 — 路由、限流、横切关注点 |
 | `scm-auth` | 8106 | 认证服务 — OAuth2、JWT、WebAuthn 无密码登录 |
 | `scm-system` | 8081 | 系统管理 — 用户、角色、权限、部门 |
-| `scm-file` | 8201 ⚠ | 文件服务 — 上传、存储抽象（S3/MinIO/本地）、OCR |
+| `scm-file` | 8201 ⚠ | 文件服务 — 上传、存储抽象（S3/MinIO/本地）、病毒扫描；UUID-string `tenant_id`（v1.3.0） |
 | `scm-product` | 8201 ⚠ | 商品中心 — SPU/SKU、分类、品牌、属性 |
 | `scm-inventory` | 8202 | 库存 — 实时库存、预占、预警、快照 |
 | `scm-order` | 8203 | 订单 — 生命周期状态机、支付、退款 |
@@ -111,6 +111,7 @@
 | `scm-audit` | 8210 | 审计 — 操作日志、敏感操作追踪 |
 | `scm-notify` | 8211 | 站内通知 — 模板、多渠道投递 |
 | `scm-tenant` | 8212 | 多租户 — 租户生命周期、套餐、特性开关 |
+| `scm-document` | 8213 | 文档生命周期 — DOCX 模板渲染 + 审计追踪，代理 `scm-file` 提供字节级上传/下载（v1.3.0） |
 | `scm-mall` | 8301 | 商城 — 电商前台、商品展示、购物车 |
 | `scm-member` | 8302 | 会员 — 资料、地址、积分、忠诚度 |
 | `scm-promotion` | 8303 | 营销 — 活动、优惠券、折扣、秒杀 |
@@ -118,6 +119,7 @@
 | `scm-order-center` | 8305 | 订单中心 — 集中式订单编排 |
 | `scm-fulfillment` | 8306 | 履约 — 订单履约、出库、配送跟踪 |
 | `scm-search` | 8307 | 搜索 — Elasticsearch 全文检索 |
+| `scm-analytics` | 8308 | 数据分析 — ClickHouse OLAP + PostgreSQL 元数据（`db_analytics`）、Kafka ODS 接入 |
 | `scm-common` | — | 公共库 — core、data、data-rw、cache、web、monitoring、integration、decision-matrix、decision-engine、security |
 
 > **端口冲突：** `scm-file` ↔ `scm-product`（8201）与
@@ -236,8 +238,8 @@ npm run dev
 
 `deploy/k8s/` 下的清单当前覆盖**基础设施与供应链核心层**——电商业务层服务
 （`scm-mall`、`scm-member`、`scm-promotion`、`scm-payment`、`scm-order-center`、
-`scm-fulfillment`、`scm-search`）仍以 Docker Compose 本地运行，K8s 清单需
-后续补齐。
+`scm-fulfillment`、`scm-search`、`scm-analytics`）仍以 Docker Compose 本地运行，
+K8s 清单需后续补齐。
 
 ```bash
 # 应用全部 K8s 资源
@@ -272,6 +274,7 @@ kubectl apply -f deploy/argocd/application.yaml
 | scm-supplier | 8206 | |
 | scm-purchase | 8207 | |
 | scm-finance | 8208 | |
+| scm-document | 8213 | v1.3.0 新增 |
 
 ## 压测
 
@@ -382,6 +385,7 @@ scm-platform/
 ├── scm-supplier/            # 供应商管理
 ├── scm-finance/             # 财务结算
 ├── scm-file/                # 文件服务（上传、存储抽象、OCR）
+├── scm-document/            # 文档生命周期与 DOCX 模板（v1.3.0）
 ├── scm-message/             # 短信 / 邮件 / 推送分发
 ├── scm-member/              # 会员管理
 ├── scm-promotion/           # 营销（活动、优惠券、折扣）
@@ -390,6 +394,7 @@ scm-platform/
 ├── scm-order-center/        # 集中式订单编排
 ├── scm-mall/                # 电商前台
 ├── scm-fulfillment/         # 订单履约与配送
+├── scm-analytics/           # ClickHouse OLAP + PG 元数据
 ├── deploy/                  # K8s 清单、Helm、ArgoCD、PgBouncer、Redis、Istio、混沌工程
 ├── scripts/                 # 数据库初始化、分区管理、压测、保留策略、质量检查
 └── docs/                    # 架构、运维手册、设计规范、审计文档

@@ -1,5 +1,15 @@
 # CODEOWNERS - Auto review assignment
 # https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+#
+# NOTE — Dual remote setup:
+#   This repo has two push remotes:
+#     origin  → https://github.com/dengxingzhi000/scm-platform  (personal)
+#     cognora → https://github.com/CognoraAura/scm-platform     (org)
+#   Team handles below (@CognoraAura/...) only resolve on the `cognora`
+#   remote. When pushing to `origin` (personal), auto-assignment silently
+#   falls back to the repo default reviewer list. If you standardise on
+#   `origin`, swap each @CognoraAura/* handle for an individual user
+#   (e.g. @dengxingzhi000).
 
 # Default owners for everything
 * @CognoraAura/developers

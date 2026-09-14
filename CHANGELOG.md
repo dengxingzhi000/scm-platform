@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **New `scm-analytics` module** (modular monolith) registered under `com.scm.parent`,
+  port `8308`. ClickHouse-backed OLAP service with PostgreSQL metadata sidecar
+  (`db_analytics`, Flyway-managed schema covering `analytics_metric`,
+  `analytics_dimension`, `analytics_dataset`, `analytics_dataset_field`).
+  Kafka consumer pulls from upstream topics for ODS ingestion.
+- **ClickHouse infra in `docker-compose.yml`** plus `deploy/clickhouse/users.xml`
+  for local dev alongside the existing PostgreSQL metadata store.
+
 ## [1.3.0] - 2026-08-31
 
 ### Added

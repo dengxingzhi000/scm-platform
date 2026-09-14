@@ -1,0 +1,157 @@
+# Auto-label rules consumed by actions/labeler (workflow at
+# .github/workflows/labeler.yml). A PR gets every label whose `match-any`
+# globset is touched by the diff. Lowercase label names — these MUST be
+# created in the repo before they take effect (Settings → Labels).
+
+# ─── Platform / cross-cutting ───────────────────────────────────────────
+scm-common:
+  - changed-files:
+      - any-glob-to-any-file: scm-common/**/*
+
+scm-gateway:
+  - changed-files:
+      - any-glob-to-any-file: scm-gateway/**/*
+
+scm-auth:
+  - changed-files:
+      - any-glob-to-any-file: scm-auth/**/*
+
+# ─── Supply-chain core ─────────────────────────────────────────────────
+scm-system:
+  - changed-files:
+      - any-glob-to-any-file: scm-system/**/*
+
+scm-product:
+  - changed-files:
+      - any-glob-to-any-file: scm-product/**/*
+
+scm-inventory:
+  - changed-files:
+      - any-glob-to-any-file: scm-inventory/**/*
+
+scm-order:
+  - changed-files:
+      - any-glob-to-any-file: scm-order/**/*
+
+scm-warehouse:
+  - changed-files:
+      - any-glob-to-any-file: scm-warehouse/**/*
+
+scm-logistics:
+  - changed-files:
+      - any-glob-to-any-file: scm-logistics/**/*
+
+scm-purchase:
+  - changed-files:
+      - any-glob-to-any-file: scm-purchase/**/*
+
+scm-supplier:
+  - changed-files:
+      - any-glob-to-any-file: scm-supplier/**/*
+
+scm-finance:
+  - changed-files:
+      - any-glob-to-any-file: scm-finance/**/*
+
+scm-file:
+  - changed-files:
+      - any-glob-to-any-file: scm-file/**/*
+
+scm-document:
+  - changed-files:
+      - any-glob-to-any-file: scm-document/**/*
+
+# ─── Approval / Audit / Notify / Tenant ─────────────────────────────────
+scm-approval:
+  - changed-files:
+      - any-glob-to-any-file: scm-approval/**/*
+
+scm-audit:
+  - changed-files:
+      - any-glob-to-any-file: scm-audit/**/*
+
+scm-notify:
+  - changed-files:
+      - any-glob-to-any-file: scm-notify/**/*
+
+scm-message:
+  - changed-files:
+      - any-glob-to-any-file: scm-message/**/*
+
+scm-tenant:
+  - changed-files:
+      - any-glob-to-any-file: scm-tenant/**/*
+
+# ─── E-commerce layer ──────────────────────────────────────────────────
+scm-mall:
+  - changed-files:
+      - any-glob-to-any-file: scm-mall/**/*
+
+scm-member:
+  - changed-files:
+      - any-glob-to-any-file: scm-member/**/*
+
+scm-promotion:
+  - changed-files:
+      - any-glob-to-any-file: scm-promotion/**/*
+
+scm-payment:
+  - changed-files:
+      - any-glob-to-any-file: scm-payment/**/*
+
+scm-order-center:
+  - changed-files:
+      - any-glob-to-any-file: scm-order-center/**/*
+
+scm-fulfillment:
+  - changed-files:
+      - any-glob-to-any-file: scm-fulfillment/**/*
+
+scm-search:
+  - changed-files:
+      - any-glob-to-any-file: scm-search/**/*
+
+scm-analytics:
+  - changed-files:
+      - any-glob-to-any-file: scm-analytics/**/*
+
+# ─── Cross-cutting by area ─────────────────────────────────────────────
+frontend:
+  - changed-files:
+      - any-glob-to-any-file: scm-web/**/*
+
+infra:
+  - changed-files:
+      - any-glob-to-any-file: deploy/**/*
+
+database:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'scm-*/service/src/main/resources/db/migration/**'
+          - 'scripts/db/**/*'
+          - '**/application*.yml'
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file: '.github/**/*'
+
+docs:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*.md'
+          - 'docs/**/*'
+
+build:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/pom.xml'
+          - 'com.scm.parent/**/*'
+          - 'docker-compose*.yml'
+          - 'Dockerfile'
+
+breaking-change:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'scm-*/api/**/dto/**'
+          - 'scm-*/api/**/*Api.java'
+          - 'scm-*/service/src/main/resources/db/migration/**'
