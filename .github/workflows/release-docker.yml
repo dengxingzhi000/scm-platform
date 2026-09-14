@@ -63,15 +63,28 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      # Two layouts — both are handled by invoking Maven from inside the
-      # module's own pom (each module pom knows about its own api/service
-      # sub-modules; the parent com.scm.parent/pom.xml only references the
-      # top-level scm-* modules).
+      # Two layouts — both are handled by building from com.scm.parent/pom.xml
+      # (the only pom that lists every top-level scm-* module, so -am can pull
+      # in scm-common-web, scm-system-api, etc. that each service depends on):
       #   - flat modules (scm-auth, scm-gateway): jar lands at <module>/target/*.jar
       #   - api/service split modules:            jar lands at <module>/service/target/*.jar
-      # The Dockerfile in each layout copies the corresponding path.
+      # We select by artifactId, which works regardless of layout:
+      #   - flat       -> artifactId is 'scm-{name}'
+      #   - split      -> service artifactId is 'scm-{name}-service'
       - name: Build service JAR (Maven)
-        run: mvn -q -B -DskipTests -f "${{ matrix.service }}/pom.xml" package
+        run: |
+          set -euo pipefail
+          service="${{ matrix.service }}"
+          if [ -d "${service}/service" ]; then
+            aid="${service}-service"
+          else
+            aid="${service}"
+          fi
+          echo "Building ${service} (artifactId=${aid}) ..."
+          mvn -q -B -DskipTests \
+            -pl ":${aid}" -am \
+            -f com.scm.parent/pom.xml \
+            package
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
