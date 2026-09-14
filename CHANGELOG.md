@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.4.0] - 2026-09-14
 
 ### Added
 
@@ -16,6 +16,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Kafka consumer pulls from upstream topics for ODS ingestion.
 - **ClickHouse infra in `docker-compose.yml`** plus `deploy/clickhouse/users.xml`
   for local dev alongside the existing PostgreSQL metadata store.
+
+### Infrastructure
+
+- **GitHub workflows** — `codeql.yml` (security scan), `labeler.yml` (auto-label
+  PRs), `stale.yml` (stale issue/PR management), `release-docker.yml` (build &
+  push GHCR images for every service with a `Dockerfile`, then publish the
+  matching GitHub Release — fires on every `v*` tag push).
+- **Auto-label rules** (`.github/labeler.yml`) drive per-module and per-area
+  PR labels, feeding the auto-generated release notes categorisation in
+  `.github/release.yml`.
+- **PR template** — explicit Breaking-Change checklist + reorganised module list
+  (Platform / Supply-chain core / Approval-Audit / E-commerce / Infra).
+- **Issue chooser config** (`.github/ISSUE_TEMPLATE/config.yml`) routes
+  Q&A → Discussions and security → private disclosure.
+
+### Notes
+
+- `OutboxRelayJob` and the per-service `OutboxEvent`/`OutboxMapper` were retired
+  in favour of the existing `scm-common/integration/.../outbox/{OutboxService,
+  OutboxPoller,OutboxEvent}` implementation. Each business service now runs a
+  single `OutboxPoller` (`@ConditionalOnBean(KafkaMessagePublisher.class)`),
+  publishing to `scm.<aggregateType>` with retry / dead-letter support.
 
 ## [1.3.0] - 2026-08-31
 
