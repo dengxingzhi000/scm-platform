@@ -36,11 +36,37 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7
 
+      # build-mode: 'manual' for Java — this monorepo's parent POM lives at
+      # com.scm.parent/pom.xml, NOT at the repo root, so the default autobuild
+      # for Java can't find any pom.xml and exits with "could not process any
+      # of it". For JS/TS we use 'none' because there is no compile step.
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
           queries: security-extended,security-and-quality
+          build-mode: ${{ matrix.language == 'java' && 'manual' || 'none' }}
+
+      # CodeQL needs compiled .class files for data-flow / taint analysis on
+      # Java. Build the whole reactor against the real parent POM so every
+      # service module produces class output that CodeQL can index.
+      - name: Set up JDK 21 (Java analysis only)
+        if: matrix.language == 'java'
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Compile all Java modules for CodeQL
+        if: matrix.language == 'java'
+        run: |
+          set -euo pipefail
+          mvn -B -DskipTests \
+            -f com.scm.parent/pom.xml \
+            -DskipITs \
+            -Dmaven.javadoc.skip=true \
+            -Dcheckstyle.skip=true \
+            test-compile
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4

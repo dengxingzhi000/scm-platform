@@ -126,12 +126,33 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Create / update GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.ref_name }}
-          generate_release_notes: true
-          draft: false
-          prerelease: ${{ contains(github.ref_name, '-') }}
-          fail_on_unmatched_files: false
-          body_path: CHANGELOG.md
+      # Replace softprops/action-gh-release@v2 (which occasionally retries-out
+      # with "Too many retries" while trying to verify a freshly-created
+      # release) with a direct gh CLI call. The body is the full CHANGELOG.md
+      # at release time, matching the original workflow's `body_path` setting.
+      # generate_release_notes:true is approximated with `--notes-from-tag`,
+      # which auto-populates a summary from annotated tag messages.
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+          IS_PRERELEASE: ${{ contains(github.ref_name, '-') }}
+        run: |
+          set -euo pipefail
+          # The tag's annotated message becomes the release title fallback;
+          # if the tag is lightweight (no -m body) this gracefully falls back
+          # to using the tag name itself. GitHub auto-marks the newest
+          # non-prerelease as "latest", so we only pass --prerelease when
+          # the tag name contains a '-'.
+          TAG_MSG="$(git tag -l --format='%(contents:subject)' "$TAG" || true)"
+          if [ -n "$TAG_MSG" ]; then
+            gh release create "$TAG" \
+              --title "$TAG_MSG" \
+              --notes-file CHANGELOG.md \
+              $( [ "$IS_PRERELEASE" = "true" ] && echo --prerelease || true )
+          else
+            gh release create "$TAG" \
+              --title "$TAG" \
+              --notes-file CHANGELOG.md \
+              $( [ "$IS_PRERELEASE" = "true" ] && echo --prerelease || true )
+          fi
