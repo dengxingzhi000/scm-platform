@@ -56,6 +56,33 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Set up JDK 21 (with Maven cache)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      # Two layouts:
+      #   - flat modules (scm-auth, scm-gateway): jar lands at <module>/target/*.jar
+      #   - api/service split modules:            jar lands at <module>/service/target/*.jar
+      # Dockerfiles in each layout copy the corresponding path.
+      - name: Build service JAR (Maven)
+        run: |
+          set -euo pipefail
+          service="${{ matrix.service }}"
+          if [ -d "${service}/service" ]; then
+            mvn -q -B -DskipTests \
+              -pl "${service}/service" -am \
+              -f com.scm.parent/pom.xml \
+              package
+          else
+            mvn -q -B -DskipTests \
+              -pl "${service}" -am \
+              -f com.scm.parent/pom.xml \
+              package
+          fi
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
