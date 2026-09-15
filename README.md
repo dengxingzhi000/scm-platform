@@ -448,6 +448,10 @@ k6 run scripts/loadtest/order-flow.js
 cd scm-web && npx playwright test
 ```
 
+## Related Projects
+
+- **[enterprise-agent](https://github.com/dengxingzhi000/enterprise-agent)** — Python AI operations agent built on top of this platform: self-built Agent Runtime (Planner/Executor loop) for order-incident triage, reimbursement compliance review, and sales analysis, with Tools/MCP, RAG, Memory, Policy/HITL, Workflow, and Eval/Observability.
+
 ## Contributing
 
 Contributions are welcome! Please read the [contributing guidelines](./CONTRIBUTING.md) before submitting a PR.

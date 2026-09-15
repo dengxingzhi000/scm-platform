@@ -442,6 +442,10 @@ k6 run scripts/loadtest/order-flow.js
 cd scm-web && npx playwright test
 ```
 
+## 关联项目
+
+- **[enterprise-agent](https://github.com/dengxingzhi000/enterprise-agent)** — 基于本平台的 Python AI 运维 Agent：自研 Agent Runtime（Planner/Executor 循环），覆盖订单故障排查、报销合规审查、销售数据分析，含 Tools/MCP、RAG、Memory、Policy/HITL、Workflow 与 Eval/可观测。
+
 ## 贡献指南
 
 欢迎贡献代码！提交 PR 前请阅读 [贡献指南](./CONTRIBUTING.md)。
