@@ -1,11 +1,11 @@
-name: Release — Docker Images to GHCR
+name: Release 鈥?Docker Images to GHCR
 
 # Triggered on every v* tag (e.g. v1.3.0, v1.4.0-rc.1).
 # Builds every service with a Dockerfile and pushes to GitHub Container
 # Registry (ghcr.io/<owner>/scm-platform/<service>). Then publishes (or
 # updates) the matching GitHub Release with auto-generated notes.
 #
-# Required secrets / permissions: only `GITHUB_TOKEN` — no Docker Hub creds.
+# Required secrets / permissions: only `GITHUB_TOKEN` 鈥?no Docker Hub creds.
 # Dockerfiles live at scm-<name>/Dockerfile (one per deployable service).
 
 on:
@@ -63,7 +63,7 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      # Two layouts — both are handled by building from com.scm.parent/pom.xml
+      # Two layouts 鈥?both are handled by building from com.scm.parent/pom.xml
       # (the only pom that lists every top-level scm-* module, so -am can pull
       # in scm-common-web, scm-system-api, etc. that each service depends on):
       #   - flat modules (scm-auth, scm-gateway): jar lands at <module>/target/*.jar
@@ -132,6 +132,11 @@ jobs:
       # at release time, matching the original workflow's `body_path` setting.
       # generate_release_notes:true is approximated with `--notes-from-tag`,
       # which auto-populates a summary from annotated tag messages.
+      #
+      # Idempotency: if a release for this tag already exists (e.g. created
+      # manually before pushing the tag, or re-run after a previous failed
+      # attempt), fall back to `gh release edit` so the workflow never fails
+      # with HTTP 422 "tag_name already exists".
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -145,14 +150,23 @@ jobs:
           # non-prerelease as "latest", so we only pass --prerelease when
           # the tag name contains a '-'.
           TAG_MSG="$(git tag -l --format='%(contents:subject)' "$TAG" || true)"
-          if [ -n "$TAG_MSG" ]; then
+          if [ -z "$TAG_MSG" ]; then
+            TAG_MSG="$TAG"
+          fi
+          PRERELEASE_FLAG=()
+          if [ "$IS_PRERELEASE" = "true" ]; then
+            PRERELEASE_FLAG=(--prerelease)
+          fi
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists — updating in place."
+            gh release edit "$TAG" \
+              --title "$TAG_MSG" \
+              --notes-file CHANGELOG.md \
+              "${PRERELEASE_FLAG[@]}"
+          else
             gh release create "$TAG" \
               --title "$TAG_MSG" \
               --notes-file CHANGELOG.md \
-              $( [ "$IS_PRERELEASE" = "true" ] && echo --prerelease || true )
-          else
-            gh release create "$TAG" \
-              --title "$TAG" \
-              --notes-file CHANGELOG.md \
-              $( [ "$IS_PRERELEASE" = "true" ] && echo --prerelease || true )
+              "${PRERELEASE_FLAG[@]}"
           fi
