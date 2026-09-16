@@ -73,33 +73,33 @@
     <java.version>21</java.version>
 
     <!-- Spring Ecosystem -->
-    <spring-boot.version>4.0.6</spring-boot.version>
+    <spring-boot.version>4.1.1</spring-boot.version>
     <spring-cloud.version>2025.1.2</spring-cloud.version>
     <spring-cloud-alibaba.version>2025.1.0.0</spring-cloud-alibaba.version>
     <spring-statemachine.version>4.0.0</spring-statemachine.version>
 
     <!-- Database & Persistence -->
     <postgresql.version>42.6.0</postgresql.version>
-    <mybatis-plus.version>3.5.15</mybatis-plus.version>
+    <mybatis-plus.version>3.5.17</mybatis-plus.version>
 
     <!-- Distributed Transaction & Job Scheduling -->
     <seata.version>2.0.0</seata.version>
-    <xxl-job.version>3.3.1</xxl-job.version>
+    <xxl-job.version>3.4.2</xxl-job.version>
     <dubbo.version>3.3.6</dubbo.version>
 
     <!-- Search & Data Sync -->
-    <elasticsearch.version>8.11.4</elasticsearch.version>
+    <elasticsearch.version>9.5.3</elasticsearch.version>
     <canal.version>1.1.7</canal.version>
 
     <!-- Security & Authentication -->
     <jjwt.version>0.13.0</jjwt.version>
 
     <!-- Utility Libraries -->
-    <org.projectlombok.version>1.18.38</org.projectlombok.version>
+    <org.projectlombok.version>1.18.48</org.projectlombok.version>
     <uuid-creator.version>6.1.1</uuid-creator.version>
     <hutool.version>5.8.40</hutool.version>
     <guava.version>33.5.0-jre</guava.version>
-    <fastjson2.version>2.0.53</fastjson2.version>
+    <fastjson2.version>2.0.65</fastjson2.version>
 
     <!-- Messaging -->
     <rabbitmq.version>5.14.2</rabbitmq.version>
@@ -108,7 +108,7 @@
     <testcontainers.version>1.20.6</testcontainers.version>
 
     <!-- Database Migration -->
-    <flyway.version>10.15.0</flyway.version>
+    <flyway.version>13.6.0</flyway.version>
 
     <!-- Observability -->
     <sentinel.version>2025.0.0.0</sentinel.version>
