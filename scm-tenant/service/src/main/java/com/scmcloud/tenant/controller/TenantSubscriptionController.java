@@ -14,7 +14,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/tenant-subscription")
 public class TenantSubscriptionController {
-
     private final ITenantSubscriptionService tenantSubscriptionService;
 
     @PostMapping

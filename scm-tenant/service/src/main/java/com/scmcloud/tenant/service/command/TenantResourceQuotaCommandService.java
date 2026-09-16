@@ -18,7 +18,6 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class TenantResourceQuotaCommandService {
-
     private final TenantResourceQuotaMapper tenantResourceQuotaMapper;
 
     @Master(reason = "创建租户资源配额")

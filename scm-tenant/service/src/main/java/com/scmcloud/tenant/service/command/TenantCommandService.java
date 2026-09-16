@@ -2,6 +2,7 @@ package com.scmcloud.tenant.service.command;
 
 import com.scmcloud.common.data.rw.annotation.Master;
 import com.scmcloud.common.status.StatusValidator;
+import com.scmcloud.common.util.UUIDv7Util;
 import com.scmcloud.tenant.domain.entity.Tenant;
 import com.scmcloud.tenant.mapper.TenantMapper;
 import lombok.RequiredArgsConstructor;
@@ -10,13 +11,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class TenantCommandService {
-
     private final TenantMapper tenantMapper;
     private final StatusValidator statusValidator;
 
@@ -24,15 +23,18 @@ public class TenantCommandService {
     @Transactional(rollbackFor = Exception.class)
     public Tenant createTenant(Tenant entity) {
         log.info("创建租户: tenantCode={}, tenantName={}", entity.getTenantCode(), entity.getTenantName());
-        entity.setId(UUID.randomUUID().toString());
+        entity.setId(UUIDv7Util.generateString());
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         entity.setDeleted(false);
         if (entity.getStatus() == null) {
             entity.setStatus(0);
         }
-        tenantMapper.insert(entity);
-        log.info("租户创建成功: id={}", entity.getId());
+        if (tenantMapper.insert(entity) <= 0) {
+            log.warn("租户插入未生效: tenantCode={}", entity.getTenantCode());
+        } else {
+            log.info("租户创建成功: id={}", entity.getId());
+        }
         return entity;
     }
 
@@ -41,7 +43,9 @@ public class TenantCommandService {
     public Tenant updateTenant(Tenant entity) {
         log.info("更新租户: id={}", entity.getId());
         entity.setUpdateTime(LocalDateTime.now());
-        tenantMapper.updateById(entity);
+        if (tenantMapper.updateById(entity) <= 0) {
+            log.warn("租户更新未生效: id={}", entity.getId());
+        }
         return entity;
     }
 

@@ -12,28 +12,28 @@ import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
 /**
- * 骞冲彴鏈嶅姟璐硅绠楀畾鏃朵换锟?
+ * 平台服务费计算定时任务
  *
- * 鎵ц鏃堕棿锛氭瘡锟? 鏃ュ噷锟?2:00锛坈ron: 0 0 2 1 * ?锟?
+ * 执行时间：每月 1 日凌晨 02:00（cron: 0 0 2 1 * ?）
  *
- * 鍔熻兘锟?
- * 1. 璁＄畻涓婃湀鎵€鏈夌鎴风殑骞冲彴鏈嶅姟锟?
- * 2. 璁¤垂椤瑰寘鎷細
- *    - 璁㈠崟浣ｉ噾锛堟寜璁㈠崟閲戦鐧惧垎姣旓級
- *    - 瀛樺偍璐圭敤锛堟寜瀹為檯浣跨敤GB璁¤垂锟?
- *    - API璋冪敤璐圭敤锛堣秴鍑哄椁愰儴鍒嗘寜娆¤璐癸級
- *    - 澧炲€兼湇鍔¤垂锛堥澶栧姛鑳芥ā鍧楄垂鐢級
- * 3. 鐢熸垚 platform_service_fee 璁板綍
- * 4. 鏇存柊绉熸埛搴旀敹璐︽ (tenant_accounts_receivable)
- * 5. 鍙戦€佽处鍗曢€氱煡閭欢
+ * 功能：
+ * 1. 计算上月所有租户的平台服务费
+ * 2. 收费项目包括：
+ *    - 订单佣金（按订单金额百分比）
+ *    - 存储费用（按实际使用GB计费）
+ *    - API调用费用（超出套餐部分按次计费）
+ *    - 增值服务费（额外功能模块费用）
+ * 3. 生成 platform_service_fee 记录
+ * 4. 更新租户应收账款 (tenant_accounts_receivable)
+ * 5. 发送账单通知邮件
  *
- * XXL-Job 閰嶇疆绀轰緥锟?
- * - 鎵ц鍣細scm-tenant-executor
- * - JobHandler锛歱latformFeeCalculationJob
- * - Cron锟?0 2 1 * ?
- * - 杩愯妯″紡锛欱EAN
- * - 闃诲澶勭悊绛栫暐锛氬崟鏈轰覆锟?
- * - 璺敱绛栫暐锛氱涓€锟?
+ * XXL-Job 配置示例：
+ * - 执行器：scm-tenant-executor
+ * - JobHandler：platformFeeCalculationJob
+ * - Cron：0 0 2 1 * ?
+ * - 运行模式：BEAN
+ * - 阻塞处理策略：单机串行
+ * - 路由策略：故障转移
  *
  * @author Claude Code
  * @since 2025-01-24
@@ -46,17 +46,17 @@ public class PlatformFeeCalculationJob {
     private final IPlatformFeeService platformFeeService;
 
     /**
-     * 鎵ц骞冲彴鏈嶅姟璐硅锟?
+     * 执行平台服务费计算
      *
-     * 浠诲姟鍙傛暟锛堝彲閫夛級锟?
-     * - yearMonth: 鎸囧畾璁＄畻鏈堜唤锛堟牸寮忥細yyyy-MM锛夛紝涓嶄紶鍒欒绠椾笂锟?
-     * - tenantId: 鎸囧畾绉熸埛ID锛圲UID鏍煎紡锛夛紝涓嶄紶鍒欒绠楁墍鏈夌锟?
+     * 任务参数（可选）：
+     * - yearMonth: 指定计算月份（格式：yyyy-MM），不传则计算上月
+     * - tenantId: 指定租户ID（UUID格式），不传则计算所有租户
      *
-     * 绀轰緥锟?
-     * - 璁＄畻涓婃湀鎵€鏈夌鎴凤細涓嶄紶鍙傛暟
-     * - 璁＄畻鎸囧畾鏈堜唤锛氫紶锟?2025-01"
-     * - 璁＄畻鍗曚釜绉熸埛锛氫紶锟?tenantId=123e4567-e89b-12d3-a456-426614174000"
-     * - 璁＄畻鎸囧畾鏈堜唤鍜岀鎴凤細浼犲弬 "2025-01,tenantId=123e4567-e89b-12d3-a456-426614174000"
+     * 示例：
+     * - 计算上月所有租户：不传参数
+     * - 计算指定月份：传入 "2025-01"
+     * - 计算单个租户：传入 "tenantId=123e4567-e89b-12d3-a456-426614174000"
+     * - 计算指定月份和租户：传参 "2025-01,tenantId=123e4567-e89b-12d3-a456-426614174000"
      */
     @XxlJob("platformFeeCalculationJob")
     public void execute() {
@@ -64,8 +64,8 @@ public class PlatformFeeCalculationJob {
         String param = XxlJobHelper.getJobParam();
 
         try {
-            // 瑙ｆ瀽鍙傛暟
-            YearMonth targetMonth = YearMonth.now().minusMonths(1); // 榛樿涓婃湀
+            // 解析参数
+            YearMonth targetMonth = YearMonth.now().minusMonths(1); // 默认上月
             UUID tenantId = null;
 
             if (param != null && !param.trim().isEmpty()) {
@@ -82,7 +82,7 @@ public class PlatformFeeCalculationJob {
                             return;
                         }
                     } else {
-                        // 灏濊瘯瑙ｆ瀽涓哄勾锟?
+                        // 尝试解析为年月
                         try {
                             targetMonth = YearMonth.parse(part, DateTimeFormatter.ofPattern("yyyy-MM"));
                         } catch (Exception e) {
@@ -95,7 +95,7 @@ public class PlatformFeeCalculationJob {
             String scope = tenantId == null ? "All tenants" : "Tenant " + tenantId;
             log.info("Starting platform fee calculation for {} {}", targetMonth, scope);
 
-            // 鎵ц璁¤垂璁＄畻
+            // 执行收费计算
             int calculatedCount = platformFeeService.calculateMonthlyFees(targetMonth, tenantId);
 
             long duration = System.currentTimeMillis() - startTime;

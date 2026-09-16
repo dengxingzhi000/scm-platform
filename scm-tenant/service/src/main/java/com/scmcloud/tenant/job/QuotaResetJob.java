@@ -10,22 +10,22 @@ import org.springframework.stereotype.Component;
 import java.util.UUID;
 
 /**
- * 绉熸埛閰嶉閲嶇疆瀹氭椂浠诲姟
+ * 租户配额重置定时任务
  *
- * 鎵ц鏃堕棿锛氭瘡鏃ュ噷锟?0:05锛坈ron: 0 5 0 * * ?锟?
+ * 执行时间：每天凌晨 00:05（cron: 0 5 0 * * ?）
  *
- * 鍔熻兘锟?
- * 1. 閲嶇疆鎵€鏈夌鎴风殑姣忔棩閰嶉璁℃暟锟?
- * 2. 閲嶇疆瀛楁锛歝urrent_orders_today = 0, current_api_calls_today = 0
- * 3. 鏀寔鍙傛暟鍖栭噸缃崟涓鎴凤紙鐢ㄤ簬鎵嬪姩瑙﹀彂锟?
+ * 功能：
+ * 1. 重置所有租户的每日配额计数。
+ * 2. 重置字段：current_orders_today = 0, current_api_calls_today = 0
+ * 3. 支持参数化重置单个租户（用于手动触发）。
  *
- * XXL-Job 閰嶇疆绀轰緥锟?
- * - 鎵ц鍣細scm-tenant-executor
- * - JobHandler锛歲uotaResetJob
- * - Cron锟?5 0 * * ?
- * - 杩愯妯″紡锛欱EAN
- * - 闃诲澶勭悊绛栫暐锛氬崟鏈轰覆锟?
- * - 璺敱绛栫暐锛氳疆锟?
+ * XXL-Job 配置示例：
+ * - 执行器：scm-tenant-executor
+ * - JobHandler：quotaResetJob
+ * - Cron：0 5 0 * * ?
+ * - 运行模式：BEAN
+ * - 阻塞处理策略：单机串行
+ * - 路由策略：轮询
  *
  * @author Claude Code
  * @since 2025-01-24
@@ -38,14 +38,14 @@ public class QuotaResetJob {
     private final QuotaService quotaService;
 
     /**
-     * 鎵ц姣忔棩閰嶉閲嶇疆
+     * 执行每日配额重置
      *
-     * 浠诲姟鍙傛暟锛堝彲閫夛級锟?
-     * - tenantId: 鎸囧畾绉熸埛ID锛圲UID鏍煎紡锛夛紝涓嶄紶鍒欓噸缃墍鏈夌锟?
+     * 任务参数（可选）：
+     * - tenantId: 指定租户ID（UUID格式），不传则重置所有租户
      *
-     * 绀轰緥锟?
-     * - 閲嶇疆鎵€鏈夌鎴凤細涓嶄紶鍙傛暟
-     * - 閲嶇疆鍗曚釜绉熸埛锛氫紶锟?123e4567-e89b-12d3-a456-426614174000"
+     * 示例：
+     * - 重置所有租户：不传参数
+     * - 重置单个租户：传入 "123e4567-e89b-12d3-a456-426614174000"
      */
     @XxlJob("quotaResetJob")
     public void execute() {
@@ -55,11 +55,11 @@ public class QuotaResetJob {
         try {
             UUID tenantId = null;
 
-            // 濡傛灉鏈夊弬鏁帮紝瑙ｆ瀽绉熸埛ID
+            // 如果有参数，解析租户ID
             if (param != null && !param.trim().isEmpty()) {
                 try {
                     tenantId = UUID.fromString(param.trim());
-                    log.info("寮€濮嬮噸缃鎴烽厤棰濓紝绉熸埛ID: {}", tenantId);
+                    log.info("开始重置租户配额，租户ID: {}", tenantId);
                 } catch (IllegalArgumentException e) {
                     String errorMsg = "Invalid tenant ID parameter: " + param;
                     log.error(errorMsg, e);
@@ -67,10 +67,10 @@ public class QuotaResetJob {
                     return;
                 }
             } else {
-                log.info("寮€濮嬮噸缃墍鏈夌鎴风殑姣忔棩閰嶉");
+                log.info("开始重置所有租户的每日配额");
             }
 
-            // 鎵ц閰嶉閲嶇疆
+            // 执行配额重置
             quotaService.resetDailyQuota(tenantId);
 
             long duration = System.currentTimeMillis() - startTime;
