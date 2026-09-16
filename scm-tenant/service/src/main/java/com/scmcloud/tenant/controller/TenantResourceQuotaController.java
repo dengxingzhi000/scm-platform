@@ -15,6 +15,7 @@ import java.util.List;
 @RequestMapping("/tenant-resource-quota")
 public class TenantResourceQuotaController {
     private final ITenantResourceQuotaService tenantResourceQuotaService;
+
     @PostMapping
     public TenantResourceQuota create(@RequestBody TenantResourceQuota entity) {
         log.info("[API] Create tenant resource quota: tenantId={}", entity.getTenantId());

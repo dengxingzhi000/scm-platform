@@ -3,7 +3,7 @@ package com.scmcloud.tenant.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import com.scmcloud.tenant.domain.entity.TenantResourceQuota;
 import com.scmcloud.tenant.mapper.TenantResourceQuotaMapper;
@@ -16,7 +16,8 @@ import java.util.UUID;
 
 @Slf4j
 @Service
-public class TenantResourceQuotaServiceImpl extends ServiceImpl<TenantResourceQuotaMapper, TenantResourceQuota> implements ITenantResourceQuotaService {
+public class TenantResourceQuotaServiceImpl extends ServiceImpl<TenantResourceQuotaMapper, TenantResourceQuota>
+        implements ITenantResourceQuotaService {
 
     public TenantResourceQuota createQuota(TenantResourceQuota entity) {
         log.info("Create tenant resource quota: tenantId={}", entity.getTenantId());

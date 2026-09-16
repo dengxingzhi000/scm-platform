@@ -2,7 +2,7 @@ package com.scmcloud.tenant.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.scmcloud.tenant.domain.entity.TenantResourceQuota;
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.spring.service.IService;
 
 import java.util.List;
 
