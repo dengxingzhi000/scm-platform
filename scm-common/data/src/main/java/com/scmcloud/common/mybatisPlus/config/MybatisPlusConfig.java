@@ -61,7 +61,7 @@ public class MybatisPlusConfig {
             TypeHandlerRegistry typeHandlerRegistry = configuration.getTypeHandlerRegistry();
             // 娉ㄥ唽 UUID绫诲瀷澶勭悊锟?
             typeHandlerRegistry.register(UUID.class, UUIDTypeHandler.class);
-            // 娉ㄥ唽鍊煎璞＄被鍨嬪鐞嗗櫒
+            // 娉ㄥ唽鍊煎璞$被鍨嬪鐞嗗櫒
             typeHandlerRegistry.register(Money.class, MoneyTypeHandler.class);
             typeHandlerRegistry.register(Quantity.class, QuantityTypeHandler.class);
             typeHandlerRegistry.register(TenantId.class, TenantIdTypeHandler.class);

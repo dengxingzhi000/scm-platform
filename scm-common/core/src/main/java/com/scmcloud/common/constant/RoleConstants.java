@@ -17,33 +17,33 @@ public final class RoleConstants {
 
     /**
      * 骞冲彴瑙掕壊绫诲瀷
-     * 璺ㄦ墍鏈夌鎴凤紝鍙湁骞冲彴绠＄悊鍛樺彲浠ョ锟?
+     * 璺ㄦ墍鏈夌鎴凤紝鍙湁骞冲彴绠$悊鍛樺彲浠ョ锟?
      */
     public static final String ROLE_TYPE_PLATFORM = "PLATFORM_ROLE";
 
     /**
      * 绉熸埛瑙掕壊绫诲瀷
-     * 绉熸埛鍐呰鑹诧紝绉熸埛绠＄悊鍛樺彲浠ョ锟?
+     * 绉熸埛鍐呰鑹诧紝绉熸埛绠$悊鍛樺彲浠ョ锟?
      */
     public static final String ROLE_TYPE_TENANT = "TENANT_ROLE";
 
-    // ==================== 瑙掕壊浠ｇ爜锛圫pring Security 瑙掕壊鍚嶇О锟?==================
+    // ==================== 瑙掕壊浠g爜锛圫pring Security 瑙掕壊鍚嶇О锟?==================
 
     /**
-     * 瓒呯骇绠＄悊鍛樿锟?
+     * 瓒呯骇绠$悊鍛樿锟?
      * 鎷ユ湁绯荤粺鏈€楂樻潈锟?
      */
     public static final String ROLE_SUPER_ADMIN = "ROLE_SUPER_ADMIN";
 
     /**
-     * 骞冲彴绠＄悊鍛樿锟?
-     * 鍙互绠＄悊鎵€鏈夌鎴峰拰骞冲彴绾ц祫锟?
+     * 骞冲彴绠$悊鍛樿锟?
+     * 鍙互绠$悊鎵€鏈夌鎴峰拰骞冲彴绾ц祫锟?
      */
     public static final String ROLE_PLATFORM_ADMIN = "ROLE_PLATFORM_ADMIN";
 
     /**
-     * 绉熸埛绠＄悊鍛樿锟?
-     * 鍙互绠＄悊鏈鎴峰唴鐨勮祫婧愬拰鐢ㄦ埛
+     * 绉熸埛绠$悊鍛樿锟?
+     * 鍙互绠$悊鏈鎴峰唴鐨勮祫婧愬拰鐢ㄦ埛
      */
     public static final String ROLE_TENANT_ADMIN = "ROLE_TENANT_ADMIN";
 
@@ -69,15 +69,15 @@ public final class RoleConstants {
      */
     public static final String ROLE_CATEGORY_CUSTOM = "CUSTOM";
 
-    // ==================== 鐢ㄦ埛绫诲瀷锛堝吋瀹规棫浠ｇ爜锟?==================
+    // ==================== 鐢ㄦ埛绫诲瀷锛堝吋瀹规棫浠g爜锟?==================
 
     /**
-     * 骞冲彴绠＄悊鍛樼敤鎴风被锟?
+     * 骞冲彴绠$悊鍛樼敤鎴风被锟?
      */
     public static final String USER_TYPE_PLATFORM_ADMIN = "PLATFORM_ADMIN";
 
     /**
-     * 绉熸埛绠＄悊鍛樼敤鎴风被锟?
+     * 绉熸埛绠$悊鍛樼敤鎴风被锟?
      */
     public static final String USER_TYPE_TENANT_ADMIN = "TENANT_ADMIN";
 

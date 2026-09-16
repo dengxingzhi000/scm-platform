@@ -119,7 +119,7 @@ public class JwtUtils {
      * 楠岃瘉Token - 鎷嗗垎涓哄涓皬鏂规硶
      */
     public boolean validateToken(String token, String currentIp, String currentDeviceId) {
-        // 1. 瑙ｆ瀽Token
+        // 1. 瑙f瀽Token
         Claims claims = parseToken(token);
         if (claims == null) {
             log.debug("Failed to parse token");
@@ -339,7 +339,7 @@ public class JwtUtils {
     }
 
     /**
-     * 瑙ｆ瀽Token锛堜笉鎶涘嚭寮傚父锛屽甫缂撳瓨锟?
+     * 瑙f瀽Token锛堜笉鎶涘嚭寮傚父锛屽甫缂撳瓨锟?
      * @return Claims or null if parsing fails
      */
     private Claims parseToken(String token) {
@@ -371,7 +371,7 @@ public class JwtUtils {
     }
 
     /**
-     * 瑙ｆ瀽Token锛堟姏鍑哄紓甯革級
+     * 瑙f瀽Token锛堟姏鍑哄紓甯革級
      * @throws UnauthorizedException if parsing fails
      */
     private Claims parseTokenOrThrow(String token) {

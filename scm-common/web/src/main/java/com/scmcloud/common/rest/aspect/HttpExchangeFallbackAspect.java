@@ -114,7 +114,7 @@ public class HttpExchangeFallbackAspect {
      * <ul>
      *   <li>鍙傛暟锛氫笌鍘熸柟娉曠浉锟? Throwable ex</li>
      *   <li>杩斿洖鍊硷細涓庡師鏂规硶鐩稿悓</li>
-     *   <li>淇グ绗︼細default锛堟帴鍙ｉ粯璁ゆ柟娉曪級</li>
+     *   <li>淇グ绗︼細default锛堟帴鍙i粯璁ゆ柟娉曪級</li>
      * </ul>
      *
      * @param joinPoint 鍒囩偣
@@ -188,7 +188,7 @@ public class HttpExchangeFallbackAspect {
             }
             paramTypes[originalArgs.length] = Throwable.class;
 
-            // 鍦ㄥ０鏄庢帴鍙ｄ腑鏌ユ壘 default 鏂规硶
+            // 鍦ㄥ0鏄庢帴鍙d腑鏌ユ壘 default 鏂规硶
             return declaringType.getDeclaredMethod(methodName, paramTypes);
 
         } catch (NoSuchMethodException e) {

@@ -37,7 +37,7 @@ public interface DataSyncPublisher {
     int publishBatch(List<DataSyncEvent> events);
 
     /**
-     * 鍙戝竷鍒版淇￠槦锟?
+     * 鍙戝竷鍒版淇¢槦锟?
      *
      * @param event 澶辫触浜嬩欢
      * @param reason 澶辫触鍘熷洜

@@ -179,7 +179,7 @@ public class AuthorizationServerConfig {
     }
 
     /**
-     * JWT 瑙ｇ爜锟?
+     * JWT 瑙g爜锟?
      */
     @Bean
     public JwtDecoder jwtDecoder(JWKSource<SecurityContext> jwkSource) {

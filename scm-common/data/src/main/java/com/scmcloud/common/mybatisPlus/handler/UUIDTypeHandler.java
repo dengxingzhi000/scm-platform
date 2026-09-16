@@ -26,7 +26,7 @@ import java.util.concurrent.atomic.LongAdder;
  *   <li>浣跨敤浣嶈繍绠楁浛浠yteBuffer锛屽噺灏戝璞″垎锟?li>
  *   <li>閲囩敤澶х锟紹ig-Endian)锛屼笌MySQL BINARY鍏煎</li>
  *   <li>鏃犵姸鎬佽璁★紝澶╃劧绾跨▼瀹夊叏锛屾棤闇€鍚屾寮€閿€</li>
- *   <li>鎻愬墠鏍￠獙锛孎ail-Fast锛岄伩鍏嶆棤鏁堣锟?li>
+ *   <li>鎻愬墠鏍¢獙锛孎ail-Fast锛岄伩鍏嶆棤鏁堣锟?li>
  * </ul>
  *
  * <p>鍙娴嬫€э細
@@ -140,7 +140,7 @@ public class UUIDTypeHandler extends BaseTypeHandler<UUID> {
      *
      * <p>鍙傝€僃acebook MySQL瀹炶返锟?
      * <ul>
-     *   <li>涓ユ牸鏍￠獙杈撳叆闀垮害锛岄槻姝㈡暟鎹崯锟?li>
+     *   <li>涓ユ牸鏍¢獙杈撳叆闀垮害锛岄槻姝㈡暟鎹崯锟?li>
      *   <li>浣跨敤浣嶈繍绠楅噸寤簂ong鍊硷紝閬垮厤ByteBuffer寮€閿€</li>
      *   <li>淇濇寔澶х搴忎竴鑷达拷/li>
      * </ul>

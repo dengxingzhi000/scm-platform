@@ -63,7 +63,7 @@ public class SecurityConfig {
                 // 2锔忊儯 CORS 閰嶇疆
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
-                // 3锔忊儯 鏃犵姸锟絊ession 绠＄悊
+                // 3锔忊儯 鏃犵姸锟絊ession 绠$悊
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                         .maximumSessions(1)
@@ -127,7 +127,7 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                         .anyRequest().authenticated())
 
-                // 7锔忊儯 鎸囧畾璁よ瘉绠＄悊鍣紙鏇夸唬 DaoAuthenticationProvider锟?
+                // 7锔忊儯 鎸囧畾璁よ瘉绠$悊鍣紙鏇夸唬 DaoAuthenticationProvider锟?
                 .authenticationManager(authenticationManager)
 
                 // 8锔忊儯 娣诲姞鑷畾涔夎繃婊ゅ櫒

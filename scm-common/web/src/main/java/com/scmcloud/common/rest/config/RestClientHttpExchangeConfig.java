@@ -25,7 +25,7 @@ import java.net.URI;
  * <p>鍔熻兘锟?
  * <ul>
  *   <li>鍒涘缓 RestClient Bean锛堝寘锟絤TLS + 绛惧悕鎷︽埅鍣級</li>
- *   <li>鍒涘缓 HttpServiceProxyFactory锛堢敤锟絳@code @HttpExchange} 浠ｇ悊锟?li>
+ *   <li>鍒涘缓 HttpServiceProxyFactory锛堢敤锟絳@code @HttpExchange} 浠g悊锟?li>
  *   <li>闆嗘垚 Nacos 鏈嶅姟鍙戠幇锛堝姩鎬佽В鏋愭湇鍔″湴鍧€锟?li>
  *   <li>娉ㄥ唽 3 涓鎴风 Bean锛圲serServiceClient銆丄uthServiceClient銆丳ermissionServiceClient锟?li>
  * </ul>
@@ -111,17 +111,17 @@ public class RestClientHttpExchangeConfig {
     }
 
     /**
-     * 锟絅acos 鏈嶅姟鍙戠幇瑙ｆ瀽鏈嶅姟 URL锛堟敮鎸佽礋杞藉潎琛★級
+     * 锟絅acos 鏈嶅姟鍙戠幇瑙f瀽鏈嶅姟 URL锛堟敮鎸佽礋杞藉潎琛★級
      *
-     * <p>瑙ｆ瀽绛栫暐锟?
+     * <p>瑙f瀽绛栫暐锟?
      * <ol>
      *   <li>浣跨敤 Spring Cloud LoadBalancer 閫夋嫨鏈嶅姟瀹炰緥</li>
-     *   <li>鏀寔澶氱璐熻浇鍧囪　绛栫暐锛圧ound Robin銆丷andom銆乄eighted 绛夛級</li>
+     *   <li>鏀寔澶氱璐熻浇鍧囪 绛栫暐锛圧ound Robin銆丷andom銆乄eighted 绛夛級</li>
      *   <li>鏍规嵁瀹炰緥锟絪ecure 鏍囧織閫夋嫨 https/http</li>
-     *   <li>濡傛灉瑙ｆ瀽澶辫触锛屼娇鐢ㄩ粯锟経RL锛坽@code http://serviceName}锟?li>
+     *   <li>濡傛灉瑙f瀽澶辫触锛屼娇鐢ㄩ粯锟経RL锛坽@code http://serviceName}锟?li>
      * </ol>
      *
-     * <p>璐熻浇鍧囪　绛栫暐锟絊pring Cloud LoadBalancer 閰嶇疆鍐冲畾锛岄粯璁や负 Round Robin锟?
+     * <p>璐熻浇鍧囪 绛栫暐锟絊pring Cloud LoadBalancer 閰嶇疆鍐冲畾锛岄粯璁や负 Round Robin锟?
      * 鍙€氳繃閰嶇疆绫昏嚜瀹氫箟绛栫暐锛堝 RandomLoadBalancer銆乄eightedServiceInstanceListSupplier 绛夛級锟?
      *
      * @param serviceName 鏈嶅姟鍚嶇О锛堝 "user-service"锟?
