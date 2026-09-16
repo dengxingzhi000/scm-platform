@@ -1,8 +1,8 @@
 package com.scmcloud.tenant.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.spring.service.IService;
 import com.scmcloud.tenant.domain.entity.TenantConfig;
-import com.baomidou.mybatisplus.extension.service.IService;
 
 /**
  * <p>
