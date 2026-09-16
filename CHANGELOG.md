@@ -39,6 +39,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   single `OutboxPoller` (`@ConditionalOnBean(KafkaMessagePublisher.class)`),
   publishing to `scm.<aggregateType>` with retry / dead-letter support.
 
+## [1.4.1] - 2026-09-16
+
+Patch release. No new features, no API changes — only dependency bumps, an
+internal MyBatis-Plus import migration, and a handful of tenant-service fixes.
+
+### Changed
+
+- **Parent POM dependency bumps** (`com.scm.parent/pom.xml`):
+  - `spring-boot` 4.0.6 → **4.1.1**
+  - `mybatis-plus` 3.5.15 → **3.5.17** (artifact split now pulls
+    `mybatis-plus-spring` for the Spring-aware compat layer)
+  - `xxl-job` 3.3.1 → **3.4.2**
+  - `org.projectlombok` 1.18.38 → **1.18.48**
+  - `fastjson2` 2.0.53 → **2.0.65**
+  - `flyway` 10.15.0 → **13.6.0**
+  - `elasticsearch` 8.11.4 → **9.5.3**
+
+### Refactored
+
+- **MyBatis-Plus `IService` / `ServiceImpl` import migration** across 22 business
+  modules (156 files, +156 / −156 lines):
+  `com.baomidou.mybatisplus.extension.service.{IService,ServiceImpl}` →
+  `com.baomidou.mybatisplus.spring.service.{IService,ServiceImpl}`.
+  Modules: `scm-approval`, `scm-audit`, `scm-auth`, `scm-document`, `scm-file`,
+  `scm-finance`, `scm-fulfillment`, `scm-inventory`, `scm-logistics`, `scm-mall`,
+  `scm-member`, `scm-message`, `scm-notify`, `scm-order`, `scm-order-center`,
+  `scm-payment`, `scm-product`, `scm-promotion`, `scm-purchase`, `scm-supplier`,
+  `scm-system`, `scm-tenant`, `scm-warehouse`.
+
+### Fixed
+
+- **`scm-tenant` Mojibake javadoc repair** in `PlatformFeeCalculationJob` and
+  `QuotaResetJob` — UTF-8 double-encoded Chinese class-level and method javadoc
+  restored to readable text.
+- **`TenantCommandService.createTenant`**: `UUID.randomUUID().toString()` →
+  `UUIDv7Util.generateString()` to align with platform-wide time-ordered ID
+  convention.
+- **`TenantCommandService` insert/update**: guard with return-value check and
+  downgrade success log to `warn` when no row is affected (previously silent).
+- **`scm-tenant` cleanup**: drop unused `java.util.List` import in
+  `TenantConfigServiceImpl`; remove redundant blank lines between class
+  declaration and first field in `TenantResourceQuotaCommandService`,
+  `TenantResourceQuotaController`, `TenantSubscriptionController`.
+
+### Verification
+
+`mvn clean compile -DskipTests -fae -f com.scm.parent/pom.xml` →
+**BUILD SUCCESS** for all 88 modules (≈ 4 min).
+
 ## [1.3.0] - 2026-08-31
 
 ### Added
