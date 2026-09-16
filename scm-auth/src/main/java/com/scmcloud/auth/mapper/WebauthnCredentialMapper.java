@@ -10,7 +10,7 @@ import java.util.UUID;
 /**
  * WebAuthn 鍑瘉Mapper鎺ュ彛
  *
- * <p>璇ユ帴鍙ｆ彁渚涗簡瀵筗ebAuthn鍑瘉鏁版嵁鐨勫熀鏈搷浣滐紝鍖呮嫭锟?p>
+ * <p>璇ユ帴鍙f彁渚涗簡瀵筗ebAuthn鍑瘉鏁版嵁鐨勫熀鏈搷浣滐紝鍖呮嫭锟?p>
  * <ul>
  *   <li>鏌ヨ鐢ㄦ埛鐨勬椿璺冨嚟锟?li>
  *   <li>鏍规嵁鐢ㄦ埛 ID鍜屽嚟锟絀D鏌ヨ鐗瑰畾鍑瘉</li>
@@ -19,7 +19,7 @@ import java.util.UUID;
  *   <li>绂佺敤鎴栧垹闄ゅ嚟锟?li>
  * </ul>
  *
- * <p>WebAuthn鏄竴绉嶇幇浠ｇ殑韬唤楠岃瘉鏍囧噯锛屽厑璁哥敤鎴蜂娇鐢ㄧ敓鐗╄瘑鍒€佸畨鍏ㄥ瘑閽ョ瓑杩涜鏃犲瘑鐮佺櫥褰曪拷/p>
+ * <p>WebAuthn鏄竴绉嶇幇浠g殑韬唤楠岃瘉鏍囧噯锛屽厑璁哥敤鎴蜂娇鐢ㄧ敓鐗╄瘑鍒€佸畨鍏ㄥ瘑閽ョ瓑杩涜鏃犲瘑鐮佺櫥褰曪拷/p>
  */
 @Mapper
 public interface WebauthnCredentialMapper extends BaseMapper<WebauthnCredential> {
@@ -84,7 +84,7 @@ public interface WebauthnCredentialMapper extends BaseMapper<WebauthnCredential>
      * @param userId 鐢ㄦ埛ID锛屼笉鑳戒负锟?
      * @param credentialId 鍑瘉ID锛屼笉鑳戒负锟?
      * @param deviceName 鏂扮殑璁惧鍚嶇О锛屼笉鑳戒负锟?
-     * @return 褰卞搷鐨勮鏁帮紝姝ｅ父鎯呭喌涓嬪簲锟?
+     * @return 褰卞搷鐨勮鏁帮紝姝e父鎯呭喌涓嬪簲锟?
      */
     @Update("""
             UPDATE webauthn_credential
@@ -103,7 +103,7 @@ public interface WebauthnCredentialMapper extends BaseMapper<WebauthnCredential>
      *
      * @param userId 鐢ㄦ埛ID锛屼笉鑳戒负锟?
      * @param credentialId 鍑瘉ID锛屼笉鑳戒负锟?
-     * @return 褰卞搷鐨勮鏁帮紝姝ｅ父鎯呭喌涓嬪簲锟?
+     * @return 褰卞搷鐨勮鏁帮紝姝e父鎯呭喌涓嬪簲锟?
      */
     @Update("""
             UPDATE webauthn_credential
@@ -121,7 +121,7 @@ public interface WebauthnCredentialMapper extends BaseMapper<WebauthnCredential>
      *
      * @param userId 鐢ㄦ埛ID锛屼笉鑳戒负锟?
      * @param credentialId 鍑瘉ID锛屼笉鑳戒负锟?
-     * @return 褰卞搷鐨勮鏁帮紝姝ｅ父鎯呭喌涓嬪簲锟?
+     * @return 褰卞搷鐨勮鏁帮紝姝e父鎯呭喌涓嬪簲锟?
      */
     @Delete("""
             DELETE FROM webauthn_credential
