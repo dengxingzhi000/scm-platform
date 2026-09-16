@@ -76,7 +76,7 @@ public interface ISysPermissionService extends IService<SysPermission> {
      *
      * @param url 璇锋眰璺緞锛圥ath锟?
      * @param method HTTP 鏂规硶锛堝锛欸ET銆丳OST銆丳UT銆丏ELETE锟?
-     * @return 璁块棶璇ユ帴鍙ｆ墍闇€鐨勬潈闄愮紪鐮佸垪锟?
+     * @return 璁块棶璇ユ帴鍙f墍闇€鐨勬潈闄愮紪鐮佸垪锟?
      */
     List<String> findPermissionsByUrl(String url, String method);
 

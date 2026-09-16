@@ -15,7 +15,7 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * 鏉冮檺绠＄悊鎺у埗锟?
+ * 鏉冮檺绠$悊鎺у埗锟?
  *
  * @author Deng
  * createData 2025/10/14 17:47

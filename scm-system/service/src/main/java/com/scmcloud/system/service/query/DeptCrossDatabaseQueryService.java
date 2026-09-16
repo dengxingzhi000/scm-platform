@@ -36,7 +36,7 @@ public class DeptCrossDatabaseQueryService {
      * <p>
      * 鏇夸唬锟絊ysDeptMapper.selectDeptTree
      *
-     * @return 閮ㄩ棬 DTO 鍒楄〃锛堝寘鍚礋璐ｄ汉濮撳悕锟?
+     * @return 閮ㄩ棬 DTO 鍒楄〃锛堝寘鍚礋璐d汉濮撳悕锟?
      */
     @Slave
     @Timed(value = "cross_db_query", extraTags = {"method", "selectDeptTree"})
@@ -47,13 +47,13 @@ public class DeptCrossDatabaseQueryService {
             return Collections.emptyList();
         }
 
-        // 2. 鏀堕泦鎵€鏈夎礋璐ｄ汉 ID
+        // 2. 鏀堕泦鎵€鏈夎礋璐d汉 ID
         Set<UUID> leaderIds = depts.stream()
                 .map(SysDept::getLeaderId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
-        // 3. 锟絬ser 搴撴壒閲忔煡璇㈣礋璐ｄ汉淇℃伅
+        // 3. 锟絬ser 搴撴壒閲忔煡璇㈣礋璐d汉淇℃伅
         Map<UUID, String> leaderNameMap = new HashMap<>();
         if (!leaderIds.isEmpty()) {
             List<SysUser> leaders = userMapper.selectBasicInfoByIds(new ArrayList<>(leaderIds));

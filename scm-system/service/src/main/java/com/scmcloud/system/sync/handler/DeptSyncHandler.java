@@ -51,7 +51,7 @@ public class DeptSyncHandler implements DataSyncHandler {
 
     private void syncDeptName(UUID deptId, Map<String, Object> data) {
         String deptName = (String) data.get("deptName");
-        // 閫氳繃鐙珛锟紹ean 璋冪敤锛岀‘锟紷Transactional 锟紷DS 鐢熸晥
+        // 閫氳繃鐙珛锟紹ean 璋冪敤锛岀'锟紷Transactional 锟紷DS 鐢熸晥
         syncExecutor.syncToAuditDb(deptId, deptName);
         syncExecutor.syncToApprovalDb(deptId, deptName);
     }

@@ -76,9 +76,9 @@ public interface SysTempPermissionMapper extends BaseMapper<SysTempPermission> {
     List<SysTempPermission> findByApprovalId(@Param("approvalId") UUID approvalId);
 
     /**
-     * 缁熻姝ｅ湪浣跨敤鎸囧畾鏉冮檺鐨勪复鏃舵巿鏉冩暟锟?
+     * 缁熻姝e湪浣跨敤鎸囧畾鏉冮檺鐨勪复鏃舵巿鏉冩暟锟?
      * <p>
-     * 鐢ㄤ簬鏉冮檺鍒犻櫎鍓嶆鏌ワ紝闃叉鎰忓鍒犻櫎姝ｅ湪琚娇鐢ㄧ殑鏉冮檺
+     * 鐢ㄤ簬鏉冮檺鍒犻櫎鍓嶆鏌ワ紝闃叉鎰忓鍒犻櫎姝e湪琚娇鐢ㄧ殑鏉冮檺
      */
     @Select("""
             SELECT COUNT(*) FROM sys_temp_permission

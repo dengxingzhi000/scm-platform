@@ -11,7 +11,7 @@ import java.util.UUID;
  * 閮ㄩ棬鍚屾鎵ц锟?
  * <p>
  * 鐙珛锟紹ean锛岀敤浜庢墽琛岃法搴撲簨鍔℃搷浣滐拷
- * 閬垮厤 @Transactional 鑷皟鐢ㄩ棶棰橈紙Spring AOP 浠ｇ悊涓嶆嫤鎴悓绫绘柟娉曡皟鐢級
+ * 閬垮厤 @Transactional 鑷皟鐢ㄩ棶棰橈紙Spring AOP 浠g悊涓嶆嫤鎴悓绫绘柟娉曡皟鐢級
  *
  * @author Deng
  * @since 2025-12-16

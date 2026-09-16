@@ -65,7 +65,7 @@ public interface SysUserOauthMapper extends BaseMapper<SysUserOauth> {
     int updateLastLoginTime(@Param("id") UUID id);
 
     /**
-     * 瑙ｇ粦 OAuth璐﹀彿
+     * 瑙g粦 OAuth璐﹀彿
      */
     @Update("""
             UPDATE sys_user_oauth
