@@ -66,7 +66,7 @@ public class UserSyncHandler implements DataSyncHandler, DataReconciliationTask.
     }
 
     /**
-     * 閫氳繃鐙珛锟紹ean 鍚屾鐢ㄦ埛淇℃伅锛岀‘锟紷Transactional 锟紷DS 鐢熸晥
+     * 閫氳繃鐙珛锟紹ean 鍚屾鐢ㄦ埛淇℃伅锛岀'锟紷Transactional 锟紷DS 鐢熸晥
      */
     private void syncUserInfo(UUID userId, Map<String, Object> data) {
         syncExecutor.syncToPermissionDb(userId, data);

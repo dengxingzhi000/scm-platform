@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * 瑙掕壊绠＄悊鎺у埗锟?
+ * 瑙掕壊绠$悊鎺у埗锟?
  *
  * @author Deng
  * createData 2025/10/14 18:01

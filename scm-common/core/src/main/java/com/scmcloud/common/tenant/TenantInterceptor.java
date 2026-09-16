@@ -102,7 +102,7 @@ public class TenantInterceptor implements Interceptor {
         String originalSql = boundSql.getSql();
 
         try {
-            // 瑙ｆ瀽SQL
+            // 瑙f瀽SQL
             Statement statement = CCJSqlParserUtil.parse(originalSql);
 
             // 鏍规嵁SQL绫诲瀷澶勭悊
@@ -124,7 +124,7 @@ public class TenantInterceptor implements Interceptor {
             log.debug("Injected tenant_id={} into SQL: {}", tenantId, newSql);
         } catch (Exception e) {
             log.error("Failed to inject tenant_id into SQL: {}", originalSql, e);
-            // 濡傛灉瑙ｆ瀽澶辫触锛岀户缁墽琛屽師SQL锛堝畨鍏ㄨ捣瑙侊紝寤鸿閰嶇疆涓烘姏寮傚父锟?
+            // 濡傛灉瑙f瀽澶辫触锛岀户缁墽琛屽師SQL锛堝畨鍏ㄨ捣瑙侊紝寤鸿閰嶇疆涓烘姏寮傚父锟?
         }
 
         return invocation.proceed();

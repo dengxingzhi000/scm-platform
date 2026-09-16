@@ -47,7 +47,7 @@ public class BusinessMetrics {
 
     /**
      * 璁板綍涓氬姟鎸囨爣 - 璁℃椂锟?
-     * 绀轰緥锛氭帴鍙ｈ€楁椂銆佷笟鍔″鐞嗘椂锟?
+     * 绀轰緥锛氭帴鍙h€楁椂銆佷笟鍔″鐞嗘椂锟?
      */
     public void recordTime(String metricName, long timeMs, String... tags) {
         String key = metricName + String.join(",", tags);

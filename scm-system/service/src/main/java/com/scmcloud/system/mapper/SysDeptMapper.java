@@ -13,7 +13,7 @@ import java.util.UUID;
  * 閮ㄩ棬锟組apper 鎺ュ彛
  * <p>
  * 娉ㄦ剰锛氭 Mapper 鍙锟絛b_org 搴撲腑锟絪ys_dept 锟?
- * 闇€瑕佽幏鍙栭儴闂ㄨ礋璐ｄ汉淇℃伅鏃讹紝璇峰湪 Service 灞傝仛鍚堟煡锟?
+ * 闇€瑕佽幏鍙栭儴闂ㄨ礋璐d汉淇℃伅鏃讹紝璇峰湪 Service 灞傝仛鍚堟煡锟?
  *
  * @author author
  * @since 2025-11-07
@@ -23,7 +23,7 @@ import java.util.UUID;
 public interface SysDeptMapper extends BaseMapper<SysDept> {
 
     /**
-     * 鏌ヨ鎵€鏈夐儴闂ㄥ垪琛紙涓嶅寘鍚礋璐ｄ汉淇℃伅锟?
+     * 鏌ヨ鎵€鏈夐儴闂ㄥ垪琛紙涓嶅寘鍚礋璐d汉淇℃伅锟?
      * 璐熻矗浜轰俊鎭渶瑕佸湪 Service 灞傞€氳繃 SysUserMapper 鑱氬悎
      */
     @Select("""
@@ -191,7 +191,7 @@ public interface SysDeptMapper extends BaseMapper<SysDept> {
 
     /**
      * 鏇存柊璐熻矗浜哄啑浣欎俊锟?
-     * 锟絛b_user.sys_user 鍙樻洿鏃惰皟鐢紙鏇存柊璇ョ敤鎴蜂綔涓鸿礋璐ｄ汉鐨勬墍鏈夐儴闂級
+     * 锟絛b_user.sys_user 鍙樻洿鏃惰皟鐢紙鏇存柊璇ョ敤鎴蜂綔涓鸿礋璐d汉鐨勬墍鏈夐儴闂級
      */
     @Update("""
             UPDATE sys_dept
@@ -204,7 +204,7 @@ public interface SysDeptMapper extends BaseMapper<SysDept> {
                                @Param("leaderPhone") String leaderPhone);
 
     /**
-     * 鏌ヨ閮ㄩ棬鏍戯紙鍖呭惈鍐椾綑鐨勮礋璐ｄ汉淇℃伅锛屾棤闇€璺ㄥ簱锟?
+     * 鏌ヨ閮ㄩ棬鏍戯紙鍖呭惈鍐椾綑鐨勮礋璐d汉淇℃伅锛屾棤闇€璺ㄥ簱锟?
      */
     @Select("""
             SELECT id, parent_id, dept_code, dept_name, dept_type,

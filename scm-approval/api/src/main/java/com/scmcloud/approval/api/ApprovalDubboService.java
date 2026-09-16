@@ -6,7 +6,7 @@ import com.scmcloud.approval.api.request.ApprovalRequest;
 /**
  * 瀹℃壒鏈嶅姟 Dubbo 鎺ュ彛
  *
- * <p>鎻愪緵瀹℃壒鎻愪氦銆佸鎵归€氳繃/椹冲洖銆佺姸鎬佹煡璇㈢瓑鏍稿績鍔熻兘锛屼緵鍏朵粬寰湇鍔￠€氳繃 RPC 璋冪敤锟?
+ * <p>鎻愪緵瀹℃壒鎻愪氦銆佸鎵归€氳繃/椹冲洖銆佺姸鎬佹煡璇㈢瓑鏍稿績鍔熻兘锛屼緵鍏朵粬寰湇鍔¢€氳繃 RPC 璋冪敤锟?
  *
  * @author SCM Platform Team
  * @since 2025-12-26

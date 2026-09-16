@@ -34,7 +34,7 @@ public interface SysAuthServiceClient {
      *
      * <p>浣跨敤鍦烘櫙锟?
      * <ul>
-     *   <li>绠＄悊鍛樺己鍒剁敤鎴蜂笅锟?li>
+     *   <li>绠$悊鍛樺己鍒剁敤鎴蜂笅锟?li>
      *   <li>瀹夊叏绛栫暐瑙﹀彂寮哄埗鐧诲嚭</li>
      *   <li>璐﹀彿寮傚父琛屼负妫€娴嬪悗寮哄埗鐧诲嚭</li>
      * </ul>

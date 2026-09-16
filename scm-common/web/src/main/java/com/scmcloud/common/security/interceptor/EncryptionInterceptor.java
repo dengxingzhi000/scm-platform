@@ -102,7 +102,7 @@ public class EncryptionInterceptor implements Interceptor {
     }
 
     /**
-     * 瑙ｅ瘑瀛楁
+     * 瑙e瘑瀛楁
      */
     private void decryptFields(Object obj) throws IllegalAccessException {
         if (obj == null) return;

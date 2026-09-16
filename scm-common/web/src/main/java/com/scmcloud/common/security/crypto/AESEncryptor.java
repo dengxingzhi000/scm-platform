@@ -48,7 +48,7 @@ public class AESEncryptor {
     }
 
     /**
-     * 瑙ｅ瘑
+     * 瑙e瘑
      */
     public String decrypt(String cipherText) {
         if (cipherText == null || cipherText.isEmpty()) {
@@ -58,7 +58,7 @@ public class AESEncryptor {
             return aes.decryptStr(cipherText);
         } catch (Exception e) {
             log.error("Decryption failed", e);
-            throw new RuntimeException("鏁版嵁瑙ｅ瘑澶辫触", e);
+            throw new RuntimeException("鏁版嵁瑙e瘑澶辫触", e);
         }
     }
 }

@@ -25,7 +25,7 @@ public class TotpUtils {
     private static final String ALGORITHM = "HmacSHA1";
     private static final int TIME_STEP = 30; // 30绉掓椂闂寸獥锟?
     private static final int DIGITS = 6; // 6浣嶉獙璇佺爜
-    private static final int WINDOW = 1; // 鍏佽鍓嶅悗1涓椂闂寸獥鍙ｏ紙闃叉鏃堕棿璇樊锟?
+    private static final int WINDOW = 1; // 鍏佽鍓嶅悗1涓椂闂寸獥鍙o紙闃叉鏃堕棿璇樊锟?
 
     /**
      * 鐢熸垚瀵嗛挜锛圔ase32缂栫爜锟?
@@ -66,7 +66,7 @@ public class TotpUtils {
         try {
             long currentTime = Instant.now().getEpochSecond() / TIME_STEP;
 
-            // 妫€鏌ュ綋鍓嶆椂闂寸獥鍙ｅ拰鍓嶅悗锟絎INDOW涓獥锟?
+            // 妫€鏌ュ綋鍓嶆椂闂寸獥鍙e拰鍓嶅悗锟絎INDOW涓獥锟?
             for (int i = -WINDOW; i <= WINDOW; i++) {
                 long time = currentTime + i;
                 String generatedCode = generateCode(secret, time);

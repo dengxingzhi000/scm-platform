@@ -61,7 +61,7 @@ public class InventoryStatsResponse {
   private Long lowStockCount;
 
   /**
-   * 姝ｅ父搴撳瓨 SKU 鏁伴噺
+   * 姝e父搴撳瓨 SKU 鏁伴噺
    */
   private Long normalStockCount;
 }

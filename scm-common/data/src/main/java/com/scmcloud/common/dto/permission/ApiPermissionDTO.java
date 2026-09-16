@@ -10,7 +10,7 @@ import java.io.Serializable;
 
 /**
  * API 鏉冮檺 DTO
- * 鐢ㄤ簬鍔ㄦ€佹潈闄愬姞杞斤紝浠呭寘锟紸PI 鏉冮檺鏍￠獙鎵€闇€鐨勬牳蹇冨瓧锟?
+ * 鐢ㄤ簬鍔ㄦ€佹潈闄愬姞杞斤紝浠呭寘锟紸PI 鏉冮檺鏍¢獙鎵€闇€鐨勬牳蹇冨瓧锟?
  *
  * @author Deng
  * @version 1.0

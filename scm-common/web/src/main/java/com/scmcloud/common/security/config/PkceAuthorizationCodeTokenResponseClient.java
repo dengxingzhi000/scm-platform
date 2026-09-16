@@ -26,7 +26,7 @@ import java.util.Base64;
 public class PkceAuthorizationCodeTokenResponseClient
         implements OAuth2AccessTokenResponseClient<OAuth2AuthorizationCodeGrantRequest> {
     private final OAuth2AccessTokenResponseClient<OAuth2AuthorizationCodeGrantRequest> delegate;
-    private final PkceChallengeStore pkceChallengeStore; // 鑷畾涔夋帴鍙ｏ紝鐢ㄤ簬瀛樺偍/璇诲彇 code_challenge
+    private final PkceChallengeStore pkceChallengeStore; // 鑷畾涔夋帴鍙o紝鐢ㄤ簬瀛樺偍/璇诲彇 code_challenge
 
     @Override
     public OAuth2AccessTokenResponse getTokenResponse(OAuth2AuthorizationCodeGrantRequest grantRequest) {
@@ -42,7 +42,7 @@ public class PkceAuthorizationCodeTokenResponseClient
             );
         }
 
-        // 2锔忊儯 鏍￠獙 PKCE 鎸戞垬锟?
+        // 2锔忊儯 鏍¢獙 PKCE 鎸戞垬锟?
         String storedChallenge = pkceChallengeStore.load(authRequest.getAuthorizationRequestUri());
         if (storedChallenge == null) {
             throw new OAuth2AuthorizationException(
@@ -63,7 +63,7 @@ public class PkceAuthorizationCodeTokenResponseClient
     }
 
     /**
-     * 璁＄畻 PKCE 锟絊HA-256 challenge 鍊硷紙Base64Url 缂栫爜锟?
+     * 璁$畻 PKCE 锟絊HA-256 challenge 鍊硷紙Base64Url 缂栫爜锟?
      */
     private String calculateCodeChallenge(String verifier) {
         try {

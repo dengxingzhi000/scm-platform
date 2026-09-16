@@ -48,7 +48,7 @@ public class QuotaUsage {
     private boolean exceeded;
 
     /**
-     * 璁＄畻鍙敤閰嶉
+     * 璁$畻鍙敤閰嶉
      */
     public void calculateAvailable() {
         this.availableQuota = Math.max(0, maxQuota - currentUsage);

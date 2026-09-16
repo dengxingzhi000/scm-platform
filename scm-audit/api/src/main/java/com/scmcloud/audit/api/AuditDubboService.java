@@ -7,7 +7,7 @@ import com.scmcloud.audit.api.request.AuditQueryRequest;
 /**
  * 瀹¤鏈嶅姟 Dubbo 鎺ュ彛
  *
- * <p>鎻愪緵鎿嶄綔鏃ュ織璁板綍銆佹棩蹇楁煡璇㈢瓑鏍稿績鍔熻兘锛屼緵鍏朵粬寰湇鍔￠€氳繃 RPC 璋冪敤锟?
+ * <p>鎻愪緵鎿嶄綔鏃ュ織璁板綍銆佹棩蹇楁煡璇㈢瓑鏍稿績鍔熻兘锛屼緵鍏朵粬寰湇鍔¢€氳繃 RPC 璋冪敤锟?
  *
  * @author SCM Platform Team
  * @since 2025-12-26

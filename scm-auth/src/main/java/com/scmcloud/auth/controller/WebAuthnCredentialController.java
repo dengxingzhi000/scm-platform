@@ -27,9 +27,9 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * WebAuthn 鍑瘉绠＄悊鎺у埗锟?
+ * WebAuthn 鍑瘉绠$悊鎺у埗锟?
  * <p>
- * 鎻愪緵WebAuthn鍑瘉鐨勬敞鍐屻€佽璇佸拰绠＄悊鍔熻兘
+ * 鎻愪緵WebAuthn鍑瘉鐨勬敞鍐屻€佽璇佸拰绠$悊鍔熻兘
  * 鍙傝€僄oogle Passkey鍜孎IDO2鏈€浣冲疄锟?
  *
  * @author system

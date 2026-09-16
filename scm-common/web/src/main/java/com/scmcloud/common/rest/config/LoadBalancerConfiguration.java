@@ -14,11 +14,11 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 
 /**
- * Spring Cloud LoadBalancer 璐熻浇鍧囪　绛栫暐閰嶇疆
+ * Spring Cloud LoadBalancer 璐熻浇鍧囪 绛栫暐閰嶇疆
  *
- * <p>鏀寔鐨勮礋杞藉潎琛＄瓥鐣ワ細
+ * <p>鏀寔鐨勮礋杞藉潎琛$瓥鐣ワ細
  * <ul>
- *   <li><b>round-robin</b>锛堥粯璁わ級: 杞绛栫暐锛屼緷娆￠€夋嫨瀹炰緥</li>
+ *   <li><b>round-robin</b>锛堥粯璁わ級: 杞绛栫暐锛屼緷娆¢€夋嫨瀹炰緥</li>
  *   <li><b>random</b>: 闅忔満绛栫暐锛岄殢鏈洪€夋嫨瀹炰緥</li>
  *   <li><b>weighted-round-robin</b>: 鍔犳潈杞锛屾牴鎹疄渚嬫潈閲嶅垎閰嶈锟?li>
  * </ul>
@@ -28,7 +28,7 @@ import org.springframework.core.env.Environment;
  * spring:
  *   cloud:
  *     loadbalancer:
- *       # 璐熻浇鍧囪　绛栫暐: round-robin锛堥粯璁わ級, random, weighted-round-robin
+ *       # 璐熻浇鍧囪 绛栫暐: round-robin锛堥粯璁わ級, random, weighted-round-robin
  *       strategy: round-robin
  *
  *       # Nacos 鏉冮噸閰嶇疆锛堜粎 weighted-round-robin 绛栫暐鐢熸晥锟?
@@ -50,7 +50,7 @@ import org.springframework.core.env.Environment;
 public class LoadBalancerConfiguration {
 
     /**
-     * Round Robin 璐熻浇鍧囪　鍣紙榛樿绛栫暐锟?
+     * Round Robin 璐熻浇鍧囪 鍣紙榛樿绛栫暐锟?
      * <p>杞閫夋嫨瀹炰緥锛岄€傜敤浜庡疄渚嬫€ц兘鐩歌繎鐨勫満锟?p>
      */
     @Bean
@@ -70,8 +70,8 @@ public class LoadBalancerConfiguration {
     }
 
     /**
-     * Random 璐熻浇鍧囪　锟?
-     * <p>闅忔満閫夋嫨瀹炰緥锛岄€傜敤浜庡揩閫熷垎鏁ｈ姹傜殑鍦烘櫙</p>
+     * Random 璐熻浇鍧囪 锟?
+     * <p>闅忔満閫夋嫨瀹炰緥锛岄€傜敤浜庡揩閫熷垎鏁h姹傜殑鍦烘櫙</p>
      */
     @Bean
     @ConditionalOnProperty(
@@ -89,7 +89,7 @@ public class LoadBalancerConfiguration {
     }
 
     /**
-     * Weighted Round Robin 璐熻浇鍧囪　鍣紙鍩轰簬 Nacos 鏉冮噸锟?
+     * Weighted Round Robin 璐熻浇鍧囪 鍣紙鍩轰簬 Nacos 鏉冮噸锟?
      * <p>鏍规嵁瀹炰緥鏉冮噸鍒嗛厤璇锋眰锛岄€傜敤浜庡疄渚嬫€ц兘宸紓杈冨ぇ鐨勫満锟?p>
      *
      * <p>鏉冮噸閰嶇疆锟?

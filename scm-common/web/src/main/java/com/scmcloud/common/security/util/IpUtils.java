@@ -68,7 +68,7 @@ public class IpUtils {
             }
         }
 
-        // 瀵逛簬閫氳繃澶氫釜浠ｇ悊鐨勬儏鍐碉紝绗竴涓狪P涓哄鎴风鐪熷疄IP锛屽涓狪P鎸夌収','鍒嗗壊
+        // 瀵逛簬閫氳繃澶氫釜浠g悊鐨勬儏鍐碉紝绗竴涓狪P涓哄鎴风鐪熷疄IP锛屽涓狪P鎸夌収','鍒嗗壊
         if (ip != null && ip.length() > 15 && ip.indexOf(",") > 0) {
             ip = ip.substring(0, ip.indexOf(","));
         }

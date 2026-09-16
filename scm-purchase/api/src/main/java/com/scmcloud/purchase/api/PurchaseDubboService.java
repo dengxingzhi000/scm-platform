@@ -6,7 +6,7 @@ import com.scmcloud.purchase.api.request.PurchaseRequestDTO;
 /**
  * 閲囪喘鏈嶅姟 Dubbo 鎺ュ彛
  *
- * <p>鎻愪緵閲囪喘鐢宠銆侀噰璐崟鏌ヨ銆佹敹璐х‘璁ょ瓑鏍稿績鍔熻兘锛屼緵鍏朵粬寰湇鍔￠€氳繃 RPC 璋冪敤锟?
+ * <p>鎻愪緵閲囪喘鐢宠銆侀噰璐崟鏌ヨ銆佹敹璐х'璁ょ瓑鏍稿績鍔熻兘锛屼緵鍏朵粬寰湇鍔¢€氳繃 RPC 璋冪敤锟?
  *
  * @author SCM Platform Team
  * @since 2025-12-26

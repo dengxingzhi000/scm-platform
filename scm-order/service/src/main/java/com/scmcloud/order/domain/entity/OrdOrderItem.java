@@ -88,8 +88,8 @@ public class OrdOrderItem {
     private Money refundAmount;
 
     /**
-     * 剩余可退件数（DB 生成列 {@code GENERATED ALWAYS AS (quantity - refund_quantity) STORED}，
-     * 应用层只读）。{@code null} 表示 DB 尚未生成（旧数据兼容）。
+     * 剩余可退件数(DB 生成列 {@code GENERATED ALWAYS AS (quantity - refund_quantity) STORED},
+     * 应用层只读)。{@code null} 表示 DB 尚未生成(旧数据兼容)。
      */
     @TableField("refund_remaining_quantity")
     private Integer refundRemainingQuantity;

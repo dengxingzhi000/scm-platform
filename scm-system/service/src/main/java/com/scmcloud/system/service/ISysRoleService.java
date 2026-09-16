@@ -23,7 +23,7 @@ public interface ISysRoleService extends IService<SysRole> {
      *
      * @param pageNum  椤电爜锛屼粠 1 寮€锟?
      * @param pageSize 姣忛〉鏁伴噺
-     * @param roleName 瑙掕壊鍚嶇О锛堝彲閫夛紝鏀寔妯＄硦鏌ヨ锟?
+     * @param roleName 瑙掕壊鍚嶇О锛堝彲閫夛紝鏀寔妯$硦鏌ヨ锟?
      * @return 瑙掕壊鍒嗛〉鏁版嵁
      */
     Page<RoleDTO> listRoles(Integer pageNum, Integer pageSize, String roleName);

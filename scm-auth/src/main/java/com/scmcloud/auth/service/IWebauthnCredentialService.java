@@ -138,7 +138,7 @@ public interface IWebauthnCredentialService extends IService<WebauthnCredential>
      * @param credentialId 鍑瘉 ID
      * @param success      鏄惁鎴愬姛
      * @param ipAddress    IP 鍦板潃
-     * @param userAgent    鐢ㄦ埛浠ｇ悊
+     * @param userAgent    鐢ㄦ埛浠g悊
      */
     void logAuthenticationAttempt(UUID userId, String credentialId,
                                    boolean success, String ipAddress, String userAgent);

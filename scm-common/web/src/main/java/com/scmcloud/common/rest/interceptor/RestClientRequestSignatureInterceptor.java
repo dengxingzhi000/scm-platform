@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
  * <ul>
  *   <li>鑷姩涓烘墍锟紿TTP 璇锋眰娣诲姞 HMAC-SHA256 绛惧悕</li>
  *   <li>闃查噸鏀炬敾鍑伙細浣跨敤鏃堕棿锟? nonce</li>
- *   <li>鍙傛暟鎺掑簭锛氱‘淇濈鍚嶄竴鑷达拷/li>
+ *   <li>鍙傛暟鎺掑簭锛氱'淇濈鍚嶄竴鑷达拷/li>
  *   <li>鏈嶅姟闂磋璇侊細鍩轰簬 App-ID 锟絊ecret-Key</li>
  * </ul>
  *
@@ -65,7 +65,7 @@ public class RestClientRequestSignatureInterceptor implements ClientHttpRequestI
         String timestamp = String.valueOf(System.currentTimeMillis());
         String nonce = UUIDv7Util.generate().toString().replace("-", "");
 
-        // 璁＄畻绛惧悕
+        // 璁$畻绛惧悕
         String signature = calculateSignature(request, timestamp, nonce);
 
         // 娣诲姞绛惧悕 Header
@@ -84,14 +84,14 @@ public class RestClientRequestSignatureInterceptor implements ClientHttpRequestI
     }
 
     /**
-     * 璁＄畻璇锋眰绛惧悕
+     * 璁$畻璇锋眰绛惧悕
      *
      * <p>绛惧悕绠楁硶锟?
      * <pre>
      * 1. 鎻愬彇 URI 璺緞锛堜笉鍚煙鍚嶅拰绔彛锟?
      * 2. 鎻愬彇鏌ヨ鍙傛暟骞舵寜 key 鎺掑簭
      * 3. 鎷兼帴绛惧悕鍐呭锛歵imestamp + nonce + appId + uri + sortedParams
-     * 4. 浣跨敤 HMAC-SHA256 璁＄畻绛惧悕
+     * 4. 浣跨敤 HMAC-SHA256 璁$畻绛惧悕
      * </pre>
      *
      * @param request   HTTP 璇锋眰
@@ -126,7 +126,7 @@ public class RestClientRequestSignatureInterceptor implements ClientHttpRequestI
             log.trace("Signature content: {}", signContent);
         }
 
-        // 璁＄畻 HMAC-SHA256 绛惧悕
+        // 璁$畻 HMAC-SHA256 绛惧悕
         return SecureUtil.hmac(HmacAlgorithm.HmacSHA256, secretKey.getBytes(StandardCharsets.UTF_8))
             .digestHex(signContent);
     }

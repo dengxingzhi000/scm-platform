@@ -13,7 +13,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * 浼氳瘽绠＄悊鏈嶅姟
+ * 浼氳瘽绠$悊鏈嶅姟
  */
 @Service
 @RequiredArgsConstructor

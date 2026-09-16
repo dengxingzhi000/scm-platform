@@ -22,7 +22,7 @@ import java.util.UUID;
  * 1. HTTP Header: X-Tenant-Id
  * 2. HTTP Header: Tenant-Id
  * 3. Request Parameter: tenantId
- * 4. JWT Token 涓殑 tenant_id claim锛堥渶閰嶅悎JWT瑙ｆ瀽锟?
+ * 4. JWT Token 涓殑 tenant_id claim锛堥渶閰嶅悎JWT瑙f瀽锟?
  *
  * @author Claude Code
  * @since 2025-01-24
@@ -55,7 +55,7 @@ public class TenantFilter implements Filter {
                         tenantId, httpRequest.getRequestURI());
             } else {
                 log.warn("No tenant ID found in request: {}", httpRequest.getRequestURI());
-                // 鍙互閫夋嫨鎶涘紓甯告垨鍏佽缁х画锛堟牴鎹笟鍔￠渶姹傦級
+                // 鍙互閫夋嫨鎶涘紓甯告垨鍏佽缁х画锛堟牴鎹笟鍔¢渶姹傦級
                 // throw new TenantContextHolder.TenantNotFoundException("Tenant ID is required");
             }
 
@@ -110,7 +110,7 @@ public class TenantFilter implements Filter {
 
     /**
      * 浠嶫WT Token涓彁鍙栫鎴稩D
-     * 杞婚噺绾у疄鐜帮細Base64瑙ｇ爜JWT payload锛屾彁锟絫enant_id claim
+     * 杞婚噺绾у疄鐜帮細Base64瑙g爜JWT payload锛屾彁锟絫enant_id claim
      * 涓嶅仛绛惧悕楠岃瘉锛堢鍚嶉獙璇佺敱 JwtAuthenticationFilter 璐熻矗锟?
      */
     private String extractFromJwtToken(HttpServletRequest request) {
