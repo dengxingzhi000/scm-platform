@@ -1,6 +1,6 @@
 package com.scmcloud.auth.service.Impl;
 
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.scmcloud.auth.domain.dto.*;
 import com.scmcloud.auth.domain.entity.WebauthnCredential;
 import com.scmcloud.auth.mapper.WebauthnCredentialMapper;

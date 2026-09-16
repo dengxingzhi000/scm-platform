@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.scmcloud.finance.domain.entity.FreightRule;
 import com.scmcloud.finance.mapper.FreightRuleMapper;
 import com.scmcloud.finance.service.IFreightRuleService;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 

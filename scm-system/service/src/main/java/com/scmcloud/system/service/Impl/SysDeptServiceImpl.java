@@ -12,7 +12,7 @@ import com.scmcloud.system.mapper.SysDeptMapper;
 import com.scmcloud.system.service.ISysDeptService;
 import com.scmcloud.system.service.command.DeptRoleCrossDatabaseCommandService;
 import com.scmcloud.system.service.query.DeptCrossDatabaseQueryService;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;

@@ -2,7 +2,7 @@ package com.scmcloud.finance.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.scmcloud.finance.domain.entity.SettlementOrder;
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.spring.service.IService;
 
 import java.math.BigDecimal;
 

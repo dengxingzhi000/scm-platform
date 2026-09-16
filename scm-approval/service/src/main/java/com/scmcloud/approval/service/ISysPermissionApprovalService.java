@@ -1,7 +1,7 @@
 package com.scmcloud.approval.service;
 
 import com.scmcloud.approval.domain.entity.SysPermissionApproval;
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.spring.service.IService;
 
 import java.util.List;
 

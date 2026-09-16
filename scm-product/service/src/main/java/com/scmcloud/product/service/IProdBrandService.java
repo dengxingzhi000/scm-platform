@@ -1,6 +1,6 @@
 package com.scmcloud.product.service;
 
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.spring.service.IService;
 import com.scmcloud.product.domain.entity.ProdBrand;
 
 import java.util.List;

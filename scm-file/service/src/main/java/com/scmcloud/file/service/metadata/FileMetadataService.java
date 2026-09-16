@@ -1,7 +1,7 @@
 package com.scmcloud.file.service.metadata;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.scmcloud.file.entity.FileMetadata;
 import com.scmcloud.file.mapper.FileMetadataMapper;
 import lombok.extern.slf4j.Slf4j;

@@ -1,6 +1,6 @@
 package com.scmcloud.auth.service;
 
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.spring.service.IService;
 import com.scmcloud.auth.domain.dto.WebauthnAuthenticationRequest;
 import com.scmcloud.auth.domain.dto.WebauthnCredentialDTO;
 import com.scmcloud.auth.domain.dto.WebauthnRegistrationRequest;

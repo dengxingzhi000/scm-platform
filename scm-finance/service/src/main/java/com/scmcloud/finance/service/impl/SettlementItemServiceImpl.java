@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.scmcloud.finance.domain.entity.SettlementItem;
 import com.scmcloud.finance.mapper.SettlementItemMapper;
 import com.scmcloud.finance.service.ISettlementItemService;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 

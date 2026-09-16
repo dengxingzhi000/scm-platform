@@ -1,6 +1,6 @@
 package com.scmcloud.order.service.impl;
 
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.scmcloud.common.status.StatusValidator;
 import com.scmcloud.order.domain.entity.OrdPayment;
 import com.scmcloud.order.domain.entity.PaymentStatus;

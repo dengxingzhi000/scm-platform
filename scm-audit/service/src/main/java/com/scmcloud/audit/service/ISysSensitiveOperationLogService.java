@@ -1,7 +1,7 @@
 package com.scmcloud.audit.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.spring.service.IService;
 import com.scmcloud.audit.domain.entity.SysSensitiveOperationLog;
 
 import java.util.List;

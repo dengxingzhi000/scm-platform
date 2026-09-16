@@ -1,7 +1,7 @@
 package com.scmcloud.promotion.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.scmcloud.promotion.domain.entity.Coupon;
 import com.scmcloud.promotion.domain.entity.CouponTemplate;
 import com.scmcloud.promotion.mapper.CouponMapper;

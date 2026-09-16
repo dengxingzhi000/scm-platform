@@ -1,6 +1,6 @@
 package com.scmcloud.document.file.service;
 
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.scmcloud.document.file.domain.entity.DocumentFile;
 import com.scmcloud.document.file.mapper.DocumentFileMapper;
 import com.scmcloud.file.api.FileManageApi;

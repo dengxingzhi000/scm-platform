@@ -1,6 +1,6 @@
 package com.scmcloud.document.template.service;
 
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.scmcloud.document.template.domain.entity.DocTemplateSchema;
 import com.scmcloud.document.template.mapper.DocTemplateSchemaMapper;
 import lombok.extern.slf4j.Slf4j;

@@ -1,7 +1,7 @@
 package com.scmcloud.product.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.spring.service.IService;
 import com.scmcloud.product.domain.entity.ProdSpu;
 
 import java.util.List;

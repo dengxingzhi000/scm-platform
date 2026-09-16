@@ -1,7 +1,7 @@
 package com.scmcloud.document.template.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.scmcloud.document.template.domain.entity.DocTemplate;
 import com.scmcloud.document.template.domain.entity.DocTemplateVersion;
 import com.scmcloud.document.template.mapper.DocTemplateMapper;

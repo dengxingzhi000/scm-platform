@@ -1,6 +1,6 @@
 package com.scmcloud.purchase.service;
 
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.spring.service.IService;
 import com.scmcloud.purchase.domain.entity.PurQuotationItem;
 
 import java.util.List;
