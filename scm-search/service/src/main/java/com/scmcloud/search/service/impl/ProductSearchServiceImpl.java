@@ -19,7 +19,6 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 public class ProductSearchServiceImpl implements IProductSearchService {
-
     private final ProductDocumentRepository productRepository;
     private final ElasticsearchOperations elasticsearchOperations;
 

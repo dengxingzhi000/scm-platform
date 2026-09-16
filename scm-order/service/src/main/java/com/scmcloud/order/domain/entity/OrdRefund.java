@@ -98,7 +98,7 @@ public class OrdRefund {
     // ─── Transient ──────────────────────────────────────────────
 
     /**
-     * 退款明细行（不持久化到 {@code ord_refund} 表，由 {@code ord_refund_item} 子表存储）。
+     * 退款明细行(不持久化到 {@code ord_refund} 表,由 {@code ord_refund_item} 子表存储)。
      * 由 {@code OrdRefundItemQueryService.listByRefundId(refundId)} 加载填充。
      */
     @TableField(exist = false)
@@ -114,7 +114,7 @@ public class OrdRefund {
     }
 
     /**
-     * 通过枚举设置状态（写入 {@code status} 整数字段）。
+     * 通过枚举设置状态(写入 {@code status} 整数字段)。
      */
     public OrdRefund setStatusEnum(RefundStatus refundStatus) {
         this.status = refundStatus == null ? null : refundStatus.getCode();

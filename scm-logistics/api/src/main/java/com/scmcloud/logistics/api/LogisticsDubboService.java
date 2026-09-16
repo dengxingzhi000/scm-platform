@@ -6,7 +6,7 @@ import com.scmcloud.logistics.api.request.WaybillRequest;
 /**
  * 鐗╂祦鏈嶅姟 Dubbo 鎺ュ彛
  *
- * <p>鎻愪緵杩愬崟鍒涘缓銆佹煡璇€佺墿娴佺姸鎬佹洿鏂扮瓑鏍稿績鍔熻兘锛屼緵鍏朵粬寰湇鍔￠€氳繃 RPC 璋冪敤锟?
+ * <p>鎻愪緵杩愬崟鍒涘缓銆佹煡璇€佺墿娴佺姸鎬佹洿鏂扮瓑鏍稿績鍔熻兘锛屼緵鍏朵粬寰湇鍔¢€氳繃 RPC 璋冪敤锟?
  *
  * @author SCM Platform Team
  * @since 2025-12-26

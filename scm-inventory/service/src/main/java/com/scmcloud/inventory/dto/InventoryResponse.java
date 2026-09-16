@@ -70,7 +70,7 @@ public class InventoryResponse {
   private BigDecimal averageCost;
 
   /**
-   * 搴撳瓨鐘舵€侊紙NORMAL-姝ｅ父, LOW_STOCK-浣庡簱锟?OUT_OF_STOCK-缂鸿揣锟?
+   * 搴撳瓨鐘舵€侊紙NORMAL-姝e父, LOW_STOCK-浣庡簱锟?OUT_OF_STOCK-缂鸿揣锟?
    */
   private String stockStatus;
 

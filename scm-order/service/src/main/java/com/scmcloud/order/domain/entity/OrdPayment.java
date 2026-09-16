@@ -98,7 +98,7 @@ public class OrdPayment {
     }
 
     /**
-     * 通过枚举设置状态（写入 {@code status} 整数字段）。
+     * 通过枚举设置状态(写入 {@code status} 整数字段)。
      */
     public OrdPayment setStatusEnum(PaymentStatus paymentStatus) {
         this.status = paymentStatus == null ? null : paymentStatus.getCode();

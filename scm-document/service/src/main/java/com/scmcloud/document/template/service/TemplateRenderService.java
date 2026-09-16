@@ -24,7 +24,6 @@ import java.util.Map;
 @Slf4j
 @Service
 public class TemplateRenderService {
-
     private final TemplateService templateService;
     private final TemplateSchemaService schemaService;
     private final DocumentService documentService;

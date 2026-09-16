@@ -13,7 +13,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
  *
  * <p>搴撳瓨鏈嶅姟璐負矗锟?
  * <ul>
- *     <li>搴撳瓨绠＄悊锟堟煡璇€佽皟鏁淬€佽浆绉伙級</li>
+ *     <li>搴撳瓨绠$悊锟堟煡璇€佽皟鏁淬€佽浆绉伙級</li>
  *     <li>搴撳瓨棰勫崰涓庨噴鏀撅紙璁㈠崟鍦烘櫙锟?/li>
  *     <li>搴撳瓨鍛婅锛堜綆搴撳瓨銆佺己璐э級</li>
  *     <li>搴撳瓨蹇収锛庢瘡鏃ョ粺璁★級</li>

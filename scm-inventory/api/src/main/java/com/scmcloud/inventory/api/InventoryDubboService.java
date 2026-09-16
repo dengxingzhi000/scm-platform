@@ -15,13 +15,13 @@ import com.scmcloud.inventory.api.request.BatchDeductStockRequest;
 public interface InventoryDubboService {
 
     /**
-     * 鎵ｅ噺搴撳瓨
+     * 鎵e噺搴撳瓨
      *
      * <p>姝ゆ柟娉曞弬锟絊eata 鍒嗗竷寮忎簨鍔★紝鏃犻渶娣诲姞 @GlobalTransactional 娉ㄨВ锟?
      * <p>閫氳繃 Dubbo RPC 璋冪敤鏃讹紝浼氳嚜鍔ㄥ姞鍏ヨ皟鐢ㄦ柟鐨勫叏灞€浜嬪姟锟?
      *
      * @param skuId SKU ID
-     * @param quantity 鎵ｅ噺鏁伴噺
+     * @param quantity 鎵e噺鏁伴噺
      * @param requestId 骞傜瓑鎬ц锟絀D锛堝缓璁娇鐢ㄨ鍗曞彿锟?
      * @throws InsufficientStockException 搴撳瓨涓嶈冻寮傚父
      * @throws IllegalArgumentException 鍙傛暟闈炴硶寮傚父
@@ -29,9 +29,9 @@ public interface InventoryDubboService {
     void deductStock(Long skuId, Integer quantity, String requestId);
 
     /**
-     * 鎵归噺鎵ｅ噺搴撳瓨
+     * 鎵归噺鎵e噺搴撳瓨
      *
-     * @param deductRequest 鎵归噺鎵ｅ噺璇锋眰
+     * @param deductRequest 鎵归噺鎵e噺璇锋眰
      */
     void batchDeductStock(BatchDeductStockRequest deductRequest);
 
