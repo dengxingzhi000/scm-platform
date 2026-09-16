@@ -1,6 +1,6 @@
 package com.scmcloud.document.document.service;
 
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.scmcloud.document.document.domain.entity.DocDocument;
 import com.scmcloud.document.document.domain.entity.DocDocumentAudit;
 import com.scmcloud.document.document.domain.entity.DocDocumentVersion;

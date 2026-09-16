@@ -3,7 +3,7 @@ package com.scmcloud.supplier.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.scmcloud.common.status.StatusValidator;
 import com.scmcloud.supplier.domain.entity.SupSettlement;
 import com.scmcloud.supplier.mapper.SupSettlementMapper;

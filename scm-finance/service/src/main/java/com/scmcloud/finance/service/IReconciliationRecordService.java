@@ -1,7 +1,7 @@
 package com.scmcloud.finance.service;
 
 import com.scmcloud.finance.domain.entity.ReconciliationRecord;
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.spring.service.IService;
 
 public interface IReconciliationRecordService extends IService<ReconciliationRecord> {
 

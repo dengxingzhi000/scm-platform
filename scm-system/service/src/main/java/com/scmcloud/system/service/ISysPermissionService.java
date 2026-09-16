@@ -1,6 +1,6 @@
 package com.scmcloud.system.service;
 
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.spring.service.IService;
 import com.scmcloud.common.dto.permission.ApiPermissionDTO;
 import com.scmcloud.common.dto.permission.PermissionDTO;
 import com.scmcloud.system.domain.entity.SysPermission;

@@ -1,6 +1,6 @@
 package com.scmcloud.fulfillment.service;
 
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.spring.service.IService;
 import com.scmcloud.fulfillment.domain.entity.FulfillmentOrder;
 
 public interface IFulfillmentOrderService extends IService<FulfillmentOrder> {

@@ -1,6 +1,6 @@
 package com.scmcloud.ordercenter.service;
 
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.spring.service.IService;
 import com.scmcloud.ordercenter.domain.entity.OcOrder;
 import com.scmcloud.ordercenter.domain.entity.OcOrderItem;
 

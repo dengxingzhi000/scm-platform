@@ -1,7 +1,7 @@
 package com.scmcloud.member.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.scmcloud.member.domain.entity.Member;
 import com.scmcloud.member.mapper.MemberMapper;
 import com.scmcloud.member.service.IMemberService;

@@ -1,7 +1,7 @@
 package com.scmcloud.payment.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.scmcloud.payment.domain.entity.PaymentOrder;
 import com.scmcloud.payment.mapper.PaymentOrderMapper;
 import com.scmcloud.payment.service.IPaymentOrderService;

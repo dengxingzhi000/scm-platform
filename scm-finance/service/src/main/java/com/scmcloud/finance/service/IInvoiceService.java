@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.scmcloud.finance.domain.dto.CreateInvoiceRequest;
 import com.scmcloud.finance.domain.dto.UpdateInvoiceRequest;
 import com.scmcloud.finance.domain.entity.Invoice;
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.spring.service.IService;
 
 public interface IInvoiceService extends IService<Invoice> {
 

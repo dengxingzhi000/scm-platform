@@ -1,7 +1,7 @@
 package com.scmcloud.ordercenter.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.scmcloud.ordercenter.domain.entity.OcOrder;
 import com.scmcloud.ordercenter.domain.entity.OcOrderItem;
 import com.scmcloud.ordercenter.mapper.OcOrderMapper;

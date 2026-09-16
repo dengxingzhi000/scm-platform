@@ -1,6 +1,6 @@
 package com.scmcloud.promotion.service;
 
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.spring.service.IService;
 import com.scmcloud.promotion.domain.entity.FlashSale;
 
 import java.util.List;

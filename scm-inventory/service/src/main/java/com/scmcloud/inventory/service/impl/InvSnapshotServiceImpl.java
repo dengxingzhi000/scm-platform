@@ -3,7 +3,7 @@ package com.scmcloud.inventory.service.impl;
 import com.scmcloud.inventory.domain.entity.InvSnapshot;
 import com.scmcloud.inventory.mapper.InvSnapshotMapper;
 import com.scmcloud.inventory.service.IInvSnapshotService;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import org.springframework.stereotype.Service;
 
 /**

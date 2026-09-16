@@ -2,7 +2,7 @@ package com.scmcloud.notify.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.scmcloud.notify.domain.entity.SysUserNotificationPreference;
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.spring.service.IService;
 
 import java.util.List;
 

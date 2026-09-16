@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.scmcloud.common.constant.RoleConstants;
 import com.scmcloud.common.exception.BusinessException;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.scmcloud.common.dto.role.RoleDTO;
 import com.scmcloud.common.response.ResultCode;
 import com.scmcloud.common.tenant.TenantValidationUtil;

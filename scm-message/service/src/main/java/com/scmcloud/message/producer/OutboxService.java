@@ -1,6 +1,6 @@
 package com.scmcloud.message.producer;
 
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.scmcloud.message.entity.EventOutbox;
 import com.scmcloud.message.event.DomainEvent;
 import com.scmcloud.message.mapper.EventOutboxMapper;

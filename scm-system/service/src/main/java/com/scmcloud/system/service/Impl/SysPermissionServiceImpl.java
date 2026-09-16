@@ -1,7 +1,7 @@
 package com.scmcloud.system.service.Impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.scmcloud.common.exception.BusinessException;
 import com.scmcloud.common.response.ResultCode;
 import com.scmcloud.common.security.PermissionChecker;

@@ -2,7 +2,7 @@ package com.scmcloud.system.service;
 
 import com.scmcloud.common.dto.dept.DeptDTO;
 import com.scmcloud.system.domain.entity.SysDept;
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.spring.service.IService;
 
 import java.util.List;
 import java.util.UUID;

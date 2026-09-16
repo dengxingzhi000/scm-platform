@@ -1,7 +1,7 @@
 package com.scmcloud.inventory.service;
 
 import com.scmcloud.inventory.domain.entity.InvSnapshot;
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.spring.service.IService;
 
 /**
  * <p>

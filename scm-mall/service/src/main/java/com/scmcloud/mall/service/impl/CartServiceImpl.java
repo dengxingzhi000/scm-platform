@@ -1,7 +1,7 @@
 package com.scmcloud.mall.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.scmcloud.mall.domain.entity.Cart;
 import com.scmcloud.mall.mapper.CartMapper;
 import com.scmcloud.mall.service.ICartService;

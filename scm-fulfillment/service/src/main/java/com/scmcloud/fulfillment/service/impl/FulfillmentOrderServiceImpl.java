@@ -1,7 +1,7 @@
 package com.scmcloud.fulfillment.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.scmcloud.fulfillment.domain.entity.FulfillmentOrder;
 import com.scmcloud.fulfillment.mapper.FulfillmentOrderMapper;
 import com.scmcloud.fulfillment.service.IFulfillmentOrderService;
