@@ -1,5 +1,7 @@
 package com.scmcloud.common.security;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.scmcloud.common.entity.SysDataPermissionRule;
 import com.scmcloud.common.exception.BusinessException;
 import com.scmcloud.common.response.ResultCode;
@@ -10,94 +12,76 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
 /**
- * 权限检查工具类
+ * Permission check service with Caffeine L1 cache.
  *
- * <p>提供用户权限、角色权限、数据权限等检查功能
+ * <p>Provides user permission, role, and data permission checks.</p>
  *
- * @author Claude Code
  * @since 2025-01-24
- * @version 1.1
- * @apiNote 1.1 修复乱码注释，isEmpty 改为 isBlank，修正空列表语义
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class PermissionChecker {
+
+    private static final Duration CACHE_TTL = Duration.ofSeconds(60);
+    private static final int CACHE_MAX_SIZE = 10_000;
+
     private final PermissionQueryService permissionQueryService;
     private final ObjectMapper objectMapper;
 
-    /**
-     * 检查用户是否有指定权限
-     *
-     * @param userId 用户 ID
-     * @param permissionCode 权限编码
-     * @return true=有权限, false=无权限
-     */
+    private final Cache<UUID, Set<String>> userPermissionsCache = Caffeine.newBuilder()
+            .maximumSize(CACHE_MAX_SIZE)
+            .expireAfterWrite(CACHE_TTL)
+            .build();
+
+    private final Cache<UUID, Set<String>> userRolesCache = Caffeine.newBuilder()
+            .maximumSize(CACHE_MAX_SIZE)
+            .expireAfterWrite(CACHE_TTL)
+            .build();
+
     public boolean hasPermission(UUID userId, String permissionCode) {
         if (userId == null || permissionCode == null || permissionCode.isBlank()) {
             return false;
         }
-
-        Set<String> permissions = permissionQueryService.getUserPermissions(userId);
-        boolean hasPermission = permissions.contains(permissionCode);
-
-        log.debug("检查用户权限: userId={}, permissionCode={}, result={}", userId, permissionCode, hasPermission);
-        return hasPermission;
+        Set<String> permissions = userPermissionsCache.get(userId,
+                k -> permissionQueryService.getUserPermissions(k));
+        boolean has = permissions.contains(permissionCode);
+        log.debug("hasPermission: userId={}, code={}, result={}", userId, permissionCode, has);
+        return has;
     }
 
-    /**
-     * 检查用户是否有指定角色
-     *
-     * @param userId 用户 ID
-     * @param roleCode 角色编码
-     * @return true=有角色, false=无角色
-     */
     public boolean hasRole(UUID userId, String roleCode) {
         if (userId == null || roleCode == null || roleCode.isBlank()) {
             return false;
         }
-
-        Set<String> roles = permissionQueryService.getUserRoles(userId);
-        boolean hasRole = roles.contains(roleCode);
-
-        log.debug("检查用户角色: userId={}, roleCode={}, result={}", userId, roleCode, hasRole);
-        return hasRole;
+        Set<String> roles = userRolesCache.get(userId,
+                k -> permissionQueryService.getUserRoles(k));
+        boolean has = roles.contains(roleCode);
+        log.debug("hasRole: userId={}, code={}, result={}", userId, roleCode, has);
+        return has;
     }
 
-    /**
-     * 检查用户是否有任一权限
-     *
-     * @param userId 用户 ID
-     * @param permissionCodes 权限编码列表
-     * @return true=至少有一个权限, false=无任何权限
-     */
     public boolean hasAnyPermission(UUID userId, List<String> permissionCodes) {
         if (userId == null || permissionCodes == null || permissionCodes.isEmpty()) {
             return false;
         }
-
-        Set<String> userPermissions = permissionQueryService.getUserPermissions(userId);
+        Set<String> userPermissions = userPermissionsCache.get(userId,
+                k -> permissionQueryService.getUserPermissions(k));
         return permissionCodes.stream().anyMatch(userPermissions::contains);
     }
 
-    /**
-     * 检查用户是否有所有权限
-     *
-     * @param userId 用户 ID
-     * @param permissionCodes 权限编码列表
-     * @return true=有所有权限, false=缺少某些权限
-     */
     public boolean hasAllPermissions(UUID userId, List<String> permissionCodes) {
         if (userId == null || permissionCodes == null || permissionCodes.isEmpty()) {
             return false;
         }
-
-        Set<String> userPermissions = permissionQueryService.getUserPermissions(userId);
+        Set<String> userPermissions = userPermissionsCache.get(userId,
+                k -> permissionQueryService.getUserPermissions(k));
         return userPermissions.containsAll(permissionCodes);
     }
 
