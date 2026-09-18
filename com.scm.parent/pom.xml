@@ -9,7 +9,7 @@
 
   <name>SCM Platform</name>
   <description>Enterprise Supply Chain Management Platform based on Spring Cloud 2025</description>
-  <url>https://github.com/your-org/scm-platform</url>
+  <url>https://github.com/dengxingzhi000/scm-platform</url>
 
   <modules>
     <!-- Common Shared Modules -->

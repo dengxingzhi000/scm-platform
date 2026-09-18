@@ -1,5 +1,6 @@
 package com.scmcloud.common.cache.warming;
 
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -21,7 +22,7 @@ public class CacheWarmingConfig implements ApplicationRunner {
     }
 
     @Override
-    public void run(ApplicationArguments args) {
+    public void run(@NonNull ApplicationArguments args) {
         log.info("Starting cache warming with {} warmers", warmers.size());
         warmers.stream()
                 .sorted(Comparator.comparingInt(CacheWarmer::getOrder))
