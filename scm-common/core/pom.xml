@@ -74,6 +74,11 @@
             <artifactId>spring-boot-starter-aspectj</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+
         <!-- XXL-Job -->
         <dependency>
             <groupId>com.xuxueli</groupId>

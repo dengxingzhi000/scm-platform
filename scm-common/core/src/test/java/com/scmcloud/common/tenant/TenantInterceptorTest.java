@@ -81,4 +81,11 @@ class TenantInterceptorTest {
         var result = interceptor.rewriteSql("THIS IS NOT SQL", tenantId);
         assertThat(result).isEqualTo("THIS IS NOT SQL");
     }
+
+    @Test
+    void sameSqlDifferentCalls_shouldReturnConsistentResult() {
+        var sql1 = interceptor.rewriteSql("SELECT id FROM ord_order", tenantId);
+        var sql2 = interceptor.rewriteSql("SELECT id FROM ord_order", tenantId);
+        assertThat(sql1).isEqualTo(sql2);
+    }
 }

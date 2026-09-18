@@ -1,6 +1,8 @@
 package com.scmcloud.common.tenant;
 
 import com.baomidou.mybatisplus.core.toolkit.PluginUtils;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import lombok.extern.slf4j.Slf4j;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.StringValue;
@@ -28,6 +30,7 @@ import org.apache.ibatis.reflection.MetaObject;
 import org.apache.ibatis.reflection.SystemMetaObject;
 
 import java.sql.Connection;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Properties;
@@ -52,6 +55,11 @@ public class TenantInterceptor implements Interceptor {
     ));
 
     private final TenantProperties properties;
+
+    private final Cache<String, String> rewrittenSqlCache = Caffeine.newBuilder()
+            .maximumSize(1024)
+            .expireAfterWrite(Duration.ofMinutes(10))
+            .build();
 
     public TenantInterceptor(TenantProperties properties) {
         this.properties = properties;
@@ -80,7 +88,15 @@ public class TenantInterceptor implements Interceptor {
 
         BoundSql boundSql = statementHandler.getBoundSql();
         String originalSql = boundSql.getSql();
-        String newSql = rewriteSql(originalSql, tenantId);
+        String cacheKey = mappedStatement.getId() + "::" + tenantId + "::" + originalSql;
+        String cached = rewrittenSqlCache.getIfPresent(cacheKey);
+        final String newSql;
+        if (cached != null) {
+            newSql = cached;
+        } else {
+            newSql = rewriteSql(originalSql, tenantId);
+            rewrittenSqlCache.put(cacheKey, newSql);
+        }
         metaObject.setValue("delegate.boundSql.sql", newSql);
 
         return invocation.proceed();
