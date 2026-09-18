@@ -5,6 +5,90 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.2] - 2026-09-18
+
+Patch release for `scm-common/core`. No API removals, no database changes — only
+hardening, performance, and observability. All public methods preserve
+backward-compatible signatures.
+
+### Fixed
+
+- **`ServiceException` now carries `HttpStatus`** — the previous
+  `GlobalExceptionHandler` mapped the business error code (e.g. `40401`) as if it
+  were an HTTP status code, so any non-HTTP-shaped business code was silently
+  downgraded to `500`. `ServiceException` now exposes `getHttpStatus()` and the
+  handler reads from there. Adds `ServiceException(Integer, HttpStatus, String)`
+  and `ServiceException(ErrorCode[, String])` constructors; legacy constructors
+  unchanged.
+- **`TenantInterceptor` fail-fast on unparseable SQL** — the interceptor used to
+  silently skip tenant_id injection when JSQLParser failed (logged a warning,
+  then ran the original SQL), which is a data-isolation hole. Now configurable
+  via `scm.tenant.fail-on-parse-error` (default `true`): the bad SQL becomes a
+  `TenantParseException` that propagates as HTTP 500.
+- **`TenantInterceptor` `UNION` / `INTERSECT` / `EXCEPT` support** — the previous
+  `handleSelect` cast `select.getSelectBody()` directly to `PlainSelect`, which
+  throws `ClassCastException` for `SetOperationList` queries (and falls through
+  to the same silent skip as above). Now recurses into every branch.
+- **`TenantFilter` honours `scm.tenant.exclude-paths`** — `OncePerRequestFilter`
+  with `shouldNotFilter` so `/actuator/**`, `/v3/api-docs/**` and any other
+  configured paths bypass tenant resolution. Missing tenant ID now throws
+  `TenantParseException` when `scm.tenant.required=true` (default) instead of
+  silently proceeding with a null context.
+- **`TenantContextHolder.getTenantId()` no longer spams `WARN`** — downgraded to
+  `DEBUG`; `getRequiredTenantId()` still throws.
+- **`GlobalExceptionHandler` no longer HTML-escapes JSON error messages** —
+  `HtmlUtils.htmlEscape` on response bodies was meaningless for JSON consumers
+  and damaged i18n keys; removed.
+
+### Performance
+
+- **`TenantInterceptor` Caffeine cache for rewritten SQL** — keyed by
+  `MappedStatement.id + tenantId + originalSql`, max 1024 entries, 10 min TTL.
+  Avoids re-parsing the same SQL for hot mappers.
+- **`PermissionChecker` Caffeine L1 cache** — 60 s TTL, max 10 000 users,
+  covers `getUserPermissions` and `getUserRoles`. Eliminates the previous
+  per-call remote `PermissionQueryService` round trip on the request hot path.
+
+### Refactored
+
+- **`com.scmcloud.common.tenant.TenantAwareEntity` deprecated** —
+  `@Deprecated(since = "1.4.2", forRemoval = true)`; use
+  `com.scmcloud.common.entity.TenantAwareEntity` which also carries audit
+  fields, optimistic locking, and Snowflake ID.
+- **`Idempotent.errorMessage` default now `idempotent.replay`** — aligned with
+  `ErrorCode.IDEMPOTENT_REPLAY.i18nKey` so i18n tooling picks it up.
+- **`TenantParseException` promoted to top-level class** —
+  `TenantContextHolder.TenantNotFoundException` is now `@Deprecated`; the new
+  shared exception is used by `TenantInterceptor`, `TenantFilter`, and
+  `TenantContextHolder.getRequiredTenantId()`.
+- **JSpecify `@NullMarked` package-info** on `com.scmcloud.common` — explicit
+  nullness contract for the entire module going forward; existing APIs are
+  not yet annotated individually.
+
+### Tests
+
+- **`scm-common/core` unit test count: 8 → 49** (+41). New coverage:
+  - `TenantInterceptorTest` (8) — SELECT / UPDATE / DELETE / UNION / exclude
+    table / parse error fail-fast / parse error skip / no-context skip
+  - `TenantFilterTest` (7) — header / param / required-missing /
+    optional-missing / invalid format / clear-after / exclude path
+  - `TenantContextHolderTest` (6) — set/get / clear / required-missing /
+    required-set / restore-after / clear-when-no-original
+  - `GlobalExceptionHandlerTest` (9) — service exception status / default 500 /
+    code propagation / 401 / 403 / 429 / business / illegal argument /
+    validation field errors
+  - `PermissionCheckerTest` (6) — basic permissions / roles / null args /
+    cache hit / require permission throws
+  - `ServiceExceptionTest` (5) — default / code / status / error-code / error-
+    code-with-message
+
+### Verification
+
+- `mvn verify -pl scm-common/core` → **BUILD SUCCESS**, 49/49 tests pass.
+- `mvn install -DskipTests -pl scm-common/*` → 13 sub-modules build cleanly.
+- Downstream `mvn compile -pl scm-order/service -am` → **BUILD SUCCESS**
+  (regression check on `ServiceException` signature addition).
+
 ## [1.4.0] - 2026-09-14
 
 ### Added
