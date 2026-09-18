@@ -81,10 +81,30 @@ BEGIN
             ELSE
                 idx_name := 'idx_' || substring(t FROM 5) || '_tenant';
             END IF;
-            EXECUTE format(
-                'CREATE INDEX %I ON %I(tenant_id) WHERE NOT deleted',
-                idx_name, t
-            );
+            -- Partial index only when the table actually carries a
+            -- logical-delete column named `deleted`. Tables like
+            -- inv_alert (uses `is_resolved`) or tms_tracking (no
+            -- soft-delete column at all) lack one, so a plain
+            -- non-partial index is created instead. Without this guard
+            -- the CREATE INDEX raised `column "deleted" does not exist`
+            -- which rolled back the whole DO block, leaving every table
+            -- in the array without tenant_id.
+            IF EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_schema = 'public'
+                  AND table_name = t
+                  AND column_name = 'deleted'
+            ) THEN
+                EXECUTE format(
+                    'CREATE INDEX %I ON %I(tenant_id) WHERE NOT deleted',
+                    idx_name, t
+                );
+            ELSE
+                EXECUTE format(
+                    'CREATE INDEX %I ON %I(tenant_id)',
+                    idx_name, t
+                );
+            END IF;
             RAISE NOTICE 'Added tenant_id to current_db.%', t;
         END IF;
     END LOOP;

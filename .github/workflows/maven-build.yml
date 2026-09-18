@@ -70,9 +70,13 @@ jobs:
         env:
           PGPASSWORD: admin123
         run: |
+          # `-v ON_ERROR_STOP=1` makes psql exit non-zero on the first SQL
+          # error so the bash `|| exit 1` guard actually triggers.
+          # Without it, RAISE EXCEPTION inside the DO block only logs
+          # to stderr while psql exits 0, silently passing CI.
           for db in db_user db_org db_permission db_product db_inventory db_order db_warehouse db_logistics db_supplier db_purchase db_finance db_audit db_notify db_approval; do
             echo "Checking $db..."
-            psql -h localhost -U admin -d "$db" -f scripts/db/ci_validate_tenant_id.sql || exit 1
+            psql -h localhost -U admin -d "$db" -v ON_ERROR_STOP=1 -f scripts/db/ci_validate_tenant_id.sql || exit 1
           done
 
       - name: Build and Run Unit Tests (PR)
