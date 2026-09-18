@@ -101,7 +101,7 @@
         <dependency>
             <groupId>org.mybatis.spring.boot</groupId>
             <artifactId>mybatis-spring-boot-starter</artifactId>
-            <version>3.0.3</version>
+            <version>4.1.0</version>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/com.yubico/webauthn-server-core -->
