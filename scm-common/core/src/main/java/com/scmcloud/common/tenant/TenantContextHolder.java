@@ -43,7 +43,7 @@ public class TenantContextHolder {
     public static UUID getRequiredTenantId() {
         UUID tenantId = getTenantId();
         if (tenantId == null) {
-            throw new TenantNotFoundException("Tenant ID is required but not found in current context");
+            throw new TenantParseException("Tenant ID is required but not found in current context");
         }
         return tenantId;
     }

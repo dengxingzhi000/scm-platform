@@ -48,6 +48,7 @@ public @interface Idempotent {
 
     /**
      * Error message if duplicate request is detected.
+     * Defaults to the i18n key matching {@code ErrorCode.IDEMPOTENT_REPLAY}.
      */
-    String errorMessage() default "Duplicate request detected";
+    String errorMessage() default "idempotent.replay";
 }

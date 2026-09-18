@@ -79,6 +79,12 @@
             <artifactId>caffeine</artifactId>
         </dependency>
 
+        <!-- jspecify null safety annotations -->
+        <dependency>
+            <groupId>org.jspecify</groupId>
+            <artifactId>jspecify</artifactId>
+        </dependency>
+
         <!-- XXL-Job -->
         <dependency>
             <groupId>com.xuxueli</groupId>
