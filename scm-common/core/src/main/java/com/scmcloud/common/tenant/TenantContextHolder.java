@@ -32,7 +32,7 @@ public class TenantContextHolder {
     public static UUID getTenantId() {
         UUID tenantId = TENANT_ID_HOLDER.get();
         if (tenantId == null) {
-            log.warn("Tenant ID is null in current thread, please check tenant filter/interceptor");
+            log.debug("Tenant ID is null in current thread");
         }
         return tenantId;
     }
