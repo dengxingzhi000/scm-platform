@@ -17,7 +17,6 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.util.HtmlUtils;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -38,9 +37,9 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleServiceException(ServiceException e, HttpServletRequest request) {
         String traceId = resolveTraceId(request);
         log.error("Service exception at {}, traceId={}: {}", request.getRequestURI(), traceId, e.getMessage());
-        HttpStatus status = HttpStatus.resolve(e.getCode()) != null ? HttpStatus.valueOf(e.getCode()) : HttpStatus.INTERNAL_SERVER_ERROR;
+        HttpStatus status = e.getHttpStatus() != null ? e.getHttpStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
         return ResponseEntity.status(status)
-                .body(ApiResponse.fail(e.getCode(), "Service error: " + escapeHtml(e.getMessage()) + " (traceId=" + traceId + ")"));
+                .body(ApiResponse.fail(e.getCode(), "Service error: " + e.getMessage() + " (traceId=" + traceId + ")"));
     }
 
     @ExceptionHandler(BadCredentialsException.class)
@@ -91,7 +90,7 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ApiResponse<Void> handleBusinessException(BusinessException e) {
         log.error("Business exception: {}", e.getMessage());
-        return ApiResponse.fail(e.getCode(), "Business error: " + escapeHtml(e.getMessage()));
+        return ApiResponse.fail(e.getCode(), "Business error: " + e.getMessage());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -151,12 +150,5 @@ public class GlobalExceptionHandler {
             return id;
         }
         return UUID.randomUUID().toString();
-    }
-
-    private String escapeHtml(String input) {
-        if (input == null) {
-            return "";
-        }
-        return HtmlUtils.htmlEscape(input);
     }
 }
