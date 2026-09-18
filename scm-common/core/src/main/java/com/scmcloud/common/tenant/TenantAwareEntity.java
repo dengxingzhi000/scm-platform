@@ -7,11 +7,15 @@ import lombok.Data;
 import java.io.Serializable;
 
 /**
- * Base entity with mandatory tenant isolation.
- * All business entities should extend this class to ensure
- * tenant_id is auto-populated on INSERT via AuditMetaObjectHandler.
+ * Legacy minimal tenant-aware base class.
+ *
+ * @deprecated since 1.1.0 — use
+ *   {@link com.scmcloud.common.entity.TenantAwareEntity} which also includes
+ *   audit fields, optimistic locking, and Snowflake ID. This class is kept for
+ *   binary compatibility in v1.x and will be removed in v2.0.
  */
 @Data
+@Deprecated(since = "1.1.0", forRemoval = true)
 public abstract class TenantAwareEntity implements Serializable {
 
     @TableField(value = "tenant_id", fill = FieldFill.INSERT)
