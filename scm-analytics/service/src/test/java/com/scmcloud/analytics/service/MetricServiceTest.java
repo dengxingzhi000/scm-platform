@@ -7,7 +7,7 @@ import com.scmcloud.analytics.domain.entity.MetricDefinition;
 import com.scmcloud.analytics.mapper.MetricMapper;
 import com.scmcloud.common.exception.BusinessException;
 import com.scmcloud.common.tenant.TenantContextHolder;
-import com.scmcloud.common.tenant.TenantContextHolder.TenantNotFoundException;
+import com.scmcloud.common.tenant.TenantParseException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -323,7 +323,7 @@ class MetricServiceTest {
                 .aggFunc("SUM")
                 .build();
 
-        assertThrows(TenantNotFoundException.class, () -> metricService.create(dto));
+        assertThrows(TenantParseException.class, () -> metricService.create(dto));
         verify(metricMapper, never()).insert(any(MetricDefinition.class));
     }
 

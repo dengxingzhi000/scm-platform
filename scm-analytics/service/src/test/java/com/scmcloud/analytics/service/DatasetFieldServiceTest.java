@@ -6,7 +6,7 @@ import com.scmcloud.analytics.domain.entity.DatasetFieldDefinition;
 import com.scmcloud.analytics.mapper.DatasetFieldMapper;
 import com.scmcloud.common.exception.BusinessException;
 import com.scmcloud.common.tenant.TenantContextHolder;
-import com.scmcloud.common.tenant.TenantContextHolder.TenantNotFoundException;
+import com.scmcloud.common.tenant.TenantParseException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -256,7 +256,7 @@ class DatasetFieldServiceTest {
         DatasetFieldDTO dto = DatasetFieldDTO.builder()
                 .datasetId(DATASET_ID).fieldCode("F").fieldName("F").fieldType("CALCULATED").dataType("VARCHAR").build();
 
-        assertThrows(TenantNotFoundException.class, () -> datasetFieldService.create(dto));
+        assertThrows(TenantParseException.class, () -> datasetFieldService.create(dto));
         verify(datasetFieldMapper, never()).insert(any(DatasetFieldDefinition.class));
     }
 

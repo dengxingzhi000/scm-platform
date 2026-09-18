@@ -6,7 +6,7 @@ import com.scmcloud.analytics.domain.entity.DimensionDefinition;
 import com.scmcloud.analytics.mapper.DimensionMapper;
 import com.scmcloud.common.exception.BusinessException;
 import com.scmcloud.common.tenant.TenantContextHolder;
-import com.scmcloud.common.tenant.TenantContextHolder.TenantNotFoundException;
+import com.scmcloud.common.tenant.TenantParseException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -258,7 +258,7 @@ class DimensionServiceTest {
         DimensionDTO dto = DimensionDTO.builder()
                 .dimCode("D").dimName("D").dimType("CATEGORICAL").dataType("VARCHAR").build();
 
-        assertThrows(TenantNotFoundException.class, () -> dimensionService.create(dto));
+        assertThrows(TenantParseException.class, () -> dimensionService.create(dto));
         verify(dimensionMapper, never()).insert(any(DimensionDefinition.class));
     }
 

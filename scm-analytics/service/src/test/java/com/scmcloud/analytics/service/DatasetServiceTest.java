@@ -6,7 +6,7 @@ import com.scmcloud.analytics.domain.entity.DatasetDefinition;
 import com.scmcloud.analytics.mapper.DatasetMapper;
 import com.scmcloud.common.exception.BusinessException;
 import com.scmcloud.common.tenant.TenantContextHolder;
-import com.scmcloud.common.tenant.TenantContextHolder.TenantNotFoundException;
+import com.scmcloud.common.tenant.TenantParseException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -228,7 +228,7 @@ class DatasetServiceTest {
         DatasetDTO dto = DatasetDTO.builder()
                 .datasetCode("D").datasetName("D").datasetType("WIDE_TABLE").sourceType("CLICKHOUSE").build();
 
-        assertThrows(TenantNotFoundException.class, () -> datasetService.create(dto));
+        assertThrows(TenantParseException.class, () -> datasetService.create(dto));
         verify(datasetMapper, never()).insert(any(DatasetDefinition.class));
     }
 
