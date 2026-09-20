@@ -1,24 +1,13 @@
 package com.scmcloud.auth.controller;
 
-import com.scmcloud.auth.domain.dto.WebauthnAuthenticationRequest;
 import com.scmcloud.auth.domain.dto.WebauthnCredentialDTO;
-import com.scmcloud.auth.domain.dto.WebauthnRegistrationRequest;
 import com.scmcloud.auth.service.IWebauthnCredentialService;
-import com.scmcloud.common.dto.auth.TokenUpgradeResponse;
-import com.scmcloud.common.dto.auth.WebAuthnChallengeResponse;
-import com.scmcloud.common.dto.auth.WebAuthnRegisterChallengeResponse;
-import com.scmcloud.common.exception.BusinessException;
 import com.scmcloud.common.response.ApiResponse;
-import com.scmcloud.common.security.util.HttpServletRequestUtils;
-import com.scmcloud.common.security.util.IpUtils;
 import com.scmcloud.common.web.domain.SecurityUser;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -38,108 +27,13 @@ import java.util.UUID;
 @Slf4j
 @Validated
 @RestController
-@RequestMapping("/api/auth/webauthn")
+@RequestMapping("/api/auth/webauthn/credentials")
 @RequiredArgsConstructor
 public class WebAuthnCredentialController {
-    /**
-     * 榛樿 RP ID锛岀敓浜х幆澧冨簲閫氳繃閰嶇疆鏂囦欢璁剧疆
-     */
-    private static final String DEFAULT_RP_ID = "localhost";
 
     private final IWebauthnCredentialService credentialService;
-    private final HttpServletRequestUtils httpServletRequestUtils;
 
-    @PostMapping("/register/challenge")
-    @PreAuthorize("isAuthenticated()")
-    public ApiResponse<WebAuthnRegisterChallengeResponse> generateRegistrationChallenge(
-            @RequestParam(required = false, defaultValue = DEFAULT_RP_ID) String rpId,
-            @AuthenticationPrincipal SecurityUser user,
-            HttpServletRequest request) {
-
-        UUID userId = user.getUserId();
-        String username = user.getUsername();
-        String deviceId = httpServletRequestUtils.getDeviceId(request);
-        String ipAddress = IpUtils.getClientIp(request);
-
-        log.info("User {} requesting registration challenge from {}", userId, ipAddress);
-
-        WebAuthnRegisterChallengeResponse challenge = credentialService.generateRegistrationChallenge(
-                userId, username, deviceId, rpId);
-
-        return ApiResponse.success(challenge);
-    }
-
-    @PostMapping("/register/verify")
-    @PreAuthorize("isAuthenticated()")
-    public ApiResponse<WebauthnCredentialDTO> registerCredential(
-            @Valid @RequestBody WebauthnRegistrationRequest request,
-            @AuthenticationPrincipal SecurityUser user,
-            HttpServletRequest httpRequest) {
-
-        UUID userId = user.getUserId();
-        String ipAddress = IpUtils.getClientIp(httpRequest);
-
-        log.info("User {} registering new WebAuthn credential from {}", userId, ipAddress);
-
-        WebauthnCredentialDTO credential = credentialService.registerCredential(userId, request);
-
-        return ApiResponse.success(credential);
-    }
-
-    @PostMapping("/authenticate/challenge")
-    @PreAuthorize("isAuthenticated()")
-    public ApiResponse<WebAuthnChallengeResponse> generateAuthenticationChallenge(
-            @RequestParam(required = false, defaultValue = DEFAULT_RP_ID) String rpId,
-            @AuthenticationPrincipal SecurityUser user,
-            HttpServletRequest request) {
-
-        UUID userId = user.getUserId();
-        String username = user.getUsername();
-        String deviceId = httpServletRequestUtils.getDeviceId(request);
-        String ipAddress = IpUtils.getClientIp(request);
-
-        log.info("User {} requesting authentication challenge from {}", userId, ipAddress);
-
-        WebAuthnChallengeResponse challenge = credentialService.generateAuthenticationChallenge(
-                userId, username, deviceId, rpId);
-
-        return ApiResponse.success(challenge);
-    }
-
-    @PostMapping("/authenticate/verify")
-    @PreAuthorize("isAuthenticated()")
-    public ApiResponse<TokenUpgradeResponse> authenticateAndUpgradeToken(
-            @Valid @RequestBody WebauthnAuthenticationRequest request,
-            @AuthenticationPrincipal SecurityUser user,
-            HttpServletRequest httpRequest) {
-
-        UUID userId = user.getUserId();
-        String username = user.getUsername();
-        String deviceId = httpServletRequestUtils.getDeviceId(httpRequest);
-        String ipAddress = IpUtils.getClientIp(httpRequest);
-        String userAgent = httpRequest.getHeader("User-Agent");
-
-        log.info("User {} authenticating with WebAuthn from {}", userId, ipAddress);
-
-        try {
-            TokenUpgradeResponse response = credentialService.authenticateAndUpgradeToken(
-                    userId, username, request, deviceId, ipAddress);
-
-            // 璁板綍鎴愬姛鐨勮璇佸皾锟?
-            credentialService.logAuthenticationAttempt(
-                    userId, request.getCredentialId(), true, ipAddress, userAgent);
-
-            return ApiResponse.success(response);
-
-        } catch (AuthenticationException | BusinessException e) {
-            // 璁板綍澶辫触鐨勮璇佸皾锟?
-            credentialService.logAuthenticationAttempt(
-                    userId, request.getCredentialId(), false, ipAddress, userAgent);
-            throw e;
-        }
-    }
-
-    @GetMapping("/credentials")
+    @GetMapping("")
     @PreAuthorize("isAuthenticated()")
     public ApiResponse<List<WebauthnCredentialDTO>> listCredentials(
             @AuthenticationPrincipal SecurityUser user) {
@@ -153,7 +47,7 @@ public class WebAuthnCredentialController {
         return ApiResponse.success(credentials);
     }
 
-    @PutMapping("/credentials/{credentialId}/name")
+    @PutMapping("/{credentialId}/name")
     @PreAuthorize("isAuthenticated()")
     public ApiResponse<WebauthnCredentialDTO> updateDeviceName(
             @PathVariable String credentialId,
@@ -171,7 +65,7 @@ public class WebAuthnCredentialController {
         return ApiResponse.success(credential);
     }
 
-    @DeleteMapping("/credentials/{credentialId}")
+    @DeleteMapping("/{credentialId}")
     @PreAuthorize("isAuthenticated()")
     public ApiResponse<Void> deleteCredential(
             @PathVariable String credentialId,
@@ -186,7 +80,7 @@ public class WebAuthnCredentialController {
         return ApiResponse.success();
     }
 
-    @PutMapping("/credentials/{credentialId}/deactivate")
+    @PutMapping("/{credentialId}/deactivate")
     @PreAuthorize("isAuthenticated()")
     public ApiResponse<Void> deactivateCredential(
             @PathVariable String credentialId,
@@ -201,7 +95,7 @@ public class WebAuthnCredentialController {
         return ApiResponse.success();
     }
 
-    @GetMapping("/credentials/health")
+    @GetMapping("/health")
     @PreAuthorize("isAuthenticated()")
     public ApiResponse<List<WebauthnCredentialDTO>> checkCredentialHealth(
             @AuthenticationPrincipal SecurityUser user) {
