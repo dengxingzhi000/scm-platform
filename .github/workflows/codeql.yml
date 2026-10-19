@@ -52,7 +52,7 @@ jobs:
       # service module produces class output that CodeQL can index.
       - name: Set up JDK 21 (Java analysis only)
         if: matrix.language == 'java'
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           java-version: '21'
           distribution: 'temurin'
