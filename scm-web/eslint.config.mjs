@@ -26,7 +26,64 @@ const eslintConfig = [
     },
   },
   {
-    ignores: [".next/**", "out/**", "build/**", "next-env.d.ts"],
+    files: ["src/**/*.{ts,tsx}"],
+    rules: {
+      // Enforce the bundle-size rules from the frontend stack decision.
+      // Charts and heavyweight grids may only be imported from their lazy
+      // wrappers (dynamic + ssr:false); ECharts must go through the
+      // tree-shaken `echarts/core` registration.
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "echarts",
+              message:
+                "Import '@/lib/charts/echarts-core' (tree-shaken) via '@/components/charts/echart' instead of the full ECharts bundle.",
+            },
+            {
+              name: "echarts-for-react",
+              message:
+                "Use '@/components/charts/echart' (dynamic + ssr:false) instead of echarts-for-react.",
+            },
+            {
+              name: "ag-grid-community",
+              message:
+                "Use '@/components/data-grid/data-grid'; AG Grid must load client-side only.",
+            },
+            {
+              name: "ag-grid-react",
+              message:
+                "Use '@/components/data-grid/data-grid'; AG Grid must load client-side only.",
+            },
+            {
+              name: "@antv/g6",
+              message:
+                "Use '@/components/charts/topology-graph'; G6 must load client-side only.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: [
+      "src/lib/charts/**/*.{ts,tsx}",
+      "src/components/charts/**/*.{ts,tsx}",
+      "src/components/data-grid/**/*.{ts,tsx}",
+    ],
+    rules: {
+      "no-restricted-imports": "off",
+    },
+  },
+  {
+    ignores: [
+      ".next/**",
+      "out/**",
+      "build/**",
+      "next-env.d.ts",
+      "coverage/**",
+    ],
   },
 ];
 
