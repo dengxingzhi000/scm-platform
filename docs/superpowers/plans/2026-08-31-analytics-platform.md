@@ -41,15 +41,17 @@ scm-analytics/                          # NEW — parent pom module
 | Task 3 PG Meta Schema | ✅ DONE | d9efe429 |
 | Task 4 CH DWH Schema | ✅ DONE | aadee78c |
 | Task 5 Outbox | ✅ DONE | 6a8a48d9 → 76c64d97 → refactor: 0a98c32b / e5bc58a9 / 8f4528ee / f2282738 / cb2f1e5e |
-| Task 6 ODS Consumer | ⬜ NEXT | — |
-| Task 7 Semantic CRUD | ⬜ | — |
-| Task 8 Query Engine | ⬜ | — |
-| Task 9 Query API | ⬜ | — |
-| Task 10 DWD/DWS/ADS Jobs | ⬜ | — |
-| Task 11 BI Frontend | ⬜ | — |
-| Task 12 Governance | ⬜ | — |
+| Task 6 ODS Consumer | ✅ DONE | 5eacdc52 / 42cd993e / be60f936 / 31568ebb |
+| Task 7 Semantic CRUD | ✅ DONE | 6dfdaf64 / c3b7505f / 152ca505 / 644f3242 |
+| Task 8 Query Engine | ✅ DONE | `query/{SqlGenerator,PermissionSqlInjector,ClickHouseExecutor,QueryEngine}` + tests |
+| Task 9 Query API | ✅ DONE | `AnalyticsQueryController`, `AnalyticsDubboService(Impl)` + tests |
+| Task 10 DWD/DWS/ADS Jobs | ✅ DONE | `MaterializationService`, `DwdJob`/`DwsJob`/`AdsJob` + tests |
+| Task 11 BI Frontend | ✅ DONE | `scm-web/src/features/analytics` + `/analytics` page |
+| Task 12 Governance | ✅ DONE | lineage / quality rules / results + retention extension |
 
-**Branch:** `master` (8 commits ahead of origin/master). Task 5 refactor consolidated the parallel outbox into `scm-common/integration/.../outbox/{OutboxService,OutboxEvent,OutboxPoller}` (commit `0373113f`, predates Task 5). Each business service now runs `OutboxPoller` in-process (`@ConditionalOnBean(KafkaMessagePublisher.class)`), publishing to `scm.<aggregateType>` with retry/dead-letter support. To resume: `git checkout master` → continue with Task 6 via subagent-driven-development.
+**Branch:** `master` (8 commits ahead of origin/master). Task 5 refactor consolidated the parallel outbox into `scm-common/integration/.../outbox/{OutboxService,OutboxEvent,OutboxPoller}` (commit `0373113f`, predates Task 5). Each business service now runs `OutboxPoller` in-process (`@ConditionalOnBean(KafkaMessagePublisher.class)`), publishing to `scm.<aggregateType>` with retry/dead-letter support.
+
+**Status:** all 12 tasks implemented. Task 6–12 are uncommitted work-in-progress as of 2026-10-23: ODS ingest, semantic CRUD, query engine + REST/Dubbo API, DWD/DWS/ADS materialization, BI dashboard, and lineage/quality governance. Tests: `SqlGeneratorTest`, `QueryEngineTest`, `AnalyticsQueryControllerTest`, `MaterializationServiceTest`, `DataQualityEvaluatorTest`, `LineageServiceTest`, plus the existing metadata/ingest suites.
 
 ---
 
@@ -121,4 +123,8 @@ Verify: `mvn test -Dsurefire.failIfNoSpecifiedTests=false -pl :scm-common-integr
 ---
 
 ## Execution Handoff
-To resume: invoke `subagent-driven-development` skill, dispatch Task 6 implementer subagent with full Task 6 text above.
+Implementation complete. Follow-ups that are intentionally out of scope:
+
+- Wire the `analytics-ods` consumer to additional business topics (`scm.payment`, `scm.fulfillment`, …) as their outbox publishers are added.
+- Add Testcontainers-based ClickHouse integration tests once CI has a ClickHouse service.
+- Schedule `analyticsDwdJob` → `analyticsDwsJob` → `analyticsAdsJob` and `analyticsDataQualityJob` in XXL-Job admin (executor `scm-analytics-executor`).
