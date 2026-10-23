@@ -14,7 +14,16 @@
     "suppliers": "Suppliers",
     "finance": "Finance",
     "system": "System",
-    "tenant": "Tenant"
+    "tenant": "Tenant",
+    "analytics": "Analytics"
+  },
+  "analytics": {
+    "title": "Analytics",
+    "dataset": "Dataset",
+    "dimensions": "Dimensions",
+    "metrics": "Metrics",
+    "run": "Run query",
+    "exportCsv": "Export CSV"
   },
   "dashboard": {
     "title": "Dashboard",

@@ -14,6 +14,7 @@ import {
   NotificationOutlined,
   ApartmentOutlined,
   GlobalOutlined,
+  BarChartOutlined,
 } from '@ant-design/icons'
 
 type MenuItem = Required<MenuProps>['items'][number]
@@ -29,6 +30,7 @@ function getItem(
 
 export const appMenuItems: MenuItem[] = [
   getItem('仪表盘', '/dashboard', <DashboardOutlined />),
+  getItem('数据分析', '/analytics', <BarChartOutlined />),
   getItem('商品管理', '/product', <ShopOutlined />, [
     getItem('商品列表', '/product'),
     getItem('商品分类', '/product/category'),
