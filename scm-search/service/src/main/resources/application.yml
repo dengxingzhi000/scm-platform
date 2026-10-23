@@ -28,7 +28,7 @@ spring:
       database: 3
 
   elasticsearch:
-    uris: ${ELASTICSEARCH_URIS:localhost:9200}
+    uris: ${ELASTICSEARCH_URIS:http://localhost:9200}
 
 management:
   endpoints:

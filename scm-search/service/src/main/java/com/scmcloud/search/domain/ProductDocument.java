@@ -2,6 +2,7 @@ package com.scmcloud.search.domain;
 
 import lombok.Data;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.elasticsearch.annotations.DateFormat;
 import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
@@ -23,13 +24,13 @@ public class ProductDocument {
     @Field(name = "seller_id", type = FieldType.Keyword)
     private Long sellerId;
 
-    @Field(name = "title", type = FieldType.Text, analyzer = "ik_max_word")
+    @Field(name = "title", type = FieldType.Text, analyzer = "standard")
     private String title;
 
     @Field(name = "subtitle", type = FieldType.Text)
     private String subtitle;
 
-    @Field(name = "description", type = FieldType.Text, analyzer = "ik_max_word")
+    @Field(name = "description", type = FieldType.Text, analyzer = "standard")
     private String description;
 
     @Field(name = "category_id", type = FieldType.Keyword)
@@ -71,9 +72,9 @@ public class ProductDocument {
     @Field(name = "status", type = FieldType.Keyword)
     private String status;
 
-    @Field(name = "created_at", type = FieldType.Date)
+    @Field(name = "created_at", type = FieldType.Date, format = DateFormat.date_hour_minute_second)
     private LocalDateTime createdAt;
 
-    @Field(name = "updated_at", type = FieldType.Date)
+    @Field(name = "updated_at", type = FieldType.Date, format = DateFormat.date_hour_minute_second)
     private LocalDateTime updatedAt;
 }
