@@ -12,12 +12,6 @@ export default function UserFormPage() {
   const [loading, setLoading] = useState(false)
   const isEdit = params.id !== 'add'
 
-  useEffect(() => {
-    if (isEdit) {
-      loadUser()
-    }
-  }, [params.id])
-
   const loadUser = async () => {
     try {
       const response = await client.get(`/users/${params.id}`)
@@ -26,6 +20,12 @@ export default function UserFormPage() {
       message.error('加载用户失败')
     }
   }
+
+  useEffect(() => {
+    if (isEdit) {
+      loadUser()
+    }
+  }, [params.id])
 
   const onFinish = async (values: any) => {
     setLoading(true)

@@ -6,7 +6,8 @@ const intlMiddleware = createMiddleware(routing)
 
 const publicPaths = ['/login', '/register', '/forgot-password']
 
-export function middleware(request: NextRequest) {
+// Next.js 16 renamed the `middleware` convention to `proxy`.
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Extract locale from pathname
