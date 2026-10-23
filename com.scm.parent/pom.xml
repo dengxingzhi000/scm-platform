@@ -102,7 +102,7 @@
     <fastjson2.version>2.0.66</fastjson2.version>
 
     <!-- Messaging (5.30.0 is the version managed by Spring Boot 4.1.2) -->
-    <rabbitmq.version>5.30.0</rabbitmq.version>
+    <rabbitmq.version>5.37.0</rabbitmq.version>
 
     <!-- Testcontainers -->
     <testcontainers.version>2.0.5</testcontainers.version>
