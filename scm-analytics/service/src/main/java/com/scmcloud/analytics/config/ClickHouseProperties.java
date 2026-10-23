@@ -15,4 +15,10 @@ public class ClickHouseProperties {
     private String database;
     private String username;
     private String password;
+
+    /** Server-side and client-side deadline for ad-hoc queries, in seconds. */
+    private int queryTimeoutSeconds = 30;
+
+    /** Batch size used by the ODS ingest and materialization jobs. */
+    private int batchSize = 1_000;
 }
