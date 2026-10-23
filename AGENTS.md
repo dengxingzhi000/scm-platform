@@ -274,15 +274,35 @@ scripts/db/quality/check-quality.sh
 
 ## Frontend (`scm-web`)
 
-Next.js 16.4 / React 19 / Ant Design 6 / Zustand / TanStack Query, `next-intl`
-for i18n. A separate npm project — never in the parent POM.
+Next.js 16.4 App Router / React 19 / TypeScript, `next-intl` for i18n. A
+separate npm project — never in the parent POM.
+
+**Target stack (the migration is in progress):**
+
+| Layer | Choice | Rule |
+|-------|--------|------|
+| Styling | Tailwind CSS v4 | No second CSS-in-JS layer |
+| UI | shadcn/ui (`src/components/ui`) | Component code is vendored; edit the source |
+| Server state | TanStack Query v5 | One `QueryClient` in the client `QueryProvider`; never wrap query data in `'use cache'` |
+| Client state | Zustand | UI state only (sidebar, theme, filter context) — no server data |
+| Forms | React Hook Form + Zod | Long forms use `zodResolver` + `FormField` |
+| Tables | TanStack Table v9 by default; AG Grid on demand | AG Grid only through the lazy `DataGrid` wrapper |
+| Charts | Recharts (KPI), ECharts (complex), G6 (topology) | All lazy; ECharts imports only `echarts/core` |
+| Tests | Vitest + Playwright | Unit tests for data transforms; E2E for core ledger paths |
+
+Ant Design 6 is still present on the non-migrated screens (dashboard and
+product have been migrated first). Do not add new Ant Design screens; port
+them to shadcn/ui incrementally. `src/lib/design-tokens.css` remains the
+single palette source for Ant Design, Tailwind and canvas charts.
 
 ```bash
 cd scm-web
 npm install
 npm run dev          # http://localhost:3000
 npm run lint         # `eslint .` — `next lint` was removed in Next 16
-npx tsc --noEmit     # there is no `typecheck` script
+npm run typecheck    # `tsc --noEmit`
+npm test             # Vitest (unit)
+npm run test:coverage
 npm run test:e2e     # Playwright
 ```
 
@@ -290,6 +310,22 @@ npm run test:e2e     # Playwright
   `src/proxy.ts` (next-intl), which also redirects unauthenticated users
   to `/login` unless an `access_token` cookie is present. Next 16 renamed the
   `middleware.ts` convention to `proxy.ts` (the `middleware` export → `proxy`).
+  `src/app/layout.tsx` owns `<html>`/`<body>`; `LocaleAttributes` sets
+  `lang` inside `[locale]/layout.tsx` (never render a second `<html>`).
+- Tailwind v4 is configured CSS-first: `postcss.config.mjs` +
+  `src/app/globals.css` (`@theme inline` aliases the design tokens to shadcn
+  variables; dark mode keys off `[data-theme="dark"]`). `components.json`
+  lets `npx shadcn@latest add <component>` write directly into
+  `src/components/ui/`.
+- Lazy-loading is enforced by ESLint `no-restricted-imports`: bare `echarts`,
+  `echarts-for-react`, `@antv/g6`, `ag-grid-community` and `ag-grid-react`
+  are errors outside their wrappers (`src/components/charts`,
+  `src/components/data-grid`, `src/lib/charts`). AG Grid CSS is imported
+  statically in `src/app/layout.tsx`.
+- Dashboard is a Server Component doing `prefetchQuery` + `HydrationBoundary`;
+  its client half lives in `dashboard-client.tsx`. `dashboardService` is a local
+  mock, so prefetch runs on the server today — when it calls the gateway, the
+  prefetch must forward the auth/tenant cookies.
 - Lint uses the **flat config** `eslint.config.mjs` (ESLint 10 dropped
   `.eslintrc`); `eslint-config-next@16` ships native flat-config arrays.
   `eslint-config-next/typescript` is deliberately not enabled — see the
@@ -301,6 +337,7 @@ npm run test:e2e     # Playwright
   `http://localhost:8761`), consumed by `src/lib/api/client.ts`.
 - Feature code lives in `src/features/<domain>/`; pages in
   `src/app/[locale]/(app)/<domain>/`.
+- See `scm-web/README.md` for the stack contract and migration checklist.
 - API clients: `npm run generate:api` (openapi-generator-cli 7.12, configured in
   `openapitools.json`) regenerates `src/lib/api/generated/{auth,system}` from
   the **running** services at `:8106` / `:8081`. The clients in use today are
