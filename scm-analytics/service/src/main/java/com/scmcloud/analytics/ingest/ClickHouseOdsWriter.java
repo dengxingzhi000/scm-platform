@@ -47,11 +47,12 @@ public class ClickHouseOdsWriter {
         try {
             byte[] body = serializeJsonEachRow(rows);
             ByteArrayInputStream stream = new ByteArrayInputStream(body);
-            InsertResponse response = clickHouseClient
+            try (InsertResponse response = clickHouseClient
                     .insert(fqTable, stream, ClickHouseFormat.JSONEachRow)
-                    .get(30, TimeUnit.SECONDS);
-            log.debug("Inserted {} rows into {}: readRows={}, writtenRows={}",
-                    rows.size(), fqTable, response.getReadRows(), response.getWrittenRows());
+                    .get(30, TimeUnit.SECONDS)) {
+                log.debug("Inserted {} rows into {}: readRows={}, writtenRows={}",
+                        rows.size(), fqTable, response.getReadRows(), response.getWrittenRows());
+            }
             return rows.size();
         } catch (Exception ex) {
             log.warn("ClickHouse insert failed for {} rows into {}: {}",

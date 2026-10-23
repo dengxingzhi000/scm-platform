@@ -1,5 +1,6 @@
 package com.scmcloud.ordercenter.domain.entity;
 
+import com.scmcloud.common.domain.TenantId;
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -13,6 +14,9 @@ import java.time.LocalDateTime;
 @Accessors(chain = true)
 @TableName("oc_order_item")
 public class OcOrderItem {
+
+    @TableField(value = "tenant_id", fill = FieldFill.INSERT)
+    private TenantId tenantId;
 
     @TableId(value = "id", type = IdType.ASSIGN_ID)
     private Long id;

@@ -23,6 +23,18 @@ export default function RoleListPage() {
   const [editingRole, setEditingRole] = useState<Role | null>(null)
   const [form] = Form.useForm()
 
+  const loadRoles = async () => {
+    setLoading(true)
+    try {
+      const response = await client.get('/roles')
+      setRoles(response.data.data.records || [])
+    } catch (error) {
+      console.error('Failed to load roles:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
     loadRoles()
   }, [])
@@ -81,18 +93,6 @@ export default function RoleListPage() {
       ),
     },
   ]
-
-  const loadRoles = async () => {
-    setLoading(true)
-    try {
-      const response = await client.get('/roles')
-      setRoles(response.data.data.records || [])
-    } catch (error) {
-      console.error('Failed to load roles:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleEdit = (role: Role) => {
     setEditingRole(role)

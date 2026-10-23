@@ -3,8 +3,10 @@ package com.scmcloud.fulfillment.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.scmcloud.fulfillment.domain.entity.FulfillmentOrder;
+import com.scmcloud.fulfillment.domain.entity.Tracking;
 import com.scmcloud.fulfillment.mapper.FulfillmentOrderMapper;
 import com.scmcloud.fulfillment.service.IFulfillmentOrderService;
+import com.scmcloud.fulfillment.service.ITrackingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -16,6 +18,8 @@ import java.time.LocalDateTime;
 @Slf4j
 @Service
 public class FulfillmentOrderServiceImpl extends ServiceImpl<FulfillmentOrderMapper, FulfillmentOrder> implements IFulfillmentOrderService {
+
+    private final ITrackingService trackingService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -95,6 +99,13 @@ public class FulfillmentOrderServiceImpl extends ServiceImpl<FulfillmentOrderMap
         order.setStatus(4);
         order.setUpdatedAt(LocalDateTime.now());
         updateById(order);
+        trackingService.recordEvent(new Tracking()
+                .setFulfillmentNo(fulfillmentNo)
+                .setTrackingNo(trackingNo)
+                .setCarrier(carrier)
+                .setStatus("SHIPPED")
+                .setDescription("Shipment created")
+                .setEventTime(LocalDateTime.now()));
         log.info("Fulfillment shipped: fulfillmentNo={}, trackingNo={}, carrier={}", fulfillmentNo, trackingNo, carrier);
     }
 

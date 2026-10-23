@@ -4,6 +4,7 @@ import { getMessages } from "next-intl/server";
 import { AntdRegistry } from "@ant-design/nextjs-registry";
 import ThemeProvider from "@/providers/theme-provider";
 import QueryProvider from "@/components/providers/QueryProvider";
+import LocaleAttributes from "@/components/providers/locale-attributes";
 
 type Props = {
   children: ReactNode;
@@ -15,16 +16,13 @@ export default async function LocaleLayout({ children, params }: Props) {
   const messages = await getMessages();
 
   return (
-    <html lang={locale}>
-      <body>
-        <NextIntlClientProvider messages={messages}>
-          <AntdRegistry>
-            <ThemeProvider>
-              <QueryProvider>{children}</QueryProvider>
-            </ThemeProvider>
-          </AntdRegistry>
-        </NextIntlClientProvider>
-      </body>
-    </html>
+    <NextIntlClientProvider messages={messages}>
+      <LocaleAttributes locale={locale} />
+      <AntdRegistry>
+        <ThemeProvider>
+          <QueryProvider>{children}</QueryProvider>
+        </ThemeProvider>
+      </AntdRegistry>
+    </NextIntlClientProvider>
   );
 }

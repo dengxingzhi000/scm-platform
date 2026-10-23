@@ -1,78 +1,107 @@
-'use client'
+"use client";
 
-import { Row, Col, Card, Statistic, theme } from 'antd'
-import { ArrowUpOutlined, ArrowDownOutlined, MinusOutlined, DollarOutlined, ShoppingCartOutlined, InboxOutlined, TeamOutlined } from '@ant-design/icons'
-import type { KPIData } from '../types'
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  DollarSign,
+  Inbox,
+  Minus,
+  ShoppingCart,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
 
-const iconMap: Record<string, React.ReactNode> = {
-  DollarOutlined: <DollarOutlined />,
-  ShoppingCartOutlined: <ShoppingCartOutlined />,
-  InboxOutlined: <InboxOutlined />,
-  TeamOutlined: <TeamOutlined />,
-}
+import Sparkline from "@/components/charts/sparkline";
+import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
+import type { KPIData } from "../types";
+
+const iconMap: Record<string, LucideIcon> = {
+  DollarOutlined: DollarSign,
+  ShoppingCartOutlined: ShoppingCart,
+  InboxOutlined: Inbox,
+  TeamOutlined: Users,
+};
 
 interface KPICardsProps {
-  kpis: KPIData[]
-  loading?: boolean
+  kpis: KPIData[];
+  loading?: boolean;
 }
 
 export default function KPICards({ kpis, loading }: KPICardsProps) {
-  const { token } = theme.useToken()
+  if (loading) {
+    return (
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <Skeleton key={index} className="h-[132px] w-full rounded-xl" />
+        ))}
+      </div>
+    );
+  }
 
   return (
-    <Row gutter={[16, 16]}>
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {kpis.map((kpi, index) => {
-        const trendIcon =
-          kpi.trend?.direction === 'up' ? (
-            <ArrowUpOutlined />
-          ) : kpi.trend?.direction === 'down' ? (
-            <ArrowDownOutlined />
-          ) : (
-            <MinusOutlined />
-          )
-        const trendColor =
-          kpi.trend?.direction === 'up'
-            ? token.colorSuccess
-            : kpi.trend?.direction === 'down'
-              ? token.colorError
-              : token.colorTextTertiary
+        const Icon = iconMap[kpi.icon] ?? DollarSign;
+        const TrendIcon =
+          kpi.trend?.direction === "up"
+            ? ArrowUpRight
+            : kpi.trend?.direction === "down"
+              ? ArrowDownRight
+              : Minus;
 
         return (
-          <Col key={index} xs={24} sm={12} lg={6}>
-            <Card loading={loading} styles={{ body: { display: 'flex', gap: 16, alignItems: 'center' } }}>
+          <Card key={`${kpi.title}-${index}`} className="py-5">
+            <CardContent className="flex items-center gap-4 px-5">
               <div
+                className="flex size-12 shrink-0 items-center justify-center rounded-xl"
                 style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: token.borderRadiusLG,
-                  background: token.colorPrimaryBg,
-                  color: token.colorPrimary,
-                  fontSize: 22,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
+                  backgroundColor: `${kpi.color}14`,
+                  color: kpi.color,
                 }}
               >
-                {iconMap[kpi.icon]}
+                <Icon className="size-5" />
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: token.fontSizeSM, color: token.colorTextSecondary, marginBottom: 4 }}>
-                  {kpi.title}
-                </div>
-                <Statistic value={kpi.value} valueStyle={{ fontSize: token.fontSizeHeading3, fontWeight: 600 }} />
+
+              <div className="min-w-0 flex-1">
+                <p className="text-muted-foreground mb-1 text-xs">{kpi.title}</p>
+                <p className="text-2xl leading-none font-semibold tracking-tight">
+                  {kpi.prefix}
+                  {kpi.value}
+                  {kpi.suffix}
+                </p>
                 {kpi.trend && (
-                  <div style={{ fontSize: 12, color: trendColor, marginTop: 4 }}>
-                    {trendIcon}{' '}
-                    {kpi.trend.direction === 'up' ? '上升 ' : kpi.trend.direction === 'down' ? '下降 ' : '持平 '}
+                  <p
+                    className={cn(
+                      "mt-1 flex items-center gap-1 text-xs",
+                      kpi.trend.direction === "up" && "text-emerald-600",
+                      kpi.trend.direction === "down" && "text-destructive",
+                      kpi.trend.direction === "flat" && "text-muted-foreground",
+                    )}
+                  >
+                    <TrendIcon className="size-3.5" />
+                    {kpi.trend.direction === "up"
+                      ? "上升"
+                      : kpi.trend.direction === "down"
+                        ? "下降"
+                        : "持平"}{" "}
                     {kpi.trend.value}% {kpi.trend.period}
-                  </div>
+                  </p>
                 )}
               </div>
-            </Card>
-          </Col>
-        )
+
+              {kpi.sparkline && kpi.sparkline.length > 1 && (
+                <Sparkline
+                  data={kpi.sparkline}
+                  color={kpi.color}
+                  className="hidden h-10 w-20 shrink-0 lg:block"
+                />
+              )}
+            </CardContent>
+          </Card>
+        );
       })}
-    </Row>
-  )
+    </div>
+  );
 }

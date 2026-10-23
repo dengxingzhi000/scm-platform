@@ -14,7 +14,16 @@
     "suppliers": "供应商管理",
     "finance": "财务管理",
     "system": "系统设置",
-    "tenant": "租户管理"
+    "tenant": "租户管理",
+    "analytics": "数据分析"
+  },
+  "analytics": {
+    "title": "数据分析",
+    "dataset": "数据集",
+    "dimensions": "维度",
+    "metrics": "指标",
+    "run": "运行查询",
+    "exportCsv": "导出 CSV"
   },
   "dashboard": {
     "title": "工作台",

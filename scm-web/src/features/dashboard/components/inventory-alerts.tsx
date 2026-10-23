@@ -1,59 +1,81 @@
-'use client'
+"use client";
 
-import { Card, List, Tag, Progress, theme } from 'antd'
-import { WarningOutlined } from '@ant-design/icons'
-import type { InventoryAlert } from '../types'
+import { AlertTriangle } from "lucide-react";
+
+import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
+import type { InventoryAlert } from "../types";
 
 interface InventoryAlertsProps {
-  alerts: InventoryAlert[]
-  loading?: boolean
+  alerts: InventoryAlert[];
+  loading?: boolean;
 }
 
-export default function InventoryAlerts({ alerts, loading }: InventoryAlertsProps) {
-  const { token } = theme.useToken()
+const statusConfig = {
+  critical: { label: "紧急", badge: "destructive" as const, bar: "bg-destructive" },
+  low: { label: "偏低", badge: "warning" as const, bar: "bg-amber-500" },
+  out: { label: "缺货", badge: "secondary" as const, bar: "bg-muted-foreground" },
+};
 
-  const statusConfig = {
-    critical: { color: token.colorError, label: '紧急' },
-    low: { color: token.colorWarning, label: '偏低' },
-    out: { color: token.colorTextTertiary, label: '缺货' },
-  } as const
-
+export default function InventoryAlerts({
+  alerts,
+  loading,
+}: InventoryAlertsProps) {
   return (
-    <Card
-      title="库存预警"
-      extra={<WarningOutlined style={{ color: token.colorWarning }} />}
-      loading={loading}
-    >
-      <List
-        dataSource={alerts}
-        renderItem={(item) => {
-          const config = statusConfig[item.status as keyof typeof statusConfig] ?? statusConfig.low
-          const percent = Math.round((item.currentStock / item.threshold) * 100)
-          return (
-            <List.Item>
-              <List.Item.Meta
-                title={
-                  <span>
-                    {item.productName} <Tag color={config.color}>{config.label}</Tag>
-                  </span>
-                }
-                description={
-                  <span style={{ fontSize: 12, color: token.colorTextSecondary }}>
-                    {item.skuCode} · 库存 {item.currentStock} / 阈值 {item.threshold}
-                  </span>
-                }
-              />
-              <Progress
-                percent={Math.min(percent, 100)}
-                size="small"
-                status={item.status === 'out' || item.status === 'critical' ? 'exception' : 'active'}
-                strokeColor={config.color}
-                style={{ width: 100 }}
-              />
-            </List.Item>
-          )
-        }}
-      />
+    <Card className="gap-3">
+      <CardHeader>
+        <CardTitle>库存预警</CardTitle>
+        <CardAction>
+          <AlertTriangle className="size-4 text-amber-500" />
+        </CardAction>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <Skeleton className="h-64 w-full" />
+        ) : (
+          <div className="divide-y">
+            {alerts.map((alert) => {
+              const config =
+                statusConfig[alert.status] ?? statusConfig.low;
+              const percent = Math.round(
+                (alert.currentStock / alert.threshold) * 100,
+              );
+
+              return (
+                <div
+                  key={alert.id}
+                  className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"
+                >
+                  <div className="min-w-0">
+                    <p className="flex items-center gap-2 truncate text-sm font-medium">
+                      {alert.productName}
+                      <Badge variant={config.badge}>{config.label}</Badge>
+                    </p>
+                    <p className="text-muted-foreground mt-1 text-xs">
+                      {alert.skuCode} · 库存 {alert.currentStock} / 阈值{" "}
+                      {alert.threshold}
+                    </p>
+                  </div>
+                  <div className="bg-muted h-1.5 w-24 shrink-0 overflow-hidden rounded-full">
+                    <div
+                      className={cn("h-full rounded-full", config.bar)}
+                      style={{ width: `${Math.min(percent, 100)}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
     </Card>
-  )
+  );
 }

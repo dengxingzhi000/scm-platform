@@ -10,4 +10,8 @@ public interface IRefundService extends IService<Refund> {
     Refund createRefund(String paymentNo, String orderNo, String userId, BigDecimal amount, String reason);
 
     Refund queryRefund(String refundNo);
+
+    Refund approveRefund(String refundNo);
+
+    Refund rejectRefund(String refundNo, String reason);
 }

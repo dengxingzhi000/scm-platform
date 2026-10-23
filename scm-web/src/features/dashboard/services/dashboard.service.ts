@@ -1,10 +1,10 @@
 import type { DashboardStats, KPIData } from '../types'
 
 const mockKPIs: KPIData[] = [
-  { title: '总营收', value: '¥128,500', trend: { value: 12.5, direction: 'up', period: '较上月' }, icon: 'DollarOutlined', color: '#1677ff' },
-  { title: '订单数', value: '1,234', trend: { value: 8.3, direction: 'up', period: '较上月' }, icon: 'ShoppingCartOutlined', color: '#52c41a' },
-  { title: '库存量', value: '5,678', trend: { value: 2.1, direction: 'down', period: '较上月' }, icon: 'InboxOutlined', color: '#faad14' },
-  { title: '供应商', value: '89', trend: { value: 5, direction: 'up', period: '较上月' }, icon: 'TeamOutlined', color: '#722ed1' },
+  { title: '总营收', value: '¥128,500', trend: { value: 12.5, direction: 'up', period: '较上月' }, icon: 'DollarOutlined', color: '#1677ff', sparkline: [42, 48, 45, 52, 49, 58, 61, 60, 68, 72] },
+  { title: '订单数', value: '1,234', trend: { value: 8.3, direction: 'up', period: '较上月' }, icon: 'ShoppingCartOutlined', color: '#52c41a', sparkline: [31, 35, 34, 38, 41, 39, 44, 47, 46, 51] },
+  { title: '库存量', value: '5,678', trend: { value: 2.1, direction: 'down', period: '较上月' }, icon: 'InboxOutlined', color: '#faad14', sparkline: [70, 68, 69, 66, 64, 63, 60, 61, 58, 56] },
+  { title: '供应商', value: '89', trend: { value: 5, direction: 'up', period: '较上月' }, icon: 'TeamOutlined', color: '#722ed1', sparkline: [20, 22, 21, 24, 25, 24, 26, 28, 27, 30] },
 ]
 
 export const dashboardService = {

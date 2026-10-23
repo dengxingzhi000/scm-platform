@@ -421,7 +421,7 @@ services:
     ports:
       - "6432:6432"
     depends_on:
-      - postgresql
+      - postgres
     networks:
       - scm-network
     healthcheck:
@@ -481,6 +481,180 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+# ============================================================
+# 电商域服务（可选：docker compose --profile ecommerce up -d）
+# 需先用 mvn package 生成各模块 service/target/*.jar
+# ============================================================
+  scm-member:
+    profiles: ["ecommerce"]
+    build:
+      context: ./scm-member
+    container_name: scm-member
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: ${POSTGRES_USER:-admin}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-admin123}
+      REDIS_HOST: redis
+      NACOS_SERVER: nacos:8848
+    ports:
+      - "8302:8302"
+    depends_on:
+      - postgres
+      - redis
+      - nacos
+    networks:
+      - scm-network
+
+  scm-promotion:
+    profiles: ["ecommerce"]
+    build:
+      context: ./scm-promotion
+    container_name: scm-promotion
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: ${POSTGRES_USER:-admin}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-admin123}
+      REDIS_HOST: redis
+      NACOS_SERVER: nacos:8848
+    ports:
+      - "8303:8303"
+    depends_on:
+      - postgres
+      - redis
+      - nacos
+    networks:
+      - scm-network
+
+  scm-payment:
+    profiles: ["ecommerce"]
+    build:
+      context: ./scm-payment
+    container_name: scm-payment
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: ${POSTGRES_USER:-admin}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-admin123}
+      REDIS_HOST: redis
+      NACOS_SERVER: nacos:8848
+    ports:
+      - "8304:8304"
+    depends_on:
+      - postgres
+      - redis
+      - nacos
+    networks:
+      - scm-network
+
+  scm-order-center:
+    profiles: ["ecommerce"]
+    build:
+      context: ./scm-order-center
+    container_name: scm-order-center
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: ${POSTGRES_USER:-admin}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-admin123}
+      REDIS_HOST: redis
+      NACOS_SERVER: nacos:8848
+    ports:
+      - "8305:8305"
+    depends_on:
+      - postgres
+      - redis
+      - nacos
+    networks:
+      - scm-network
+
+  scm-mall:
+    profiles: ["ecommerce"]
+    build:
+      context: ./scm-mall
+    container_name: scm-mall
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: ${POSTGRES_USER:-admin}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-admin123}
+      REDIS_HOST: redis
+      NACOS_SERVER: nacos:8848
+    ports:
+      - "8301:8301"
+    depends_on:
+      - postgres
+      - redis
+      - nacos
+    networks:
+      - scm-network
+
+  scm-fulfillment:
+    profiles: ["ecommerce"]
+    build:
+      context: ./scm-fulfillment
+    container_name: scm-fulfillment
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: ${POSTGRES_USER:-admin}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-admin123}
+      REDIS_HOST: redis
+      NACOS_SERVER: nacos:8848
+    ports:
+      - "8306:8306"
+    depends_on:
+      - postgres
+      - redis
+      - nacos
+    networks:
+      - scm-network
+
+  scm-search:
+    profiles: ["ecommerce"]
+    build:
+      context: ./scm-search
+    container_name: scm-search
+    environment:
+      REDIS_HOST: redis
+      NACOS_SERVER: nacos:8848
+      ELASTICSEARCH_URIS: http://elasticsearch:9200
+    ports:
+      - "8307:8307"
+    depends_on:
+      - redis
+      - nacos
+      - elasticsearch
+    networks:
+      - scm-network
+
+  scm-analytics:
+    profiles: ["ecommerce"]
+    build:
+      context: ./scm-analytics
+    container_name: scm-analytics
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: ${POSTGRES_USER:-admin}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-admin123}
+      REDIS_HOST: redis
+      NACOS_SERVER: nacos:8848
+      KAFKA_BOOTSTRAP: kafka:9092
+      CH_HOST: clickhouse
+      XXL_JOB_ADMIN: http://xxl-job-admin:8080/xxl-job-admin
+    ports:
+      - "8308:8308"
+    depends_on:
+      - postgres
+      - redis
+      - nacos
+      - kafka
+      - clickhouse
+    networks:
+      - scm-network
 
 # ============================================================
 # 网络配置

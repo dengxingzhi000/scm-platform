@@ -4,7 +4,7 @@ import com.scmcloud.file.api.enums.StorageType;
 import com.scmcloud.file.config.StorageConfig;
 import com.scmcloud.file.entity.FileMetadata;
 import io.minio.*;
-import io.minio.http.Method;
+import io.minio.Http.Method;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -31,7 +31,7 @@ public class MinioStorageEngine implements StorageEngine {
             minioClient.putObject(PutObjectArgs.builder()
                     .bucket(config.getMinio().getBucketName())
                     .object(storageKey)
-                    .stream(content, fileSize, -1)
+                    .stream(content, fileSize, -1L)
                     .contentType(contentType)
                     .build());
 

@@ -9,6 +9,8 @@ import java.util.List;
 @Repository
 public interface ProductDocumentRepository extends ElasticsearchRepository<ProductDocument, String> {
 
+    List<ProductDocument> findByProductId(Long productId);
+
     List<ProductDocument> findByCategoryId(Long categoryId);
 
     List<ProductDocument> findByBrandId(Long brandId);

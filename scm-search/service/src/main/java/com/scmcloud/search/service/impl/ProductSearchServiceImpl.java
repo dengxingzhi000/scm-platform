@@ -2,6 +2,7 @@ package com.scmcloud.search.service.impl;
 
 import com.scmcloud.search.domain.ProductDocument;
 import com.scmcloud.search.repository.ProductDocumentRepository;
+import com.scmcloud.search.service.IProductIndexService;
 import com.scmcloud.search.service.IProductSearchService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +22,7 @@ import java.util.stream.Collectors;
 public class ProductSearchServiceImpl implements IProductSearchService {
     private final ProductDocumentRepository productRepository;
     private final ElasticsearchOperations elasticsearchOperations;
+    private final IProductIndexService productIndexService;
 
     @Override
     public List<ProductDocument> searchProducts(String keyword, Long categoryId, Long brandId, int page, int size) {
@@ -53,8 +55,18 @@ public class ProductSearchServiceImpl implements IProductSearchService {
     @Override
     public List<ProductDocument> getSimilarProducts(Long productId, int limit) {
         log.info("Getting similar products: productId={}, limit={}", productId, limit);
+        List<ProductDocument> source = productRepository.findByProductId(productId);
+        if (!source.isEmpty() && source.get(0).getCategoryId() != null) {
+            Long categoryId = source.get(0).getCategoryId();
+            return productRepository.findByCategoryId(categoryId).stream()
+                    .filter(product -> !productId.equals(product.getProductId()))
+                    .filter(product -> "active".equals(product.getStatus()))
+                    .limit(limit)
+                    .collect(Collectors.toList());
+        }
         return productRepository.findByStatus("active")
                 .stream()
+                .filter(product -> !productId.equals(product.getProductId()))
                 .limit(limit)
                 .collect(Collectors.toList());
     }
@@ -77,15 +89,12 @@ public class ProductSearchServiceImpl implements IProductSearchService {
     @Override
     public void removeProduct(Long productId) {
         log.info("Removing product from index: productId={}", productId);
-        productRepository.findByStatus("active")
-                .stream()
-                .filter(p -> p.getProductId().equals(productId))
-                .findFirst()
-                .ifPresent(productRepository::delete);
+        productIndexService.deleteProduct(productId);
     }
 
     @Override
     public void reindexAll() {
         log.info("Reindexing all products");
+        productIndexService.reindexAll();
     }
 }

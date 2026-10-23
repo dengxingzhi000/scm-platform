@@ -111,7 +111,7 @@ public class OrderCenterServiceImpl extends ServiceImpl<OcOrderMapper, OcOrder> 
             throw new IllegalArgumentException("Order not found: " + orderNo);
         }
 
-        if (order.getStatus() != 3) {
+        if (order.getStatus() != 2 && order.getStatus() != 3) {
             throw new IllegalStateException("Order cannot be shipped, status: " + order.getStatus());
         }
 

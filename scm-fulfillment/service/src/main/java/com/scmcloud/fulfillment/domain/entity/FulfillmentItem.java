@@ -1,5 +1,6 @@
 package com.scmcloud.fulfillment.domain.entity;
 
+import com.scmcloud.common.domain.TenantId;
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -12,6 +13,9 @@ import java.time.LocalDateTime;
 @Accessors(chain = true)
 @TableName("ful_fulfillment_item")
 public class FulfillmentItem {
+
+    @TableField(value = "tenant_id", fill = FieldFill.INSERT)
+    private TenantId tenantId;
 
     @TableId(value = "id", type = IdType.ASSIGN_ID)
     private Long id;

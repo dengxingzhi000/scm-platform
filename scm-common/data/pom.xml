@@ -48,7 +48,7 @@
         <dependency>
             <groupId>com.baomidou</groupId>
             <artifactId>dynamic-datasource-spring-boot3-starter</artifactId>
-            <version>4.3.1</version>
+            <version>4.6.0</version>
         </dependency>
 
         <!-- Jakarta Validation -->
