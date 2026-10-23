@@ -35,6 +35,8 @@ DATABASES=(
     "db_supplier:供应商服务"
     "db_purchase:采购服务"
     "db_finance:财务服务"
+    "db_promotion:促销服务"
+    "db_analytics:分析服务"
 )
 
 echo -e "${GREEN}========================================${NC}"
