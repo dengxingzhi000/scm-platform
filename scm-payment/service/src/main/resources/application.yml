@@ -33,7 +33,7 @@ spring:
     baseline-on-migrate: true
     baseline-version: 0
     validate-on-migrate: true
-    table: flyway_schema_history
+    table: flyway_history_payment
 
   data:
     redis:
