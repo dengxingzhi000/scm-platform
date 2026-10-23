@@ -1,35 +1,29 @@
-'use client'
+import {
+  dehydrate,
+  HydrationBoundary,
+  QueryClient,
+} from "@tanstack/react-query";
 
-import { Row, Col } from 'antd'
-import { useDashboardStats } from '@/features/dashboard/hooks'
-import KPICards from '@/features/dashboard/components/kpi-cards'
-import SalesChart from '@/features/dashboard/components/sales-chart'
-import OrderStatusChart from '@/features/dashboard/components/order-status-chart'
-import RecentOrders from '@/features/dashboard/components/recent-orders'
-import InventoryAlerts from '@/features/dashboard/components/inventory-alerts'
+import { QUERY_KEYS } from "@/constants/query-keys";
+import { dashboardService } from "@/features/dashboard/services/dashboard.service";
+import DashboardClient from "./dashboard-client";
 
-export default function DashboardPage() {
-  const { data, isLoading } = useDashboardStats()
+/**
+ * Server Component entry point: warm the React Query cache before the client
+ * renders. The dashboard stats service is a local/mock aggregation today; when
+ * it moves to the gateway, the prefetch must forward the auth + tenant cookies.
+ */
+export default async function DashboardPage() {
+  const queryClient = new QueryClient();
+
+  await queryClient.prefetchQuery({
+    queryKey: QUERY_KEYS.DASHBOARD.STATS,
+    queryFn: () => dashboardService.getStats(),
+  });
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <KPICards kpis={data?.kpis || []} loading={isLoading} />
-      <Row gutter={[16, 16]}>
-        <Col xs={24} lg={16}>
-          <SalesChart data={data?.salesTrend || { dates: [], series: [] }} loading={isLoading} />
-        </Col>
-        <Col xs={24} lg={8}>
-          <OrderStatusChart data={data?.orderStatus || []} loading={isLoading} />
-        </Col>
-      </Row>
-      <Row gutter={[16, 16]}>
-        <Col xs={24} lg={12}>
-          <RecentOrders orders={data?.recentOrders || []} loading={isLoading} />
-        </Col>
-        <Col xs={24} lg={12}>
-          <InventoryAlerts alerts={data?.inventoryAlerts || []} loading={isLoading} />
-        </Col>
-      </Row>
-    </div>
-  )
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <DashboardClient />
+    </HydrationBoundary>
+  );
 }

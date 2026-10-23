@@ -10,6 +10,8 @@ export interface KPIData {
   }
   icon: string
   color: string
+  /** Mini trend series rendered with Recharts inside the KPI card. */
+  sparkline?: number[]
 }
 
 export interface SalesTrendData {

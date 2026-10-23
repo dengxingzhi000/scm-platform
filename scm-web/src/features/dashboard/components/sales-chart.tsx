@@ -1,69 +1,90 @@
-'use client'
+"use client";
 
-import dynamic from 'next/dynamic'
-import { Card, theme } from 'antd'
-import type { SalesTrendData } from '../types'
+import { useMemo } from "react";
 
-const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false })
+import EChart from "@/components/charts/echart";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useThemeTokens } from "@/hooks/use-theme-tokens";
+import type { SalesTrendData } from "../types";
 
 interface SalesChartProps {
-  data: SalesTrendData
-  loading?: boolean
+  data: SalesTrendData;
+  loading?: boolean;
 }
 
 export default function SalesChart({ data, loading }: SalesChartProps) {
-  const { token } = theme.useToken()
+  const tokens = useThemeTokens();
 
-  const option = {
-    tooltip: {
-      trigger: 'axis' as const,
-      backgroundColor: token.colorBgElevated,
-      borderColor: token.colorBorderSecondary,
-      textStyle: { color: token.colorText },
-    },
-    legend: {
-      data: data.series.map((s) => s.name),
-      bottom: 0,
-      textStyle: { color: token.colorTextSecondary },
-    },
-    grid: { left: '3%', right: '4%', bottom: '10%', containLabel: true },
-    xAxis: {
-      type: 'category' as const,
-      boundaryGap: false,
-      data: data.dates,
-      axisLine: { lineStyle: { color: token.colorBorderSecondary } },
-      axisLabel: { color: token.colorTextSecondary },
-    },
-    yAxis: {
-      type: 'value' as const,
-      splitLine: { lineStyle: { color: token.colorBorderSecondary, type: 'dashed' as const } },
-      axisLabel: { color: token.colorTextSecondary },
-    },
-    series: data.series.map((s) => ({
-      name: s.name,
-      type: 'line',
-      smooth: true,
-      data: s.data,
-      itemStyle: { color: s.color },
-      areaStyle: {
-        color: {
-          type: 'linear' as const,
-          x: 0,
-          y: 0,
-          x2: 0,
-          y2: 1,
-          colorStops: [
-            { offset: 0, color: `${s.color}33` },
-            { offset: 1, color: `${s.color}05` },
-          ],
-        },
+  const option = useMemo(
+    () => ({
+      tooltip: {
+        trigger: "axis" as const,
+        backgroundColor: tokens.bgElevated,
+        borderColor: tokens.borderSecondary,
+        textStyle: { color: tokens.text },
       },
-    })),
-  }
+      legend: {
+        data: data.series.map((series) => series.name),
+        bottom: 0,
+        textStyle: { color: tokens.textSecondary },
+      },
+      grid: { left: "3%", right: "4%", bottom: "12%", containLabel: true },
+      xAxis: {
+        type: "category" as const,
+        boundaryGap: false,
+        data: data.dates,
+        axisLine: { lineStyle: { color: tokens.borderSecondary } },
+        axisLabel: { color: tokens.textSecondary },
+      },
+      yAxis: {
+        type: "value" as const,
+        splitLine: {
+          lineStyle: { color: tokens.borderSecondary, type: "dashed" as const },
+        },
+        axisLabel: { color: tokens.textSecondary },
+      },
+      series: data.series.map((series) => ({
+        name: series.name,
+        type: "line",
+        smooth: true,
+        data: series.data,
+        itemStyle: { color: series.color },
+        areaStyle: {
+          color: {
+            type: "linear" as const,
+            x: 0,
+            y: 0,
+            x2: 0,
+            y2: 1,
+            colorStops: [
+              { offset: 0, color: `${series.color}33` },
+              { offset: 1, color: `${series.color}05` },
+            ],
+          },
+        },
+      })),
+    }),
+    [data, tokens],
+  );
 
   return (
-    <Card title="销售趋势" loading={loading}>
-      <ReactECharts option={option} style={{ height: 300 }} />
+    <Card className="gap-3">
+      <CardHeader>
+        <CardTitle>销售趋势</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <Skeleton className="h-[300px] w-full" />
+        ) : (
+          <EChart option={option} className="h-[300px]" />
+        )}
+      </CardContent>
     </Card>
-  )
+  );
 }
