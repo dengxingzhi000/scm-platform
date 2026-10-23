@@ -3,8 +3,8 @@ package com.scmcloud.test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.KafkaContainer;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.kafka.KafkaContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.utility.DockerImageName;
 
@@ -26,13 +26,13 @@ import org.testcontainers.utility.DockerImageName;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public abstract class AbstractIntegrationTest {
 
-    protected static final PostgreSQLContainer<?> postgres;
+    protected static final PostgreSQLContainer postgres;
     protected static final GenericContainer<?> redis;
     protected static final KafkaContainer kafka;
 
     static {
         // PostgreSQL
-        postgres = new PostgreSQLContainer<>(DockerImageName.parse("postgres:16-alpine"))
+        postgres = new PostgreSQLContainer(DockerImageName.parse("postgres:16-alpine"))
                 .withDatabaseName("scm_test")
                 .withUsername("test")
                 .withPassword("test")

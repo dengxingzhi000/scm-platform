@@ -61,7 +61,7 @@
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>4.1.0</version>
+    <version>4.1.2</version>
     <relativePath/>
   </parent>
 
@@ -73,22 +73,22 @@
     <java.version>21</java.version>
 
     <!-- Spring Ecosystem -->
-    <spring-boot.version>4.1.1</spring-boot.version>
-    <spring-cloud.version>2025.1.2</spring-cloud.version>
+    <spring-boot.version>4.1.2</spring-boot.version>
+    <spring-cloud.version>2025.1.4</spring-cloud.version>
     <spring-cloud-alibaba.version>2025.1.0.0</spring-cloud-alibaba.version>
-    <spring-statemachine.version>4.0.0</spring-statemachine.version>
+    <spring-statemachine.version>4.0.2</spring-statemachine.version>
 
     <!-- Database & Persistence -->
-    <postgresql.version>42.6.0</postgresql.version>
+    <postgresql.version>42.7.14</postgresql.version>
     <mybatis-plus.version>3.5.17</mybatis-plus.version>
 
     <!-- Distributed Transaction & Job Scheduling -->
     <seata.version>2.0.0</seata.version>
-    <xxl-job.version>3.4.2</xxl-job.version>
+    <xxl-job.version>3.5.0</xxl-job.version>
     <dubbo.version>3.3.6</dubbo.version>
 
     <!-- Search & Data Sync -->
-    <elasticsearch.version>9.5.3</elasticsearch.version>
+    <elasticsearch.version>9.5.5</elasticsearch.version>
     <canal.version>1.1.7</canal.version>
 
     <!-- Security & Authentication -->
@@ -97,24 +97,24 @@
     <!-- Utility Libraries -->
     <org.projectlombok.version>1.18.48</org.projectlombok.version>
     <uuid-creator.version>6.1.1</uuid-creator.version>
-    <hutool.version>5.8.40</hutool.version>
-    <guava.version>33.5.0-jre</guava.version>
-    <fastjson2.version>2.0.65</fastjson2.version>
+    <hutool.version>5.8.48</hutool.version>
+    <guava.version>33.7.2-jre</guava.version>
+    <fastjson2.version>2.0.66</fastjson2.version>
 
-    <!-- Messaging -->
-    <rabbitmq.version>5.14.2</rabbitmq.version>
+    <!-- Messaging (5.30.0 is the version managed by Spring Boot 4.1.2) -->
+    <rabbitmq.version>5.30.0</rabbitmq.version>
 
     <!-- Testcontainers -->
-    <testcontainers.version>1.20.6</testcontainers.version>
+    <testcontainers.version>2.0.5</testcontainers.version>
 
     <!-- Database Migration -->
-    <flyway.version>13.6.0</flyway.version>
+    <flyway.version>13.11.1</flyway.version>
 
-    <!-- Observability -->
+    <!-- Observability (1.17.2 is the version managed by Spring Boot 4.1.2) -->
     <sentinel.version>2025.0.0.0</sentinel.version>
-    <sentinel-datasource-nacos.version>1.8.7</sentinel-datasource-nacos.version>
+    <sentinel-datasource-nacos.version>1.8.10</sentinel-datasource-nacos.version>
     <skywalking.version>9.3.0</skywalking.version>
-    <micrometer.version>1.13.0</micrometer.version>
+    <micrometer.version>1.17.2</micrometer.version>
   </properties>
 
   <repositories>
@@ -378,7 +378,7 @@
       <dependency>
         <groupId>org.springdoc</groupId>
         <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-        <version>2.8.6</version>
+        <version>3.1.1</version>
       </dependency>
 
       <!-- ==================== Messaging ==================== -->
@@ -426,7 +426,7 @@
       <dependency>
         <groupId>au.com.dius.pact.consumer</groupId>
         <artifactId>junit5</artifactId>
-        <version>4.6.5</version>
+        <version>4.7.5</version>
         <scope>test</scope>
       </dependency>
 
@@ -448,7 +448,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.14.1</version>
+        <version>3.16.0</version>
         <configuration>
           <source>21</source>
           <target>21</target>
@@ -483,7 +483,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>3.5.5</version>
+        <version>3.6.0</version>
         <configuration>
           <excludedGroups>integration</excludedGroups>
         </configuration>
@@ -491,7 +491,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-enforcer-plugin</artifactId>
-        <version>3.5.0</version>
+        <version>3.6.3</version>
         <executions>
           <execution>
             <id>enforce-banned-dependencies</id>
@@ -516,7 +516,7 @@
       <plugin>
         <groupId>org.jacoco</groupId>
         <artifactId>jacoco-maven-plugin</artifactId>
-        <version>0.8.12</version>
+        <version>0.8.15</version>
         <executions>
           <execution>
             <id>prepare-agent</id>
@@ -563,7 +563,7 @@
       <plugin>
         <groupId>org.pitest</groupId>
         <artifactId>pitest-maven</artifactId>
-        <version>1.16.1</version>
+        <version>1.30.1</version>
         <configuration>
           <targetClasses>
             <param>com.scmcloud.*</param>

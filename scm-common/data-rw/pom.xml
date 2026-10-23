@@ -23,7 +23,7 @@
         <dependency>
             <groupId>com.baomidou</groupId>
             <artifactId>dynamic-datasource-spring-boot3-starter</artifactId>
-            <version>4.3.1</version>
+            <version>4.6.0</version>
         </dependency>
 
         <!-- Spring Boot -->
@@ -68,7 +68,7 @@
         <dependency>
             <groupId>io.opentelemetry</groupId>
             <artifactId>opentelemetry-api</artifactId>
-            <version>1.40.0</version>
+            <version>1.67.0</version>
         </dependency>
 
         <!-- Lombok -->
