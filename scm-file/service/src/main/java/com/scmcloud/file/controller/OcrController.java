@@ -49,8 +49,7 @@ public class OcrController {
     @Operation(summary = "提取发票信息", description = "识别发票图片并提取结构化发票信息。")
     @PostMapping("/invoice")
     public ApiResponse<InvoiceInfo> extractInvoice(@Parameter(description = "发票图片文件") @RequestParam("file") MultipartFile file) throws IOException {
-        // 保存到临时文件
-        File tempFile = File.createTempFile("invoice-", "-" + file.getOriginalFilename());
+        File tempFile = createSafeTempFile("invoice-", file.getOriginalFilename());
         file.transferTo(tempFile);
         try {
             InvoiceInfo info = ocrService.extractInvoiceInfo(tempFile);
@@ -69,7 +68,7 @@ public class OcrController {
     @Operation(summary = "提取合同信息", description = "识别合同图片并提取合同关键信息。")
     @PostMapping("/contract")
     public ApiResponse<ContractInfo> extractContract(@Parameter(description = "合同图片文件") @RequestParam("file") MultipartFile file) throws IOException {
-        File tempFile = File.createTempFile("contract-", "-" + file.getOriginalFilename());
+        File tempFile = createSafeTempFile("contract-", file.getOriginalFilename());
         file.transferTo(tempFile);
         try {
             ContractInfo info = ocrService.extractContractInfo(tempFile);
@@ -77,6 +76,23 @@ public class OcrController {
         } finally {
             deleteTempFile(tempFile);
         }
+    }
+
+    private File createSafeTempFile(String prefix, String originalFilename) throws IOException {
+        return File.createTempFile(prefix + "-", sanitizeExtension(originalFilename));
+    }
+
+    private String sanitizeExtension(String originalFilename) {
+        if (originalFilename == null || originalFilename.isBlank()) {
+            return ".tmp";
+        }
+        String fileName = java.nio.file.Paths.get(originalFilename).getFileName().toString();
+        int dot = fileName.lastIndexOf('.');
+        if (dot < 0) {
+            return ".tmp";
+        }
+        String extension = fileName.substring(dot);
+        return extension.matches("\\.[A-Za-z0-9]{1,5}") ? extension : ".tmp";
     }
 
     private void deleteTempFile(File tempFile) {
