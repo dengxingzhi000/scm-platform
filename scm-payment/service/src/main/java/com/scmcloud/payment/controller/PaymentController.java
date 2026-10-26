@@ -4,6 +4,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.scmcloud.payment.domain.entity.PaymentOrder;
 import com.scmcloud.payment.service.IPaymentOrderService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,30 +22,35 @@ import java.util.Map;
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/payments")
+@Tag(name = "支付管理", description = "提供支付单创建、查询、取消与支付渠道回调处理接口。")
 public class PaymentController {
 
     private final IPaymentOrderService paymentService;
     private final ObjectMapper objectMapper;
 
+    @Operation(summary = "创建支付单", description = "根据订单号、用户、金额与支付渠道创建支付单。")
     @PostMapping("/create")
     public PaymentOrder createPayment(@RequestBody CreatePaymentRequest request) {
         log.info("[API] Create payment: orderNo={}, amount={}", request.getOrderNo(), request.getAmount());
         return paymentService.createPayment(request.getOrderNo(), request.getUserId(), request.getAmount(), request.getPaymentChannel());
     }
 
+    @Operation(summary = "查询支付单", description = "根据支付单号查询支付单详情。")
     @GetMapping("/{paymentNo}")
-    public PaymentOrder queryPayment(@PathVariable String paymentNo) {
+    public PaymentOrder queryPayment(@Parameter(description = "支付单号") @PathVariable String paymentNo) {
         log.info("[API] Query payment: paymentNo={}", paymentNo);
         return paymentService.queryPayment(paymentNo);
     }
 
+    @Operation(summary = "取消支付单", description = "根据支付单号取消尚未完成的支付。")
     @PostMapping("/{paymentNo}/cancel")
-    public boolean cancelPayment(@PathVariable String paymentNo) {
+    public boolean cancelPayment(@Parameter(description = "支付单号") @PathVariable String paymentNo) {
         log.info("[API] Cancel payment: paymentNo={}", paymentNo);
         paymentService.cancelPayment(paymentNo);
         return true;
     }
 
+    @Operation(summary = "支付宝支付回调", description = "接收支付宝异步通知并完成支付结果处理。")
     @PostMapping("/callback/alipay")
     public String alipayCallback(@RequestBody String callbackData) {
         log.info("[API] Alipay callback received");
@@ -56,6 +64,7 @@ public class PaymentController {
         return completeCallback("alipay", paymentNo, transactionId, success);
     }
 
+    @Operation(summary = "微信支付回调", description = "接收微信支付异步通知并完成支付结果处理。")
     @PostMapping("/callback/wechat")
     public String wechatCallback(@RequestBody String callbackData) {
         log.info("[API] WeChat callback received");

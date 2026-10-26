@@ -8,6 +8,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import com.scmcloud.supplier.domain.entity.SupSettlement;
 import com.scmcloud.supplier.service.ISupSettlementService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -17,13 +20,15 @@ import java.util.UUID;
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/settlements")
+@Tag(name = "供应商结算", description = "提供供应商对账单的创建、查询、确认、付款与删除接口。")
 public class SupSettlementController {
 
     private final ISupSettlementService settlementService;
     private final StatusValidator statusValidator;
 
+    @Operation(summary = "查询对账单详情", description = "根据对账单ID查询未删除的对账单详情。")
     @GetMapping("/{id}")
-    public ApiResponse<SupSettlement> getById(@PathVariable String id) {
+    public ApiResponse<SupSettlement> getById(@Parameter(description = "对账单ID") @PathVariable String id) {
         log.info("[API] 查询对账单详情 id={}", id);
         SupSettlement settlement = settlementService.getById(id);
         if (settlement == null || Boolean.TRUE.equals(settlement.getDeleted())) {
@@ -32,6 +37,7 @@ public class SupSettlementController {
         return ApiResponse.success(settlement);
     }
 
+    @Operation(summary = "创建对账单", description = "新建供应商对账单并初始化为草稿状态。")
     @PostMapping
     public ApiResponse<SupSettlement> create(@RequestBody SupSettlement settlement) {
         log.info("[API] 创建对账单 supplierId={}", settlement.getSupplierId());
@@ -45,8 +51,9 @@ public class SupSettlementController {
         return ApiResponse.success(settlement);
     }
 
+    @Operation(summary = "更新对账单", description = "根据对账单ID更新对账单信息并校验状态变更是否合法。")
     @PutMapping("/{id}")
-    public ApiResponse<SupSettlement> update(@PathVariable String id, @RequestBody SupSettlement settlement) {
+    public ApiResponse<SupSettlement> update(@Parameter(description = "对账单ID") @PathVariable String id, @RequestBody SupSettlement settlement) {
         log.info("[API] 更新对账单 id={}", id);
         SupSettlement existing = settlementService.getById(id);
         if (existing == null || Boolean.TRUE.equals(existing.getDeleted())) {
@@ -59,8 +66,9 @@ public class SupSettlementController {
         return ApiResponse.success(settlementService.getById(id));
     }
 
+    @Operation(summary = "删除对账单", description = "对指定对账单执行逻辑删除。")
     @DeleteMapping("/{id}")
-    public ApiResponse<Void> delete(@PathVariable String id) {
+    public ApiResponse<Void> delete(@Parameter(description = "对账单ID") @PathVariable String id) {
         log.info("[API] 删除对账单 id={}", id);
         SupSettlement existing = settlementService.getById(id);
         if (existing == null || Boolean.TRUE.equals(existing.getDeleted())) {
@@ -72,35 +80,39 @@ public class SupSettlementController {
         return ApiResponse.success();
     }
 
+    @Operation(summary = "分页查询对账单", description = "按供应商、状态与结算周期分页查询对账单列表。")
     @GetMapping
     public ApiResponse<Page<SupSettlement>> pageList(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String supplierId,
-            @RequestParam(required = false) Integer status,
-            @RequestParam(required = false) String settlementPeriod) {
+            @Parameter(description = "供应商ID") @RequestParam(required = false) String supplierId,
+            @Parameter(description = "对账单状态") @RequestParam(required = false) Integer status,
+            @Parameter(description = "结算周期，例如 2026-09") @RequestParam(required = false) String settlementPeriod) {
         log.info("[API] 分页查询对账单 page={}, size={}, supplierId={}, status={}", page, size, supplierId, status);
         Page<SupSettlement> result = settlementService.pageList(page, size, supplierId, status, settlementPeriod);
         return ApiResponse.success(result);
     }
 
+    @Operation(summary = "查询供应商对账单", description = "查询指定供应商的全部对账单。")
     @GetMapping("/supplier/{supplierId}")
-    public ApiResponse<List<SupSettlement>> listBySupplierId(@PathVariable String supplierId) {
+    public ApiResponse<List<SupSettlement>> listBySupplierId(@Parameter(description = "供应商ID") @PathVariable String supplierId) {
         log.info("[API] 查询供应商对账单列表: supplierId={}", supplierId);
         return ApiResponse.success(settlementService.listBySupplierId(supplierId));
     }
 
+    @Operation(summary = "确认对账单", description = "确认供应商对账单并记录审核人信息。")
     @PutMapping("/{id}/confirm")
-    public ApiResponse<Void> confirm(@PathVariable String id,
-                                     @RequestParam String approverId,
-                                     @RequestParam String approverName) {
+    public ApiResponse<Void> confirm(@Parameter(description = "对账单ID") @PathVariable String id,
+                                     @Parameter(description = "审核人ID") @RequestParam String approverId,
+                                     @Parameter(description = "审核人姓名") @RequestParam String approverName) {
         log.info("[API] 确认对账单 id={}, approverId={}", id, approverId);
         boolean success = settlementService.confirm(id, approverId, approverName);
         return success ? ApiResponse.success() : ApiResponse.fail(400, "确认失败，对账单状态不正确");
     }
 
+    @Operation(summary = "标记对账单已付款", description = "将对账单标记为已付款并记录更新人。")
     @PutMapping("/{id}/pay")
-    public ApiResponse<Void> markAsPaid(@PathVariable String id, @RequestParam String updateBy) {
+    public ApiResponse<Void> markAsPaid(@Parameter(description = "对账单ID") @PathVariable String id, @Parameter(description = "更新人") @RequestParam String updateBy) {
         log.info("[API] 标记对账单已付款: id={}", id);
         boolean success = settlementService.markAsPaid(id, updateBy);
         return success ? ApiResponse.success() : ApiResponse.fail(400, "标记付款失败，对账单状态不正确");
