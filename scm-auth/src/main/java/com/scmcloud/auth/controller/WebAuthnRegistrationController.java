@@ -9,6 +9,8 @@ import com.scmcloud.common.dto.auth.WebAuthnRegisterChallengeResponse;
 import com.scmcloud.common.response.ApiResponse;
 import com.scmcloud.common.security.util.HttpServletRequestUtils;
 import com.scmcloud.common.web.domain.SecurityUser;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -35,12 +37,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/auth/webauthn/register")
 @RequiredArgsConstructor
+@Tag(name = "WebAuthn 注册", description = "提供 WebAuthn 通行密钥的注册挑战生成与凭证登记能力。")
 public class WebAuthnRegistrationController {
 
     private final IWebauthnCredentialService credentialService;
     private final WebAuthnConfig webAuthnConfig;
     private final HttpServletRequestUtils httpServletRequestUtils;
 
+    @Operation(summary = "生成注册挑战", description = "为当前用户生成 WebAuthn 凭证注册所需的随机挑战值。")
     @PostMapping("/challenge")
     @PreAuthorize("isAuthenticated()")
     public ApiResponse<WebAuthnRegisterChallengeResponse> generateRegistrationChallenge(
@@ -56,6 +60,7 @@ public class WebAuthnRegistrationController {
         return ApiResponse.success(challenge);
     }
 
+    @Operation(summary = "校验注册并保存凭证", description = "校验 WebAuthn 注册结果并保存新的通行密钥凭证。")
     @PostMapping("/verify")
     @PreAuthorize("isAuthenticated()")
     public ApiResponse<WebauthnCredentialDTO> registerCredential(

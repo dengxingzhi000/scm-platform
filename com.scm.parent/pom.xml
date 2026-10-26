@@ -110,6 +110,9 @@
     <!-- Database Migration -->
     <flyway.version>13.11.1</flyway.version>
 
+    <!-- API Documentation (3.2.0 targets Spring Boot 4.1.2) -->
+    <springdoc.version>3.2.0</springdoc.version>
+
     <!-- Observability (1.17.2 is the version managed by Spring Boot 4.1.2) -->
     <sentinel.version>2025.0.0.0</sentinel.version>
     <sentinel-datasource-nacos.version>1.8.10</sentinel-datasource-nacos.version>
@@ -374,11 +377,16 @@
 
       <!-- ==================== API Documentation ==================== -->
 
-      <!-- Springdoc OpenAPI 3.0 -->
+      <!-- Springdoc OpenAPI 3 -->
       <dependency>
         <groupId>org.springdoc</groupId>
         <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-        <version>3.1.1</version>
+        <version>${springdoc.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.springdoc</groupId>
+        <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
+        <version>${springdoc.version}</version>
       </dependency>
 
       <!-- ==================== Messaging ==================== -->

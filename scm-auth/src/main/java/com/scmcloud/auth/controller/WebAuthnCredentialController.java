@@ -4,6 +4,9 @@ import com.scmcloud.auth.domain.dto.WebauthnCredentialDTO;
 import com.scmcloud.auth.service.IWebauthnCredentialService;
 import com.scmcloud.common.response.ApiResponse;
 import com.scmcloud.common.web.domain.SecurityUser;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,10 +32,12 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/auth/webauthn/credentials")
 @RequiredArgsConstructor
+@Tag(name = "WebAuthn 凭证", description = "提供 WebAuthn 凭证的查询、重命名、停用、删除与健康检查能力。")
 public class WebAuthnCredentialController {
 
     private final IWebauthnCredentialService credentialService;
 
+    @Operation(summary = "查询凭证列表", description = "获取当前用户所有处于启用状态的 WebAuthn 凭证。")
     @GetMapping("")
     @PreAuthorize("isAuthenticated()")
     public ApiResponse<List<WebauthnCredentialDTO>> listCredentials(
@@ -47,12 +52,13 @@ public class WebAuthnCredentialController {
         return ApiResponse.success(credentials);
     }
 
+    @Operation(summary = "修改凭证设备名", description = "为指定凭证设置便于识别的设备名称。")
     @PutMapping("/{credentialId}/name")
     @PreAuthorize("isAuthenticated()")
     public ApiResponse<WebauthnCredentialDTO> updateDeviceName(
-            @PathVariable String credentialId,
+            @Parameter(description = "WebAuthn 凭证 ID") @PathVariable String credentialId,
             @NotBlank(message = "Device name cannot be empty")
-            @RequestParam String deviceName,
+            @Parameter(description = "新的设备名称") @RequestParam String deviceName,
             @AuthenticationPrincipal SecurityUser user) {
 
         UUID userId = user.getUserId();
@@ -65,10 +71,11 @@ public class WebAuthnCredentialController {
         return ApiResponse.success(credential);
     }
 
+    @Operation(summary = "删除凭证", description = "删除当前用户名下指定的 WebAuthn 凭证。")
     @DeleteMapping("/{credentialId}")
     @PreAuthorize("isAuthenticated()")
     public ApiResponse<Void> deleteCredential(
-            @PathVariable String credentialId,
+            @Parameter(description = "WebAuthn 凭证 ID") @PathVariable String credentialId,
             @AuthenticationPrincipal SecurityUser user) {
 
         UUID userId = user.getUserId();
@@ -80,10 +87,11 @@ public class WebAuthnCredentialController {
         return ApiResponse.success();
     }
 
+    @Operation(summary = "停用凭证", description = "停用指定凭证，停用后将无法用于登录认证。")
     @PutMapping("/{credentialId}/deactivate")
     @PreAuthorize("isAuthenticated()")
     public ApiResponse<Void> deactivateCredential(
-            @PathVariable String credentialId,
+            @Parameter(description = "WebAuthn 凭证 ID") @PathVariable String credentialId,
             @AuthenticationPrincipal SecurityUser user) {
 
         UUID userId = user.getUserId();
@@ -95,6 +103,7 @@ public class WebAuthnCredentialController {
         return ApiResponse.success();
     }
 
+    @Operation(summary = "检查凭证健康状态", description = "检测当前用户凭证的使用状态并返回需要处理的异常凭证。")
     @GetMapping("/health")
     @PreAuthorize("isAuthenticated()")
     public ApiResponse<List<WebauthnCredentialDTO>> checkCredentialHealth(

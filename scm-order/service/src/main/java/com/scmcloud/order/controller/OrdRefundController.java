@@ -14,6 +14,9 @@ import com.scmcloud.order.dto.RefundResponse;
 import com.scmcloud.order.service.command.OrdRefundCommandService;
 import com.scmcloud.order.service.query.OrdRefundItemQueryService;
 import com.scmcloud.order.service.query.OrdRefundQueryService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -53,14 +56,16 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/refunds")
 @RequiredArgsConstructor
+@Tag(name = "订单退款", description = "退款单的查询、创建、审核与完成接口。")
 public class OrdRefundController {
 
     private final OrdRefundQueryService queryService;
     private final OrdRefundItemQueryService refundItemQueryService;
     private final OrdRefundCommandService commandService;
 
+    @Operation(summary = "查询退款单", description = "根据退款单 ID 查询退款详情及其明细。")
     @GetMapping("/{id}")
-    public ApiResponse<RefundResponse> getById(@PathVariable UUID id) {
+    public ApiResponse<RefundResponse> getById(@Parameter(description = "退款单 ID") @PathVariable UUID id) {
         log.info("[API] Query refund: id={}", id);
         RefundResponse r = OrderConverter.toRefundResponse(queryService.getById(id));
         if (r != null) {
@@ -70,15 +75,17 @@ public class OrdRefundController {
         return ApiResponse.success(r);
     }
 
+    @Operation(summary = "查询退款明细", description = "根据退款单 ID 查询退款明细列表。")
     @GetMapping("/{id}/items")
-    public ApiResponse<List<RefundItemResponse>> listItems(@PathVariable UUID id) {
+    public ApiResponse<List<RefundItemResponse>> listItems(@Parameter(description = "退款单 ID") @PathVariable UUID id) {
         log.info("[API] Query refund items: refundId={}", id);
         return ApiResponse.success(
                 OrderConverter.toRefundItemResponseList(refundItemQueryService.listByRefundId(id)));
     }
 
+    @Operation(summary = "按订单查询退款单", description = "根据订单 ID 查询该订单关联的退款单列表。")
     @GetMapping("/order/{orderId}")
-    public ApiResponse<List<RefundResponse>> listByOrderId(@PathVariable UUID orderId) {
+    public ApiResponse<List<RefundResponse>> listByOrderId(@Parameter(description = "订单 ID") @PathVariable UUID orderId) {
         log.info("[API] Query refunds by order: orderId={}", orderId);
         return ApiResponse.success(OrderConverter.toRefundResponseList(queryService.listByOrderId(orderId)));
     }
@@ -86,6 +93,7 @@ public class OrdRefundController {
     /**
      * 统一条件分页查询。
      */
+    @Operation(summary = "分页查询退款单", description = "按条件分页查询退款单，支持退款单号、订单、用户、状态及时间区间过滤。")
     @PostMapping("/query")
     public ApiResponse<Page<RefundResponse>> query(@RequestBody @Valid RefundQueryRequest request) {
         log.info("[API] Query refunds: {}", request);
@@ -106,6 +114,7 @@ public class OrdRefundController {
     /**
      * 创建退款单（带 items，同事务内写入子表）。
      */
+    @Operation(summary = "创建退款单", description = "创建退款单并同时写入退款明细。")
     @PostMapping
     public ApiResponse<RefundResponse> createRefund(@RequestBody @Valid RefundCreateRequest request) {
         log.info("[API] Create refund: refundNo={}, orderId={}", request.getRefundNo(), request.getOrderId());
@@ -124,9 +133,10 @@ public class OrdRefundController {
     /**
      * 审核通过退款。
      */
+    @Operation(summary = "审核通过退款", description = "审核通过退款申请并记录处理人信息。")
     @PutMapping("/{id}/approve")
     public ApiResponse<RefundResponse> approve(
-            @PathVariable UUID id,
+            @Parameter(description = "退款单 ID") @PathVariable UUID id,
             @RequestBody @Valid RefundApproveRequest request) {
         log.info("[API] Approve refund: id={}, handler={}", id, request.getHandlerId());
         commandService.approveRefund(id, request.getHandlerId(), request.getHandlerName(), request.getHandlerRemark());
@@ -140,9 +150,10 @@ public class OrdRefundController {
     /**
      * 拒绝退款。
      */
+    @Operation(summary = "拒绝退款", description = "拒绝退款申请并记录处理人信息。")
     @PutMapping("/{id}/reject")
     public ApiResponse<RefundResponse> reject(
-            @PathVariable UUID id,
+            @Parameter(description = "退款单 ID") @PathVariable UUID id,
             @RequestBody @Valid RefundRejectRequest request) {
         log.info("[API] Reject refund: id={}, handler={}", id, request.getHandlerId());
         commandService.rejectRefund(id, request.getHandlerId(), request.getHandlerName(), request.getHandlerRemark());
@@ -156,8 +167,9 @@ public class OrdRefundController {
     /**
      * 完成退款（线下已退款成功后回调）。
      */
+    @Operation(summary = "完成退款", description = "标记退款单已完成，用于线下退款成功后的回调。")
     @PutMapping("/{id}/complete")
-    public ApiResponse<RefundResponse> complete(@PathVariable UUID id) {
+    public ApiResponse<RefundResponse> complete(@Parameter(description = "退款单 ID") @PathVariable UUID id) {
         log.info("[API] Complete refund: id={}", id);
         commandService.completeRefund(id);
         RefundResponse r = OrderConverter.toRefundResponse(queryService.getById(id));

@@ -5,10 +5,12 @@ import { useRouter } from 'next/navigation'
 import { useLocale } from 'next-intl'
 import { Form, Input, Button, App, Typography, Checkbox, Space } from 'antd'
 import { UserOutlined, LockOutlined, SafetyOutlined } from '@ant-design/icons'
-import { useMutation } from '@tanstack/react-query'
-import { authApi } from '@/lib/api/endpoints'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { authService } from '@/lib/api/services/auth'
+import { toApiError } from '@/lib/api/envelope'
+import { toSessionUser, mergeUserInfo } from '@/lib/auth/session'
 import { useAuthStore } from '@/stores/useAuthStore'
-import type { LoginRequest, LoginResponse } from '@/lib/api/types'
+import type { LoginRequest, LoginResponse } from '@/lib/api/contracts/auth'
 import AuthBrandCard from '@/components/ui/auth-brand-card'
 
 const { Link } = Typography
@@ -23,72 +25,81 @@ interface TOTPForm {
   code: string
 }
 
+const isMfaRequired = (message: string, code: number): boolean =>
+  code === 40104 || /two-factor|verification code|MFA/i.test(message)
+
 export default function LoginPage() {
   const [showTOTP, setShowTOTP] = useState(false)
-  const [tempToken, setTempToken] = useState('')
-  const [totpLoading, setTotpLoading] = useState(false)
+  const [pendingCredentials, setPendingCredentials] = useState<LoginForm | null>(null)
   const router = useRouter()
   const locale = useLocale()
+  const queryClient = useQueryClient()
   const { message } = App.useApp()
-  const { login, setPermissions } = useAuthStore()
+  const { login, setUser, setPermissions } = useAuthStore()
 
   const loginMutation = useMutation({
-    mutationFn: (data: LoginRequest) => authApi.login(data),
+    mutationFn: (data: LoginRequest) => authService.login(data),
   })
 
-  const handleLoginSuccess = (response: LoginResponse) => {
-    const { user, accessToken, refreshToken, permissions } = response
-    login(
-      {
-        id: user.id,
-        username: user.username,
-        displayName: user.displayName,
-        email: user.email,
-        avatar: user.avatar,
-        roles: user.roleNames,
-      },
-      accessToken,
-      refreshToken
-    )
-    if (permissions) {
-      setPermissions(permissions)
+  const completeLogin = async (response: LoginResponse) => {
+    if (!response.accessToken) {
+      message.error(response.message || '登录失败')
+      return
     }
+
+    login(
+      toSessionUser(response),
+      response.accessToken,
+      response.refreshToken ?? ''
+    )
+    setPermissions(response.permissions ?? [])
+
+    try {
+      const userInfo = await authService.getUserInfo()
+      setUser(mergeUserInfo(useAuthStore.getState().user, userInfo))
+    } catch {
+      // The token is valid; profile enrichment is best-effort.
+    }
+
+    queryClient.clear()
     message.success('登录成功')
     router.push(`/${locale}/dashboard`)
   }
 
   const onLoginFinish = async (values: LoginForm) => {
     try {
-      const response = (await loginMutation.mutateAsync({
+      const response = await loginMutation.mutateAsync({
         username: values.username,
         password: values.password,
-      })) as unknown as { data: LoginResponse }
-
-      if (response.data.requireMfa) {
-        setTempToken(response.data.tempToken!)
-        setShowTOTP(true)
-      } else {
-        handleLoginSuccess(response.data)
-      }
+      })
+      await completeLogin(response)
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } }
-      message.error(err.response?.data?.message || '登录失败')
+      const apiError = toApiError(error)
+      if (isMfaRequired(apiError.message, apiError.code)) {
+        setPendingCredentials(values)
+        setShowTOTP(true)
+        return
+      }
+      message.error(apiError.message || '登录失败')
     }
   }
 
   const onTOTPFinish = async (values: TOTPForm) => {
-    setTotpLoading(true)
+    if (!pendingCredentials) {
+      setShowTOTP(false)
+      return
+    }
+
     try {
-      const response = (await authApi.verifyMfa({
-        tempToken,
-        code: values.code,
-      })) as unknown as { data: LoginResponse }
-      handleLoginSuccess(response.data)
+      const response = await loginMutation.mutateAsync({
+        username: pendingCredentials.username,
+        password: pendingCredentials.password,
+        twoFactorCode: values.code,
+      })
+      await completeLogin(response)
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } }
-      message.error(err.response?.data?.message || '验证码错误')
-    } finally {
-      setTotpLoading(false)
+      const apiError = toApiError(error)
+      message.error(apiError.message || '验证码错误')
     }
   }
 
@@ -113,11 +124,18 @@ export default function LoginPage() {
             />
           </Form.Item>
           <Form.Item>
-            <Button type="primary" htmlType="submit" loading={totpLoading} block size="large">
+            <Button type="primary" htmlType="submit" loading={loginMutation.isPending} block size="large">
               验证
             </Button>
           </Form.Item>
-          <Button type="link" block onClick={() => setShowTOTP(false)}>
+          <Button
+            type="link"
+            block
+            onClick={() => {
+              setShowTOTP(false)
+              setPendingCredentials(null)
+            }}
+          >
             返回登录
           </Button>
         </Form>

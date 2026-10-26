@@ -2,6 +2,9 @@ package com.scmcloud.inventory.controller;
 
 import com.scmcloud.inventory.dto.InventoryReservationRequest;
 import com.scmcloud.inventory.service.IInvReservationService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +39,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Validated
 @RestController
 @RequestMapping("/api/v1/inventory/reservation")
+@Tag(name = "库存预占", description = "提供库存预占、确认、释放及预占状态查询接口。")
 public class InvReservationController {
 
   private final IInvReservationService reservationService;
@@ -43,6 +47,7 @@ public class InvReservationController {
   /**
    * 预占库存（订单创建时调用）
    */
+  @Operation(summary = "预占库存", description = "订单创建时按SKU、仓库和数量预占库存并生成预占记录。")
   @PostMapping("/reserve")
   public boolean reserveInventory(
       @RequestBody @Valid InventoryReservationRequest request) {
@@ -80,9 +85,10 @@ public class InvReservationController {
   /**
    * 确认预占（订单支付成功后调用）
    */
+  @Operation(summary = "确认预占", description = "订单支付成功后确认预占，将预占库存转为实际扣减。")
   @PutMapping("/confirm/{businessKey}")
   public boolean confirmReservation(
-      @PathVariable @NotBlank(message = "业务键不能为空") String businessKey) {
+      @Parameter(description = "业务键，通常为订单号，用于定位预占记录") @PathVariable @NotBlank(message = "业务键不能为空") String businessKey) {
 
     log.info("🟢 [API] 确认预占: businessKey={}", businessKey);
 
@@ -111,9 +117,10 @@ public class InvReservationController {
   /**
    * 释放预占（订单取消或超时后调用）
    */
+  @Operation(summary = "释放预占", description = "订单取消或超时后释放预占，将库存归还为可用库存。")
   @DeleteMapping("/release/{businessKey}")
   public boolean releaseReservation(
-      @PathVariable @NotBlank(message = "业务键不能为空") String businessKey) {
+      @Parameter(description = "业务键，通常为订单号，用于定位预占记录") @PathVariable @NotBlank(message = "业务键不能为空") String businessKey) {
 
     log.info("🔴 [API] 释放预占: businessKey={}", businessKey);
 
@@ -142,9 +149,10 @@ public class InvReservationController {
   /**
    * 检查预占是否存在
    */
+  @Operation(summary = "检查预占是否存在", description = "根据业务键判断对应的预占记录是否仍然存在。")
   @GetMapping("/check/{businessKey}")
   public boolean checkReservationExists(
-      @PathVariable @NotBlank(message = "业务键不能为空") String businessKey) {
+      @Parameter(description = "业务键，通常为订单号，用于定位预占记录") @PathVariable @NotBlank(message = "业务键不能为空") String businessKey) {
 
     log.debug("📦 [API] 检查预占 businessKey={}", businessKey);
 
@@ -158,9 +166,10 @@ public class InvReservationController {
   /**
    * 获取预占的数据
    */
+  @Operation(summary = "查询预占数量", description = "根据业务键查询对应预占记录占用的库存数量。")
   @GetMapping("/quantity/{businessKey}")
   public Integer getReservedQuantity(
-      @PathVariable @NotBlank(message = "业务键不能为空") String businessKey) {
+      @Parameter(description = "业务键，通常为订单号，用于定位预占记录") @PathVariable @NotBlank(message = "业务键不能为空") String businessKey) {
 
     log.debug("📦 [API] 查询预占数量: businessKey={}", businessKey);
 
@@ -178,6 +187,7 @@ public class InvReservationController {
   /**
    * 释放过期的预占（定时任务调用）
    */
+  @Operation(summary = "释放过期预占", description = "批量释放已超过保留期限的预占记录，供定时任务调用。")
   @PostMapping("/release-expired")
   public int releaseExpiredReservations() {
     log.info("🔄 [API] 开始释放过期预占");

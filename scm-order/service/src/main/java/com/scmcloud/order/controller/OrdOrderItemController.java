@@ -7,6 +7,9 @@ import com.scmcloud.order.dto.OrderConverter;
 import com.scmcloud.order.dto.OrderItemResponse;
 import com.scmcloud.order.dto.OrdOrderItemQueryRequest;
 import com.scmcloud.order.service.query.OrdOrderItemQueryService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,12 +39,14 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/order-items")
 @RequiredArgsConstructor
+@Tag(name = "订单明细", description = "订单明细的只读查询接口。")
 public class OrdOrderItemController {
 
     private final OrdOrderItemQueryService queryService;
 
+    @Operation(summary = "查询订单明细", description = "根据订单明细 ID 查询明细详情。")
     @GetMapping("/{id}")
-    public ApiResponse<OrderItemResponse> getById(@PathVariable UUID id) {
+    public ApiResponse<OrderItemResponse> getById(@Parameter(description = "订单明细 ID") @PathVariable UUID id) {
         log.info("[API] Query order item: id={}", id);
         OrdOrderItem item = queryService.getById(id.toString());
         return ApiResponse.success(OrderConverter.toItemResponse(item));
@@ -50,6 +55,7 @@ public class OrdOrderItemController {
     /**
      * 按订单 ID 分页查询明细。
      */
+    @Operation(summary = "分页查询订单明细", description = "按订单 ID 分页查询该订单的明细项。")
     @PostMapping("/query")
     public ApiResponse<Page<OrderItemResponse>> queryByOrderId(@RequestBody @Valid OrdOrderItemQueryRequest request) {
         log.info("[API] Query order items: orderId={}, page={}/{}",

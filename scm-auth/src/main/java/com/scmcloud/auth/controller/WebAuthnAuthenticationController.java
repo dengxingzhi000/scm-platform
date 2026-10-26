@@ -10,6 +10,8 @@ import com.scmcloud.common.exception.BusinessException;
 import com.scmcloud.common.response.ApiResponse;
 import com.scmcloud.common.security.util.HttpServletRequestUtils;
 import com.scmcloud.common.web.domain.SecurityUser;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -38,12 +40,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/auth/webauthn/authenticate")
 @RequiredArgsConstructor
+@Tag(name = "WebAuthn 认证", description = "提供基于通行密钥的 WebAuthn 断言认证与令牌升级能力。")
 public class WebAuthnAuthenticationController {
 
     private final IWebauthnCredentialService credentialService;
     private final WebAuthnConfig webAuthnConfig;
     private final HttpServletRequestUtils httpServletRequestUtils;
 
+    @Operation(summary = "生成认证挑战", description = "为当前用户生成 WebAuthn 断言认证所需的随机挑战值。")
     @PostMapping("/challenge")
     @PreAuthorize("isAuthenticated()")
     public ApiResponse<WebAuthnChallengeResponse> generateAuthenticationChallenge(
@@ -59,6 +63,7 @@ public class WebAuthnAuthenticationController {
         return ApiResponse.success(challenge);
     }
 
+    @Operation(summary = "校验认证并升级令牌", description = "校验 WebAuthn 断言结果，通过后升级会话令牌并记录本次认证尝试。")
     @PostMapping("/verify")
     @PreAuthorize("isAuthenticated()")
     public ApiResponse<TokenUpgradeResponse> authenticateAndUpgradeToken(

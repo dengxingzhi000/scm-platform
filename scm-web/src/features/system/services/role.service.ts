@@ -1,25 +1,49 @@
-import type { Role } from '../types'
-
-const mockRoles: Role[] = [
-  { id: '1', name: '超级管理员', code: 'admin', description: '系统最高权限', status: 'active', permissions: ['*'], userCount: 1, createdAt: '2026-01-01' },
-  { id: '2', name: '普通用户', code: 'user', description: '基本操作权限', status: 'active', permissions: ['dashboard:view', 'product:view', 'order:view'], userCount: 5, createdAt: '2026-01-01' },
-  { id: '3', name: '仓库管理员', code: 'warehouse_admin', description: '仓库管理权限', status: 'active', permissions: ['inventory:view', 'inventory:adjust', 'warehouse:view'], userCount: 3, createdAt: '2026-02-01' },
-]
+import { systemService } from "@/lib/api/services/system";
+import { toRole, toRolePayload } from "../lib/mappers";
+import type { Role } from "../types";
 
 export const roleService = {
-  list: async (): Promise<Role[]> => mockRoles,
+  list: async (): Promise<Role[]> =>
+    (await systemService.roles.listAll()).map(toRole),
+
   getById: async (id: string): Promise<Role> => {
-    const role = mockRoles.find(r => r.id === id)
-    if (!role) throw new Error('Role not found')
-    return role
+    const roles = await systemService.roles.listAll();
+    const role = roles.find((item) => item.id === id);
+    if (!role) throw new Error("Role not found");
+    const permissionIds = await systemService.roles.permissions(id);
+    return toRole({ ...role, permissionIds });
   },
-  create: async (data: Partial<Role>): Promise<Role> => {
-    return { ...data, id: String(Date.now()), userCount: 0, createdAt: new Date().toISOString() } as Role
+
+  create: async (data: Partial<Role>): Promise<void> => {
+    const payload = toRolePayload(data);
+    await systemService.roles.create(payload);
+
+    if (payload.permissionIds?.length) {
+      const created = (await systemService.roles.listAll()).find(
+        (role) => role.roleCode === payload.roleCode
+      );
+      if (created) {
+        await systemService.roles.grantPermissions(
+          created.id,
+          payload.permissionIds
+        );
+      }
+    }
   },
-  update: async (id: string, data: Partial<Role>): Promise<Role> => {
-    const role = mockRoles.find(r => r.id === id)
-    if (!role) throw new Error('Role not found')
-    return { ...role, ...data }
+
+  update: async (id: string, data: Partial<Role>): Promise<void> => {
+    const payload = toRolePayload(data);
+    await systemService.roles.update(id, payload);
+    await systemService.roles.grantPermissions(
+      id,
+      payload.permissionIds ?? []
+    );
   },
-  delete: async (id: string): Promise<void> => {},
-}
+
+  delete: async (id: string): Promise<void> => {
+    await systemService.roles.delete(id);
+  },
+
+  permissions: (id: string): Promise<string[]> =>
+    systemService.roles.permissions(id),
+};

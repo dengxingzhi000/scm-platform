@@ -1,6 +1,7 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { useTenantStore } from '@/stores/tenant-store'
+import type { LoginResponse } from './contracts/auth'
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8761'
@@ -74,18 +75,29 @@ apiClient.interceptors.response.use(
           throw new Error('No refresh token')
         }
 
-        const response = await axios.post(`${API_BASE_URL}/api/auth/refresh`, {
-          refreshToken,
-        })
+        const response = await axios.post(
+          `${API_BASE_URL}/auth/api/auth/refresh`,
+          { refreshToken }
+        )
+
+        const payload = response.data as {
+          code: number
+          message?: string
+          data?: LoginResponse
+        }
+
+        if (payload.code !== 200 || !payload.data?.accessToken) {
+          throw new Error(payload.message || 'Token refresh failed')
+        }
 
         const {
           accessToken: newToken,
           refreshToken: newRefreshToken,
-        } = (response.data as { data: { accessToken: string; refreshToken: string } }).data
+        } = payload.data
 
         const { login, user } = useAuthStore.getState()
         if (user) {
-          login(user, newToken, newRefreshToken)
+          login(user, newToken, newRefreshToken ?? refreshToken)
         }
 
         pendingRequests.forEach(({ resolve }) => resolve(newToken))

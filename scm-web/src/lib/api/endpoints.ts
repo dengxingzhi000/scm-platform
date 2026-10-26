@@ -1,38 +1,5 @@
 import apiClient from "./client";
 
-export const authApi = {
-  login: (data: { username: string; password: string }) =>
-    apiClient.post("/api/auth/login", data),
-  logout: () => apiClient.post("/api/auth/logout"),
-  refreshToken: (refreshToken: string) =>
-    apiClient.post("/api/auth/refresh", { refreshToken }),
-  me: () => apiClient.get("/api/auth/me"),
-  verifyMfa: (data: { tempToken: string; code: string }) =>
-    apiClient.post("/api/auth/mfa/verify", data),
-  forgotPassword: (email: string) =>
-    apiClient.post('/api/auth/forgot-password', { email }),
-  verifyResetCode: (email: string, code: string) =>
-    apiClient.post('/api/auth/verify-reset-code', { email, code }),
-  resetPassword: (token: string, password: string) =>
-    apiClient.post('/api/auth/reset-password', { token, password }),
-  getPermissions: () => apiClient.get('/api/auth/permissions'),
-};
-
-export const tenantApi = {
-  list: () => apiClient.get('/api/tenants'),
-  switch: (tenantId: string) => apiClient.post(`/api/tenants/${tenantId}/switch`),
-};
-
-export const userApi = {
-  list: (params?: { current?: number; size?: number; keyword?: string }) =>
-    apiClient.get("/api/users", { params }),
-  getById: (id: string) => apiClient.get(`/api/users/${id}`),
-  create: (data: Record<string, unknown>) => apiClient.post("/api/users", data),
-  update: (id: string, data: Record<string, unknown>) =>
-    apiClient.put(`/api/users/${id}`, data),
-  delete: (id: string) => apiClient.delete(`/api/users/${id}`),
-};
-
 export const orderApi = {
   list: (params?: { current?: number; size?: number; status?: string }) =>
     apiClient.get("/api/orders", { params }),

@@ -13,6 +13,9 @@ import com.scmcloud.common.security.util.IpUtils;
 import com.scmcloud.common.security.util.TraceIdUtil;
 import com.scmcloud.common.sentinel.annotation.RateLimit;
 import com.scmcloud.common.web.util.SecurityUtils;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -37,10 +40,12 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
+@Tag(name = "用户认证", description = "提供登录、登出、令牌刷新、用户信息查询与强制下线等认证能力。")
 public class SysAuthController {
     private final ISysAuthService authService;
     private final HttpServletRequestUtils httpServletRequestUtils;
 
+    @Operation(summary = "用户登录", description = "校验用户名与密码，签发访问令牌与刷新令牌。")
     @PostMapping("/login")
     @SentinelResource(value = "auth_login")
     @RateLimit()
@@ -57,6 +62,7 @@ public class SysAuthController {
         return ApiResponse.success(response);
     }
 
+    @Operation(summary = "用户登出", description = "注销当前登录令牌并清理相关会话信息。")
     @PostMapping("/logout")
     @PreAuthorize("isAuthenticated()")
     public ApiResponse<Void> logout(HttpServletRequest request) {
@@ -70,6 +76,7 @@ public class SysAuthController {
         return ApiResponse.success();
     }
 
+    @Operation(summary = "刷新令牌", description = "使用刷新令牌换取新的访问令牌，并同步更新设备与会话信息。")
     @PostMapping("/refresh")
     @RateLimit()
     public ApiResponse<LoginResponse> refreshToken(
@@ -90,6 +97,7 @@ public class SysAuthController {
         return ApiResponse.success(response);
     }
 
+    @Operation(summary = "获取当前用户信息", description = "根据当前登录身份返回用户基础信息及其权限数据。")
     @GetMapping("/userinfo")
     @PreAuthorize("isAuthenticated()")
     public ApiResponse<UserInfo> getUserInfo(HttpServletRequest request) {
@@ -111,6 +119,7 @@ public class SysAuthController {
         }
     }
 
+    @Operation(summary = "强制下线用户", description = "管理员强制指定用户下线并记录下线原因。")
     @PostMapping("/force-logout/{userId}")
     @PreAuthorize("hasAuthority('system:user:edit')")
     @AuditLog(
@@ -119,8 +128,8 @@ public class SysAuthController {
             riskLevel = 3
     )
     public ApiResponse<Void> forceLogout(
-            @PathVariable UUID userId,
-            @RequestParam @NotBlank(message = "Logout reason cannot be empty") String reason) {
+            @Parameter(description = "被强制下线的用户 ID") @PathVariable UUID userId,
+            @Parameter(description = "强制下线原因") @RequestParam @NotBlank(message = "Logout reason cannot be empty") String reason) {
 
         authService.forceLogout(userId, reason);
         log.info("force logout userId={} reason={}", userId, reason);

@@ -5,6 +5,8 @@ import com.scmcloud.analytics.api.dto.DatasetQueryResult;
 import com.scmcloud.analytics.query.QueryEngine;
 import com.scmcloud.common.response.ApiResponse;
 import com.scmcloud.common.tenant.TenantContextHolder;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -28,10 +30,12 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/analytics")
 @RequiredArgsConstructor
+@Tag(name = "分析查询", description = "面向 BI 看板与外部调用方的声明式分析查询接口。")
 public class AnalyticsQueryController {
 
     private final QueryEngine queryEngine;
 
+    @Operation(summary = "执行分析查询", description = "按数据集与指标、维度定义执行声明式分析查询，并按组织范围过滤数据。")
     @PostMapping("/query")
     public ApiResponse<DatasetQueryResult> query(
             @RequestBody DatasetQueryRequest request,

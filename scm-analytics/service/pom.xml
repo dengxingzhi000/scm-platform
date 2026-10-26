@@ -34,6 +34,11 @@
             <artifactId>scm-common-web</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
+        <!-- OpenAPI documentation (Swagger UI) -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+        </dependency>
         <dependency>
             <groupId>com.scmcloud</groupId>
             <artifactId>scm-common-integration</artifactId>

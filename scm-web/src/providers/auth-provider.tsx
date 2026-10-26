@@ -2,17 +2,26 @@
 
 import { ReactNode, useEffect } from 'react'
 import { useAuthStore } from '@/stores/useAuthStore'
-import { authApi } from '@/lib/api/endpoints'
-import { useTenantStore } from '@/stores/tenant-store'
+import { authService } from '@/lib/api/services/auth'
+import { mergeUserInfo } from '@/lib/auth/session'
 
 interface AuthProviderProps {
   children: ReactNode
 }
 
 export default function AuthProvider({ children }: AuthProviderProps) {
-  const { accessToken, setUser, setPermissions, setLoading, logout } =
-    useAuthStore()
-  const { setTenant, setTenantList } = useTenantStore()
+  const {
+    accessToken,
+    setUser,
+    setPermissions,
+    setLoading,
+    logout,
+    initialize,
+  } = useAuthStore()
+
+  useEffect(() => {
+    void initialize()
+  }, [initialize])
 
   useEffect(() => {
     const initAuth = async () => {
@@ -22,42 +31,9 @@ export default function AuthProvider({ children }: AuthProviderProps) {
       }
 
       try {
-        const userResponse = (await authApi.me()) as {
-          data: {
-            id: string
-            username: string
-            displayName: string
-            email?: string
-            avatar?: string
-            roleNames?: string[]
-            permissions?: string[]
-            currentTenant?: { id: string; name: string; code: string }
-            tenants?: Array<{ id: string; name: string; code: string }>
-          }
-        }
-
-        const userData = userResponse.data
-
-        setUser({
-          id: userData.id,
-          username: userData.username,
-          displayName: userData.displayName,
-          email: userData.email,
-          avatar: userData.avatar,
-          roles: userData.roleNames,
-        })
-
-        if (userData.permissions) {
-          setPermissions(userData.permissions)
-        }
-
-        if (userData.currentTenant) {
-          setTenant(userData.currentTenant)
-        }
-
-        if (userData.tenants) {
-          setTenantList(userData.tenants)
-        }
+        const userInfo = await authService.getUserInfo()
+        setUser(mergeUserInfo(useAuthStore.getState().user, userInfo))
+        setPermissions(userInfo.permissions ?? [])
       } catch {
         logout()
       } finally {
@@ -66,7 +42,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     }
 
     initAuth()
-  }, [accessToken, setUser, setPermissions, setLoading, logout, setTenant, setTenantList])
+  }, [accessToken, setUser, setPermissions, setLoading, logout])
 
   return <>{children}</>
 }

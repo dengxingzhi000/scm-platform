@@ -22,3 +22,17 @@ export function useDeleteUser() {
   const qc = useQueryClient()
   return useMutation({ mutationFn: (id: string) => userService.delete(id), onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); message.success('删除成功') } })
 }
+export function useResetUserPassword() {
+  return useMutation({ mutationFn: (id: string) => userService.resetPassword(id), onSuccess: () => { message.success('密码已重置') } })
+}
+export function useLockUser() {
+  const qc = useQueryClient()
+  return useMutation({ mutationFn: ({ id, lock }: { id: string; lock: boolean }) => userService.lock(id, lock), onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); message.success('状态已更新') } })
+}
+export function useGrantUserRoles() {
+  const qc = useQueryClient()
+  return useMutation({ mutationFn: ({ id, roleIds }: { id: string; roleIds: string[] }) => userService.grantRoles(id, roleIds), onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); message.success('角色已更新') } })
+}
+export function useForceLogoutUser() {
+  return useMutation({ mutationFn: ({ id, reason }: { id: string; reason: string }) => userService.forceLogout(id, reason), onSuccess: () => { message.success('用户已强制下线') } })
+}

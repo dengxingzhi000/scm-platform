@@ -40,7 +40,7 @@ export default function RoleList() {
       <Card>
         <Table columns={columns} dataSource={roles || []} loading={isLoading} rowKey="id" pagination={false} />
       </Card>
-      <RoleForm open={formOpen} onClose={() => setFormOpen(false)} role={editingRole} />
+      <RoleForm key={editingRole?.id ?? 'new'} open={formOpen} onClose={() => setFormOpen(false)} role={editingRole} />
     </div>
   )
 }

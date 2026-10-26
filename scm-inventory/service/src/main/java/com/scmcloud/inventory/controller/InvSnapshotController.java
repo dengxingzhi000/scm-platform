@@ -1,6 +1,7 @@
 package com.scmcloud.inventory.controller;
 
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import org.springframework.web.bind.annotation.RestController;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/inv-snapshot")
+@Tag(name = "库存快照", description = "库存每日快照相关接口，当前仅保留控制器入口，暂无对外接口。")
 public class InvSnapshotController {
 
 }
