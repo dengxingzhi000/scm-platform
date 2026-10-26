@@ -63,10 +63,10 @@ public paths are:
 - Feature mappers (for example `src/features/system/lib/mappers.ts`) convert
   backend DTOs (`realName`, numeric `status`, `pageNum`) into UI models
   (`displayName`, `active/disabled/locked`, `current`).
-- `openapitools.json` still points at the direct auth/system Swagger endpoints.
-  When those services are running, `npm run generate:api` can refresh generated
-  clients; the checked-in contracts are the source of truth while Swagger is
-  offline.
+- `openapitools.json` still points at the direct auth/system OpenAPI documents
+  (`/api/public/v3/api-docs`). When those services are running,
+  `npm run generate:api` can refresh generated clients; the checked-in contracts
+  are the source of truth while the backend is offline.
 
 ## Project layout
 

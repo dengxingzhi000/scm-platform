@@ -347,11 +347,12 @@ npm run test:e2e     # Playwright
 - API clients: `src/lib/api/contracts/` holds backend DTOs and
   `src/lib/api/services/` holds gateway-aware auth/system calls;
   `src/lib/api/envelope.ts` unwraps `ApiResponse<T>`. System feature services
-  map DTOs to UI models in `src/features/system/lib/mappers.ts`. The Swagger
-  endpoints at `:8106` / `:8081` are not always running; when they are,
-  `npm run generate:api` (openapi-generator-cli 7.12, `openapitools.json`) can
-  refresh the generated clients. `orval.config.ts` exists but `orval` is not a
-  dependency — that path is dead.
+  map DTOs to UI models in `src/features/system/lib/mappers.ts`. The OpenAPI
+  documents at `:8106` / `:8081` are available under `/api/public/v3/api-docs`
+  and are not always running; when they are, `npm run generate:api`
+  (openapi-generator-cli 7.12, `openapitools.json`) can refresh the generated
+  clients. `orval.config.ts` exists but `orval` is not a dependency — that path
+  is dead.
 - Playwright (`playwright.config.ts`) auto-starts `npm run dev` on :3000 and
   runs Chromium, Firefox and WebKit.
 

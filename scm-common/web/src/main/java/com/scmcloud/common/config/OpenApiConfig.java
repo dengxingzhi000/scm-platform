@@ -22,7 +22,8 @@ import java.util.List;
  *
  * <p>Registered through {@code AutoConfiguration.imports} so that services which do not
  * component-scan {@code com.scmcloud.common} still expose the same document metadata.
- * Swagger UI is served at {@code /swagger-ui.html}, the document at {@code /v3/api-docs}.</p>
+ * {@link OpenApiPropertiesEnvironmentPostProcessor} exposes the generated document at
+ * {@code /api/public/v3/api-docs}; the interactive Swagger UI is disabled by default.</p>
  */
 @AutoConfiguration
 @ConditionalOnClass(OpenAPI.class)

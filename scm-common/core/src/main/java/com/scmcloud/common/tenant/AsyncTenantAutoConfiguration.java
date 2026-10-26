@@ -23,7 +23,7 @@ public class AsyncTenantAutoConfiguration {
     @ConfigurationProperties(prefix = "scm.tenant")
     public TenantProperties tenantProperties() {
         return new TenantProperties(true, true,
-                List.of("/actuator/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html"));
+                List.of("/actuator/**", "/v3/api-docs/**"));
     }
 
     @Bean(name = "tenantAwareTaskExecutor")
