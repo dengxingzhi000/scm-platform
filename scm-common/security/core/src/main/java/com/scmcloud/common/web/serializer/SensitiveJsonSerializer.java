@@ -44,12 +44,13 @@ public class SensitiveJsonSerializer extends JsonSerializer<String> implements C
     public JsonSerializer<?> createContextual(SerializerProvider prov, BeanProperty property)
             throws JsonMappingException {
         if (property == null) {
-            return prov.findNullValueSerializer(null);
+            return this;
         }
 
         Sensitive sensitive = property.getAnnotation(Sensitive.class);
         if (sensitive == null) {
-            return prov.findValueSerializer(property.getType(), property);
+            // Looking the serializer up again for String re-selects this one and recurses.
+            return this;
         }
 
         SensitiveJsonSerializer serializer = new SensitiveJsonSerializer();
