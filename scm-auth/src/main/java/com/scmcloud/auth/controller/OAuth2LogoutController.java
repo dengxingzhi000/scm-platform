@@ -3,6 +3,9 @@ package com.scmcloud.auth.controller;
 import com.scmcloud.auth.service.OAuth2LogoutService;
 import com.scmcloud.common.response.ApiResponse;
 import com.scmcloud.common.security.util.JwtUtils;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -25,6 +28,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/oauth2")
 @RequiredArgsConstructor
+@Tag(name = "OAuth2 登出", description = "提供 OAuth2 授权撤销与登出能力。")
 public class OAuth2LogoutController {
     private static final String BEARER_PREFIX = "Bearer ";
 
@@ -37,11 +41,12 @@ public class OAuth2LogoutController {
      * @param authHeader Authorization 头，格式 "Bearer {token}"
      * @param clientId   可选，指定客户端 ID 则仅撤销该客户端授权；不传则全局登出
      */
+    @Operation(summary = "OAuth2 登出", description = "撤销当前访问令牌：指定 clientId 时仅撤销该客户端授权，否则执行全局登出。")
     @PostMapping("/logout")
     @PreAuthorize("isAuthenticated()")
     public ApiResponse<Void> logout(
             @RequestHeader("Authorization") String authHeader,
-            @RequestParam(required = false) String clientId) {
+            @Parameter(description = "客户端 ID，传入则仅撤销该客户端授权，不传则全局登出") @RequestParam(required = false) String clientId) {
 
         String accessToken = authHeader.substring(BEARER_PREFIX.length());
         UUID userId = jwtUtils.getUserIdFromToken(accessToken);
