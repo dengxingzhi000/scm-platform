@@ -300,7 +300,7 @@ cd scm-web
 npm install
 npm run dev          # http://localhost:3000
 npm run lint         # `eslint .` — `next lint` was removed in Next 16
-npm run typecheck    # `tsc --noEmit`
+npm run typecheck    # TypeScript 7 (`@typescript/native`)
 npm test             # Vitest (unit)
 npm run test:coverage
 npm run test:e2e     # Playwright
@@ -388,9 +388,10 @@ order-center, fulfillment, search, analytics). Helm charts live in
 
 `.github/workflows/maven-build.yml` — on push/PR to `master`/`develop`:
 
-- **PR**: `mvn clean test-compile test -Dmaven.test.failure.ignore=true` — the
-  build stays green even when tests fail. Do not rely on the PR check; run the
-  suite locally.
+- **PR**: `mvn clean test-compile test` — unit-test failures fail the job. The
+  same job then runs the `scm-web` gates (`npm ci`, `npm run typecheck`,
+  `npm run lint`, `npm test`, `npm run build`), so frontend and backend
+  changes share the required **Build and Test** check.
 - **Push**: `mvn clean verify` + Codecov upload. `verify` still skips JaCoCo
   (the parent sets `jacoco.skip=true`), so the coverage gates never run in CI.
 - **Push only**: the databases are initialised and
