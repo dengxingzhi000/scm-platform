@@ -338,15 +338,19 @@ npm run test:e2e     # Playwright
   API; `npm run typecheck` is the TS 7 gate. Do not run `npx tsc` directly —
   npm's `.bin/tsc` may point at the TS 6 shim.
 - API base URL: `NEXT_PUBLIC_API_BASE_URL` (`scm-web/.env.local` →
-  `http://localhost:8761`), consumed by `src/lib/api/client.ts`.
+  `http://localhost:8761`), consumed by `src/lib/api/client.ts`. Gateway routes
+  strip their first segment: auth is `/auth/api/auth/**` → `/api/auth/**`,
+  system is `/system/api/system/**` → `/api/system/**`.
 - Feature code lives in `src/features/<domain>/`; pages in
   `src/app/[locale]/(app)/<domain>/`.
 - See `scm-web/README.md` for the stack contract and migration checklist.
-- API clients: `npm run generate:api` (openapi-generator-cli 7.12, configured in
-  `openapitools.json`) regenerates `src/lib/api/generated/{auth,system}` from
-  the **running** services at `:8106` / `:8081`. The clients in use today are
-  hand-written: `src/lib/api/{client.ts,endpoints.ts,types.ts}` plus
-  `src/lib/api/hooks/*`. `orval.config.ts` exists but `orval` is not a
+- API clients: `src/lib/api/contracts/` holds backend DTOs and
+  `src/lib/api/services/` holds gateway-aware auth/system calls;
+  `src/lib/api/envelope.ts` unwraps `ApiResponse<T>`. System feature services
+  map DTOs to UI models in `src/features/system/lib/mappers.ts`. The Swagger
+  endpoints at `:8106` / `:8081` are not always running; when they are,
+  `npm run generate:api` (openapi-generator-cli 7.12, `openapitools.json`) can
+  refresh the generated clients. `orval.config.ts` exists but `orval` is not a
   dependency — that path is dead.
 - Playwright (`playwright.config.ts`) auto-starts `npm run dev` on :3000 and
   runs Chromium, Firefox and WebKit.

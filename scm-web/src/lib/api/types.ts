@@ -1,18 +1,5 @@
-export interface ApiResponse<T = unknown> {
-  code: number;
-  message: string;
-  data: T;
-  timestamp?: string;
-}
-
-export interface PageResult<T> {
-  records: T[];
-  total: number;
-  size: number;
-  current: number;
-  pages: number;
-}
-
+// Legacy supply-chain models. Auth and system contracts live in
+// src/lib/api/contracts/{auth,system}.ts and should not be duplicated here.
 export interface PageParam {
   current?: number;
   size?: number;
@@ -55,32 +42,4 @@ export interface InventoryVO {
   availableStock: number;
   reservedStock: number;
   totalStock: number;
-}
-
-export interface UserVO {
-  id: string;
-  username: string;
-  displayName: string;
-  email?: string;
-  phone?: string;
-  avatar?: string;
-  status: string;
-  deptName?: string;
-  roleNames?: string[];
-}
-
-export interface LoginRequest {
-  username: string;
-  password: string;
-}
-
-export interface LoginResponse {
-  accessToken: string;
-  refreshToken: string;
-  tokenType: string;
-  expiresIn: number;
-  user: UserVO;
-  requireMfa?: boolean;
-  tempToken?: string;
-  permissions?: string[];
 }

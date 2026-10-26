@@ -5,8 +5,9 @@ export interface User {
   email: string
   phone?: string
   avatar?: string
-  status: 'active' | 'disabled'
+  status: 'active' | 'disabled' | 'locked'
   roles: string[]
+  roleIds?: string[]
   deptId?: string
   deptName?: string
   createdAt: string
@@ -19,7 +20,12 @@ export interface Role {
   code: string
   description?: string
   status: 'active' | 'disabled'
-  permissions: string[]
+  permissionIds: string[]
+  roleLevel: number
+  dataScope: number
+  roleType?: string
+  roleCategory?: string
+  sortOrder?: number
   userCount: number
   createdAt: string
 }
@@ -32,8 +38,11 @@ export interface Permission {
   parentId: string | null
   icon?: string
   path?: string
+  apiPath?: string
+  httpMethod?: string
   sort: number
   status: 'active' | 'disabled'
+  visible?: boolean
   children?: Permission[]
 }
 
@@ -46,6 +55,9 @@ export interface Department {
   status: 'active' | 'disabled'
   leaderId?: string
   leaderName?: string
+  phone?: string
+  email?: string
+  userCount?: number
   children?: Department[]
 }
 
@@ -56,15 +68,19 @@ export interface DictType {
   description?: string
   status: 'active' | 'disabled'
   itemCount: number
+  sortOrder?: number
+  isSystem?: boolean
 }
 
 export interface DictItem {
   id: string
   dictTypeId: string
+  dictCode?: string
   label: string
   value: string
   sort: number
   status: 'active' | 'disabled'
+  isDefault?: boolean
   remark?: string
 }
 
@@ -80,4 +96,5 @@ export interface PageResult<T> {
   total: number
   current: number
   pageSize: number
+  pages: number
 }

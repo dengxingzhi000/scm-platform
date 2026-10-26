@@ -1,28 +1,60 @@
-import type { User, PageParams, PageResult } from '../types'
+import { systemService } from "@/lib/api/services/system";
+import {
+  toPageResult,
+  toUser,
+  toUserPayload,
+  type UserFormInput,
+} from "../lib/mappers";
+import type { PageParams, PageResult, User } from "../types";
 
-const mockUsers: User[] = [
-  { id: '1', username: 'admin', displayName: '管理员', email: 'admin@scm.com', status: 'active', roles: ['admin'], deptId: '1', deptName: '技术部', createdAt: '2026-01-01', updatedAt: '2026-06-01' },
-  { id: '2', username: 'zhangsan', displayName: '张三', email: 'zhangsan@scm.com', phone: '13800138000', status: 'active', roles: ['user'], deptId: '2', deptName: '销售部', createdAt: '2026-02-15', updatedAt: '2026-05-20' },
-  { id: '3', username: 'lisi', displayName: '李四', email: 'lisi@scm.com', status: 'disabled', roles: ['user'], deptId: '2', deptName: '销售部', createdAt: '2026-03-10', updatedAt: '2026-04-01' },
-]
+const toUserStatus = (status?: string): number | undefined => {
+  if (status === "active") return 1;
+  if (status === "disabled") return 0;
+  if (status === "locked") return 2;
+  return undefined;
+};
 
 export const userService = {
   list: async (params?: PageParams): Promise<PageResult<User>> => {
-    const filtered = mockUsers.filter(u => !params?.keyword || u.username.includes(params.keyword) || u.displayName.includes(params.keyword))
-    return { records: filtered, total: filtered.length, current: params?.current || 1, pageSize: params?.pageSize || 20 }
+    const page = await systemService.users.list({
+      page: params?.current ?? 1,
+      size: params?.pageSize ?? 20,
+      username: params?.keyword,
+      status: toUserStatus(params?.status),
+    });
+    return toPageResult(page, toUser);
   },
-  getById: async (id: string): Promise<User> => {
-    const user = mockUsers.find(u => u.id === id)
-    if (!user) throw new Error('User not found')
-    return user
+
+  getById: async (id: string): Promise<User> =>
+    toUser(await systemService.users.getById(id)),
+
+  create: async (data: UserFormInput): Promise<void> => {
+    await systemService.users.create(toUserPayload(data));
   },
-  create: async (data: Partial<User>): Promise<User> => {
-    return { ...data, id: String(Date.now()), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() } as User
+
+  update: async (id: string, data: UserFormInput): Promise<void> => {
+    await systemService.users.update(id, toUserPayload(data));
   },
-  update: async (id: string, data: Partial<User>): Promise<User> => {
-    const user = mockUsers.find(u => u.id === id)
-    if (!user) throw new Error('User not found')
-    return { ...user, ...data, updatedAt: new Date().toISOString() }
+
+  delete: async (id: string): Promise<void> => {
+    await systemService.users.delete(id);
   },
-  delete: async (id: string): Promise<void> => {},
-}
+
+  resetPassword: (id: string): Promise<string> =>
+    systemService.users.resetPassword(id),
+
+  grantRoles: (id: string, roleIds: string[]): Promise<void> =>
+    systemService.users.grantRoles(id, roleIds),
+
+  lock: (id: string, lock: boolean): Promise<void> =>
+    systemService.users.lock(id, lock),
+
+  forceLogout: (id: string, reason: string): Promise<void> =>
+    systemService.users.forceLogout(id, reason),
+
+  temporaryRoles: (id: string): Promise<Array<Record<string, unknown>>> =>
+    systemService.users.temporaryRoles(id),
+
+  statistics: (id: string): Promise<Record<string, unknown>> =>
+    systemService.users.statistics(id),
+};

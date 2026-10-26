@@ -1,30 +1,27 @@
 "use client";
 
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { authApi } from "../endpoints";
+import { authService } from "../services/auth";
 import { useAuthStore } from "@/stores/useAuthStore";
-import type { LoginRequest, LoginResponse } from "../types";
+import { toSessionUser } from "@/lib/auth/session";
+import type { LoginRequest } from "../contracts/auth";
 
 export function useLogin() {
   const login = useAuthStore((s) => s.login);
+  const setPermissions = useAuthStore((s) => s.setPermissions);
 
   return useMutation({
-    mutationFn: (data: LoginRequest) => authApi.login(data),
-    onSuccess: (res: unknown) => {
-      const loginRes = res as LoginResponse;
-      const { user } = loginRes;
+    mutationFn: (data: LoginRequest) => authService.login(data),
+    onSuccess: (response) => {
+      if (!response.accessToken) {
+        throw new Error(response.message || "Login did not return an access token");
+      }
       login(
-        {
-          id: user.id,
-          username: user.username,
-          displayName: user.displayName,
-          email: user.email,
-          avatar: user.avatar,
-          roles: user.roleNames,
-        },
-        loginRes.accessToken,
-        loginRes.refreshToken
+        toSessionUser(response),
+        response.accessToken,
+        response.refreshToken ?? ""
       );
+      setPermissions(response.permissions ?? []);
     },
   });
 }
@@ -33,7 +30,7 @@ export function useLogout() {
   const logout = useAuthStore((s) => s.logout);
 
   return useMutation({
-    mutationFn: () => authApi.logout(),
+    mutationFn: () => authService.logout(),
     onSettled: () => logout(),
   });
 }
@@ -41,7 +38,7 @@ export function useLogout() {
 export function useCurrentUser() {
   return useQuery({
     queryKey: ["auth", "me"],
-    queryFn: () => authApi.me(),
+    queryFn: () => authService.getUserInfo(),
     enabled: useAuthStore((s) => !!s.accessToken),
   });
 }

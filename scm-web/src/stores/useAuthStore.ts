@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-interface User {
+export interface User {
   id: string
   username: string
   displayName: string
@@ -12,6 +12,12 @@ interface User {
 function setCookie(name: string, value: string, days = 7) {
   const expires = new Date(Date.now() + days * 864e5).toUTCString()
   document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`
+}
+
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null
+  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`))
+  return match ? decodeURIComponent(match[1]) : null
 }
 
 function deleteCookie(name: string) {
@@ -70,9 +76,14 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
 
   initialize: async () => {
     const { accessToken } = get()
-    if (!accessToken) {
+    const cookieToken = getCookie('access_token')
+    const token = accessToken ?? cookieToken
+
+    if (!token) {
       set({ isLoading: false })
       return
     }
+
+    set({ accessToken: token, isLoading: true })
   },
 }))

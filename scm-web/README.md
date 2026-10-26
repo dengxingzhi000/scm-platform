@@ -1,7 +1,8 @@
-# scm-web
+# @scmcloud/scm-web
 
-Next.js 16 App Router frontend for the SCM platform. Separate npm project —
-it is **not** part of the Maven reactor.
+Next.js 16 App Router frontend for the SCM platform. The project directory is
+`scm-web`; the npm package name is `@scmcloud/scm-web`. It is **not** part of
+the Maven reactor.
 
 ## Stack contract
 
@@ -44,6 +45,29 @@ TypeScript runs side-by-side, as recommended by the TypeScript team:
 - `overrides.effect` only exists to satisfy npm's optional-peer resolution for
   `@hookform/resolvers@6`; the app does not use effect.
 
+## API layer
+
+The browser talks to the gateway (`NEXT_PUBLIC_API_BASE_URL`, default
+`http://localhost:8761`). Gateway routes strip their first path segment, so the
+public paths are:
+
+| Backend service | Gateway path | Downstream path |
+|-----------------|--------------|-----------------|
+| auth | `/auth/api/auth/**` | `/api/auth/**` |
+| auth (OAuth2) | `/auth/oauth2/**` | `/oauth2/**` |
+| system | `/system/api/system/**` | `/api/system/**` |
+
+- Typed request/response contracts live in `src/lib/api/contracts/`.
+- Gateway-aware service functions live in `src/lib/api/services/`.
+- `src/lib/api/envelope.ts` unwraps `ApiResponse<T>` (`code`/`message`/`data`).
+- Feature mappers (for example `src/features/system/lib/mappers.ts`) convert
+  backend DTOs (`realName`, numeric `status`, `pageNum`) into UI models
+  (`displayName`, `active/disabled/locked`, `current`).
+- `openapitools.json` still points at the direct auth/system Swagger endpoints.
+  When those services are running, `npm run generate:api` can refresh generated
+  clients; the checked-in contracts are the source of truth while Swagger is
+  offline.
+
 ## Project layout
 
 ```
@@ -55,6 +79,9 @@ src/components/ui/                 # vendored shadcn/ui components
 src/components/charts/             # lazy ECharts / Recharts / G6 wrappers
 src/components/data-grid/          # lazy AG Grid wrapper
 src/features/<domain>/             # components | hooks | services | types | lib
+src/lib/api/contracts/             # backend DTOs for the gateway-facing API
+src/lib/api/services/              # typed auth/system clients using the gateway
+src/lib/api/envelope.ts            # ApiResponse<T> unwrap + ApiError
 src/lib/charts/echarts-core.ts     # the only place that registers ECharts modules
 src/lib/design-tokens.css          # single palette source (AntD + Tailwind + canvas)
 src/lib/design-tokens.ts           # numeric tokens for the AntD theme
@@ -92,7 +119,10 @@ src/test/setup.ts                  # Vitest setup
 
 The shared infrastructure is in place and the **dashboard** and **product**
 screens are ported to the new stack (shadcn/ui, TanStack Table, RHF + Zod,
-Recharts/ECharts). Other domains still render Ant Design 6 components.
+Recharts/ECharts). The **auth** flow and **system management** screens
+(user/role/dept/dict/permission) now call the real auth/system service through
+the gateway; the rest of the domains still render Ant Design 6 components and
+use local mocks.
 
 When porting a domain:
 
