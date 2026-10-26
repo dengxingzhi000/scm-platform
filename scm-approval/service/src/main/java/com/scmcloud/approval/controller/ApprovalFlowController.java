@@ -3,6 +3,9 @@ package com.scmcloud.approval.controller;
 import com.scmcloud.approval.service.flowable.ApprovalFlowService;
 import com.scmcloud.approval.service.flowable.ApprovalFlowService.TaskDTO;
 import com.scmcloud.common.response.ApiResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
@@ -25,6 +28,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/approval/flow")
 @RequiredArgsConstructor
+@Tag(name = "审批流程", description = "基于 Flowable 的审批流程发起、通过、驳回、待办查询与状态查询接口。")
 public class ApprovalFlowController {
 
     private final ApprovalFlowService approvalFlowService;
@@ -32,6 +36,7 @@ public class ApprovalFlowController {
     /**
      * 发起审批流程。
      */
+    @Operation(summary = "发起审批", description = "根据流程定义与业务单据信息发起一个审批流程实例，返回流程实例 ID。")
     @PostMapping("/start")
     public ApiResponse<String> startProcess(@Valid @RequestBody StartProcessRequest request) {
         String processInstanceId = approvalFlowService.startProcess(
@@ -47,6 +52,7 @@ public class ApprovalFlowController {
     /**
      * 审批通过。
      */
+    @Operation(summary = "审批通过", description = "提交审批意见，将指定待办任务置为通过并推进流程。")
     @PostMapping("/approve")
     public ApiResponse<Void> approve(@Valid @RequestBody ApproveRequest request) {
         approvalFlowService.approve(
@@ -61,6 +67,7 @@ public class ApprovalFlowController {
     /**
      * 审批驳回。
      */
+    @Operation(summary = "审批驳回", description = "填写驳回原因，将指定待办任务驳回并结束当前审批分支。")
     @PostMapping("/reject")
     public ApiResponse<Void> reject(@Valid @RequestBody RejectRequest request) {
         approvalFlowService.reject(
@@ -74,8 +81,9 @@ public class ApprovalFlowController {
     /**
      * 查询待办任务。
      */
+    @Operation(summary = "查询待办任务", description = "查询指定审批人名下尚未处理的待办任务列表。")
     @GetMapping("/todo")
-    public ApiResponse<List<TaskDTO>> findTodoTasks(@RequestParam @NotBlank String assigneeId) {
+    public ApiResponse<List<TaskDTO>> findTodoTasks(@Parameter(description = "审批人用户 ID") @RequestParam @NotBlank String assigneeId) {
         List<TaskDTO> tasks = approvalFlowService.findTodoTasks(assigneeId);
         return ApiResponse.success(tasks);
     }
@@ -83,8 +91,9 @@ public class ApprovalFlowController {
     /**
      * 查询流程状态。
      */
+    @Operation(summary = "查询流程状态", description = "根据业务单据标识查询审批流程状态，返回 COMPLETED、IN_PROGRESS 或 NOT_FOUND。")
     @GetMapping("/status/{businessKey}")
-    public ApiResponse<String> getProcessStatus(@PathVariable String businessKey) {
+    public ApiResponse<String> getProcessStatus(@Parameter(description = "业务单据唯一标识") @PathVariable String businessKey) {
         var processInstance = approvalFlowService.findByBusinessKey(businessKey);
         if (processInstance == null) {
             return ApiResponse.success("NOT_FOUND");
