@@ -1,21 +1,21 @@
 package com.scmcloud.file.service.ocr;
 
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import javax.imageio.ImageIO;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import net.sourceforge.tess4j.ITesseract;
 import net.sourceforge.tess4j.Tesseract;
 import net.sourceforge.tess4j.TesseractException;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * OCR服务 - 提供图片文字识别功能。
@@ -38,65 +38,45 @@ public class OcrService {
     private String language;
 
     /**
-     * 识别图片中的文字。
-     *
-     * @param imageFile 图片文件
-     * @return 识别结果
-     */
-    public String recognizeText(File imageFile) {
-        log.info("开始OCR识别: file={}", imageFile.getName());
-        try {
-            ITesseract tesseract = createTesseract();
-            String result = tesseract.doOCR(imageFile);
-            log.info("OCR识别完成: file={}, length={}", imageFile.getName(), result.length());
-            return result;
-        } catch (TesseractException e) {
-            log.error("OCR识别失败: file={}", imageFile.getName(), e);
-            throw new RuntimeException("OCR识别失败: " + e.getMessage(), e);
-        }
-    }
-
-    /**
      * 识别图片流中的文字。
      *
      * @param inputStream 图片输入流
-     * @param fileName 文件名
      * @return 识别结果
      */
-    public String recognizeText(InputStream inputStream, String fileName) {
+    public String recognizeText(InputStream inputStream) {
         try {
-            // 保存到临时文件
-            Path tempFile = Files.createTempFile("ocr-", "-" + fileName);
-            Files.copy(inputStream, tempFile, StandardCopyOption.REPLACE_EXISTING);
-            try {
-                return recognizeText(tempFile.toFile());
-            } finally {
-                Files.deleteIfExists(tempFile);
+            BufferedImage image = ImageIO.read(inputStream);
+            if (image == null) {
+                throw new IOException("Unsupported or unreadable image");
             }
-        } catch (IOException e) {
-            throw new RuntimeException("读取图片失败: " + e.getMessage(), e);
+            ITesseract tesseract = createTesseract();
+            String result = tesseract.doOCR(image);
+            log.info("OCR识别完成: length={}", result.length());
+            return result;
+        } catch (IOException | TesseractException e) {
+            throw new RuntimeException("OCR识别失败: " + e.getMessage(), e);
         }
     }
 
     /**
      * 提取发票信息。
      *
-     * @param imageFile 发票图片
+     * @param inputStream 发票图片流
      * @return 发票信息
      */
-    public InvoiceInfo extractInvoiceInfo(File imageFile) {
-        String text = recognizeText(imageFile);
+    public InvoiceInfo extractInvoiceInfo(InputStream inputStream) {
+        String text = recognizeText(inputStream);
         return parseInvoiceText(text);
     }
 
     /**
      * 提取合同关键信息。
      *
-     * @param imageFile 合同图片
+     * @param inputStream 合同图片流
      * @return 合同信息
      */
-    public ContractInfo extractContractInfo(File imageFile) {
-        String text = recognizeText(imageFile);
+    public ContractInfo extractContractInfo(InputStream inputStream) {
+        String text = recognizeText(inputStream);
         return parseContractText(text);
     }
 
