@@ -7,7 +7,7 @@ it is **not** part of the Maven reactor.
 
 | Layer | Choice | Key constraint |
 |-------|--------|----------------|
-| Framework | Next.js App Router + React 19 + TypeScript | Interactive modules are `'use client'`; first paint uses a Server Component with `prefetchQuery` |
+| Framework | Next.js App Router + React 19 + TypeScript 7 | Interactive modules are `'use client'`; first paint uses a Server Component with `prefetchQuery` |
 | Styling | Tailwind CSS v4 | Do not introduce a second CSS-in-JS solution |
 | UI | shadcn/ui | Component source lives in `src/components/ui/`; edit it directly |
 | Server state | TanStack Query v5 | One `QueryClient` reused from the client `QueryProvider`; never put query data inside `'use cache'` |
@@ -23,11 +23,26 @@ it is **not** part of the Maven reactor.
 npm install
 npm run dev          # http://localhost:3000
 npm run lint         # eslint . (flat config)
-npm run typecheck    # tsc --noEmit
+npm run typecheck    # TypeScript 7 (tsc --noEmit)
 npm test             # Vitest unit tests
 npm run test:coverage
 npm run test:e2e     # Playwright (starts the dev server)
 ```
+
+## TypeScript 7
+
+TypeScript runs side-by-side, as recommended by the TypeScript team:
+
+- `@typescript/native` aliases `typescript@7` and is the `tsc` used by
+  `npm run typecheck`.
+- `typescript` aliases `@typescript/typescript6`. `typescript-eslint` bundles
+  with `eslint-config-next@16` and still requires the 6.x API
+  (`>=4.8.4 <6.1.0`), so ESLint and Next's build-time type check use TS 6.
+- Always type-check through `npm run typecheck`. Running `npx tsc` directly can
+  hit the TS 6 shim pulled in by `@typescript/typescript6`, because npm links a
+  single `.bin/tsc`.
+- `overrides.effect` only exists to satisfy npm's optional-peer resolution for
+  `@hookform/resolvers@6`; the app does not use effect.
 
 ## Project layout
 
@@ -63,6 +78,15 @@ src/test/setup.ts                  # Vitest setup
 - The dashboard is a Server Component prefetching `dashboardService.getStats()`
   and hydrating React Query on the client. When that service moves to the
   gateway, forward the auth/tenant cookies from the server fetch.
+- Zustand is for UI state only. `useAuthStore` is the documented exception: it
+  persists the session token and current user for the Axios interceptor. Do not
+  add more server data to any Zustand store.
+- AG Grid Community is installed today. Add `ag-grid-enterprise` (and register
+  `AllEnterpriseModule` inside `src/components/data-grid/ag-grid-client.tsx`)
+  only when the first enterprise feature is needed — never at the root layout.
+- E2E: `e2e/product-ledger.spec.ts` covers the product ledger with the mock
+  service and an injected `access_token` cookie. Install browsers once with
+  `npx playwright install` before running `npm run test:e2e`.
 
 ## Migration status
 

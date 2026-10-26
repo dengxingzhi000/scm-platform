@@ -300,7 +300,7 @@ cd scm-web
 npm install
 npm run dev          # http://localhost:3000
 npm run lint         # `eslint .` — `next lint` was removed in Next 16
-npm run typecheck    # `tsc --noEmit`
+npm run typecheck    # TypeScript 7 (`@typescript/native`)
 npm test             # Vitest (unit)
 npm run test:coverage
 npm run test:e2e     # Playwright
@@ -330,9 +330,13 @@ npm run test:e2e     # Playwright
   `.eslintrc`); `eslint-config-next@16` ships native flat-config arrays.
   `eslint-config-next/typescript` is deliberately not enabled — see the
   comment in `eslint.config.mjs`.
-- TypeScript is pinned to the 6.x line: `typescript-eslint` (bundled with
-  `eslint-config-next@16`) declares `typescript >=4.8.4 <6.1.0` and hard-fails
-  to load on TS 7.x. TS 7 works for `tsc` but breaks `eslint`.
+- TypeScript 7 and TypeScript 6 run side-by-side: `@typescript/native` aliases
+  `typescript@7` and is the compiler behind `npm run typecheck`; `typescript`
+  aliases `@typescript/typescript6` because `typescript-eslint` (bundled with
+  `eslint-config-next@16`) still declares `typescript >=4.8.4 <6.1.0` and
+  hard-fails on the TS 7 API. ESLint and Next's build-time check use the TS 6
+  API; `npm run typecheck` is the TS 7 gate. Do not run `npx tsc` directly —
+  npm's `.bin/tsc` may point at the TS 6 shim.
 - API base URL: `NEXT_PUBLIC_API_BASE_URL` (`scm-web/.env.local` →
   `http://localhost:8761`), consumed by `src/lib/api/client.ts`.
 - Feature code lives in `src/features/<domain>/`; pages in
@@ -384,9 +388,10 @@ order-center, fulfillment, search, analytics). Helm charts live in
 
 `.github/workflows/maven-build.yml` — on push/PR to `master`/`develop`:
 
-- **PR**: `mvn clean test-compile test -Dmaven.test.failure.ignore=true` — the
-  build stays green even when tests fail. Do not rely on the PR check; run the
-  suite locally.
+- **PR**: `mvn clean test-compile test` — unit-test failures fail the job. The
+  same job then runs the `scm-web` gates (`npm ci`, `npm run typecheck`,
+  `npm run lint`, `npm test`, `npm run build`), so frontend and backend
+  changes share the required **Build and Test** check.
 - **Push**: `mvn clean verify` + Codecov upload. `verify` still skips JaCoCo
   (the parent sets `jacoco.skip=true`), so the coverage gates never run in CI.
 - **Push only**: the databases are initialised and
