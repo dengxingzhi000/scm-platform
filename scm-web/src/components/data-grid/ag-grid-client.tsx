@@ -18,6 +18,11 @@ export interface DataGridClientProps<TData extends object = object> {
  * AG Grid renderer. Always loaded through `@/components/data-grid/data-grid`
  * (dynamic + `ssr: false`). The AG Grid stylesheets are imported statically in
  * the root layout.
+ *
+ * Only Community modules are bundled. When an enterprise feature is required,
+ * add `ag-grid-enterprise` and register `AllEnterpriseModule` with
+ * `ModuleRegistry` here — this module is already lazily loaded, so the
+ * enterprise bundle never reaches the first-load JS.
  */
 export default function DataGridClient<TData extends object>({
   rowData,

@@ -52,7 +52,10 @@ export default function KPICards({ kpis, loading }: KPICardsProps) {
               : Minus;
 
         return (
-          <Card key={`${kpi.title}-${index}`} className="py-5">
+          <Card
+            key={`${kpi.title}-${index}`}
+            className="relative overflow-hidden py-5"
+          >
             <CardContent className="flex items-center gap-4 px-5">
               <div
                 className="flex size-12 shrink-0 items-center justify-center rounded-xl"
@@ -74,7 +77,7 @@ export default function KPICards({ kpis, loading }: KPICardsProps) {
                 {kpi.trend && (
                   <p
                     className={cn(
-                      "mt-1 flex items-center gap-1 text-xs",
+                      "mt-1 flex items-center gap-1 text-[11px] whitespace-nowrap",
                       kpi.trend.direction === "up" && "text-emerald-600",
                       kpi.trend.direction === "down" && "text-destructive",
                       kpi.trend.direction === "flat" && "text-muted-foreground",
@@ -95,7 +98,7 @@ export default function KPICards({ kpis, loading }: KPICardsProps) {
                 <Sparkline
                   data={kpi.sparkline}
                   color={kpi.color}
-                  className="hidden h-10 w-20 shrink-0 lg:block"
+                  className="pointer-events-none absolute right-0 bottom-0 h-12 w-24 opacity-70"
                 />
               )}
             </CardContent>
