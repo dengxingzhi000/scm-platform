@@ -11,6 +11,9 @@ import com.scmcloud.order.dto.PaymentResponse;
 import com.scmcloud.order.dto.PaymentStatusUpdateRequest;
 import com.scmcloud.order.service.command.OrdPaymentCommandService;
 import com.scmcloud.order.service.query.OrdPaymentQueryService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,13 +49,15 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/payments")
 @RequiredArgsConstructor
+@Tag(name = "订单支付", description = "支付记录的查询、创建与状态流转接口。")
 public class OrdPaymentController {
 
     private final OrdPaymentQueryService queryService;
     private final OrdPaymentCommandService commandService;
 
+    @Operation(summary = "查询支付记录", description = "根据支付记录 ID 查询支付详情。")
     @GetMapping("/{id}")
-    public ApiResponse<PaymentResponse> getById(@PathVariable UUID id) {
+    public ApiResponse<PaymentResponse> getById(@Parameter(description = "支付记录 ID") @PathVariable UUID id) {
         log.info("[API] Query payment: id={}", id);
         return ApiResponse.success(OrderConverter.toPaymentResponse(queryService.getById(id)));
     }
@@ -60,8 +65,9 @@ public class OrdPaymentController {
     /**
      * 按订单 ID 查询支付记录（单订单可能有多个支付记录：部分退款、合并支付等）。
      */
+    @Operation(summary = "按订单查询支付记录", description = "根据订单 ID 查询该订单关联的全部支付记录。")
     @GetMapping("/order/{orderId}")
-    public ApiResponse<List<PaymentResponse>> listByOrderId(@PathVariable UUID orderId) {
+    public ApiResponse<List<PaymentResponse>> listByOrderId(@Parameter(description = "订单 ID") @PathVariable UUID orderId) {
         log.info("[API] Query payments by order: orderId={}", orderId);
         return ApiResponse.success(OrderConverter.toPaymentResponseList(queryService.listByOrderId(orderId)));
     }
@@ -69,6 +75,7 @@ public class OrdPaymentController {
     /**
      * 统一条件分页查询。
      */
+    @Operation(summary = "分页查询支付记录", description = "按条件分页查询支付记录，支持支付单号、订单、用户、状态及时间区间过滤。")
     @PostMapping("/query")
     public ApiResponse<Page<PaymentResponse>> query(@RequestBody @Valid PaymentQueryRequest request) {
         log.info("[API] Query payments: {}", request);
@@ -89,6 +96,7 @@ public class OrdPaymentController {
     /**
      * 创建支付记录。
      */
+    @Operation(summary = "创建支付记录", description = "创建新的支付记录。")
     @PostMapping
     public ApiResponse<PaymentResponse> createPayment(@RequestBody @Valid PaymentCreateRequest request) {
         log.info("[API] Create payment: paymentNo={}, orderId={}", request.getPaymentNo(), request.getOrderId());
@@ -104,9 +112,10 @@ public class OrdPaymentController {
     /**
      * 支付状态流转。
      */
+    @Operation(summary = "更新支付状态", description = "按状态流转规则更新支付记录状态并记录变更原因。")
     @PutMapping("/{id}/status")
     public ApiResponse<PaymentResponse> updateStatus(
-            @PathVariable UUID id,
+            @Parameter(description = "支付记录 ID") @PathVariable UUID id,
             @RequestBody @Valid PaymentStatusUpdateRequest request) {
         log.info("[API] Update payment status: id={}, target={}", id, request.getTargetStatus());
 
