@@ -5,6 +5,88 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-10-26
+
+Minor release that completes the e-commerce service layer and the analytics BI
+path, and moves the frontend to the Next.js 16 / TypeScript 7 toolchain. No
+database tables were removed; the new schema changes are additive.
+
+### Added
+
+- **Analytics query engine and governance** — declarative SQL generator with a
+  field whitelist, tenant predicate, organisation scope, derived-metric
+  substitution and a 10k row cap. Adds `POST /api/v1/analytics/query`,
+  `AnalyticsDubboService`, idempotent DWD → DWS → ADS materialisation with
+  XXL-Job handlers, lineage edges, quality rules/results and ClickHouse
+  retention. Flyway V2 adds the governance schema.
+- **Analytics BI dashboard** — dataset/dimension/metric pickers, result chart,
+  paginated table, CSV export and typed TanStack Query hooks, with zh-CN and
+  en-US copy.
+- **Payment** — refund create/query/approve/reject with paid-payment and
+  balance checks, Alipay/WeChat callback parsing, `PaymentDubboService`, and
+  tenant-scoped Flyway V2 tables.
+- **Promotion** — group-buy create/join driven by activity rules, capacity and
+  expiry checks, idempotent participant tracking, and REST/Dubbo APIs.
+- **Mall** — seller registration/query plus product reviews with rating and
+  ownership validation, exposed through `MallDubboService`.
+- **Fulfillment** — tracking event recording and queries, initial `SHIPPED`
+  events on shipment transitions, and `FulfillmentDubboService`.
+- **Search** — bulk/reindex/delete index management, `SearchDubboService`,
+  category-aware similar-product lookup, and Elasticsearch mapping/analyzer
+  fixes.
+- **Order Center** — `OrderCenterDubboService` for status lookup and
+  cancellation; shipping is now allowed from `PAID` or `PENDING_SHIP`.
+- **Member tenant isolation** — `tenant_id` filling on member, address, level,
+  points, tag and binding entities, with V2 columns/indexes.
+- **Deployment** — opt-in `ecommerce` Docker Compose profile, `db_promotion`
+  and `db_analytics` in both database init scripts, and a corrected PgBouncer
+  dependency.
+- **Web** — shadcn/ui + Tailwind 4 primitives, lazy ECharts/G6/AG Grid
+  wrappers, shared theme tokens, Vitest/Testing Library setup, a redesigned
+  dashboard, a product form migrated to React Hook Form + Zod, and a product
+  ledger E2E test.
+- **WebAuthn** — `WebAuthnRequestContext` record and dedicated registration and
+  authentication controllers.
+
+### Changed
+
+- **Frontend toolchain** — Next.js 16.4.3, React 19.3.1, Ant Design 6.6,
+  ESLint 10 flat config, `proxy.ts`, Zod 4, React Hook Form 7.91 and
+  `@hookform/resolvers` 6. TypeScript 7.0.2 runs through
+  `@typescript/native`, while `typescript` aliases the 6.0 API required by
+  `typescript-eslint`; `npm run typecheck` is the TypeScript 7 gate.
+- **Backend dependencies** — Spring Boot 4.1.2, Spring Cloud 2025.1.4,
+  PostgreSQL driver 42.7.14, Testcontainers 2.0.5, XXL-Job 3.5.0 and
+  Flyway 13.11.1.
+- **CI** — the required **Build and Test** job now runs the `scm-web`
+  typecheck, lint, unit tests and production build; Maven unit-test failures
+  are no longer ignored on PRs. Adds `actions/setup-java@v6` and
+  `actions/upload-artifact@v7`.
+- **Documentation** — restyled README (zh-CN/en-US), analytics checkpoints and
+  the frontend stack/migration contract.
+- **Repository cleanup** — removed the legacy agent framework files and
+  obsolete skill bundles.
+
+### Fixed
+
+- The `028` migration guards `CREATE INDEX` when a table has no `deleted`
+  column, and CI schema validation now uses `ON_ERROR_STOP=1`.
+- Analytics tests now expect the top-level `TenantParseException`.
+- Elasticsearch analyzer, date-format and URI handling for product search.
+- Dashboard KPI layout and chart theming.
+
+### Upgrade notes
+
+- Create `db_promotion` and `db_analytics`, then run the new Flyway V2
+  migrations for analytics, member, order-center, payment, promotion, mall,
+  fulfillment and search.
+- E-commerce and analytics services are opt-in in Docker Compose through the
+  `ecommerce` profile.
+- Use `npm run typecheck` rather than `npx tsc`: npm may resolve the TypeScript
+  6 shim that `@typescript/typescript6` installs for ESLint.
+- Application artifact versions are unchanged; this release is identified by
+  the `v1.5.0` tag.
+
 ## [1.4.3] - 2026-09-18
 
 Patch release for `scm-common/core`. No API removals, no database changes — only
