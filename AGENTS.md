@@ -225,6 +225,14 @@ delete the key when the business call fails.
   only defines `KAFKA_SERVERS`.
 - `scripts/rename-packages.ps1` is the one-off script used for the
   `com.frog` → `com.scmcloud` package move; there is no live rename workflow.
+- Optional subsystems in `scm-common` are off unless a service opts in, because
+  each used to break every context when loaded unconditionally:
+  `security.uaa.enabled` (OAuth2 authorization server + `CustomUserDetailsService`,
+  set in `scm-auth` only), `security.mtls.enabled` (needs `certificates/*.p12`),
+  `security.oauth2.pkce.enabled`, `security.permission-checker.enabled`
+  (set in `scm-system`), `tenant.quota-checker.enabled`,
+  `scm.cache.two-level.enabled` and `datasync.enabled` (default off since its
+  `KafkaTemplate<String,String>` injection can never resolve).
 
 ## Database
 
@@ -353,6 +361,25 @@ npm run test:e2e     # Playwright
   (openapi-generator-cli 7.12, `openapitools.json`) can refresh the generated
   clients. `orval.config.ts` exists but `orval` is not a dependency — that path
   is dead.
+- Gateway path model: only `auth` / `system` / `common` have explicit routes
+  (`StripPrefix=1`), everything else is reached through the Nacos discovery
+  locator as `/scm-<service>/**`. So the frontend calls
+  `/auth/api/auth/**`, `/system/api/system/**`,
+  `/scm-order/api/v1/**`, `/scm-inventory/api/v1/**`.
+- Order and inventory do **not** return `PageResult`. `POST .../query` takes
+  `pageNum`/`pageSize` (or `page`/`size` for inventory) in the body and returns
+  the raw MyBatis-Plus `Page` echo (`records/total/size/current`), normalized by
+  `contracts/page.ts`. `unwrap()` treats a missing `data` key as success because
+  `ApiResponse` is `@JsonInclude(NON_NULL)`; the inventory reservation
+  controller returns bare literals, not an envelope.
+- scm-order exposes no fuzzy search (only exact `orderNo`/`userId`), never
+  embeds line items, and has no `customerPhone`. scm-inventory has **no**
+  alert or movement-history API (`InvAlertController` is an empty stub), so the
+  warnings screen derives `LOW_STOCK` / `OUT_OF_STOCK` rows from the stock query.
+- Business APIs are fail-closed without `scm-system`: `ApiAccessControlFilter`
+  asks `PermissionService.findPermissionsByUrl`, whose HTTP client throws
+  `AccessDeniedException` when the lookup fails. Start `scm-system` (or send a
+  token whose permissions resolve) before expecting a 200.
 - Playwright (`playwright.config.ts`) auto-starts `npm run dev` on :3000 and
   runs Chromium, Firefox and WebKit.
 
@@ -371,6 +398,24 @@ npm run test:e2e     # Playwright
   names are deprecated shims).
 - The POM's `<excludedGroups>` wins over `-DexcludedGroups=`, so re-enabling
   integration tests means editing the parent POM or adding a profile.
+- **No CI job ever boots a Spring context** (`mvn clean test-compile test` only
+  runs Mockito units), so bean-wiring defects ship silently. Verified locally on
+  `scm-order`: a business service needs PostgreSQL, Redis, RabbitMQ (the
+  `RabbitAdmin` declares queues at startup), a Nacos registry (Dubbo consumers
+  such as `InventoryDubboService`) and a reachable XXL-Job admin
+  (`XxlJobConfig` refuses an empty `xxl.job.admin.addresses`). It also needs
+  `spring.datasource.dynamic.datasource.master.*` — `dynamic-datasource` is on
+  the classpath of every service, and MyBatis fails with
+  "Property 'sqlSessionFactory' or 'sqlSessionTemplate' are required" when the
+  primary datasource is missing.
+- Two `scm-common` idioms caused most of those failures and should not be
+  reintroduced: `@ConditionalOnMissingBean` on a `@Component`/`@Service`
+  self-excludes (the condition sees the bean being registered) — put the
+  fallback in an `@AutoConfiguration` listed in
+  `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`;
+  and `@ConditionalOnBean(...)` inside a component-scanned `@Configuration`
+  evaluates before auto-configuration, so it is always false for
+  auto-configured types.
 - CI runs `mvn clean test-compile test` on PRs and `mvn clean verify` on
   pushes.
 
