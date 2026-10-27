@@ -104,6 +104,8 @@
 
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  /* 指向 design-tokens.css 的 --scm-font-serif:同名会变成自引用 */
+  --font-serif: var(--scm-font-serif);
 }
 
 @layer base {

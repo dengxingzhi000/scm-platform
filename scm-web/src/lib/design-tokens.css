@@ -42,12 +42,27 @@
   --color-text-secondary: #6b7280;
   --color-text-tertiary: #9ca3af;
 
-  /* Auth page background */
-  --auth-bg:
-    radial-gradient(1200px 600px at 10% -10%, rgba(79, 70, 229, 0.12), transparent 60%),
-    radial-gradient(900px 500px at 110% 20%, rgba(14, 165, 233, 0.08), transparent 55%),
-    linear-gradient(160deg, #f5f6ff 0%, #f4f5f7 55%, #eef2ff 100%);
-  --auth-card-shadow: 0 20px 60px -12px rgba(79, 70, 229, 0.18);
+  /* Claude 强调色(仅登录体验)
+     命名带 brand- 前缀是刻意的:globals.css 的 @theme inline 里已有
+     --color-accent: var(--accent)(shadcn muted-accent,驱动 bg-accent 工具类) */
+  --color-brand-accent: #D97757;
+  --color-brand-accent-hover: #C2603F;
+  --color-brand-accent-active: #A95134;
+  --color-brand-accent-bg: #F5E7E0;
+
+  /* Auth 页面暖中性色 */
+  --auth-bg: #F0EEE6;
+  --auth-surface: #FFFFFF;
+  --auth-ink: #262624;
+  --auth-ink-soft: #6B6A63;
+  --auth-line: #E5E3DA;
+  --auth-line-strong: #D4D1C5;
+  --auth-btn-soft-bg: #E9E6DC;
+  --auth-btn-soft-hover: #DFDBCE;
+  --auth-btn-fg: #FFFFFF;
+
+  /* --auth-brand-bg 已不再用于登录页,只剩应用侧边栏的 logo 徽标在用
+     (src/components/Layout/sidebar.tsx);登录页的品牌色是 --color-brand-accent。 */
   --auth-brand-bg: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
 
   /* Typography */
@@ -75,6 +90,13 @@
   --duration-fast: 100ms;
   --duration-normal: 200ms;
   --duration-slow: 300ms;
+
+  /* 衬线字体栈:英文落到 Georgia,中文落到宋体/思源宋体
+     名字带 scm- 前缀是刻意的:globals.css 的 @theme inline 要写
+     --font-serif: var(--scm-font-serif)。若两边都叫 --font-serif,
+     @theme 生成的那条就是自引用,--font-serif 会解析成 invalid。 */
+  --scm-font-serif: Georgia, 'Times New Roman', 'Songti SC', 'Noto Serif CJK SC',
+    'Source Han Serif SC', serif;
 }
 
 [data-theme='dark'] {
@@ -107,11 +129,8 @@
   --color-text-secondary: rgba(255, 255, 255, 0.65);
   --color-text-tertiary: rgba(255, 255, 255, 0.45);
 
-  /* Auth page background */
-  --auth-bg:
-    radial-gradient(1200px 600px at 10% -10%, rgba(99, 102, 241, 0.18), transparent 60%),
-    radial-gradient(900px 500px at 110% 20%, rgba(14, 165, 233, 0.1), transparent 55%),
-    linear-gradient(160deg, #0b0d12 0%, #10131b 55%, #141722 100%);
-  --auth-card-shadow: 0 20px 60px -12px rgba(0, 0, 0, 0.5);
+  /* 登录页配色(--auth-*)是固定的浅色调,深色模式不覆写:
+     否则近黑的 --auth-ink 标题会落在深色底上。
+     --auth-brand-bg 仍被应用侧边栏的 logo 徽标使用,保留深色变体。 */
   --auth-brand-bg: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
 }
