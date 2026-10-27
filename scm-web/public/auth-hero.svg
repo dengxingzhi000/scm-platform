@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1200" width="800" height="1200" role="img" aria-label="供应链协同">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F0EEE6"/>
+      <stop offset="55%" stop-color="#E4E0D2"/>
+      <stop offset="100%" stop-color="#D8D3C2"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#D97757" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#A95134" stop-opacity="0.55"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="1200" fill="url(#bg)"/>
+  <g fill="#FFFFFF" opacity="0.55">
+    <rect x="80" y="140" width="240" height="150" rx="12"/>
+    <rect x="360" y="180" width="180" height="110" rx="12"/>
+    <rect x="120" y="340" width="200" height="120" rx="12"/>
+    <rect x="400" y="360" width="300" height="180" rx="12"/>
+    <rect x="90" y="620" width="320" height="200" rx="12"/>
+    <rect x="470" y="610" width="230" height="140" rx="12"/>
+  </g>
+  <g stroke="#C9C3B1" stroke-width="2" fill="none">
+    <path d="M200 640 L400 720 L585 680"/>
+    <path d="M200 500 L400 540 L200 640"/>
+    <path d="M400 540 L585 460"/>
+  </g>
+  <rect x="120" y="900" width="300" height="180" rx="16" fill="url(#accent)"/>
+  <rect x="470" y="880" width="230" height="140" rx="16" fill="#FFFFFF" opacity="0.75"/>
+</svg>
