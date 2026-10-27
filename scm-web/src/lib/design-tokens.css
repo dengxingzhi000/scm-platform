@@ -62,6 +62,9 @@
   --auth-btn-soft-hover: #DFDBCE;
   --auth-btn-fg: #FFFFFF;
 
+  /* 登录卡片的阴影。Task 5 删除 auth-brand-card.tsx 时连同这个令牌一起删。 */
+  --auth-card-shadow: 0 20px 60px -12px rgba(79, 70, 229, 0.18);
+
   /* --auth-brand-bg 已不再用于登录页,只剩应用侧边栏的 logo 徽标在用
      (src/components/Layout/sidebar.tsx);登录页的品牌色是 --color-brand-accent。 */
   --auth-brand-bg: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
