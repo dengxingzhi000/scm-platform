@@ -32,21 +32,15 @@ mvn verify -Djacoco.skip=false -f com.scm.parent/pom.xml       # coverage gates 
 ### `spring-boot-maven-plugin` is skipped by default
 
 The parent POM sets `<skip>true</skip>` on `spring-boot-maven-plugin` (so the
-`scm-common/*` libraries are not repackaged into fat jars). Sixteen service
-modules override it with `<skip>false</skip>`; **ten do not** and therefore
-inherit `skip=true`:
+`scm-common/*` libraries are not repackaged into fat jars). Every deployable
+service module overrides it with `<skip>false</skip>`; if you add a module,
+copy that override — otherwise `mvn spring-boot:run` exits 0 without starting
+the app, `mvn package` produces a plain jar, and the Dockerfile
+(`COPY service/target/*.jar app.jar`) fails.
 
-`analytics` · `document` · `file` · `inventory` · `logistics` · `message` ·
-`order` · `product` · `supplier` · `warehouse`
-
-For those ten:
-
-- `mvn spring-boot:run` **exits 0 without starting the app** (verified).
-- `mvn package` produces a **plain jar, not an executable fat jar**, so
-  `java -jar` and their Dockerfiles (`COPY service/target/*.jar app.jar`) fail.
-
-Add `<skip>false</skip>` to that module's `spring-boot-maven-plugin`
-configuration before packaging or running it.
+Do not add a `<classifier>exec</classifier>` to that plugin: it leaves two jars
+in `target/`, and `COPY *.jar app.jar` then fails with "cannot copy to
+non-directory". `scm-inventory` used to do this.
 
 ### Toolchain
 
