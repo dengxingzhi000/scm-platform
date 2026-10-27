@@ -78,9 +78,10 @@ public class OrdOrderQueryService {
     @Slave
     public Page<OrdOrder> query(OrderQueryRequest request) {
         LambdaQueryWrapper<OrdOrder> wrapper = Wrappers.lambdaQuery();
+        Integer statusCode = request.getStatus() == null ? null : request.getStatus().getCode();
         wrapper.eq(request.getOrderNo() != null, OrdOrder::getOrderNo, request.getOrderNo())
                 .eq(request.getUserId() != null, OrdOrder::getUserId, request.getUserId())
-                .eq(request.getStatus() != null, OrdOrder::getStatus, request.getStatus().getCode())
+                .eq(statusCode != null, OrdOrder::getStatus, statusCode)
                 .eq(request.getOrderSource() != null, OrdOrder::getOrderSource, request.getOrderSource())
                 .ge(request.getStartTime() != null, OrdOrder::getCreateTime, request.getStartTime())
                 .le(request.getEndTime() != null, OrdOrder::getCreateTime, request.getEndTime())

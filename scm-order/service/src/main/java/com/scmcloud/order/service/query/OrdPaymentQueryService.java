@@ -56,10 +56,11 @@ public class OrdPaymentQueryService {
                                              LocalDateTime startTime,
                                              LocalDateTime endTime) {
         LambdaQueryWrapper<OrdPayment> wrapper = Wrappers.lambdaQuery();
+        Integer statusCode = status == null ? null : status.getCode();
         wrapper.eq(paymentNo != null && !paymentNo.isBlank(), OrdPayment::getPaymentNo, paymentNo)
                 .eq(orderId != null, OrdPayment::getOrderId, orderId)
                 .eq(userId != null && !userId.isBlank(), OrdPayment::getUserId, userId)
-                .eq(status != null, OrdPayment::getStatus, status.getCode())
+                .eq(statusCode != null, OrdPayment::getStatus, statusCode)
                 .ge(startTime != null, OrdPayment::getInitiatedAt, startTime)
                 .le(endTime != null, OrdPayment::getInitiatedAt, endTime)
                 .orderByDesc(OrdPayment::getCreateTime);
