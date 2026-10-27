@@ -57,9 +57,16 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const TOKENS = readFileSync(join(process.cwd(), "src/lib/design-tokens.css"), "utf8");
+const GLOBALS = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
+
+/**
+ * 去掉 CSS 注释再匹配:注释里提到 `--color-accent: var(--accent)` 只是说明文字,
+ * 不是令牌声明 —— 断言要盯的是「有没有声明」,不是「有没有提到」。
+ */
+const DECLARATIONS = TOKENS.replace(/\/\*[\s\S]*?\*\//g, "");
 
 function token(name: string): string {
-  const match = TOKENS.match(new RegExp(`--${name}:\\s*([^;]+);`));
+  const match = DECLARATIONS.match(new RegExp(`--${name}:\\s*([^;]+);`));
   if (!match) throw new Error(`token --${name} not found in design-tokens.css`);
   return match[1].trim();
 }
@@ -79,20 +86,27 @@ describe("auth design tokens", () => {
     expect(token("auth-ink-soft")).toBe("#6B6A63");
     expect(token("auth-line")).toBe("#E5E3DA");
     expect(token("auth-line-strong")).toBe("#D4D1C5");
+    expect(token("auth-btn")).toBe("#262624");
     expect(token("auth-btn-soft-bg")).toBe("#E9E6DC");
     expect(token("auth-btn-soft-hover")).toBe("#DFDBCE");
     expect(token("auth-btn-fg")).toBe("#FFFFFF");
   });
 
   it("does not shadow the shadcn --color-accent alias", () => {
-    expect(TOKENS).not.toMatch(/--color-accent\s*:/);
+    expect(DECLARATIONS).not.toMatch(/--color-accent\s*:/);
   });
 
   it("exposes a serif stack that covers Latin and CJK", () => {
-    const serif = token("font-serif");
+    // 令牌在 design-tokens.css 里叫 --scm-font-serif:globals.css 的 @theme inline
+    // 要写 --font-serif: var(--scm-font-serif),同名会变成自引用。
+    const serif = token("scm-font-serif");
     expect(serif).toContain("Georgia");
     expect(serif).toContain("Songti SC");
     expect(serif).toContain("Noto Serif CJK SC");
+
+    // 别名必须是 --scm-font-serif,不能是自引用。
+    expect(GLOBALS).toMatch(/--font-serif:\s*var\(--scm-font-serif\);/);
+    expect(GLOBALS).not.toMatch(/--font-serif:\s*var\(--font-serif\)/);
   });
 });
 ```
@@ -126,12 +140,21 @@ Expected: FAIL —— `--color-brand-accent not found in design-tokens.css`
   --auth-ink-soft: #6B6A63;
   --auth-line: #E5E3DA;
   --auth-line-strong: #D4D1C5;
+  --auth-btn: #262624;
   --auth-btn-soft-bg: #E9E6DC;
   --auth-btn-soft-hover: #DFDBCE;
   --auth-btn-fg: #FFFFFF;
 ```
 
-> 删除 `--auth-card-shadow` 与 `--auth-brand-bg`:前者由新卡片的 Tailwind `shadow-sm` 取代,后者随 antd 的 `AuthBrandCard` 一起删掉(见 Task 5)。替换前先全局搜索确认没有其它引用。
+> `--auth-btn` 是主按钮的底色(近黑),Task 2/3/5 的主按钮都用 `bg-[var(--auth-btn)]` ——
+> 少这一条,主按钮会静默丢掉背景色。
+>
+> 删除 `--auth-card-shadow`(只被 antd 的 `auth-brand-card.tsx` 用,那个组件在 Task 5 被删)。
+> **但不要删 `--auth-brand-bg`** —— 它还有第二个消费者:应用侧边栏的 logo 徽标
+> (`src/components/Layout/sidebar.tsx`)。保留它,并加一行注释说明它已不再用于登录页。
+>
+> 登录页配色是**固定的浅色调**:`[data-theme="dark"]` 块里**不要**再覆写 `--auth-bg` /
+> `--auth-ink` 等 —— 深色底上放近黑的标题会读不清。`--auth-brand-bg` 的深色变体保留。
 
 并在文件末尾追加:
 
@@ -157,9 +180,12 @@ Expected: FAIL —— `--color-brand-accent not found in design-tokens.css`
 > **注意**:这里的 `--font-serif` 必须指向 `--scm-font-serif`,**不能**写成
 > `--font-serif: var(--font-serif)` —— 那是一条自引用,变量会解析失败,`font-serif` 工具类
 > 随之失效。
-> **不要**往这个块里加 `--color-brand-accent-*` —— Tailwind 的 `bg-brand-accent` 由
-> design-tokens.css 里的 `--color-brand-accent` 自动生成(该文件在 `:root` 下定义了同名
-> `--color-*`,Tailwind v4 会识别)。
+> **不要**往这个块里加 `--color-brand-accent-*`。Tailwind v4 只会从 `@theme` 块里生成
+> `--color-*` 工具类;`design-tokens.css` 里的 `--color-brand-accent` 定义在普通 `:root`
+> 块中,**不会**生成 `bg-brand-accent` 这样的工具类。所以组件里一律用
+> `bg-[var(--color-brand-accent)]` / `text-[var(--color-brand-accent)]` 这种任意值写法。
+> 也不要把 `--color-brand-accent` 写进 `@theme inline` —— 那会和 `:root` 里的同名声明
+> 形成自引用。
 
 
 - [ ] **Step 5: 运行测试确认通过**
