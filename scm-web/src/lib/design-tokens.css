@@ -57,6 +57,7 @@
   --auth-ink-soft: #6B6A63;
   --auth-line: #E5E3DA;
   --auth-line-strong: #D4D1C5;
+  --auth-btn: #262624; /* 近黑主按钮底色,与 --auth-ink 同值 */
   --auth-btn-soft-bg: #E9E6DC;
   --auth-btn-soft-hover: #DFDBCE;
   --auth-btn-fg: #FFFFFF;

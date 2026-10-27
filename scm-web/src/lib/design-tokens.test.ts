@@ -32,6 +32,7 @@ describe("auth design tokens", () => {
     expect(token("auth-ink-soft")).toBe("#6B6A63");
     expect(token("auth-line")).toBe("#E5E3DA");
     expect(token("auth-line-strong")).toBe("#D4D1C5");
+    expect(token("auth-btn")).toBe("#262624");
     expect(token("auth-btn-soft-bg")).toBe("#E9E6DC");
     expect(token("auth-btn-soft-hover")).toBe("#DFDBCE");
     expect(token("auth-btn-fg")).toBe("#FFFFFF");
