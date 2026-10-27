@@ -18,20 +18,24 @@ export class ApiError extends Error {
 export async function unwrap<T>(request: Promise<unknown>): Promise<T> {
   const payload = (await request) as ApiEnvelope<T> | T;
 
-  if (
-    payload !== null &&
-    typeof payload === "object" &&
-    "code" in payload &&
-    "data" in payload
-  ) {
-    const envelope = payload as ApiEnvelope<T>;
-    if (envelope.code !== 200) {
-      throw new ApiError(envelope.code, envelope.message || "Request failed");
+  // ApiResponse is @JsonInclude(NON_NULL): failures and Void results omit `data` entirely.
+  if (isEnvelope<T>(payload)) {
+    if (payload.code !== 200) {
+      throw new ApiError(payload.code, payload.message || "Request failed");
     }
-    return envelope.data;
+    return payload.data as T;
   }
 
   return payload as T;
+}
+
+function isEnvelope<T>(payload: unknown): payload is ApiEnvelope<T> {
+  return (
+    payload !== null &&
+    typeof payload === "object" &&
+    typeof (payload as ApiEnvelope<T>).code === "number" &&
+    ("data" in payload || "message" in payload)
+  );
 }
 
 export function toApiError(error: unknown): ApiError {

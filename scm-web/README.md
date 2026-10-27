@@ -56,13 +56,32 @@ public paths are:
 | auth | `/auth/api/auth/**` | `/api/auth/**` |
 | auth (OAuth2) | `/auth/oauth2/**` | `/oauth2/**` |
 | system | `/system/api/system/**` | `/api/system/**` |
+| order | `/scm-order/api/v1/**` | `/api/v1/**` |
+| inventory | `/scm-inventory/api/v1/**` | `/api/v1/**` |
+
+`auth` / `system` / `common` are the only explicit gateway routes; business
+services are reached through the Nacos discovery locator, whose prefix is the
+registered `spring.application.name` (`scm-order`, `scm-inventory`, …).
 
 - Typed request/response contracts live in `src/lib/api/contracts/`.
 - Gateway-aware service functions live in `src/lib/api/services/`.
 - `src/lib/api/envelope.ts` unwraps `ApiResponse<T>` (`code`/`message`/`data`).
+  `data` is omitted on `Void` results and on in-band failures, so a missing key
+  is not an error; the inventory reservation endpoints return bare JSON values
+  that pass through unwrapped.
+- `src/lib/api/contracts/page.ts` normalizes the raw MyBatis-Plus `Page` echo
+  (`records`/`total`/`size`/`current`) that scm-order and scm-inventory return,
+  which is not the `PageResult` shape used by scm-system.
 - Feature mappers (for example `src/features/system/lib/mappers.ts`) convert
   backend DTOs (`realName`, numeric `status`, `pageNum`) into UI models
   (`displayName`, `active/disabled/locked`, `current`).
+- Backend capabilities the UI must not invent: scm-order has no fuzzy keyword
+  search (exact `orderNo`/`userId` only) and never embeds line items in a list
+  row; scm-inventory exposes no alert or movement-history endpoint, so the
+  warnings screen derives `LOW_STOCK` / `OUT_OF_STOCK` rows from the stock query.
+- Requests to business services are fail-closed unless `scm-system` is up:
+  `ApiAccessControlFilter` resolves permissions by URL and denies access when the
+  lookup fails.
 - `openapitools.json` still points at the direct auth/system OpenAPI documents
   (`/api/public/v3/api-docs`). When those services are running,
   `npm run generate:api` can refresh generated clients; the checked-in contracts

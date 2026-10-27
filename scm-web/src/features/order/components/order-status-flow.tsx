@@ -21,6 +21,9 @@ export default function OrderStatusFlow({ status }: OrderStatusFlowProps) {
   if (status === 'REFUNDING') {
     return <Steps current={-1} items={[...steps.slice(0, 2), { title: '退款中', status: 'process' }]} />
   }
+  if (status === 'REFUNDED') {
+    return <Steps current={-1} items={[...steps.slice(0, 2), { title: '已退款', status: 'error' }]} />
+  }
   const currentStep = steps.findIndex(s => s.key === status)
   return <Steps current={currentStep >= 0 ? currentStep : 0} items={steps.map((s, i) => ({ ...s, status: i <= currentStep ? 'finish' : 'wait' }))} />
 }
