@@ -5,8 +5,6 @@ import com.scmcloud.common.response.ApiResponse;
 import com.scmcloud.common.security.PermissionService;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Set;
@@ -27,8 +25,6 @@ import java.util.UUID;
  * @version 4.0
  * @since 2025-12-12
  */
-@Component
-@ConditionalOnMissingBean(PermissionService.class)
 @Slf4j
 public class FeignPermissionAccess implements PermissionService {
     private final SysPermissionServiceClient permissionServiceClient;

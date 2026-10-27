@@ -56,10 +56,11 @@ public class OrdRefundQueryService {
                                             LocalDateTime startTime,
                                             LocalDateTime endTime) {
         LambdaQueryWrapper<OrdRefund> wrapper = Wrappers.lambdaQuery();
+        Integer statusCode = status == null ? null : status.getCode();
         wrapper.eq(refundNo != null && !refundNo.isBlank(), OrdRefund::getRefundNo, refundNo)
                 .eq(orderId != null, OrdRefund::getOrderId, orderId)
                 .eq(userId != null && !userId.isBlank(), OrdRefund::getUserId, userId)
-                .eq(status != null, OrdRefund::getStatus, status.getCode())
+                .eq(statusCode != null, OrdRefund::getStatus, statusCode)
                 .ge(startTime != null, OrdRefund::getCreateTime, startTime)
                 .le(endTime != null, OrdRefund::getCreateTime, endTime)
                 .orderByDesc(OrdRefund::getCreateTime);

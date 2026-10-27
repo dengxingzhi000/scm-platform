@@ -2,6 +2,7 @@ package com.scmcloud.common.cache.metrics;
 
 import com.scmcloud.common.cache.spring.TwoLevelCache;
 import com.scmcloud.common.cache.spring.TwoLevelCacheManager;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.binder.MeterBinder;
 import io.micrometer.core.instrument.FunctionCounter;
@@ -11,6 +12,7 @@ import org.springframework.context.annotation.Configuration;
 import java.util.Map;
 
 @Configuration
+@ConditionalOnProperty(name = "scm.cache.two-level.enabled", havingValue = "true")
 public class CacheMetricsConfig {
 
     @Bean

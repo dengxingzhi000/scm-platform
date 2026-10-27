@@ -1,34 +1,68 @@
-import type { InventoryItem, StockMovement, StockAlert, InventorySearchParams } from '../types'
+import { v4 as uuidv4 } from 'uuid'
 
-const mockInventory: InventoryItem[] = [
-  { id: '1', skuId: '11', skuCode: 'SKU-001-128', productName: 'iPhone 15 Pro 128G', warehouseId: '1', warehouseName: '主仓库', totalStock: 50, availableStock: 45, reservedStock: 5, threshold: 20, status: 'normal', lastUpdatedAt: '2026-06-08 14:30' },
-  { id: '2', skuId: '12', skuCode: 'SKU-001-256', productName: 'iPhone 15 Pro 256G', warehouseId: '1', warehouseName: '主仓库', totalStock: 12, availableStock: 10, reservedStock: 2, threshold: 20, status: 'low', lastUpdatedAt: '2026-06-08 13:15' },
-  { id: '3', skuId: '21', skuCode: 'SKU-002-256', productName: 'MacBook Air M3 256G', warehouseId: '1', warehouseName: '主仓库', totalStock: 5, availableStock: 3, reservedStock: 2, threshold: 15, status: 'critical', lastUpdatedAt: '2026-06-08 12:00' },
-  { id: '4', skuId: '31', skuCode: 'SKU-003', productName: 'AirPods Pro 2', warehouseId: '1', warehouseName: '主仓库', totalStock: 0, availableStock: 0, reservedStock: 0, threshold: 50, status: 'out', lastUpdatedAt: '2026-06-08 10:00' },
-]
+import { inventoryApiService } from '@/lib/api/services/inventory'
+import { toInventoryItem, toInventoryPage, toStockAlerts, toStockStatus } from '../lib/mappers'
+import type {
+  InventoryItem,
+  InventorySearchParams,
+  PageResult,
+  StockAdjustment,
+  StockAlert,
+} from '../types'
 
-const mockMovements: StockMovement[] = [
-  { id: '1', skuId: '11', skuCode: 'SKU-001-128', productName: 'iPhone 15 Pro 128G', type: 'inbound', quantity: 100, beforeStock: 0, afterStock: 100, reason: '采购入库', operator: '管理员', createdAt: '2026-06-01 10:00' },
-  { id: '2', skuId: '11', skuCode: 'SKU-001-128', productName: 'iPhone 15 Pro 128G', type: 'outbound', quantity: 30, beforeStock: 100, afterStock: 70, reason: '销售出库', operator: '张三', createdAt: '2026-06-05 14:30' },
-  { id: '3', skuId: '11', skuCode: 'SKU-001-128', productName: 'iPhone 15 Pro 128G', type: 'adjust', quantity: -20, beforeStock: 70, afterStock: 50, reason: '盘点调整', operator: '管理员', createdAt: '2026-06-08 09:00' },
-]
-
-const mockAlerts: StockAlert[] = [
-  { id: '2', skuId: '12', skuCode: 'SKU-001-256', productName: 'iPhone 15 Pro 256G', currentStock: 12, threshold: 20, status: 'low', warehouseName: '主仓库' },
-  { id: '3', skuId: '21', skuCode: 'SKU-002-256', productName: 'MacBook Air M3 256G', currentStock: 5, threshold: 15, status: 'critical', warehouseName: '主仓库' },
-  { id: '4', skuId: '31', skuCode: 'SKU-003', productName: 'AirPods Pro 2', currentStock: 0, threshold: 50, status: 'out', warehouseName: '主仓库' },
-]
+const ALERT_PAGE_SIZE = 200
 
 export const inventoryService = {
-  list: async (params?: InventorySearchParams) => {
-    let filtered = [...mockInventory]
-    if (params?.keyword) filtered = filtered.filter(i => i.productName.includes(params.keyword!) || i.skuCode.includes(params.keyword!))
-    if (params?.status) filtered = filtered.filter(i => i.status === params.status)
-    if (params?.lowStock) filtered = filtered.filter(i => i.status !== 'normal')
-    const start = ((params?.current || 1) - 1) * (params?.pageSize || 20)
-    return { records: filtered.slice(start, start + (params?.pageSize || 20)), total: filtered.length, current: params?.current || 1, pageSize: params?.pageSize || 20 }
+  list: async (params?: InventorySearchParams): Promise<PageResult<InventoryItem>> =>
+    toInventoryPage(
+      await inventoryApiService.query({
+        page: params?.current ?? 1,
+        size: params?.pageSize ?? 20,
+        skuIds: params?.skuIds?.length ? params.skuIds : undefined,
+        warehouseIds: params?.warehouseIds?.length ? params.warehouseIds : undefined,
+        locationCode: params?.locationCode || undefined,
+        stockStatus: toStockStatus(params?.status),
+        sortBy: params?.sortBy ?? 'update_time',
+        sortOrder: params?.sortOrder ?? 'DESC',
+      })
+    ),
+
+  /** `InvAlertController` has no endpoints, so warnings are computed from the stock query. */
+  getAlerts: async (): Promise<StockAlert[]> => {
+    const [low, out] = await Promise.all([
+      inventoryApiService.query({ stockStatus: 'LOW_STOCK', page: 1, size: ALERT_PAGE_SIZE }),
+      inventoryApiService.query({ stockStatus: 'OUT_OF_STOCK', page: 1, size: ALERT_PAGE_SIZE }),
+    ]);
+    return toStockAlerts([...toInventoryPage(low).records, ...toInventoryPage(out).records]);
   },
-  getAlerts: async (): Promise<StockAlert[]> => mockAlerts,
-  getMovements: async (skuId?: string): Promise<StockMovement[]> => skuId ? mockMovements.filter(m => m.skuId === skuId) : mockMovements,
-  adjustStock: async (skuId: string, quantity: number, reason: string): Promise<void> => {},
-}
+
+  getStock: (skuId: string, warehouseId: string) =>
+    inventoryApiService.getInventory(skuId, warehouseId).then((dto) => (dto ? toInventoryItem(dto) : null)),
+
+  /** `referenceNo` is the server-side 24h idempotency key, so every submission gets its own. */
+  adjustStock: async (adjustment: StockAdjustment): Promise<InventoryItem> =>
+    toInventoryItem(
+      await inventoryApiService.adjust({
+        skuId: adjustment.skuId,
+        warehouseId: adjustment.warehouseId,
+        quantity: adjustment.quantity,
+        adjustType: adjustment.adjustType,
+        referenceNo: uuidv4(),
+        remark: adjustment.remark,
+      })
+    ),
+
+  transfer: (request: {
+    skuId: string;
+    fromWarehouseId: string;
+    toWarehouseId: string;
+    quantity: number;
+    remark?: string;
+  }) =>
+    inventoryApiService.transfer({
+      ...request,
+      transferNo: uuidv4(),
+    }),
+
+  stats: () => inventoryApiService.stats(),
+};

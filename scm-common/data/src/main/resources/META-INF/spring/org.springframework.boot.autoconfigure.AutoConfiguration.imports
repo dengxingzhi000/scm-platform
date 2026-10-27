@@ -1,1 +1,2 @@
 com.scmcloud.common.data.rw.config.ReadWriteAutoConfiguration
+com.scmcloud.common.mybatisPlus.config.DataPermissionAutoConfiguration

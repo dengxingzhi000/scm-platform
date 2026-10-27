@@ -349,3 +349,7 @@ logging:
 app:
   security:
     admin-user-id: 019a0aee-3b74-7bfc-b34f-48b5428d4875
+
+security:
+  permission-checker:
+    enabled: true

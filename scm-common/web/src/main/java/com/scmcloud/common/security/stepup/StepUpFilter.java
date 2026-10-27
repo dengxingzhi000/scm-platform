@@ -19,6 +19,7 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NullMarked;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -41,7 +42,7 @@ import java.util.UUID;
 @NullMarked
 public class StepUpFilter extends OncePerRequestFilter {
     private final StepUpEvaluator evaluator;
-    private final ISysAuditLogService auditLogService;
+    private final ObjectProvider<ISysAuditLogService> auditLogProvider;
     private final JwtUtils jwtUtils;
     private final HttpServletRequestUtils requestUtils;
     private final SecurityMetrics securityMetrics;
@@ -125,15 +126,18 @@ public class StepUpFilter extends OncePerRequestFilter {
 
             if (user != null) {
                 UUID userId = user.getUserId();
-                auditLogService.recordSecurityEvent(
-                        "STEP_UP_REQUIRED", 2,
-                        userId,
-                        user.getUsername(),
-                        request.getRemoteAddr(),
-                        request.getRequestURI(),
-                        false,
-                        "Step-up required: " + require
-                );
+                ISysAuditLogService auditLogService = auditLogProvider.getIfAvailable();
+                if (auditLogService != null) {
+                    auditLogService.recordSecurityEvent(
+                            "STEP_UP_REQUIRED", 2,
+                            userId,
+                            user.getUsername(),
+                            request.getRemoteAddr(),
+                            request.getRequestURI(),
+                            false,
+                            "Step-up required: " + require
+                    );
+                }
             }
             UUID userIdLog = user != null ? user.getUserId() : null;
 

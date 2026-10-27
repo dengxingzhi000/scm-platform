@@ -1,8 +1,9 @@
 package com.scmcloud.common.rest.reload;
 
 import jakarta.annotation.PostConstruct;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.io.Resource;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -36,13 +37,24 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
+@ConditionalOnProperty(name = "security.mtls.enabled", havingValue = "true")
 public class CertificateReloaderRestClient {
 
     private final Resource keystoreResource;
     private final String keystorePassword;
     private final Resource truststoreResource;
     private final String truststorePassword;
+
+    public CertificateReloaderRestClient(
+            @Value("${security.mtls.keystore-path:classpath:certificates/keystore.p12}") Resource keystoreResource,
+            @Value("${security.mtls.keystore-password:${KEYSTORE_PASSWORD:changeit}}") String keystorePassword,
+            @Value("${security.mtls.truststore-path:classpath:certificates/truststore.p12}") Resource truststoreResource,
+            @Value("${security.mtls.truststore-password:${TRUSTSTORE_PASSWORD:changeit}}") String truststorePassword) {
+        this.keystoreResource = keystoreResource;
+        this.keystorePassword = keystorePassword;
+        this.truststoreResource = truststoreResource;
+        this.truststorePassword = truststorePassword;
+    }
 
     // 褰撳墠 SSLContext锛堢嚎绋嬪畨鍏ㄧ殑鍘熷瓙寮曠敤锟?
     private final AtomicReference<SSLContext> sslContextRef = new AtomicReference<>();

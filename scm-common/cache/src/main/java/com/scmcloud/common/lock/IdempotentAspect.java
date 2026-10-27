@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit;
  */
 @Slf4j
 @Aspect
-@Component
+@Component("lockIdempotentAspect")
 @RequiredArgsConstructor
 public class IdempotentAspect {
 

@@ -103,3 +103,8 @@ webauthn:
     registration-challenge-expiry-seconds: 300  # 注册挑战过期时间（默认 5 分钟）
     credential-inactive-days: 90           # 凭证不活跃阈值（默认 90 天）
     auth-attempt-retention-days: 30        # 认证日志保留时间（默认 30 天）
+
+# scm-common UAA beans (authorization server + user details service) load only here.
+security:
+  uaa:
+    enabled: true

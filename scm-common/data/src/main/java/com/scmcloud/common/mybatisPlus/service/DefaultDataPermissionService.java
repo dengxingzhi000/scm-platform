@@ -2,9 +2,7 @@ package com.scmcloud.common.mybatisPlus.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.stereotype.Service;
 
 import java.util.Collections;
 import java.util.List;
@@ -17,9 +15,7 @@ import java.util.UUID;
  * @author Deng
  * @since 2025-12-15
  */
-@Service
 @Slf4j
-@ConditionalOnMissingBean(DataPermissionService.class)
 @RequiredArgsConstructor
 public class DefaultDataPermissionService implements DataPermissionService {
     private final JdbcTemplate jdbcTemplate;

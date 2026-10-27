@@ -8,6 +8,7 @@ import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -58,6 +59,7 @@ import java.util.UUID;
  * @version 2.0
  */
 @Configuration
+@ConditionalOnProperty(name = "security.uaa.enabled", havingValue = "true")
 @RequiredArgsConstructor
 @Import(OAuth2AuthorizationServerConfiguration.class)
 public class AuthorizationServerConfig {

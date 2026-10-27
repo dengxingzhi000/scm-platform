@@ -6,6 +6,7 @@ import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.context.ApplicationEvent;
@@ -26,6 +27,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * @version 1.0
  */
 @Service
+@ConditionalOnProperty(name = "security.permission.dynamic-loader.enabled", havingValue = "true")
 @RequiredArgsConstructor
 @Slf4j
 public class DynamicPermissionLoader {

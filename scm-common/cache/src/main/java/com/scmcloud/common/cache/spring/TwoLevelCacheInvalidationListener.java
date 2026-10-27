@@ -5,11 +5,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.Message;
 import org.springframework.data.redis.connection.MessageListener;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
 
 @Component
+@ConditionalOnProperty(name = "scm.cache.two-level.enabled", havingValue = "true")
 @RequiredArgsConstructor
 @Slf4j
 public class TwoLevelCacheInvalidationListener implements MessageListener {
