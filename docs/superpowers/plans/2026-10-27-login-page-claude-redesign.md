@@ -52,7 +52,7 @@
 创建 `scm-web/src/lib/design-tokens.test.ts`:
 
 ```ts
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -65,10 +65,40 @@ const GLOBALS = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8")
  */
 const DECLARATIONS = TOKENS.replace(/\/\*[\s\S]*?\*\//g, "");
 
+/**
+ * Tailwind v4 只从 `@theme` 块里读变量:别名写在普通 `:root` 里不会生成
+ * `font-serif` 工具类(而且不会报错,只是样式静默失效)。所以断言要落在块内。
+ */
+const THEME_BLOCK = (() => {
+  const match = GLOBALS.match(/@theme\s+inline\s*\{([\s\S]*?)\n\}/);
+  if (!match) throw new Error("@theme inline block not found in globals.css");
+  return match[1];
+})();
+
+/**
+ * 深色模式块。登录页配色是固定浅色(规格 A1 没给深色变体),
+ * 这里不允许再出现 `--auth-bg` / `--auth-ink` 覆写:近黑文字落在深色底上不可读。
+ */
+const DARK_BLOCK = (() => {
+  const match = TOKENS.match(/\[data-theme=['"]dark['"]\]\s*\{([\s\S]*?)\n\}/);
+  if (!match) throw new Error("[data-theme='dark'] block not found in design-tokens.css");
+  return match[1].replace(/\/\*[\s\S]*?\*\//g, "");
+})();
+
 function token(name: string): string {
   const match = DECLARATIONS.match(new RegExp(`--${name}:\\s*([^;]+);`));
   if (!match) throw new Error(`token --${name} not found in design-tokens.css`);
   return match[1].trim();
+}
+
+/** 源码文件(排除测试文件),用来核对「被引用的令牌都有定义」。 */
+function sourceFiles(dir = join(process.cwd(), "src")): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) return sourceFiles(path);
+    if (!/\.tsx?$/.test(entry.name)) return [];
+    return /\.test\.tsx?$/.test(entry.name) ? [] : [path];
+  });
 }
 
 describe("auth design tokens", () => {
@@ -96,6 +126,15 @@ describe("auth design tokens", () => {
     expect(DECLARATIONS).not.toMatch(/--color-accent\s*:/);
   });
 
+  it("keeps the global indigo primary for every non-auth page", () => {
+    expect(token("color-primary")).toBe("#4f46e5");
+  });
+
+  it("does not override the fixed-light auth palette in dark mode", () => {
+    expect(DARK_BLOCK).not.toMatch(/--auth-bg\s*:/);
+    expect(DARK_BLOCK).not.toMatch(/--auth-ink\s*:/);
+  });
+
   it("exposes a serif stack that covers Latin and CJK", () => {
     // 令牌在 design-tokens.css 里叫 --scm-font-serif:globals.css 的 @theme inline
     // 要写 --font-serif: var(--scm-font-serif),同名会变成自引用。
@@ -104,11 +143,28 @@ describe("auth design tokens", () => {
     expect(serif).toContain("Songti SC");
     expect(serif).toContain("Noto Serif CJK SC");
 
-    // 别名必须是 --scm-font-serif,不能是自引用。
-    expect(GLOBALS).toMatch(/--font-serif:\s*var\(--scm-font-serif\);/);
-    expect(GLOBALS).not.toMatch(/--font-serif:\s*var\(--font-serif\)/);
+    // 别名必须落在 @theme inline 块内(普通 :root 不生成工具类),且不能自引用。
+    expect(THEME_BLOCK).toMatch(/--font-serif:\s*var\(--scm-font-serif\);/);
+    expect(THEME_BLOCK).not.toMatch(/--font-serif:\s*var\(--font-serif\)/);
+  });
+
+  it("defines every auth token that the source still references", () => {
+    const referenced = new Set<string>();
+    for (const file of sourceFiles()) {
+      const content = readFileSync(file, "utf8");
+      for (const match of content.matchAll(/var\(--((?:auth|color-brand)[a-z0-9-]*)\)/g)) {
+        referenced.add(match[1]);
+      }
+    }
+
+    // 扫描本身要有效:空集合说明遍历挂了,断言会变成空转。
+    expect(referenced.size).toBeGreaterThan(0);
+    for (const name of referenced) {
+      expect(DECLARATIONS, `--${name} 被引用但未定义`).toMatch(new RegExp(`--${name}\\s*:`));
+    }
   });
 });
+
 ```
 
 - [ ] **Step 2: 运行测试确认失败**
@@ -149,7 +205,9 @@ Expected: FAIL —— `--color-brand-accent not found in design-tokens.css`
 > `--auth-btn` 是主按钮的底色(近黑),Task 2/3/5 的主按钮都用 `bg-[var(--auth-btn)]` ——
 > 少这一条,主按钮会静默丢掉背景色。
 >
-> 删除 `--auth-card-shadow`(只被 antd 的 `auth-brand-card.tsx` 用,那个组件在 Task 5 被删)。
+> **`--auth-card-shadow` 不要删** —— 它被 antd 的 `auth-brand-card.tsx` 用着(那个组件 Task 5 才删)。
+> 现在删掉会让登录/找回密码卡片在 Task 3/5 之前渲染成无阴影(`box-shadow: var(--undefined)` 计算值非法)。
+> Task 5 删组件时连同这个令牌一起删。
 > **但不要删 `--auth-brand-bg`** —— 它还有第二个消费者:应用侧边栏的 logo 徽标
 > (`src/components/Layout/sidebar.tsx`)。保留它,并加一行注释说明它已不再用于登录页。
 >
@@ -191,7 +249,7 @@ Expected: FAIL —— `--color-brand-accent not found in design-tokens.css`
 - [ ] **Step 5: 运行测试确认通过**
 
 Run: `cd scm-web && npm test -- src/lib/design-tokens.test.ts`
-Expected: PASS(4 个用例)
+Expected: PASS(7 个用例)
 
 - [ ] **Step 6: 提交**
 
@@ -1435,6 +1493,13 @@ export default function ForgotPasswordPage() {
 cd scm-web
 git rm src/components/ui/auth-brand-card.tsx src/layouts/auth-layout.tsx
 ```
+
+同时从 `src/lib/design-tokens.css` 的 `:root` 里删掉 `--auth-card-shadow`
+(`auth-brand-card.tsx` 是它最后一个消费者;**不要**删 `--auth-brand-bg` ——
+它还被 `src/components/Layout/sidebar.tsx` 用着)。
+
+> `design-tokens.test.ts` 里的契约守卫会自动发现这个令牌已无人引用 —— 它断言的是
+> 「被引用的令牌都有定义」,不是「定义的令牌都被引用」,所以删除它不会让测试变红。
 
 然后全局搜索确认没有引用残留:
 
