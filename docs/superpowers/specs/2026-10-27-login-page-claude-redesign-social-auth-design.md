@@ -166,10 +166,13 @@ FK user_id -> sys_user(id) ON DELETE CASCADE
 
 ```css
 /* Claude 强调色(仅登录体验) */
---color-accent:        #D97757;
---color-accent-hover:  #C2603F;
---color-accent-active: #A95134;
---color-accent-bg:     #F5E7E0;
+/* 命名带 brand- 前缀是刻意的:`globals.css` 的 `@theme inline` 里已经有
+   `--color-accent: var(--accent)`(shadcn 的 muted-accent,驱动 `bg-accent` 工具类),
+   同名会覆盖它。 */
+--color-brand-accent:        #D97757;
+--color-brand-accent-hover:  #C2603F;
+--color-brand-accent-active: #A95134;
+--color-brand-accent-bg:     #F5E7E0;
 
 /* 登录页暖中性色 */
 --auth-bg:             #F0EEE6;   /* 暖象牙底 */
@@ -196,7 +199,7 @@ FK user_id -> sys_user(id) ON DELETE CASCADE
 **作用域**:登录外壳根元素上覆写 shadcn 变量:
 
 ```
-style="--primary: var(--color-accent); --ring: var(--color-accent); --accent: var(--color-accent-bg);"
+style="--primary: var(--color-brand-accent); --ring: var(--color-brand-accent); --accent: var(--color-brand-accent-bg);"
 ```
 
 这样登录页内的 shadcn `Button`/链接/focus ring 走橙色,而**全局** `--color-primary`(靛蓝)
