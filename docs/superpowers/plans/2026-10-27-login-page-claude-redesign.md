@@ -136,8 +136,11 @@ Expected: FAIL —— `--color-brand-accent not found in design-tokens.css`
 并在文件末尾追加:
 
 ```css
-  /* 衬线字体栈:英文落到 Georgia,中文落到宋体/思源宋体 */
-  --font-serif: Georgia, 'Times New Roman', 'Songti SC', 'Noto Serif CJK SC',
+  /* 衬线字体栈:英文落到 Georgia,中文落到宋体/思源宋体
+     名字带 scm- 前缀是刻意的:globals.css 的 @theme inline 要写
+     --font-serif: var(--scm-font-serif)。若两边都叫 --font-serif,
+     @theme 生成的那条就是自引用,--font-serif 会解析成 invalid。 */
+  --scm-font-serif: Georgia, 'Times New Roman', 'Songti SC', 'Noto Serif CJK SC',
     'Source Han Serif SC', serif;
 ```
 
@@ -146,10 +149,18 @@ Expected: FAIL —— `--color-brand-accent not found in design-tokens.css`
 在 `src/app/globals.css` 的 `@theme inline { ... }` 块内追加一行:
 
 ```css
-  --font-serif: var(--font-serif);
+  --font-serif: var(--scm-font-serif);
 ```
 
-> 注意:该块里的 `--color-primary: var(--primary)` 等是 shadcn 变量 → Tailwind 颜色工具类的别名。这里同理,把 `design-tokens.css` 的 `--font-serif` 暴露成 Tailwind 的 `font-serif` 工具类。**不要**往这个块里加 `--color-brand-accent-*` —— Tailwind 的 `bg-brand-accent` 由 design-tokens.css 里的 `--color-brand-accent` 自动生成(该文件在 `:root` 下定义了同名 `--color-*`,Tailwind v4 会识别)。
+> 该块里的 `--color-primary: var(--primary)` 等是 shadcn 变量 → Tailwind 颜色工具类的别名。
+> 这里同理,把 `design-tokens.css` 的 `--scm-font-serif` 暴露成 Tailwind 的 `font-serif` 工具类。
+> **注意**:这里的 `--font-serif` 必须指向 `--scm-font-serif`,**不能**写成
+> `--font-serif: var(--font-serif)` —— 那是一条自引用,变量会解析失败,`font-serif` 工具类
+> 随之失效。
+> **不要**往这个块里加 `--color-brand-accent-*` —— Tailwind 的 `bg-brand-accent` 由
+> design-tokens.css 里的 `--color-brand-accent` 自动生成(该文件在 `:root` 下定义了同名
+> `--color-*`,Tailwind v4 会识别)。
+
 
 - [ ] **Step 5: 运行测试确认通过**
 
@@ -429,29 +440,40 @@ git commit -m "feat(web): 新增 Claude 版式认证双栏外壳与品牌标记"
 ```ts
 import { describe, expect, it } from "vitest";
 
-import { loginSchema, totpSchema } from "./login-schema";
+import { buildLoginSchema, buildTotpSchema } from "./login-schema";
 
-describe("loginSchema", () => {
+// 翻译函数原样返回 key,这样断言里能直接看到是哪个 key
+const t = (key: string) => key;
+
+describe("buildLoginSchema", () => {
   it("rejects an empty username", () => {
-    const result = loginSchema.safeParse({ username: "", password: "x" });
+    const result = buildLoginSchema(t).safeParse({ username: "", password: "x" });
     expect(result.success).toBe(false);
   });
 
   it("rejects an empty password", () => {
-    const result = loginSchema.safeParse({ username: "admin", password: "" });
+    const result = buildLoginSchema(t).safeParse({ username: "admin", password: "" });
     expect(result.success).toBe(false);
   });
 
   it("accepts a filled pair", () => {
-    expect(loginSchema.safeParse({ username: "admin", password: "admin123" }).success).toBe(true);
+    expect(buildLoginSchema(t).safeParse({ username: "admin", password: "admin123" }).success).toBe(true);
+  });
+
+  it("puts the translated message into the error", () => {
+    const result = buildLoginSchema(t).safeParse({ username: "", password: "" });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0].message).toBe("errors.usernameRequired");
+    }
   });
 });
 
-describe("totpSchema", () => {
+describe("buildTotpSchema", () => {
   it("requires exactly six digits", () => {
-    expect(totpSchema.safeParse({ code: "12345" }).success).toBe(false);
-    expect(totpSchema.safeParse({ code: "12345a" }).success).toBe(false);
-    expect(totpSchema.safeParse({ code: "123456" }).success).toBe(true);
+    expect(buildTotpSchema(t).safeParse({ code: "12345" }).success).toBe(false);
+    expect(buildTotpSchema(t).safeParse({ code: "12345a" }).success).toBe(false);
+    expect(buildTotpSchema(t).safeParse({ code: "123456" }).success).toBe(true);
   });
 });
 ```
@@ -473,9 +495,20 @@ vi.mock("@/lib/api/services/auth", () => ({
   authService: { login: (...args: unknown[]) => login(...args) },
 }));
 
+// useMutation 需要 QueryClient 上下文;这里直接 mock 掉,让测试只关心表单行为。
+// useQuery 也要一并提供 —— Task 6 会把 SocialAuthButtons(useQuery)插进这个表单。
+vi.mock("@tanstack/react-query", () => ({
+  useMutation: () => ({
+    mutateAsync: (...args: unknown[]) => login(...args),
+    isPending: false,
+  }),
+  useQuery: () => ({ data: [] as string[] }),
+}));
+
 vi.mock("next-intl", () => ({
   useLocale: () => "zh-CN",
-  useTranslations: () => (key: string) => key,
+  // 模拟 next-intl 的命名空间行为:useTranslations("login") 返回的 t 会把命名空间拼进 key
+  useTranslations: (ns: string) => (key: string) => `${ns}.${key}`,
 }));
 
 describe("LoginForm", () => {
@@ -529,24 +562,38 @@ Expected: FAIL —— `Cannot find module './login-schema'`
 ```ts
 import { z } from "zod";
 
-export const loginSchema = z.object({
-  username: z.string().min(1, "login.errors.usernameRequired"),
-  password: z.string().min(1, "login.errors.passwordRequired"),
-});
+/** next-intl 的翻译函数签名(只用到 key,不接参数)。 */
+export type Translator = (key: string) => string;
 
-export const totpSchema = z.object({
-  code: z
-    .string()
-    .min(1, "login.errors.codeRequired")
-    .length(6, "login.errors.codeLength")
-    .regex(/^\d+$/, "login.errors.codeDigits"),
-});
+/**
+ * 校验 schema 是**工厂**而不是常量:错误文案要在 schema 构建时就翻译好,
+ * 这样组件只要渲染 `errors.x?.message` 即可 ——
+ * 校验错误是已翻译的文案,服务端错误(如验证码错误)是后端原样返回的文案,
+ * 两条路径共用同一处渲染,不需要再做一层 key 映射。
+ */
+export function buildLoginSchema(t: Translator) {
+  return z.object({
+    username: z.string().min(1, t("errors.usernameRequired")),
+    password: z.string().min(1, t("errors.passwordRequired")),
+  });
+}
 
-export type LoginFormValues = z.infer<typeof loginSchema>;
-export type TotpFormValues = z.infer<typeof totpSchema>;
+export function buildTotpSchema(t: Translator) {
+  return z.object({
+    code: z
+      .string()
+      .min(1, t("errors.codeRequired"))
+      .length(6, t("errors.codeLength"))
+      .regex(/^\d+$/, t("errors.codeDigits")),
+  });
+}
+
+export type LoginFormValues = z.infer<ReturnType<typeof buildLoginSchema>>;
+export type TotpFormValues = z.infer<ReturnType<typeof buildTotpSchema>>;
 ```
 
-> 校验消息写的是 i18n key,由 `useTranslations("login")` 在渲染时翻译 —— 所以 schema 里存 key 而不是文案。
+> **不要**把 i18n key 存进 schema 的 message —— 那样组件还得把 key 再翻译一次,
+> 而服务端错误(不是 key)就没法走同一条渲染路径。
 
 - [ ] **Step 5: 创建 `login-card.tsx`**
 
@@ -599,7 +646,7 @@ import { authService } from "@/lib/api/services/auth";
 import { toApiError } from "@/lib/api/envelope";
 import type { LoginResponse } from "@/lib/api/contracts/auth";
 
-import { loginSchema, type LoginFormValues } from "./login-schema";
+import { buildLoginSchema, type LoginFormValues } from "./login-schema";
 
 interface LoginFormProps {
   onSuccess: (response: LoginResponse) => void;
@@ -609,7 +656,7 @@ interface LoginFormProps {
 export function LoginForm({ onSuccess, onMfaRequired }: LoginFormProps) {
   const t = useTranslations("login");
   const form = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
+    resolver: zodResolver(buildLoginSchema(t)),
     defaultValues: { username: "", password: "", remember: true },
   });
 
@@ -656,7 +703,9 @@ export function LoginForm({ onSuccess, onMfaRequired }: LoginFormProps) {
                 {...field}
               />
               {form.formState.errors.username && (
-                <p className="text-sm text-destructive">{t("errors.usernameRequired")}</p>
+                <p className="text-sm text-destructive">
+                  {form.formState.errors.username.message}
+                </p>
               )}
             </FormItem>
           )}
@@ -678,7 +727,9 @@ export function LoginForm({ onSuccess, onMfaRequired }: LoginFormProps) {
                 {...field}
               />
               {form.formState.errors.password && (
-                <p className="text-sm text-destructive">{t("errors.passwordRequired")}</p>
+                <p className="text-sm text-destructive">
+                  {form.formState.errors.password.message}
+                </p>
               )}
             </FormItem>
           )}
@@ -732,13 +783,12 @@ export function LoginForm({ onSuccess, onMfaRequired }: LoginFormProps) {
 }
 ```
 
-> **不要用 shadcn 的 `FormMessage` 承载 i18n 错误文案**。它的实现是
+> **不要用 shadcn 的 `FormMessage` 承载错误文案**。它的实现是
 > `error ? String(error.message) : props.children` —— 没有错误时会把 children 直接渲染出来
-> (错误提示一进页面就显示),有错误时又优先显示 `error.message`(那会是 schema 里的原始 key,
-> 没有翻译)。所以错误文案自己用条件段落渲染,`FormItem` 只用来做间距。
->
-> `loginSchema` 里的 message 存 i18n key,只用于 `formState.errors.*.message` 的可读性,
-> 不直接显示。
+> (错误提示一进页面就显示),有错误时又优先显示 `error.message`。
+> 所以错误文案自己用条件段落渲染,`FormItem` 只用来做间距。
+> 段落里直接渲染 `errors.x?.message`:校验错误在 schema 构建时已翻译,
+> 服务端错误(如验证码错误)是后端原样返回的文案 —— 两条路径共用这一处渲染。
 
 > 「忘记密码」链接这一版硬编码 `/zh-CN/forgot-password`;Task 6 换成 `useLocale()` 拼出来的路径。
 
@@ -986,7 +1036,7 @@ import { authService } from "@/lib/api/services/auth";
 import { toApiError } from "@/lib/api/envelope";
 import type { LoginResponse } from "@/lib/api/contracts/auth";
 
-import { totpSchema, type LoginFormValues, type TotpFormValues } from "./login-schema";
+import { buildTotpSchema, type LoginFormValues, type TotpFormValues } from "./login-schema";
 
 interface TotpFormProps {
   pendingCredentials: LoginFormValues;
@@ -997,7 +1047,7 @@ interface TotpFormProps {
 export function TotpForm({ pendingCredentials, onBack, onSuccess }: TotpFormProps) {
   const t = useTranslations("login");
   const form = useForm<TotpFormValues>({
-    resolver: zodResolver(totpSchema),
+    resolver: zodResolver(buildTotpSchema(t)),
     defaultValues: { code: "" },
   });
 
@@ -1038,7 +1088,9 @@ export function TotpForm({ pendingCredentials, onBack, onSuccess }: TotpFormProp
                 {...field}
               />
               {form.formState.errors.code && (
-                <p className="text-sm text-destructive">{t("errors.codeRequired")}</p>
+                <p className="text-sm text-destructive">
+                  {form.formState.errors.code.message}
+                </p>
               )}
             </FormItem>
           )}
@@ -1166,7 +1218,8 @@ import { describe, expect, it, vi } from "vitest";
 import { ForgotPasswordForm } from "./forgot-password-form";
 
 vi.mock("next-intl", () => ({
-  useTranslations: () => (key: string) => key,
+  // 模拟 next-intl 的命名空间行为:useTranslations("forgot") 返回的 t 会把命名空间拼进 key
+  useTranslations: (ns: string) => (key: string) => `${ns}.${key}`,
 }));
 
 describe("ForgotPasswordForm", () => {
@@ -1215,11 +1268,12 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 
-const forgotSchema = z.object({
-  email: z.string().min(1, "forgot.errors.emailRequired").email("forgot.errors.emailInvalid"),
-});
+const buildForgotSchema = (t: (key: string) => string) =>
+  z.object({
+    email: z.string().min(1, t("errors.emailRequired")).email(t("errors.emailInvalid")),
+  });
 
-type ForgotValues = z.infer<typeof forgotSchema>;
+type ForgotValues = z.infer<ReturnType<typeof buildForgotSchema>>;
 
 type Step = "email" | "code" | "password";
 
@@ -1229,7 +1283,7 @@ export function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
 
   const form = useForm<ForgotValues>({
-    resolver: zodResolver(forgotSchema),
+    resolver: zodResolver(buildForgotSchema(t)),
     defaultValues: { email: "" },
   });
 
@@ -1259,7 +1313,9 @@ export function ForgotPasswordForm() {
                     {...field}
                   />
                   {form.formState.errors.email && (
-                    <p className="text-sm text-destructive">{t("errors.emailRequired")}</p>
+                    <p className="text-sm text-destructive">
+                      {form.formState.errors.email.message}
+                    </p>
                   )}
                 </FormItem>
               )}
@@ -1413,6 +1469,14 @@ function keysOf(value: unknown, prefix = ""): string[] {
   );
 }
 
+/** 递归取到叶子节点:命名空间下有嵌套对象(errors / mfa / social),浅层 spread 取不到叶子。 */
+function leavesOf(value: unknown, prefix = ""): Array<[string, unknown]> {
+  if (typeof value !== "object" || value === null) return [[prefix, value]];
+  return Object.entries(value as Record<string, unknown>).flatMap(([k, v]) =>
+    leavesOf(v, prefix ? `${prefix}.${k}` : k)
+  );
+}
+
 describe("i18n message catalogs", () => {
   it("zh-CN and en-US expose the same auth keys", () => {
     const zh = keysOf(load("zh-CN")).filter((k) => k.startsWith("login.") || k.startsWith("forgot."));
@@ -1423,14 +1487,14 @@ describe("i18n message catalogs", () => {
 
   it("has no empty auth translations", () => {
     for (const locale of ["zh-CN", "en-US"]) {
-      const catalog = load(locale) as Record<string, Record<string, unknown>>;
-      const flat: Record<string, unknown> = {
-        ...catalog.login,
-        ...catalog.forgot,
-      };
-      for (const [key, value] of Object.entries(flat)) {
-        expect(typeof value, `${locale}.${key}`).toBe("string");
-        expect(String(value).trim().length, `${locale}.${key}`).toBeGreaterThan(0);
+      const catalog = load(locale) as Record<string, unknown>;
+      for (const ns of ["login", "forgot"]) {
+        const leaves = leavesOf(catalog[ns], ns);
+        expect(leaves.length, `${locale}.${ns}`).toBeGreaterThan(0);
+        for (const [key, value] of leaves) {
+          expect(typeof value, key).toBe("string");
+          expect(String(value).trim().length, key).toBeGreaterThan(0);
+        }
       }
     }
   });
@@ -1580,11 +1644,12 @@ const locale = useLocale();
 
 - [ ] **Step 6: 更新 `auth-shell.test.tsx` 的文案断言**
 
-把测试里的三个文案断言改为 key 断言(测试里 `useTranslations` mock 成返回 key):
+把测试里的三个文案断言改为 key 断言(测试里 `useTranslations` mock 成带命名空间前缀):
 
 ```tsx
 vi.mock("next-intl", () => ({
-  useTranslations: () => (key: string) => key,
+  // 模拟 next-intl 的命名空间行为:useTranslations("login") 返回的 t 会把命名空间拼进 key
+  useTranslations: (ns: string) => (key: string) => `${ns}.${key}`,
 }));
 ```
 
@@ -1596,7 +1661,10 @@ expect(screen.getByRole("button", { name: "login.header.contactSales" })).toBeIn
 expect(screen.getByRole("button", { name: "login.header.tryPlatform" })).toBeInTheDocument();
 ```
 
-> `brand-mark.tsx` 现在需要 `useTranslations`,它会变成 client 组件 —— 在文件顶部加 `"use client";`。
+> `brand-mark.tsx` 与 `auth-shell.tsx` **不要**加 `"use client"` —— next-intl 的
+> `useTranslations` 在 Server Component 里同样可用,保持它们是服务端组件可以避免
+> 多余的 client boundary。`login-form.tsx` 与 `totp-form.tsx` 因为用了 React Hook Form
+> 的 hooks,**必须**保留 `"use client"`。
 
 - [ ] **Step 7: 更新 `e2e/login.spec.ts`**
 
