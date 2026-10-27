@@ -5,6 +5,7 @@ import com.scmcloud.system.api.UserDubboService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NullMarked;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Service;
  * createData 2025/10/24 14:36
  */
 @Service
+@ConditionalOnProperty(name = "security.uaa.enabled", havingValue = "true")
 @RequiredArgsConstructor
 @Slf4j
 @NullMarked

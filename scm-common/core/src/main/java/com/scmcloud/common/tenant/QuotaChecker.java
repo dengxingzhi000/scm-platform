@@ -9,6 +9,7 @@ import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Method;
@@ -31,6 +32,7 @@ import java.util.UUID;
 @Slf4j
 @Aspect
 @Component
+@ConditionalOnProperty(name = "tenant.quota-checker.enabled", havingValue = "true")
 @RequiredArgsConstructor
 public class QuotaChecker {
     private final QuotaService quotaService;

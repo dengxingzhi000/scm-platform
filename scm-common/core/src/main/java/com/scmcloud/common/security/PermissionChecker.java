@@ -10,6 +10,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
@@ -26,6 +27,7 @@ import java.util.UUID;
  */
 @Slf4j
 @Component
+@ConditionalOnProperty(name = "security.permission-checker.enabled", havingValue = "true")
 @RequiredArgsConstructor
 public class PermissionChecker {
 

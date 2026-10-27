@@ -2,7 +2,9 @@ package com.scmcloud.common.rest.config;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.ssl.SslBundle;
 import org.springframework.boot.ssl.SslBundleKey;
 import org.springframework.boot.ssl.jks.JksSslStoreDetails;
@@ -72,6 +74,7 @@ public class RestClientMtlsConfig {
      * <p>浣跨敤 Spring Boot 4.0 锟絊SL Bundle 鏈哄埗锛屾敮鎸佽瘉涔︾儹鏇存柊</p>
      */
     @Bean
+    @ConditionalOnProperty(name = "security.mtls.enabled", havingValue = "true")
     public SslBundle sslBundle() throws Exception {
         log.info("Initializing SSL Bundle for mTLS...");
 
@@ -110,17 +113,20 @@ public class RestClientMtlsConfig {
      * <p>浣跨敤 JDK HttpClient (Java 21+) 閰嶅悎 SSL Bundle</p>
      */
     @Bean
-    public ClientHttpRequestFactory clientHttpRequestFactory(SslBundle sslBundle) {
-        log.info("Creating ClientHttpRequestFactory with mTLS support...");
+    public ClientHttpRequestFactory clientHttpRequestFactory(ObjectProvider<SslBundle> sslBundleProvider) {
+        SslBundle sslBundle = sslBundleProvider.getIfAvailable();
+        log.info("Creating ClientHttpRequestFactory (mTLS={})...", sslBundle != null);
 
         // 锟絊SL Bundle 鍒涘缓 SSLContext
-        SSLContext sslContext = sslBundle.createSslContext();
+        SSLContext sslContext = sslBundle == null ? null : sslBundle.createSslContext();
 
         // 浣跨敤 JDK 21 锟紿ttpClient锛堟敮鎸佽櫄鎷熺嚎绋嬶級
-        HttpClient httpClient = HttpClient.newBuilder()
-            .sslContext(sslContext)
-            .connectTimeout(Duration.ofMillis(connectTimeout))
-            .build();
+        HttpClient.Builder httpClientBuilder = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofMillis(connectTimeout));
+        if (sslContext != null) {
+            httpClientBuilder.sslContext(sslContext);
+        }
+        HttpClient httpClient = httpClientBuilder.build();
 
         // 鍒涘缓 JdkClientHttpRequestFactory
         JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(httpClient);
@@ -137,6 +143,9 @@ public class RestClientMtlsConfig {
      */
     @Scheduled(cron = "0 0 2 * * ?")
     public void checkCertificateExpiry() {
+        if (!keystoreResource.exists()) {
+            return;
+        }
         try {
             log.debug("Checking certificate expiry...");
 

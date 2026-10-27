@@ -48,7 +48,7 @@ import java.util.Map;
         prefix = "datasync",
         name = "enabled",
         havingValue = "true",
-        matchIfMissing = true
+        matchIfMissing = false
 )
 public class DataSyncAutoConfiguration {
 

@@ -1,2 +1,4 @@
 com.scmcloud.common.integration.config.RabbitIntegrationAutoConfiguration
 com.scmcloud.common.integration.config.KafkaIntegrationAutoConfiguration
+com.scmcloud.common.integration.config.OutboxAutoConfiguration
+com.scmcloud.common.integration.config.ObservabilityFallbackAutoConfiguration

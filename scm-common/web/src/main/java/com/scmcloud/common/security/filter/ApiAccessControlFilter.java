@@ -18,6 +18,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NullMarked;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -45,7 +46,7 @@ import java.util.UUID;
 @NullMarked
 public class ApiAccessControlFilter extends OncePerRequestFilter {
     private final PermissionService permissionService;
-    private final ISysAuditLogService auditLogService;
+    private final ObjectProvider<ISysAuditLogService> auditLogProvider;
     private final SecurityMetrics securityMetrics;
     private final ApiAccessControlProperties properties;
 
@@ -100,16 +101,19 @@ public class ApiAccessControlFilter extends OncePerRequestFilter {
             String username = SecurityUtils.getCurrentUsername().orElse(null);
             String ipAddress = IpUtils.getClientIp(request);
 
-            auditLogService.recordSecurityEvent(
-                    SecurityEventType.UNAUTHORIZED_ACCESS.name(),
-                    SecurityEventType.UNAUTHORIZED_ACCESS.getRiskLevel(),
-                    userId,
-                    username,
-                    ipAddress,
-                    requestUri,
-                    false,
-                    "Attempted to access unauthorized API: " + method + " " + requestUri
-            );
+            ISysAuditLogService auditLogService = auditLogProvider.getIfAvailable();
+            if (auditLogService != null) {
+                auditLogService.recordSecurityEvent(
+                        SecurityEventType.UNAUTHORIZED_ACCESS.name(),
+                        SecurityEventType.UNAUTHORIZED_ACCESS.getRiskLevel(),
+                        userId,
+                        username,
+                        ipAddress,
+                        requestUri,
+                        false,
+                        "Attempted to access unauthorized API: " + method + " " + requestUri
+                );
+            }
 
             String traceId = request.getHeader("X-Request-ID");
             log.warn("Unauthorized API access: traceId={}, userId={}, user={}, uri={}, method={}, required={}",

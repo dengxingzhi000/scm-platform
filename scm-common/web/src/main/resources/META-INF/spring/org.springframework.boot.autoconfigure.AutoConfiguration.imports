@@ -1,1 +1,2 @@
 com.scmcloud.common.config.OpenApiConfig
+com.scmcloud.common.access.PermissionAccessAutoConfiguration

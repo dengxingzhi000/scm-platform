@@ -6,12 +6,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.boot.health.contributor.Health;
 import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @Component
+@ConditionalOnProperty(name = "scm.cache.two-level.enabled", havingValue = "true")
 @RequiredArgsConstructor
 public class CacheHealthIndicator implements HealthIndicator {
     private final RedisTemplate<String, Object> redisTemplate;

@@ -1,6 +1,8 @@
 package com.scmcloud.common.security.config;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.security.oauth2.client.endpoint.RestClientAuthorizationCodeTokenResponseClient;
 import org.springframework.security.oauth2.client.endpoint.OAuth2AccessTokenResponseClient;
 import org.springframework.security.oauth2.client.endpoint.OAuth2AuthorizationCodeGrantRequest;
 import org.springframework.security.oauth2.core.OAuth2AuthorizationException;
@@ -22,10 +24,12 @@ import java.util.Base64;
  * @version 1.0
  */
 @Component
+@ConditionalOnProperty(name = "security.oauth2.pkce.enabled", havingValue = "true")
 @RequiredArgsConstructor
 public class PkceAuthorizationCodeTokenResponseClient
         implements OAuth2AccessTokenResponseClient<OAuth2AuthorizationCodeGrantRequest> {
-    private final OAuth2AccessTokenResponseClient<OAuth2AuthorizationCodeGrantRequest> delegate;
+    private OAuth2AccessTokenResponseClient<OAuth2AuthorizationCodeGrantRequest> delegate =
+            new RestClientAuthorizationCodeTokenResponseClient();
     private final PkceChallengeStore pkceChallengeStore; // 鑷畾涔夋帴鍙o紝鐢ㄤ簬瀛樺偍/璇诲彇 code_challenge
 
     @Override

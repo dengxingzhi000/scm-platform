@@ -30,7 +30,7 @@ import java.util.UUID;
  * @version 1.0
  */
 @Aspect
-@Component
+@Component("webIdempotentAspect")
 @RequiredArgsConstructor
 @Slf4j
 public class IdempotentAspect {
