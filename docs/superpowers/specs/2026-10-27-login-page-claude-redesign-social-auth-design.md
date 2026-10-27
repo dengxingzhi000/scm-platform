@@ -359,12 +359,12 @@ style="--primary: var(--color-accent); --ring: var(--color-accent); --accent: va
    (新增一个 upsert 能力:`SysUserOauthMapper` 现有方法都是查询/更新,没有插入)
 3. 已命中时刷新 `oauth_email` / `oauth_nickname` / `oauth_avatar` / `raw_user_info` / `last_login_time`
 
-**绑定策略**是本次唯一需要业务拍板的点(见「待你确认」)。代码按「默认仅绑定,可配置开启自动开通」
-实现:
+**绑定策略**已确认(见「已确认决策」第 2 条)。代码按「默认仅绑定,可配置开启自动开通」实现:
 
 - 默认(`auto-provision = false`):按 provider 已验证 email 查 `sys_user.email`;
   查到且未绑定过该 provider → 绑定并登录;查不到 → 拒绝,返回可读错误
   「该邮箱尚未开通账号,请联系管理员」
+- **email 命中多个用户时拒绝**(提示联系管理员),不取第一条
 - 开启(`auto-provision = true`):查不到 `sys_user` 时新建 —— `username` 取 email `@` 前缀并去重
   (`sys_user.username` 唯一约束,冲突加数字后缀)、`email` = provider email、`real_name` = provider 姓名、
   `avatar` = provider 头像、`password` = BCrypt(随机 UUID)(使密码登录不可能成功)、
@@ -402,7 +402,7 @@ style="--primary: var(--color-accent); --ring: var(--color-accent); --accent: va
 (`StepUpFilter` 据此放行 MFA 步进)。provider 账号本身是强认证,**社交登录不再叠加平台 TOTP**,
 `amr` 如实记录 `["google"]` / `["apple"]`。
 **副作用**:这类会话无法通过要求 `amr` 含 `mfa` 的步进校验(MFA 步进场景会要求用户改用密码登录)。
-若要保留 TOTP,需在票据流程里加「待验证」中间态 + 回调页上的验证码表单(见「待你确认」)。
+该副作用已被接受(见「已确认决策」第 4 条),票据流程保持单阶段,不引入「待验证」中间态。
 
 #### B6. 一次性票据
 
@@ -480,7 +480,8 @@ security:
 | `scm-system/service` | `SysUserOauthMapper` 增加 upsert;`SysUserMapper` 增加 `findByEmail`;新增社交账号绑定/自动开通的命令实现 |
 
 **不新建表**:`sys_user_oauth` 已就位。若采用「自动开通」策略,`sys_user` 已有的
-`email` / `username` / `password` / `status` 等列足够 —— 但 `tenant_id` 列的问题见「待你确认」。
+`email` / `username` / `password` / `status` 等列足够 —— 但 `tenant_id` 列的问题按
+「已确认决策」第 3 条处理(本次不补列,走不含该列的插入路径)。
 
 ## 测试策略
 
@@ -501,7 +502,7 @@ security:
   - `amr` 值正确写入平台令牌
 - 一条测试锁死:`/api/auth/oauth2/**` 不被 `AuthorizationServerConfig` 的 `@Order(1)` 链捕获
 - 并发首次登录时 `uk_provider_openid` 唯一约束冲突的处理
-- 若要端到端验证,需要真实 provider 凭据 —— 见「待你确认」第 1 点
+- 若要端到端验证,需要真实 provider 凭据 —— 见「已确认决策」第 1 条
 
 ## 验证命令
 
@@ -549,29 +550,35 @@ design-tokens/globals/messages/proxy.ts/e2e spec、`scm-auth` 新增社交登录
    令牌。本设计**不存**(provider 令牌用完即弃,只留 `raw_user_info`),以免长期保存第三方凭证。
 4. `uk_provider_openid` 不含 `deleted`,软删除的绑定会占用唯一键 —— 建议改成
    `UNIQUE (provider, oauth_openid) WHERE NOT deleted` 的部分唯一索引。
-   本次是否顺带修,见「待你确认」。
+   本次不处理(见「已知遗留」),解绑后重新绑定该 provider 需人工清理。
 5. 仓库 247 个文件存在不可自动恢复的中文乱码(见 `docs/mojibake-report.md`)。
 
-## 待你确认
+## 已确认决策(2026-10-27 用户确认,按设计方默认值)
 
-按重要性排序。前两项会改变实现方式,后两项可以按我的默认做。
+以下 4 项在设计评审中确认,实现时按此执行,不再回头讨论。
 
-1. **provider 凭据(硬阻塞)**:Google 的 client id/secret 与 Apple 的 Services ID / ES256 签名 secret
-   需要你在两家控制台创建后提供。没有凭据,功能可以写完并通过单测,但**无法端到端验证**,
-   按钮也不会显示。Apple 还需要付费 Apple Developer 账号,且 ES256 secret 有 ≤6 个月有效期
-   (轮换要进部署流程)。
-   *我的默认:先只做 Google(凭据好拿、免费),Apple 作为同一套 `SocialIdentityProvider` 接口的
-   第二个实现随后补。*
-2. **账号绑定策略**:默认「仅绑定,查不到账号就拒绝并提示联系管理员」,还是默认「自动开通新账号」?
-   需不需要按 provider 分别配置?
-   *我的默认:仅绑定 + `auto-provision` 开关默认关*(安全默认 —— 否则任何 Google 账号都能进平台)。*
-   *附带子问题:`sys_user.email` 没有唯一约束,按 email 匹配可能命中多个用户 ——
-   我的默认:命中多个时拒绝并提示联系管理员(不猜)。*
-3. **`sys_user.tenant_id`**:实体声明了这个列并会填充,但实际建表脚本里没有这一列 ——
-   有租户上下文时 INSERT 会直接报错。
-   *我的默认:本次**不动 schema**,社交自动开通走一条显式不含 `tenant_id` 的插入路径
-   (绕开 `AuditMetaObjectHandler` 的填充);把「补 `tenant_id` 列」留给既有的多租户改造
-   (未执行的 `004_transform_permission_system_multi_tenant.sql`)。*
-4. **社交登录后是否仍要求 TOTP**:默认不要求(见 B5)。副作用是 `amr=["google"]` 的会话
-   永远无法通过要求 `amr` 含 `mfa` 的步进校验。
-   *若要保留 TOTP,票据流程需加「待验证」中间态 + 回调页上的验证码表单。*
+1. **落地顺序:先 Google,Apple 随后。**
+   `SocialIdentityProvider` 接口按多 provider 设计,`GoogleIdentityProvider` 先行落地;
+   `AppleIdentityProvider` 作为同一接口的第二个实现随后补。配置里的 `apple` 段保留,
+   但在 `service-id` / `client-secret` 配齐之前它视为未配置 —— 不出现在 `/providers` 列表,
+   前端不渲染其按钮。
+   *前置条件(仍需用户提供,属于部署前置而非实现阻塞):Google 的 client id / client secret
+   与控制台登记的回调地址。没有凭据,功能可写完并通过单测,但无法端到端验证。*
+
+2. **账号绑定策略:仅绑定 + `auto-provision` 开关默认关。**
+   默认行为:按 provider 已验证 email 查 `sys_user.email`,查到且未绑定过该 provider → 绑定并登录;
+   查不到 → 拒绝,提示「该邮箱尚未开通账号,请联系管理员」。
+   `auto-provision = true` 时才自动开通新账号(且默认不授予任何角色)。
+   **email 歧义规则:`sys_user.email` 没有唯一约束,按 email 匹配命中多个用户时拒绝并提示
+   联系管理员 —— 不猜测、不取第一条。**
+
+3. **`sys_user.tenant_id`:本次不动 schema。**
+   实体声明了 `tenant_id` 且 `AuditMetaObjectHandler` 会填充它,但建表脚本里没有这一列,
+   有租户上下文时 INSERT 会报错。本次**不补列**,社交自动开通走一条显式不含 `tenant_id` 的
+   插入路径(绕开自动填充)。补列留给既有的多租户改造
+   (未执行的 `scripts/db/migrations/004_transform_permission_system_multi_tenant.sql`)。
+
+4. **社交登录不叠加 TOTP。**
+   `amr` 如实记录 `["google"]` / `["apple"]`。已接受的副作用:这类会话无法通过要求 `amr`
+   含 `mfa` 的步进校验(MFA 步进场景要求用户改用密码登录)。
+   票据流程保持单阶段,不引入「待验证」中间态,回调页不需要验证码表单。
