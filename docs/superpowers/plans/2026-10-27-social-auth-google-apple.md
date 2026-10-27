@@ -588,30 +588,6 @@ public interface ISysUserOAuthService {
 `scm-system/service/src/main/java/com/scmcloud/system/service/Impl/SysUserOAuthServiceImpl.java`:
 
 ```java
-package com.scmcloud.system.service.Impl;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.scmcloud.common.web.domain.SecurityUser;
-import com.scmcloud.system.api.dto.OAuthIdentityDTO;
-import com.scmcloud.system.domain.entity.SysUser;
-import com.scmcloud.system.domain.entity.SysUserOauth;
-import com.scmcloud.system.mapper.SysUserMapper;
-import com.scmcloud.system.mapper.SysUserOauthMapper;
-import com.scmcloud.system.service.ISysUserOAuthService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-
-/**
- * 社交账号绑定。
- *
- * <p>身份主键是 {@code (provider, oauth_openid)},不是邮箱 —— Apple 只在首次授权返回邮箱。
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -619,91 +595,22 @@ public class SysUserOAuthServiceImpl implements ISysUserOAuthService {
 
     private final SysUserOauthMapper oauthMapper;
     private final SysUserMapper userMapper;
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
-    @Override
-    public Optional<OAuthIdentityDTO> findBinding(String provider, String openid) {
-        SysUserOauth row = oauthMapper.findByProviderAndOpenid(provider, openid);
-        if (row == null) {
-            return Optional.empty();
-        }
-        return Optional.of(new OAuthIdentityDTO(
-                row.getUserId(), row.getProvider(), row.getOauthOpenid(),
-                row.getOauthEmail(), row.getOauthNickname(), row.getOauthAvatar(),
-                row.getRawUserInfo()));
-    }
-
-    @Override
-    public List<SecurityUser> findUsersByEmail(String email) {
-        return userMapper.findByEmail(email).stream()
-                .map(user -> SecurityUser.builder()
-                        .userId(user.getId())
-                        .username(user.getUsername())
-                        .password(user.getPassword())
-                        .realName(user.getRealName())
-                        .status(user.getStatus())
-                        .build())
-                .toList();
-    }
-
-    @Override
-    public boolean existsByUsername(String username) {
-        return userMapper.existsByUsername(username);
-    }
-
-    @Override
-    public UUID upsertBinding(UUID userId, String provider, String openid, String email,
-                              String nickname, String avatar, Map<String, Object> rawUserInfo) {
-        SysUserOauth existing = oauthMapper.findByProviderAndOpenid(provider, openid);
-        if (existing != null) {
-            oauthMapper.updateProfile(existing.getId(), email, nickname, avatar, toJson(rawUserInfo));
-            return existing.getId();
-        }
-
-        SysUserOauth row = new SysUserOauth()
-                .setUserId(userId)
-                .setProvider(provider)
-                .setOauthOpenid(openid)
-                .setOauthEmail(email)
-                .setOauthNickname(nickname)
-                .setOauthAvatar(avatar)
-                .setRawUserInfo(rawUserInfo);
-        oauthMapper.insert(row);
-        return row.getId();
-    }
-
-    @Override
-    public UUID createSocialUser(String username, String email, String realName,
-                                 String avatar, String passwordHash) {
-        SysUser user = new SysUser()
-                .setUsername(username)
-                .setEmail(email)
-                .setRealName(realName)
-                .setAvatar(avatar)
-                .setPassword(passwordHash)
-                .setStatus(1)
-                .setAccountType(1)
-                .setUserLevel(1)
-                // sys_user 表里没有 tenant_id 列,实体却声明了它并会��� fill 填充。
-                // 这里显式置 null,让 MyBatis-Plus 的 NOT_NULL 插入策略省略该列。
-                .setTenantId(null);
-        userMapper.insert(user);
-        return user.getId();
-    }
-
-    @Override
-    public void touchLastLogin(UUID bindingId) {
-        oauthMapper.updateLastLoginTime(bindingId);
-    }
-
-    private String toJson(Map<String, Object> rawUserInfo) {
-        try {
-            return objectMapper.writeValueAsString(rawUserInfo);
-        } catch (Exception e) {
-            log.warn("Failed to serialize raw user info: {}", e.getMessage());
-            return "{}";
-        }
-    }
+    // 方法体由同包测试与接口签名决定,这里只钉住实现里容易做错的四点:
+    //  1. findBinding 返回 Optional.empty()(不是 null),DTO 字段顺序为
+    //     (userId, provider, openid, email, nickname, avatar, rawUserInfo)
+    //  2. findUsersByEmail 把 SysUser 映射成 SecurityUser.builder()
+    //     .userId/.username/.password/.realName/.status,返回全部命中(不自行去重)
+    //  3. upsertBinding:findByProviderAndOpenid 命中 → 调 updateProfile 返回既有 id;
+    //     未命中 → new SysUserOauth().setUserId(...).setProvider(...)...
+    //     .setOauthOpenid(...).setOauthEmail(...).setOauthNickname(...).setOauthAvatar(...)
+    //     .setRawUserInfo(map) 后 oauthMapper.insert(row),返回 row.getId()
+    //  4. createSocialUser:new SysUser().setUsername(...).setEmail(...).setRealName(...)
+    //     .setAvatar(...).setPassword(passwordHash).setStatus(1).setAccountType(1)
+    //     .setUserLevel(1).setTenantId(null)  ← 必须显式置 null
+    //     然后 userMapper.insert(user),返回 user.getId()
+    //  updateProfile 的 rawUserInfo 参数是 JSON 字符串:用 ObjectMapper.writeValueAsString
+    //  序列化,序列化失败时写 "{}" 并记 warn,不抛异常
 }
 ```
 
@@ -1062,6 +969,8 @@ package com.scmcloud.auth.service;
 import com.scmcloud.auth.config.SocialAuthProperties;
 import com.scmcloud.auth.social.SocialProfile;
 import com.scmcloud.common.dto.user.LoginResponse;
+import com.scmcloud.common.log.service.ISysAuditLogService;
+import com.scmcloud.common.metrics.BusinessMetrics;
 import com.scmcloud.common.security.util.JwtUtils;
 import com.scmcloud.common.web.domain.SecurityUser;
 import com.scmcloud.system.api.UserDubboService;
@@ -1093,6 +1002,8 @@ class SocialAuthServiceImplTest {
     private UserDubboService userDubboService;
     private JwtUtils jwtUtils;
     private PasswordEncoder passwordEncoder;
+    private ISysAuditLogService auditLogService;
+    private BusinessMetrics businessMetrics;
     private SocialAuthServiceImpl service;
 
     private static final UUID USER_ID = UUID.randomUUID();
@@ -1102,10 +1013,14 @@ class SocialAuthServiceImplTest {
         userDubboService = mock(UserDubboService.class);
         jwtUtils = mock(JwtUtils.class);
         passwordEncoder = mock(PasswordEncoder.class);
+        auditLogService = mock(ISysAuditLogService.class);
+        businessMetrics = mock(BusinessMetrics.class);
         service = new SocialAuthServiceImpl(
                 userDubboService,
                 jwtUtils,
                 passwordEncoder,
+                auditLogService,
+                businessMetrics,
                 new SocialAuthProperties(false, false, List.of(), 60, 300, "http://localhost:3000", Map.of()),
                 Map.of());
     }
@@ -1188,6 +1103,21 @@ class SocialAuthServiceImplTest {
                 () -> service.completeLogin(profile(true), "1.2.3.4", "device-1"));
         verify(jwtUtils, never()).generateAccessToken(any(), anyString(), any(), any(), anyString(), anyString(), anyList());
     }
+
+    @Test
+    void aSuccessfulSocialLoginIsWrittenToTheAuditTrailAndTheMetrics() {
+        when(userDubboService.findOAuthBinding("google", "sub-1"))
+                .thenReturn(Optional.of(new com.scmcloud.system.api.dto.OAuthIdentityDTO(
+                        USER_ID, "google", "sub-1", "a@example.com", "Ann", null, Map.of())));
+        when(userDubboService.getUserByUsername("ann")).thenReturn(enabledUser());
+        when(jwtUtils.generateAccessToken(any(), anyString(), any(), any(), anyString(), anyString(), anyList()))
+                .thenReturn("access-token");
+
+        service.completeLogin(profile(true), "1.2.3.4", "device-1");
+
+        verify(auditLogService).recordLogin(USER_ID, "ann", "1.2.3.4", true, "Social login: google");
+        verify(businessMetrics).recordLogin(true, "google");
+    }
 }
 ```
 
@@ -1252,34 +1182,6 @@ public interface SocialAuthService {
 `scm-auth/src/main/java/com/scmcloud/auth/service/Impl/SocialAuthServiceImpl.java`:
 
 ```java
-package com.scmcloud.auth.service.Impl;
-
-import com.scmcloud.auth.config.SocialAuthProperties;
-import com.scmcloud.auth.service.SocialAuthException;
-import com.scmcloud.auth.service.SocialAuthService;
-import com.scmcloud.auth.social.SocialIdentityProvider;
-import com.scmcloud.auth.social.SocialProfile;
-import com.scmcloud.common.dto.user.LoginResponse;
-import com.scmcloud.common.security.util.JwtUtils;
-import com.scmcloud.common.web.domain.SecurityUser;
-import com.scmcloud.system.api.UserDubboService;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-
-import java.net.URI;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-
-/**
- * 社交登录的账号绑定与令牌签发。
- *
- * <p>与密码登录共用同一条令牌签发路径({@link JwtUtils}),保证社交用户在网关侧
- * 与密码登录用户完全等价;唯一区别是 {@code amr} 记录的是 provider 而不是 {@code pwd}。
- */
 @Slf4j
 @Service
 public class SocialAuthServiceImpl implements SocialAuthService {
@@ -1287,154 +1189,73 @@ public class SocialAuthServiceImpl implements SocialAuthService {
     private final UserDubboService userDubboService;
     private final JwtUtils jwtUtils;
     private final PasswordEncoder passwordEncoder;
+    private final ISysAuditLogService auditLogService;
+    private final BusinessMetrics businessMetrics;
     private final SocialAuthProperties properties;
     private final Map<String, SocialIdentityProvider> providers;
 
-    public SocialAuthServiceImpl(UserDubboService userDubboService,
-                                 JwtUtils jwtUtils,
-                                 PasswordEncoder passwordEncoder,
-                                 SocialAuthProperties properties,
-                                 Map<String, SocialIdentityProvider> providerRegistry) {
-        this.userDubboService = userDubboService;
-        this.jwtUtils = jwtUtils;
-        this.passwordEncoder = passwordEncoder;
-        this.properties = properties;
-        this.providers = providerRegistry;
-    }
-
-    @Override
-    public List<String> enabledProviders() {
-        return providers.values().stream()
-                .filter(SocialIdentityProvider::isConfigured)
-                .map(SocialIdentityProvider::provider)
-                .sorted()
-                .toList();
-    }
-
-    @Override
-    public URI buildAuthorizeUri(String provider, String state) {
-        return requireProvider(provider).authorizeUri(state);
-    }
-
-    @Override
-    public SocialProfile exchangeProfile(String provider, String code) {
-        return requireProvider(provider).exchange(code);
-    }
-
-    @Override
-    public LoginResponse completeLogin(SocialProfile profile, String ipAddress, String deviceId) {
-        Optional<com.scmcloud.system.api.dto.OAuthIdentityDTO> binding =
-                userDubboService.findOAuthBinding(profile.provider(), profile.subject());
-
-        SecurityUser user = binding
-                .map(b -> userDubboService.getUserByUsername(resolveUsername(b.userId())))
-                .orElseGet(() -> resolveNewUser(profile));
-
-        assertUsable(user);
-        String username = user.getUsername();
-
-        if (binding.isEmpty()) {
-            userDubboService.upsertOAuthBinding(user.getUserId(), profile.provider(), profile.subject(),
-                    profile.email(), profile.name(), profile.avatar(), profile.rawUserInfo());
-        }
-
-        List<String> amr = List.of(profile.provider());
-        String accessToken = jwtUtils.generateAccessToken(
-                user.getUserId(), username, user.getRoles(), user.getPermissions(),
-                deviceId, ipAddress, amr);
-        String refreshToken = jwtUtils.generateRefreshToken(user.getUserId(), username, deviceId);
-
-        userDubboService.updateLastLogin(user.getUserId(), ipAddress, java.time.LocalDateTime.now());
-
-        return LoginResponse.builder()
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .tokenType("Bearer")
-                .userId(user.getUserId())
-                .username(username)
-                .realName(user.getRealName())
-                .roles(user.getRoles())
-                .permissions(user.getPermissions())
-                .build();
-    }
-
-    private SocialIdentityProvider requireProvider(String provider) {
-        SocialIdentityProvider resolved = providers.get(provider);
-        if (resolved == null || !resolved.isConfigured()) {
-            throw new SocialAuthException("Unsupported social provider: " + provider);
-        }
-        return resolved;
-    }
-
-    private String resolveUsername(UUID userId) {
-        return userDubboService.getUserById(userId).getUsername();
-    }
-
-    /**
-     * 首次登录:按已验证邮箱匹配本地账号;匹配不到则按配置决定是否自动开通。
-     */
-    private SecurityUser resolveNewUser(SocialProfile profile) {
-        if (!profile.emailVerified() || profile.email() == null || profile.email().isBlank()) {
-            throw new SocialAuthException("Provider did not return a verified email address");
-        }
-
-        List<SecurityUser> matches = userDubboService.findUsersByEmail(profile.email());
-        if (matches.size() > 1) {
-            throw new SocialAuthException(
-                    "Multiple local accounts share the email " + profile.email() + "; contact an administrator");
-        }
-        if (matches.size() == 1) {
-            return matches.get(0);
-        }
-
-        if (!properties.autoProvision()) {
-            throw new SocialAuthException(
-                    "No account is provisioned for " + profile.email() + "; contact an administrator");
-        }
-
-        String username = uniqueUsername(profile.email());
-        String passwordHash = passwordEncoder.encode(UUID.randomUUID().toString());
-        UUID userId = userDubboService.createSocialUser(
-                username, profile.email(), profile.name(), profile.avatar(), passwordHash);
-
-        return SecurityUser.builder()
-                .userId(userId)
-                .username(username)
-                .realName(profile.name())
-                .status(1)
-                .roles(Set.copyOf(properties.defaultRoleCodes()))
-                .permissions(Set.of())
-                .build();
-    }
-
-    /** 账号停用或锁定时拒绝登录 —— 与密码登录的 SecurityUser.isEnabled 语义保持一致。 */
-    private void assertUsable(SecurityUser user) {
-        if (user == null) {
-            throw new SocialAuthException("Bound account no longer exists");
-        }
-        if (user.getStatus() == null || user.getStatus() != 1) {
-            throw new SocialAuthException("Account is disabled");
-        }
-        if (user.getStatus() == 2) {
-            throw new SocialAuthException("Account is locked");
-        }
-    }
-
-    /** 用户名全局唯一(sys_user.username 唯一约束),据此去重。 */
-    private String uniqueUsername(String email) {
-        String local = email.substring(0, email.indexOf('@'));
-        String candidate = local;
-        int suffix = 1;
-        while (userDubboService.existsByUsername(candidate)) {
-            candidate = local + suffix++;
-        }
-        return candidate;
-    }
+    // 构造器入参就是上面这 7 个,顺序固定,便于单测直接 new 出来。
+    // 方法体由同包测试与接口签名决定,这里只钉住实现里容易做错的决策:
+    //
+    //  enabledProviders():providers.values() 里 filter(isConfigured).map(provider())
+    //                      .sorted().toList() —— 未配置的 provider 不出现
+    //  buildAuthorizeUri(p, state) / exchangeProfile(p, code):
+    //                      都先 requireProvider(p);未配置或不认识则抛
+    //                      SocialAuthException("Unsupported social provider: " + p)
+    //  completeLogin(profile, ipAddress, deviceId):
+    //    1. userDubboService.findOAuthBinding(profile.provider(), profile.subject())
+    //    2. 命中 → 用 binding.userId() 调 userDubboService.getUserById(userId)
+    //       拿 username,再 getUserByUsername(username) 取 SecurityUser
+    //       (roles / permissions 都在 SecurityUser 上)
+    //    3. 未命中 → resolveNewUser(profile)
+    //    4. assertUsable(user):user 为 null → "Bound account no longer exists";
+    //       status == null 或 != 1 → "Account is disabled";status == 2 → "Account is locked"
+    //    5. 未命中绑定时调 userDubboService.upsertOAuthBinding(userId, provider, subject,
+    //       email, name, avatar, rawUserInfo)
+    //    6. amr = List.of(profile.provider())  ← 只能是 provider,不得写 "pwd"
+    //    7. jwtUtils.generateAccessToken(userId, username, roles, permissions,
+    //       deviceId, ipAddress, amr)
+    //    8. jwtUtils.generateRefreshToken(userId, username, deviceId)
+    //    9. userDubboService.updateLastLogin(userId, ipAddress, LocalDateTime.now())
+    //   10. auditLogService.recordLogin(userId, username, ipAddress, true,
+    //       "Social login: " + profile.provider())
+    //   11. businessMetrics.recordLogin(true, profile.provider())
+    //   12. 返回 LoginResponse.builder():accessToken / refreshToken / tokenType="Bearer"
+    //       / userId / username / realName / roles / permissions
+    //
+    //  resolveNewUser(profile):
+    //    a. profile.emailVerified() 为 false 或 email 为空 → 抛
+    //       SocialAuthException("Provider did not return a verified email address")
+    //    b. userDubboService.findUsersByEmail(email):
+    //       size > 1 → 抛 SocialAuthException("Multiple local accounts share the email "
+    //       + email + "; contact an administrator")   ← 绝不取第一条
+    //       size == 1 → 返回那一个
+    //       size == 0 → 走自动开通分支
+    //    c. 自动开通分支(properties.autoProvision() 为 false 时抛
+    //       SocialAuthException("No account is provisioned for " + email +
+    //       "; contact an administrator")):
+    //       username = uniqueUsername(email)
+    //       passwordHash = passwordEncoder.encode(UUID.randomUUID().toString())
+    //       userId = userDubboService.createSocialUser(username, email, profile.name(),
+    //                   profile.avatar(), passwordHash)
+    //       返回 SecurityUser.builder().userId(userId).username(username)
+    //             .realName(profile.name()).status(1)
+    //             .roles(Set.copyOf(properties.defaultRoleCodes())).permissions(Set.of()).build()
+    //
+    //  uniqueUsername(email):local = email 的 @ 前缀;candidate = local;
+    //    while (userDubboService.existsByUsername(candidate)) candidate = local + suffix++;
+    //    返回 candidate
 }
 ```
 
 > 并发首次登录时两个请求可能算出同一个用户名 —— 靠 `sys_user.username` 的唯一约束兜底,
 > 捕获 `DuplicateKeyException` 后重试下一个后缀。
+
+> **审计与指标**:密码登录路径会写 `auditLogService.recordLogin(...)` 与
+> `businessMetrics.recordLogin(...)`。社交路径必须写同样的记录,否则登录审计里查不到
+> 社交登录。`SocialAuthServiceImpl` 因此要注入 `ISysAuditLogService` 与 `BusinessMetrics`
+> (分别在 `scm-common/web` 与 `scm-common/monitoring`,`scm-auth` 已有依赖)。
+> `SocialAuthServiceImplTest` 里补一条断言这两个方法被调用的用例。
 
 > `assertUsable` 里 `status != 1` 已经覆盖了 `status == 2`(锁定),两个分支保留是为了错误文案可读。
 
@@ -1716,42 +1537,6 @@ public class RedisSocialAuthTicketStore implements SocialAuthTicketStore {
 `scm-auth/src/main/java/com/scmcloud/auth/controller/SocialAuthController.java`:
 
 ```java
-package com.scmcloud.auth.controller;
-
-import com.scmcloud.auth.service.SocialAuthException;
-import com.scmcloud.auth.service.SocialAuthService;
-import com.scmcloud.auth.service.SocialAuthTicketStore;
-import com.scmcloud.common.dto.user.LoginResponse;
-import com.scmcloud.common.response.ApiResponse;
-import com.scmcloud.common.security.util.HttpServletRequestUtils;
-import com.scmcloud.common.security.util.IpUtils;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.constraints.NotBlank;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
-import java.net.URI;
-import java.util.List;
-import java.util.UUID;
-
-/**
- * 社交登录端点。
- *
- * <p>{@code /authorize} 与 {@code /callback} 必须免认证且免租户头 —— 前者是浏览器导航,
- * 后者是 provider 发起的跨域 POST(Apple 是 form_post)。
- */
 @Slf4j
 @Validated
 @RestController
@@ -1763,105 +1548,49 @@ public class SocialAuthController {
     private final SocialAuthTicketStore ticketStore;
     private final String frontendBaseUrl;
 
-    public SocialAuthController(SocialAuthService socialAuthService,
-                                SocialAuthTicketStore ticketStore,
-                                @org.springframework.beans.factory.annotation.Value("${security.oauth2.social.frontend-base-url:http://localhost:3000}") String frontendBaseUrl) {
-        this.socialAuthService = socialAuthService;
-        this.ticketStore = ticketStore;
-        this.frontendBaseUrl = frontendBaseUrl;
-    }
+    // 构造器入参顺序固定为上面 3 个;frontendBaseUrl 用
+    // @Value("${security.oauth2.social.frontend-base-url:http://localhost:3000}") 注入。
+    // 注意:**不要**加 @RequiredArgsConstructor —— 显式构造器已经存在,两者并存会编译失败。
+}
+```
 
-    @Operation(summary = "已配置的社交 provider", description = "只返回凭据配置完整的 provider。")
-    @GetMapping("/providers")
-    public ApiResponse<List<String>> providers() {
-        return ApiResponse.success(socialAuthService.enabledProviders());
-    }
+四个端点的行为契约(方法体由同包测试与下表决定):
 
-    @Operation(summary = "发起社交登录", description = "302 跳转到 provider 授权页。")
-    @GetMapping("/{provider}/authorize")
-    public ResponseEntity<Void> authorize(@PathVariable String provider,
-                                          @RequestParam(required = false) String locale,
-                                          @RequestParam(required = false) String returnTo,
-                                          HttpServletRequest request) {
-        try {
-            String state = UUID.randomUUID().toString();
-            ticketStore.storeState(state, locale == null ? "zh-CN" : locale,
-                    returnTo == null ? "" : returnTo);
-            URI uri = socialAuthService.buildAuthorizeUri(provider, state);
-            return ResponseEntity.status(HttpStatus.FOUND).location(uri).build();
-        } catch (SocialAuthException e) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
+| 方法 | 路径 | 成功响应 | 失败响应 |
+|------|------|----------|----------|
+| GET | `/api/auth/oauth2/providers` | `ApiResponse<List<String>>`,data 是已配置的 provider 代码 | —— |
+| GET | `/api/auth/oauth2/{provider}/authorize` | 302,`Location` = provider 授权页 URL | `SocialAuthException` → 400 |
+| GET | `/api/auth/oauth2/{provider}/callback` | 302,`Location` = `{frontendBaseUrl}/{locale}/auth/callback?ticket={ticket}` | `SocialAuthException` → 400 |
+| POST | `/api/auth/oauth2/{provider}/callback` | 同上(Apple 的 form_post 走这个) | 同上 |
+| POST | `/api/auth/oauth2/exchange` | `ApiResponse<LoginResponse>`,结构与 `POST /api/auth/login` 完全相同 | 票据无效/过期 → 400 |
 
-    @Operation(summary = "社交登录回调", description = "provider 回跳:换取令牌、绑定账号,再 302 回前端并附带一次性票据。")
-    @GetMapping("/{provider}/callback")
-    public ResponseEntity<Void> callback(@PathVariable String provider,
-                                         @RequestParam String code,
-                                         @RequestParam String state,
-                                         HttpServletRequest request) {
-        return callbackRaw(provider, code, state, request);
-    }
+`authorize` 的实现要点:
 
-    @Operation(summary = "社交登录回调(表单)", description = "Apple 使用 response_mode=form_post,回调以 POST 表单到达。")
-    @PostMapping("/{provider}/callback")
-    public ResponseEntity<Void> callbackPost(@PathVariable String provider,
-                                             @RequestParam String code,
-                                             @RequestParam String state,
-                                             HttpServletRequest request) {
-        return callbackRaw(provider, code, state, request);
-    }
+- `state = UUID.randomUUID().toString()`
+- `ticketStore.storeState(state, locale == null ? "zh-CN" : locale, returnTo == null ? "" : returnTo)`
+- `socialAuthService.buildAuthorizeUri(provider, state)` → 302 `Location`
 
-    ResponseEntity<Void> callbackRaw(String provider, String code, String state, HttpServletRequest request) {
-        try {
-            SocialAuthTicketStore.State stored = ticketStore.consumeState(state)
-                    .orElseThrow(() -> new SocialAuthException("Unknown or expired state"));
+`callback` 的实现要点:
 
-            SocialProfileHolder holder = exchange(provider, code, request);
+- `ticketStore.consumeState(state)` 拿回 locale;拿不到 → 抛
+  `SocialAuthException("Unknown or expired state")`
+- `socialAuthService.exchangeProfile(provider, code)` → `SocialProfile`
+- `socialAuthService.completeLogin(profile, IpUtils.getClientIp(request),
+  HttpServletRequestUtils.getDeviceId(request))` → `LoginResponse`
+- `ticket = UUID.randomUUID().toString()`;`ticketStore.store(ticket, response)`
+- 302 到 `{frontendBaseUrl}/{locale}/auth/callback?ticket={ticket}`
 
-            LoginResponse response = socialAuthService.completeLogin(
-                    holder.profile(), IpUtils.getClientIp(request),
-                    HttpServletRequestUtils.getDeviceId(request));
+为了让单测能直接断言状态码,把两个失败路径做成包可见的方法:
 
-            String ticket = UUID.randomUUID().toString();
-            ticketStore.store(ticket, response);
+- `ResponseEntity<Void> callbackRaw(String provider, String code, String state, HttpServletRequest request)` ——
+  GET/POST 两个 callback 端点都委托给它
+- `ResponseEntity<?> exchangeRaw(ExchangeRequest request)` —— `exchange` 端点委托给它,
+  票据无效时返回 400
 
-            String locale = stored.locale() == null ? "zh-CN" : stored.locale();
-            String target = frontendBaseUrl + "/" + locale + "/auth/callback?ticket=" + ticket;
-            return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(target)).build();
-        } catch (SocialAuthException e) {
-            log.warn("Social login callback failed for provider={}: {}", provider, e.getMessage());
-            return ResponseEntity.badRequest().build();
-        }
-    }
+请求体:
 
-    @Operation(summary = "票据兑换", description = "用一次性票据换回与密码登录同结构的登录响应。")
-    @PostMapping("/exchange")
-    public ApiResponse<LoginResponse> exchange(@RequestBody ExchangeRequest request) {
-        return ApiResponse.success(ticketStore.consume(request.ticket())
-                .orElseThrow(() -> new SocialAuthException("Invalid or expired ticket")));
-    }
-
-    ResponseEntity<?> exchangeRaw(ExchangeRequest request) {
-        try {
-            return ResponseEntity.ok(ApiResponse.success(
-                    ticketStore.consume(request.ticket())
-                            .orElseThrow(() -> new SocialAuthException("Invalid or expired ticket"))));
-        } catch (SocialAuthException e) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
-
-    private SocialProfileHolder exchange(String provider, String code, HttpServletRequest request) {
-        return new SocialProfileHolder(socialAuthService.exchangeProfile(provider, code));
-    }
-
-    /** 请求体:一次性票据。 */
-    public record ExchangeRequest(@NotBlank String ticket) {
-    }
-
-    private record SocialProfileHolder(com.scmcloud.auth.social.SocialProfile profile) {
-    }
+```java
+public record ExchangeRequest(@NotBlank String ticket) {
 }
 ```
 

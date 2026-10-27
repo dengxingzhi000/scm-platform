@@ -455,8 +455,10 @@ security:
           client-secret: ${GOOGLE_CLIENT_SECRET:}
           redirect-uri: ${GOOGLE_REDIRECT_URI:http://localhost:8761/auth/api/auth/oauth2/google/callback}
         apple:
-          service-id: ${APPLE_SERVICE_ID:}          # 形如 teamid.bundleid
-          client-secret: ${APPLE_CLIENT_SECRET:}   # ES256 签名的 JWT,有效期 <= 6 个月
+          # Services ID,形如 teamid.bundleid
+          client-id: ${APPLE_SERVICE_ID:}
+          # ES256 签名、有效期 <= 6 个月的 JWT,由外部预先生成后注入
+          client-secret: ${APPLE_CLIENT_SECRET:}
           redirect-uri: ${APPLE_REDIRECT_URI:http://localhost:8761/auth/api/auth/oauth2/apple/callback}
 ```
 
