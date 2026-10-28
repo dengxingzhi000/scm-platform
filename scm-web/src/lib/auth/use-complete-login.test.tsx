@@ -1,6 +1,8 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { LoginResponse } from "@/lib/api/contracts/auth";
+
 import { useCompleteLogin } from "./use-complete-login";
 
 const push = vi.fn();
@@ -65,5 +67,48 @@ describe("useCompleteLogin", () => {
     expect(setPermissions).toHaveBeenCalledWith(["system:user:list"]);
     expect(clear).toHaveBeenCalled();
     await waitFor(() => expect(push).toHaveBeenCalledWith("/zh-CN/dashboard"));
+  });
+
+  it("returns a failure result instead of throwing when the response has no token", async () => {
+    const { result } = renderHook(() => useCompleteLogin());
+
+    let outcome: Awaited<ReturnType<typeof result.current>> | undefined;
+    await act(async () => {
+      // 后端以 HTTP 200 + 错误信封拒绝 —— 没有 accessToken
+      outcome = await result.current({ message: "账号已锁定" } as LoginResponse);
+    });
+
+    expect(outcome).toEqual({ ok: false, message: "账号已锁定" });
+    // 关键:没有建会话、没有跳转 —— 也不能抛异常(抛了就是 unhandled rejection,用户无反馈)
+    expect(login).not.toHaveBeenCalled();
+    expect(setPermissions).not.toHaveBeenCalled();
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it("falls back to an empty message when the failure has none", async () => {
+    const { result } = renderHook(() => useCompleteLogin());
+
+    let outcome: Awaited<ReturnType<typeof result.current>> | undefined;
+    await act(async () => {
+      outcome = await result.current({} as LoginResponse);
+    });
+
+    expect(outcome).toEqual({ ok: false, message: "" });
+  });
+
+  it("reports success so the caller knows to show the success toast", async () => {
+    const { result } = renderHook(() => useCompleteLogin());
+
+    let outcome: Awaited<ReturnType<typeof result.current>> | undefined;
+    await act(async () => {
+      outcome = await result.current({
+        accessToken: "at",
+        refreshToken: "rt",
+        userId: "u",
+        username: "admin",
+      });
+    });
+
+    expect(outcome).toEqual({ ok: true });
   });
 });

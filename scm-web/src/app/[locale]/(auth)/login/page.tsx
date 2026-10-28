@@ -9,6 +9,7 @@ import { LoginForm } from "@/components/auth/login-form";
 import { TotpForm } from "@/components/auth/totp-form";
 import type { LoginFormValues } from "@/components/auth/login-schema";
 import { useCompleteLogin } from "@/lib/auth/use-complete-login";
+import type { LoginResponse } from "@/lib/api/contracts/auth";
 
 export default function LoginPage() {
   const t = useTranslations("login");
@@ -16,16 +17,27 @@ export default function LoginPage() {
   const completeLogin = useCompleteLogin();
   const [pendingCredentials, setPendingCredentials] = useState<LoginFormValues | null>(null);
 
+  const handleSuccess = async (response: LoginResponse) => {
+    try {
+      const result = await completeLogin(response);
+      if (!result.ok) {
+        message.error(result.message || t("failed"));
+        return;
+      }
+      message.success(t("success"));
+    } catch {
+      // 兜底:建会话途中的意外异常也不能变成静默失败
+      message.error(t("failed"));
+    }
+  };
+
   if (pendingCredentials) {
     return (
       <LoginCard title={t("mfa.title")} subtitle={t("mfa.subtitle")}>
         <TotpForm
           pendingCredentials={pendingCredentials}
           onBack={() => setPendingCredentials(null)}
-          onSuccess={(response) => {
-            message.success(t("success"));
-            void completeLogin(response);
-          }}
+          onSuccess={(response) => void handleSuccess(response)}
         />
       </LoginCard>
     );
@@ -34,10 +46,7 @@ export default function LoginPage() {
   return (
     <LoginCard title={t("title")} subtitle={t("subtitle")}>
       <LoginForm
-        onSuccess={(response) => {
-          message.success(t("success"));
-          void completeLogin(response);
-        }}
+        onSuccess={(response) => void handleSuccess(response)}
         onMfaRequired={setPendingCredentials}
         onError={(error) => message.error(error.message || t("failed"))}
       />
