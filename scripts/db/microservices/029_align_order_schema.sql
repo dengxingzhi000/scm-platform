@@ -142,3 +142,15 @@ COMMENT ON COLUMN ord_order_item.refund_remaining_quantity IS
 -- 配合生成列的索引:加速"剩余可退的订单明细"查询
 CREATE INDEX IF NOT EXISTS idx_order_item_remaining_refundable
     ON ord_order_item (order_id) WHERE refund_remaining_quantity > 0;
+
+-- ─── 主表冗余列:ord_order.sku_id / quantity ─────────────────────
+-- OrdOrder 聚合把"单 SKU 订单"的 sku_id / quantity 冗余在主表上:
+--   * MyBatis-Plus 依据实体字段生成 SELECT 列清单,缺列会直接 BadSqlGrammar;
+--   * OrderTimeoutCancelJobHandler 超时取消时按 order.getSkuId()/getQuantity() 释放 TCC 预留。
+-- 多 SKU 订单这两列留空,明细仍以 ord_order_item 为准(实体侧 skuId 为字符串,故用 VARCHAR)。
+ALTER TABLE ord_order
+    ADD COLUMN IF NOT EXISTS sku_id VARCHAR(64),
+    ADD COLUMN IF NOT EXISTS quantity INT;
+
+COMMENT ON COLUMN ord_order.sku_id   IS '冗余字段:单 SKU 订单的商品 ID(多 SKU 订单为空,明细见 ord_order_item)';
+COMMENT ON COLUMN ord_order.quantity IS '冗余字段:单 SKU 订单的购买数量(多 SKU 订单为空)';

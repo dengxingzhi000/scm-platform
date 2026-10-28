@@ -25,7 +25,9 @@ import java.time.LocalDateTime;
  * @since 2025-12-26
  */
 @Data
-@Document(indexName = "scm_product")
+// createIndex = false keeps repository bootstrap from calling Elasticsearch at startup, so the
+// service can boot when the search backend is down; the index is provisioned out of band.
+@Document(indexName = "scm_product", createIndex = false)
 @Setting(shards = 5)
 public class ProductDocument {
 

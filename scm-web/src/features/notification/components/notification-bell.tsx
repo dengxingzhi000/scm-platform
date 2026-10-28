@@ -16,7 +16,7 @@ export default function NotificationBell() {
     label: (
       <div style={{ maxWidth: 280, padding: '4px 0' }} onClick={() => { if (!n.isRead) markAsRead.mutate(n.id); if (n.link) router.push(n.link) }}>
         <div style={{ fontWeight: n.isRead ? 'normal' : 'bold', fontSize: 13 }}>{n.title}</div>
-        <div style={{ fontSize: 12, color: '#8c8c8c', marginTop: 2 }}>{n.createdAt}</div>
+        <div style={{ fontSize: 12, color: 'var(--color-text-tertiary)', marginTop: 2 }}>{n.createdAt}</div>
       </div>
     ),
   }))

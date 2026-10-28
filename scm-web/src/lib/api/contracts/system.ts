@@ -167,3 +167,112 @@ export interface ApiPermissionDTO {
   httpMethod: string;
   permissionCode: string;
 }
+
+/** Row of `sys_status_dict` — the display metadata for one business status. */
+export interface StatusDictDTO {
+  id: string;
+  tenantId?: string;
+  bizType: string;
+  statusCode: string;
+  statusName: string;
+  statusNameEn?: string;
+  color?: string;
+  icon?: string;
+  sortOrder?: number;
+  isInitial?: boolean;
+  isTerminal?: boolean;
+  isCancellable?: boolean;
+  enabled?: boolean;
+  createTime?: string;
+  updateTime?: string;
+  remark?: string;
+}
+
+/** Row of `sys_status_transition` — one allowed edge of the status machine. */
+export interface StatusTransitionDTO {
+  id: string;
+  tenantId?: string;
+  bizType: string;
+  fromStatus: string;
+  toStatus: string;
+  actionCode: string;
+  actionName?: string;
+  actionNameEn?: string;
+  needApproval?: boolean;
+  enabled?: boolean;
+  conditionExpression?: string;
+  preAction?: string;
+  postAction?: string;
+  sortOrder?: number;
+  createTime?: string;
+  updateTime?: string;
+  remark?: string;
+}
+
+/** An action the current user may take from `currentStatus`. */
+export interface AvailableActionDTO {
+  actionCode: string;
+  actionName?: string;
+  actionNameEn?: string;
+  targetStatus?: string;
+  targetStatusName?: string;
+  needApproval?: boolean;
+  conditionExpression?: string;
+}
+
+export interface TransitionCheckDTO {
+  allowed: boolean;
+  bizType?: string;
+  fromStatus?: string;
+  toStatus?: string;
+  reason?: string;
+}
+
+export interface TransitionResultDTO {
+  success: boolean;
+  bizType?: string;
+  fromStatus?: string;
+  toStatus?: string;
+  actionCode?: string;
+  needApproval?: boolean;
+  postAction?: string;
+  errorMessage?: string;
+}
+
+/** Decision-matrix rule. `expression` is evaluated by the engine, not parsed here. */
+export interface DecisionRuleDTO {
+  id: string;
+  engineType: string;
+  scene?: string;
+  ruleType?: string;
+  expression?: string;
+  description?: string;
+  enabled?: boolean;
+  priority?: number;
+  version?: number;
+}
+
+export interface WeightConditionDTO {
+  field: string;
+  operator: string;
+  value?: unknown;
+}
+
+/** `weights` is a free-form `{dimension: number}` map whose keys are engine-specific. */
+export interface WeightProfileDTO {
+  id: string;
+  engineType: string;
+  scene?: string;
+  version?: number;
+  weights?: Record<string, number>;
+  conditions?: WeightConditionDTO[];
+  active?: boolean;
+}
+
+export interface ConflictDTO {
+  type?: string;
+  ruleId1?: string;
+  ruleId2?: string;
+  description?: string;
+  severity?: string;
+}

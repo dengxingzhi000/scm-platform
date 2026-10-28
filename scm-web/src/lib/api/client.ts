@@ -4,7 +4,7 @@ import { useTenantStore } from '@/stores/tenant-store'
 import type { LoginResponse } from './contracts/auth'
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8761'
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8761'
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -14,10 +14,37 @@ const apiClient = axios.create({
   },
 })
 
+const DEVICE_ID_STORAGE_KEY = 'scm-device-id'
+
+/**
+ * The backend binds each JWT to the device id it saw at login (X-Device-ID) and rejects the
+ * token when a later request presents a different value, so it must be generated once and reused.
+ */
+function resolveDeviceId(): string {
+  if (typeof window === 'undefined') return ''
+  const stored = window.localStorage.getItem(DEVICE_ID_STORAGE_KEY)
+  if (stored) return stored
+  const generated = crypto.randomUUID().replace(/-/g, '')
+  window.localStorage.setItem(DEVICE_ID_STORAGE_KEY, generated)
+  return generated
+}
+
+/**
+ * On a full page reload the zustand store is empty until `initialize()` runs, but page
+ * queries fire before it — the cookie is the only token source that is available
+ * synchronously, so requests must fall back to it instead of going out unauthenticated.
+ */
+function readCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null
+  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`))
+  return match ? decodeURIComponent(match[1]) : null
+}
+
 // Request interceptor
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const { accessToken } = useAuthStore.getState()
+    const { accessToken: storeToken } = useAuthStore.getState()
+    const accessToken = storeToken ?? readCookie('access_token')
     const { currentTenant } = useTenantStore.getState()
 
     if (accessToken) {
@@ -27,6 +54,11 @@ apiClient.interceptors.request.use(
     if (currentTenant) {
       config.headers['X-Tenant-Id'] = currentTenant.id
       config.headers['X-Tenant-Code'] = currentTenant.code
+    }
+
+    const deviceId = resolveDeviceId()
+    if (deviceId) {
+      config.headers['X-Device-ID'] = deviceId
     }
 
     // Request ID for tracing
@@ -51,8 +83,10 @@ apiClient.interceptors.response.use(
       _retry?: boolean
     }
 
-    // 401 — attempt token refresh
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // 401 — attempt token refresh, except on the auth endpoints themselves: refreshing a
+    // rejected login/userinfo call would only fail again and force a logout loop.
+    const isAuthEndpoint = originalRequest.url?.startsWith('/auth/') ?? false
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       originalRequest._retry = true
 
       if (isRefreshing) {
@@ -70,14 +104,32 @@ apiClient.interceptors.response.use(
       isRefreshing = true
 
       try {
-        const { refreshToken } = useAuthStore.getState()
+        // Same reload race as the access token: fell back to the persisted cookie so a
+        // 401 that arrives before `initialize()` can still rotate the session.
+        const { refreshToken: storedRefreshToken } = useAuthStore.getState()
+        const refreshToken = storedRefreshToken ?? readCookie('refresh_token')
         if (!refreshToken) {
           throw new Error('No refresh token')
         }
 
+        // The auth service requires the tenant (and device) headers on every call,
+        // including this one, otherwise it fails with a 500 TenantParseException.
+        const { currentTenant } = useTenantStore.getState()
+        const deviceId = resolveDeviceId()
         const response = await axios.post(
           `${API_BASE_URL}/auth/api/auth/refresh`,
-          { refreshToken }
+          { refreshToken },
+          {
+            headers: {
+              ...(currentTenant
+                ? {
+                    'X-Tenant-Id': currentTenant.id,
+                    'X-Tenant-Code': currentTenant.code,
+                  }
+                : {}),
+              ...(deviceId ? { 'X-Device-ID': deviceId } : {}),
+            },
+          }
         )
 
         const payload = response.data as {
@@ -95,10 +147,8 @@ apiClient.interceptors.response.use(
           refreshToken: newRefreshToken,
         } = payload.data
 
-        const { login, user } = useAuthStore.getState()
-        if (user) {
-          login(user, newToken, newRefreshToken ?? refreshToken)
-        }
+        // Persist the rotated tokens even when the profile was not restored yet.
+        useAuthStore.getState().setTokens(newToken, newRefreshToken ?? refreshToken)
 
         pendingRequests.forEach(({ resolve }) => resolve(newToken))
         pendingRequests = []

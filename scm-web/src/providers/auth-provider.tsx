@@ -15,7 +15,6 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     setUser,
     setPermissions,
     setLoading,
-    logout,
     initialize,
   } = useAuthStore()
 
@@ -35,14 +34,15 @@ export default function AuthProvider({ children }: AuthProviderProps) {
         setUser(mergeUserInfo(useAuthStore.getState().user, userInfo))
         setPermissions(userInfo.permissions ?? [])
       } catch {
-        logout()
+        // Profile enrichment is best-effort — a failing userinfo call must not
+        // destroy a valid session restored from the persisted tokens.
       } finally {
         setLoading(false)
       }
     }
 
     initAuth()
-  }, [accessToken, setUser, setPermissions, setLoading, logout])
+  }, [accessToken, setUser, setPermissions, setLoading])
 
   return <>{children}</>
 }

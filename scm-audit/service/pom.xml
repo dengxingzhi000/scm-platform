@@ -85,6 +85,10 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
                     <skip>false</skip>
+                    <!-- scm-auth compiles against this module, so the plain jar must stay the installed
+                         main artifact; the boot jar gets its own classifier. Without it, scm-auth's
+                         fat jar nests this one (duplicate loader classes and service descriptors). -->
+                    <classifier>exec</classifier>
                 </configuration>
             </plugin>
         </plugins>

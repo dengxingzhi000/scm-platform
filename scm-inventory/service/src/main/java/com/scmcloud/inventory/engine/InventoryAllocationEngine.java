@@ -1,5 +1,6 @@
 package com.scmcloud.inventory.engine;
 
+import org.springframework.stereotype.Component;
 import com.scmcloud.decision.constraint.Constraint;
 import com.scmcloud.decision.constraint.ConstraintChain;
 import com.scmcloud.decision.engine.*;
@@ -12,6 +13,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @RequiredArgsConstructor
+@Component
 public class InventoryAllocationEngine implements AllocationEngine<AllocationInput, AllocationOutput> {
 
     private final WarehouseScorer warehouseScorer;

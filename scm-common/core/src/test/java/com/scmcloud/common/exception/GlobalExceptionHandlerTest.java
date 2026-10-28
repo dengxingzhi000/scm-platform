@@ -88,4 +88,28 @@ class GlobalExceptionHandlerTest {
         assertThat(response.code()).isEqualTo(400);
         assertThat(response.data()).containsKey("field1");
     }
+
+    @Test
+    void unexpectedFailure_hidesInternalsButKeepsTraceCorrelation() {
+        var ex = new IllegalStateException(
+                "java.util.ServiceConfigurationError: io.jsonwebtoken.io.Serializer: Error accessing configuration file");
+
+        ResponseEntity<ApiResponse<Void>> response = handler.handleException(ex, request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().message()).doesNotContain("Serializer", "ServiceConfigurationError");
+        assertThat(response.getHeaders().getFirst("X-Request-ID")).isNotBlank();
+        assertThat(response.getBody().message()).contains("traceId=");
+    }
+
+    @Test
+    void frameworkRequestFailure_keepsItsOwnStatusInsteadOfFiveHundred() {
+        ResponseEntity<ApiResponse<Void>> response = handler.handleException(
+                new org.springframework.web.HttpRequestMethodNotSupportedException("POST"), request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.METHOD_NOT_ALLOWED);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().code()).isEqualTo(405);
+    }
 }

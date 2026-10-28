@@ -12,6 +12,7 @@ import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Component;
 
@@ -33,6 +34,7 @@ import java.util.*;
 public class JwtUtils {
     private final JwtProperties jwtProperties;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final StringRedisTemplate stringRedisTemplate;
 
     private SecretKey signingKey;
 
@@ -479,7 +481,7 @@ public class JwtUtils {
         long ttlSeconds = ttl / 1000;
 
         // Execute Lua script for atomic operations
-        redisTemplate.execute(
+        stringRedisTemplate.execute(
                 STORE_TOKEN_METADATA_SCRIPT,
                 List.of(userTokensHash, fingerprintKey),
                 deviceId, token, String.valueOf(ttlSeconds),
@@ -492,7 +494,7 @@ public class JwtUtils {
         long ttlSeconds = ttl / 1000;
 
         // Execute Lua script for atomic operations
-        redisTemplate.execute(
+        stringRedisTemplate.execute(
                 ADD_TO_BLACKLIST_SCRIPT,
                 List.of(blacklistKey),
                 String.valueOf(System.currentTimeMillis()),

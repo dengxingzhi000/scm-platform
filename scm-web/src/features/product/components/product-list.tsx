@@ -12,13 +12,6 @@ import { Eye, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardAction,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -27,6 +20,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { PageHeader } from "@/components/ui/page-header";
 import {
   Select,
   SelectContent,
@@ -34,7 +28,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
+import {
+  TableEmpty,
+  TableLoading,
+  TablePanel,
+  TablePagination,
+  TableToolbar,
+  TableToolbarEnd,
+} from "@/components/ui/table-shell";
 import {
   Table,
   TableBody,
@@ -72,6 +73,15 @@ const statusConfig: Record<
   draft: { label: "草稿", variant: "secondary" },
 };
 
+/** Colour stripe on the pinned first column, like the provider marks on a leaderboard. */
+const statusAccent: Record<Product["status"], string> = {
+  on_sale: "var(--color-success)",
+  off_sale: "var(--color-error)",
+  draft: "var(--color-border-strong)",
+};
+
+const NUMERIC_COLUMNS = new Set(["price", "skuCount"]);
+
 export default function ProductList() {
   const router = useRouter();
   const [current, setCurrent] = useState(1);
@@ -106,23 +116,29 @@ export default function ProductList() {
   const columns = useMemo(
     () =>
       columnHelper.columns([
-        columnHelper.accessor("code", {
-          header: "商品编码",
-          cell: (info) => (
-            <span className="font-mono text-xs">{info.getValue()}</span>
-          ),
-        }),
-        columnHelper.accessor("name", {
-          header: "商品名称",
-          cell: (info) => (
-            <button
-              type="button"
-              className="text-primary text-left hover:underline"
-              onClick={() => router.push(`/product/${info.row.original.id}`)}
-            >
-              {info.getValue()}
-            </button>
-          ),
+        columnHelper.display({
+          id: "product",
+          header: "商品",
+          cell: ({ row }) => {
+            const product = row.original;
+            return (
+              <div
+                className="border-l-4 pl-2"
+                style={{ borderLeftColor: statusAccent[product.status] }}
+              >
+                <button
+                  type="button"
+                  className="text-foreground block max-w-[320px] truncate text-left text-[12px] font-semibold hover:text-[var(--color-primary-text)] hover:underline"
+                  onClick={() => router.push(`/product/${product.id}`)}
+                >
+                  {product.name}
+                </button>
+                <span className="text-muted-foreground mt-0.5 block font-mono text-[10px]">
+                  {product.code}
+                </span>
+              </div>
+            );
+          },
         }),
         columnHelper.accessor("categoryName", {
           header: "分类",
@@ -156,7 +172,7 @@ export default function ProductList() {
           id: "actions",
           header: "操作",
           cell: ({ row }) => (
-            <div className="flex items-center gap-1">
+            <div className="flex items-center justify-end gap-1">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -222,38 +238,45 @@ export default function ProductList() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="text-xl font-semibold">商品管理</h1>
-        <Button onClick={() => router.push("/product/create")}>
-          <Plus />
-          新建商品
-        </Button>
-      </div>
+      <PageHeader
+        eyebrow="商品中心"
+        title="商品管理"
+        description="维护 SPU 主数据、价格与上下架状态"
+        actions={
+          <Button onClick={() => router.push("/product/create")}>
+            <Plus />
+            新建商品
+          </Button>
+        }
+      />
 
-      <Card className="gap-4">
-        <CardHeader>
-          <CardTitle className="text-muted-foreground text-sm font-normal">
-            筛选
-          </CardTitle>
-          <CardAction className="flex flex-wrap items-center gap-2">
-            <form
-              onSubmit={(event) => {
-                event.preventDefault();
-                applyKeyword(keywordDraft);
-              }}
-              className="flex items-center gap-2"
+      <TablePanel>
+        <TableToolbar>
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              applyKeyword(keywordDraft);
+            }}
+            className="flex items-center gap-2"
+          >
+            <Input
+              value={keywordDraft}
+              onChange={(event) => setKeywordDraft(event.target.value)}
+              placeholder="搜索商品名称 / 编码"
+              className="h-8 w-56 text-xs"
+            />
+            <Button
+              type="submit"
+              variant="outline"
+              size="icon"
+              className="size-8"
+              aria-label="搜索"
             >
-              <Input
-                value={keywordDraft}
-                onChange={(event) => setKeywordDraft(event.target.value)}
-                placeholder="搜索商品名称/编码"
-                className="w-56"
-              />
-              <Button type="submit" variant="outline" size="icon" aria-label="搜索">
-                <Search />
-              </Button>
-            </form>
+              <Search />
+            </Button>
+          </form>
 
+          <TableToolbarEnd>
             <Select
               value={categoryId ?? ALL}
               onValueChange={(value) => {
@@ -261,8 +284,9 @@ export default function ProductList() {
                 setCurrent(1);
               }}
             >
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="全部分类" />
+              <SelectTrigger size="sm" className="w-44 text-xs">
+                <span className="text-muted-foreground">分类</span>
+                <SelectValue placeholder="全部" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={ALL}>全部分类</SelectItem>
@@ -281,8 +305,9 @@ export default function ProductList() {
                 setCurrent(1);
               }}
             >
-              <SelectTrigger className="w-28">
-                <SelectValue placeholder="全部状态" />
+              <SelectTrigger size="sm" className="w-32 text-xs">
+                <span className="text-muted-foreground">状态</span>
+                <SelectValue placeholder="全部" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={ALL}>全部状态</SelectItem>
@@ -291,28 +316,25 @@ export default function ProductList() {
                 <SelectItem value="draft">草稿</SelectItem>
               </SelectContent>
             </Select>
-          </CardAction>
-        </CardHeader>
-      </Card>
+          </TableToolbarEnd>
+        </TableToolbar>
 
-      <Card className="gap-0 overflow-hidden py-0">
         {isLoading ? (
-          <div className="p-6">
-            <Skeleton className="h-64 w-full" />
-          </div>
+          <TableLoading />
         ) : productTable.getRowModel().rows.length === 0 ? (
-          <div className="text-muted-foreground py-16 text-center text-sm">
-            暂无商品
-          </div>
+          <TableEmpty>暂无商品</TableEmpty>
         ) : (
-          <Table>
+          <Table containerClassName="max-h-[calc(100vh-320px)] overflow-y-auto">
             <TableHeader>
               {productTable.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
                     <TableHead
                       key={header.id}
+                      numeric={NUMERIC_COLUMNS.has(header.column.id)}
                       className={cn(
+                        header.column.id === "product" && "min-w-[220px]",
+                        header.column.id === "status" && "text-center",
                         header.column.id === "actions" && "text-right",
                       )}
                     >
@@ -328,7 +350,15 @@ export default function ProductList() {
               {productTable.getRowModel().rows.map((row) => (
                 <TableRow key={row.id}>
                   {row.getAllCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell
+                      key={cell.id}
+                      numeric={NUMERIC_COLUMNS.has(cell.column.id)}
+                      className={cn(
+                        cell.column.id === "product" && "min-w-[220px]",
+                        cell.column.id === "status" && "text-center",
+                        cell.column.id === "actions" && "text-right",
+                      )}
+                    >
                       <productTable.FlexRender cell={cell} />
                     </TableCell>
                   ))}
@@ -338,31 +368,14 @@ export default function ProductList() {
           </Table>
         )}
 
-        <div className="flex items-center justify-between border-t px-4 py-3">
-          <span className="text-muted-foreground text-sm">共 {total} 条</span>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={current <= 1}
-              onClick={() => setCurrent((value) => value - 1)}
-            >
-              上一页
-            </Button>
-            <span className="text-sm">
-              {current} / {pageCount}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={current >= pageCount}
-              onClick={() => setCurrent((value) => value + 1)}
-            >
-              下一页
-            </Button>
-          </div>
-        </div>
-      </Card>
+        <TablePagination
+          page={current}
+          pageSize={PAGE_SIZE}
+          total={total}
+          pageCount={pageCount}
+          onPageChange={setCurrent}
+        />
+      </TablePanel>
 
       <Dialog
         open={!!deleteTarget}

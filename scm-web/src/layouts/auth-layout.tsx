@@ -11,6 +11,7 @@ interface AuthLayoutProps {
 export default function AuthLayout({ children }: AuthLayoutProps) {
   return (
     <Layout
+      suppressHydrationWarning
       style={{
         minHeight: '100vh',
         background: 'var(--auth-bg)',

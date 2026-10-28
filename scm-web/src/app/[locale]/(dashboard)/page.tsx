@@ -55,7 +55,7 @@ export default function DashboardPage() {
               title={t("dashboard.stats.lowStock")}
               value={12}
               prefix={<WarningOutlined />}
-              valueStyle={{ color: "#cf1322" }}
+              styles={{ content: { color: "var(--color-error-text)" } }}
             />
           </Card>
         </Col>

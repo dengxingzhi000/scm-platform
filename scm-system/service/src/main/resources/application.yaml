@@ -353,3 +353,6 @@ app:
 security:
   permission-checker:
     enabled: true
+
+datasync:
+  enabled: true

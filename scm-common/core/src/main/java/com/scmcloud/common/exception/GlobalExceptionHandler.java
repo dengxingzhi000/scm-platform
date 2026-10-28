@@ -4,7 +4,10 @@ import com.scmcloud.common.response.ApiResponse;
 import com.scmcloud.common.response.ResultCode;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -13,6 +16,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -33,12 +37,20 @@ import java.util.stream.Collectors;
 @Slf4j
 public class GlobalExceptionHandler {
 
+    private static final String REQUEST_ID_HEADER = "X-Request-ID";
+
     @ExceptionHandler(ServiceException.class)
     public ResponseEntity<ApiResponse<Void>> handleServiceException(ServiceException e, HttpServletRequest request) {
         String traceId = resolveTraceId(request);
-        log.error("Service exception at {}, traceId={}: {}", request.getRequestURI(), traceId, e.getMessage());
         HttpStatus status = e.getHttpStatus() != null ? e.getHttpStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
+        if (status.is4xxClientError()) {
+            log.warn("Service exception {} at {}, traceId={}: {}", status.value(), request.getRequestURI(), traceId,
+                    e.getMessage());
+        } else {
+            log.error("Service exception {} at {}, traceId={}", status.value(), request.getRequestURI(), traceId, e);
+        }
         return ResponseEntity.status(status)
+                .header(REQUEST_ID_HEADER, traceId)
                 .body(ApiResponse.fail(e.getCode(), "Service error: " + e.getMessage() + " (traceId=" + traceId + ")"));
     }
 
@@ -133,11 +145,56 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ApiResponse<Void> handleException(Exception e, HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<Void>> handleException(Exception e, HttpServletRequest request) {
         String traceId = resolveTraceId(request);
-        log.error("Unexpected exception at {}, traceId={}: {}", request.getRequestURI(), traceId, e.getMessage(), e);
-        return ApiResponse.fail(ResultCode.INTERNAL_SERVER_ERROR.getCode(), "Internal server error (traceId=" + traceId + ")");
+        HttpStatusCode status = resolveStatus(e);
+
+        if (status.is4xxClientError()) {
+            log.warn("Client error {} at {}, traceId={}: {}", status.value(), request.getRequestURI(), traceId,
+                    e.getMessage());
+            return ResponseEntity.status(status)
+                    .header(REQUEST_ID_HEADER, traceId)
+                    .body(ApiResponse.fail(status.value(), clientMessage(e, status)));
+        }
+
+        // DispatcherServlet wraps anything a handler or the view layer throws into
+        // "Handler dispatch failed: <class>: <message>", which would otherwise reach the client verbatim.
+        log.error("Unhandled exception at {}, traceId={}", request.getRequestURI(), traceId, e);
+        return ResponseEntity.status(status)
+                .header(REQUEST_ID_HEADER, traceId)
+                .body(ApiResponse.fail(status.value(), "Internal server error (traceId=" + traceId + ")"));
+    }
+
+    private HttpStatusCode resolveStatus(Exception e) {
+        if (e instanceof ErrorResponse errorResponse) {
+            return errorResponse.getStatusCode();
+        }
+        ResponseStatus annotation = AnnotatedElementUtils.findMergedAnnotation(e.getClass(), ResponseStatus.class);
+        if (annotation != null) {
+            if (annotation.code().is4xxClientError()) {
+                return annotation.code();
+            }
+            if (annotation.value().is4xxClientError()) {
+                return annotation.value();
+            }
+        }
+        return HttpStatus.INTERNAL_SERVER_ERROR;
+    }
+
+    /**
+     * Only framework request failures get through here, and only their own 4xx reason text: exception types
+     * the application did not author must not put class names, paths or driver output on the wire.
+     */
+    private String clientMessage(Exception e, HttpStatusCode status) {
+        String detail = null;
+        if (e instanceof ErrorResponse errorResponse) {
+            ProblemDetail body = errorResponse.getBody();
+            detail = body != null ? body.getDetail() : null;
+        }
+        if (!StringUtils.hasText(detail)) {
+            detail = status.toString();
+        }
+        return detail.length() > 300 ? detail.substring(0, 300) + "..." : detail;
     }
 
     private String resolveTraceId(HttpServletRequest request) {

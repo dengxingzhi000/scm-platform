@@ -61,7 +61,7 @@ export default function RoleListPage() {
       dataIndex: 'permissions',
       key: 'permissions',
       render: (permissions: string[]) => (
-        <Tag color="blue">{permissions?.length || 0} 个权限</Tag>
+        <Tag color="processing">{permissions?.length || 0} 个权限</Tag>
       ),
     },
     {

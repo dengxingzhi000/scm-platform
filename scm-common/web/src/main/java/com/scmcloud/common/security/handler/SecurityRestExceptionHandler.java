@@ -1,18 +1,20 @@
 package com.scmcloud.common.security.handler;
 
 import com.scmcloud.common.security.util.TraceIdUtil;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.util.HtmlUtils;
 
-import jakarta.servlet.http.HttpServletRequest;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
@@ -23,6 +25,7 @@ import java.util.Map;
  */
 @RestControllerAdvice
 @Order(Ordered.HIGHEST_PRECEDENCE + 10)
+@Slf4j
 public class SecurityRestExceptionHandler {
 
     /**
@@ -30,6 +33,11 @@ public class SecurityRestExceptionHandler {
      */
     private static final int MAX_MESSAGE_LENGTH = 500;
 
+    /**
+     * Advice beans are matched by type across the whole hierarchy, so an {@code Exception} catch-all here
+     * would shadow every handler in {@code GlobalExceptionHandler}, including its own: business exceptions
+     * would lose their status and code, and any unexpected failure would be echoed back as text.
+     */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex,
                                                                 HttpServletRequest request) {
@@ -37,19 +45,34 @@ public class SecurityRestExceptionHandler {
                 .findFirst()
                 .map(err -> sanitizeMessage(err.getField()) + " " + sanitizeMessage(err.getDefaultMessage()))
                 .orElse("Validation failed");
+        logFailure(HttpStatus.BAD_REQUEST, request, message);
         return buildResponse(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", message, request);
     }
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Map<String, Object>> handleAccessDenied(AccessDeniedException ex,
                                                                   HttpServletRequest request) {
-        return buildResponse(HttpStatus.FORBIDDEN, "ACCESS_DENIED", sanitizeMessage(ex.getMessage()), request);
+        // Spring Security puts the principal and the missing authority into this message.
+        logFailure(HttpStatus.FORBIDDEN, request, ex.getMessage());
+        return buildResponse(HttpStatus.FORBIDDEN, "ACCESS_DENIED", "Access denied", request);
     }
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, Object>> handleGeneric(Exception ex,
-                                                             HttpServletRequest request) {
-        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", sanitizeMessage(ex.getMessage()), request);
+    // The SPA reads these messages to tell "wrong password" from a broken backend and to detect the
+    // two-factor prompt, so they stay; dropping this handler would send failed logins to the 500 path.
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<Map<String, Object>> handleAuthentication(AuthenticationException ex,
+                                                                    HttpServletRequest request) {
+        logFailure(HttpStatus.UNAUTHORIZED, request, ex.getMessage());
+        return buildResponse(HttpStatus.UNAUTHORIZED, "UNAUTHENTICATED", sanitizeMessage(ex.getMessage()), request);
+    }
+
+    private void logFailure(HttpStatus status, HttpServletRequest request, String detail) {
+        String traceId = TraceIdUtil.resolveAndSanitizeTraceId(request);
+        if (status.is4xxClientError()) {
+            log.warn("{} {} rejected, traceId={}: {}", status.value(), request.getRequestURI(), traceId, detail);
+        } else {
+            log.error("{} {} failed, traceId={}: {}", status.value(), request.getRequestURI(), traceId, detail);
+        }
     }
 
     private ResponseEntity<Map<String, Object>> buildResponse(HttpStatus status, String error, String sanitizedMessage,

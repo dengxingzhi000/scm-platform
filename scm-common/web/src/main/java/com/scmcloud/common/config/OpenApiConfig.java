@@ -29,7 +29,12 @@ import java.util.List;
 @ConditionalOnClass(OpenAPI.class)
 public class OpenApiConfig {
 
-    private static final String SECURITY_SCHEME_NAME = "Bearer Authentication";
+    /**
+     * Security scheme name as it appears in {@code components.securitySchemes}.
+     * <p>The OpenAPI specification restricts this key to {@code ^[a-zA-Z0-9.\-_]+$},
+     * so it must not contain spaces — openapi-generator rejects the document otherwise.</p>
+     */
+    private static final String SECURITY_SCHEME_NAME = "BearerAuthentication";
 
     @Value("${spring.application.name:scm-platform}")
     private String applicationName;

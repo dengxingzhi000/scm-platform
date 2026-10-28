@@ -1,9 +1,29 @@
+/*
+ * Design tokens — the single palette source for Ant Design, Tailwind and
+ * canvas charts.
+ *
+ * Palette mirrors artificialanalysis.ai's leaderboard: pure white surfaces,
+ * near-black ink, neutral gray hairlines and the violet brand accent
+ * (brand-purple #8842fd, brand-blue #6c1bfd, brand-blue-light #f1f2f4).
+ *
+ * The data layer uses the reference's 36px banded header, 11/12px type,
+ * hairline column rules, pinned first column and tabular figures. Text is
+ * sans across the shell; serif is only used by the brand mark.
+ */
 :root {
   /* Layout */
-  --header-height: 64px;
-  --sidebar-width: 240px;
+  --header-height: 56px;
+  --sidebar-width: 236px;
   --sidebar-collapsed-width: 80px;
   --content-padding: 24px;
+  --content-max-width: 1600px;
+
+  /* Data table — mirrors the leaderboard treatment at artificialanalysis.ai:
+     36px header band, 11px labels, 12px values, hairline column rules. */
+  --table-header-height: 36px;
+  --table-header-font-size: 11px;
+  --table-font-size: 12px;
+  --table-row-height: 40px;
 
   /* Spacing (8px grid) */
   --spacing-xs: 4px;
@@ -13,63 +33,115 @@
   --spacing-xl: 32px;
   --spacing-xxl: 48px;
 
-  /* Colors — brand (indigo) */
-  --color-primary: #4f46e5;
-  --color-primary-hover: #6366f1;
-  --color-primary-active: #4338ca;
-  --color-primary-bg: #eef2ff;
+  /* Colors — brand (artificialanalysis.ai's blue-purple / violet)
+     Source palette: brand-purple hsl(262.46 97.91% 62.55%), brand-blue
+     hsl(261.54 98.2% 54.9%) and brand-blue-light hsl(220 10% 95%).
+     Solid fills carry white text; links use the deeper blue for contrast. */
+  --color-brand-purple: #8842fd;
+  --color-brand-blue: #6c1bfd;
+  --color-brand-blue-light: #f1f2f4;
+  --color-primary: #8842fd;
+  --color-primary-hover: #6c1bfd;
+  --color-primary-active: #5b13d9;
+  --color-primary-bg: #f1f2f4;
+  --color-primary-soft: #f3efff;
+  --color-primary-text: #6c1bfd;
+  --color-primary-on: #ffffff;
+  --color-clay: #8842fd;
   --color-success: #16a34a;
-  --color-success-hover: #22c55e;
+  --color-success-hover: #15803d;
+  --color-success-text: #166534;
   --color-warning: #d97706;
-  --color-warning-hover: #f59e0b;
+  --color-warning-hover: #b45309;
+  --color-warning-text: #92400e;
   --color-error: #dc2626;
-  --color-error-hover: #ef4444;
-  --color-info: #4f46e5;
+  --color-error-hover: #b91c1c;
+  --color-error-text: #991b1b;
+  --color-info: #6c1bfd;
+  --color-info-text: #4c1d95;
 
-  /* Colors — surfaces */
-  --color-bg-layout: #f4f5f7;
+  /* Soft status fills — tinted chips, alert strips and table row accents.
+     Text always uses the matching `*-text` tone, never white. */
+  --color-success-soft: #e8f5ec;
+  --color-warning-soft: #fef3c7;
+  --color-error-soft: #fee2e2;
+  --color-info-soft: #ede9fe;
+
+  /* Colors — surfaces (pure white, hairline structure like the reference) */
+  --color-bg-layout: #ffffff;
   --color-bg-container: #ffffff;
   --color-bg-elevated: #ffffff;
-  --color-bg-sider: #ffffff;
+  --color-bg-sider: #fafafa;
   --color-bg-header: #ffffff;
+  --color-bg-sunken: #f5f5f5;
+  --color-bg-hover: #fafafa;
+  --color-bg-ink: #000000;
 
-  /* Colors — border & divider */
-  --color-border: #e2e5ea;
-  --color-border-secondary: #eef0f4;
+  /* Colors — border & divider (neutral grays from the reference) */
+  --color-border: #d9d9d9;
+  --color-border-secondary: #e7e7e7;
+  --color-border-strong: #4d4d4d;
 
   /* Colors — text */
-  --color-text: #1f2329;
-  --color-text-secondary: #6b7280;
-  --color-text-tertiary: #9ca3af;
+  --color-text: #000000;
+  --color-text-secondary: #787878;
+  --color-text-tertiary: #949494;
 
-  /* Auth page background */
-  --auth-bg:
-    radial-gradient(1200px 600px at 10% -10%, rgba(79, 70, 229, 0.12), transparent 60%),
-    radial-gradient(900px 500px at 110% 20%, rgba(14, 165, 233, 0.08), transparent 55%),
-    linear-gradient(160deg, #f5f6ff 0%, #f4f5f7 55%, #eef2ff 100%);
-  --auth-card-shadow: 0 20px 60px -12px rgba(79, 70, 229, 0.18);
-  --auth-brand-bg: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  /* Typography — sans across the app; serif is reserved for the brand mark.
+     Prefixed `--font-family-*` so Tailwind's `--font-*` theme namespace can
+     alias them without a self-referential custom property. */
+  --font-family-sans:
+    Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC",
+    Arial, sans-serif;
+  --font-family-serif:
+    Georgia, "Iowan Old Style", "Palatino Linotype", "Songti SC", "SimSun",
+    "Noto Serif SC", "Source Han Serif SC", "Times New Roman", serif;
+  --font-family-mono:
+    ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
 
-  /* Typography */
   --font-size-xs: 12px;
   --font-size-sm: 13px;
   --font-size-base: 14px;
   --font-size-lg: 16px;
   --font-size-xl: 20px;
   --font-size-xxl: 24px;
+  --font-size-display: 32px;
 
-  /* Radius */
-  --radius-xs: 4px;
-  --radius-sm: 6px;
-  --radius-base: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
+  /* Radius — generous panels, restrained controls.
+     Named `--rounding-*` because Tailwind's `@theme` owns the `--radius-*`
+     namespace; using it here would be overwritten by the bridge below. */
+  --rounding-xs: 4px;
+  --rounding-sm: 6px;
+  --rounding-base: 8px;
+  --rounding-lg: 12px;
+  --rounding-xl: 16px;
+  --rounding-2xl: 24px;
+  --rounding-pill: 999px;
 
-  /* Shadows */
-  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02);
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
-  --shadow-base: 0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 3px 6px -4px rgba(0, 0, 0, 0.12);
-  --shadow-lg: 0 12px 40px 0 rgba(0, 0, 0, 0.12), 0 8px 20px -6px rgba(0, 0, 0, 0.16);
+  /* Shadows — flat; separation comes from hairline borders */
+  --shadow-xs: 0 1px 1px 0 rgba(20, 20, 19, 0.03);
+  --shadow-sm: 0 1px 2px 0 rgba(20, 20, 19, 0.04);
+  --shadow-base: 0 2px 8px -2px rgba(20, 20, 19, 0.07);
+  --shadow-lg: 0 8px 24px -8px rgba(20, 20, 19, 0.12);
+
+  /* Data palette — the reference's violet/blue, orange, green and magenta */
+  --color-chart-1: #8842fd;
+  --color-chart-2: #2563eb;
+  --color-chart-3: #ff7734;
+  --color-chart-4: #16a34a;
+  --color-chart-5: #e676fd;
+  --color-chart-6: #0d9488;
+  --color-chart-7: #fde002;
+  --color-chart-8: #949494;
+
+  /* Auth page — white paper with a single soft violet bloom */
+  --auth-bg:
+    radial-gradient(900px 520px at 12% -8%, rgba(136, 66, 253, 0.16), transparent 62%),
+    linear-gradient(180deg, #ffffff 0%, #f1f2f4 100%);
+  --auth-card-shadow: 0 24px 48px -28px rgba(0, 0, 0, 0.18);
+  --auth-brand-bg: #8842fd;
+  --brand-tile-ink: #ffffff;
 
   /* Duration */
   --duration-fast: 100ms;
@@ -78,40 +150,76 @@
 }
 
 [data-theme='dark'] {
-  /* Colors — brand (indigo, lightened for contrast on dark surfaces) */
-  --color-primary: #6366f1;
-  --color-primary-hover: #818cf8;
-  --color-primary-active: #4f46e5;
-  --color-primary-bg: rgba(99, 102, 241, 0.16);
-  --color-success: #22c55e;
-  --color-success-hover: #4ade80;
-  --color-warning: #f59e0b;
-  --color-warning-hover: #fbbf24;
-  --color-error: #ef4444;
-  --color-error-hover: #f87171;
-  --color-info: #6366f1;
+  /* Colors — brand (the same violet family, lightened for charcoal) */
+  --color-brand-purple: #8842fd;
+  --color-brand-blue: #6c1bfd;
+  --color-brand-blue-light: #1f1f1f;
+  --color-primary: #8842fd;
+  --color-primary-hover: #9b5cff;
+  --color-primary-active: #6c1bfd;
+  --color-primary-bg: rgba(136, 66, 253, 0.16);
+  --color-primary-soft: rgba(136, 66, 253, 0.18);
+  --color-primary-text: #c394ff;
+  --color-primary-on: #ffffff;
+  --color-clay: #8842fd;
+  --color-success: #4ade80;
+  --color-success-hover: #22c55e;
+  --color-success-text: #86efac;
+  --color-warning: #fbbf24;
+  --color-warning-hover: #f59e0b;
+  --color-warning-text: #fcd34d;
+  --color-error: #f87171;
+  --color-error-hover: #ef4444;
+  --color-error-text: #fca5a5;
+  --color-info: #c394ff;
+  --color-info-text: #d8b4fe;
 
-  /* Colors — surfaces */
-  --color-bg-layout: #0b0d12;
-  --color-bg-container: #14171f;
-  --color-bg-elevated: #1c2029;
-  --color-bg-sider: #14171f;
-  --color-bg-header: #14171f;
+  --color-success-soft: rgba(74, 222, 128, 0.16);
+  --color-warning-soft: rgba(251, 191, 36, 0.16);
+  --color-error-soft: rgba(248, 113, 113, 0.16);
+  --color-info-soft: rgba(136, 66, 253, 0.18);
+
+  /* Colors — surfaces (neutral charcoal) */
+  --color-bg-layout: #0a0a0a;
+  --color-bg-container: #141414;
+  --color-bg-elevated: #1a1a1a;
+  --color-bg-sider: #0f0f0f;
+  --color-bg-header: #0a0a0a;
+  --color-bg-sunken: #1f1f1f;
+  --color-bg-hover: #1a1a1a;
+  --color-bg-ink: #fafafa;
 
   /* Colors — border & divider */
-  --color-border: #2d3445;
-  --color-border-secondary: #232a36;
+  --color-border: #262626;
+  --color-border-secondary: #1f1f1f;
+  --color-border-strong: #525252;
 
   /* Colors — text */
-  --color-text: rgba(255, 255, 255, 0.88);
-  --color-text-secondary: rgba(255, 255, 255, 0.65);
-  --color-text-tertiary: rgba(255, 255, 255, 0.45);
+  --color-text: #fafafa;
+  --color-text-secondary: #a3a3a3;
+  --color-text-tertiary: #737373;
 
-  /* Auth page background */
+  /* Shadows */
+  --shadow-xs: 0 1px 1px 0 rgba(0, 0, 0, 0.2);
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.28);
+  --shadow-base: 0 2px 8px -2px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 24px -8px rgba(0, 0, 0, 0.55);
+
+  /* Data palette */
+  --color-chart-1: #8842fd;
+  --color-chart-2: #60a5fa;
+  --color-chart-3: #ff8a4c;
+  --color-chart-4: #4ade80;
+  --color-chart-5: #e676fd;
+  --color-chart-6: #2dd4bf;
+  --color-chart-7: #fde002;
+  --color-chart-8: #737373;
+
+  /* Auth page */
   --auth-bg:
-    radial-gradient(1200px 600px at 10% -10%, rgba(99, 102, 241, 0.18), transparent 60%),
-    radial-gradient(900px 500px at 110% 20%, rgba(14, 165, 233, 0.1), transparent 55%),
-    linear-gradient(160deg, #0b0d12 0%, #10131b 55%, #141722 100%);
-  --auth-card-shadow: 0 20px 60px -12px rgba(0, 0, 0, 0.5);
-  --auth-brand-bg: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    radial-gradient(900px 520px at 12% -8%, rgba(136, 66, 253, 0.22), transparent 62%),
+    linear-gradient(180deg, #0a0a0a 0%, #141414 100%);
+  --auth-card-shadow: 0 24px 48px -28px rgba(0, 0, 0, 0.7);
+  --auth-brand-bg: #8842fd;
+  --brand-tile-ink: #ffffff;
 }

@@ -7,6 +7,10 @@
 
 set -e  # 遇到错误立即退出
 
+# 切换到脚本所在目录，保证 microservices/ 相对路径在 Docker 初始化时也有效
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
 # 颜色定义
 RED='\033[0;31m'
 GREEN='\033[0;32m'

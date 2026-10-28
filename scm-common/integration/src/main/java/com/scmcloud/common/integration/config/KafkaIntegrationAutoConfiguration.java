@@ -58,6 +58,22 @@ public class KafkaIntegrationAutoConfiguration {
         return new KafkaTemplate<>(producerFactory);
     }
 
+    /**
+     * Plain-string producer for services that publish pre-serialized JSON (scm-system status
+     * dictionaries, scm-message events). The JSON-valued {@code kafkaTemplate} above suppresses
+     * Boot's auto-configured template, so without this bean those services fail to start.
+     */
+    @Bean
+    @ConditionalOnMissingBean(name = "stringKafkaTemplate")
+    public KafkaTemplate<String, String> stringKafkaTemplate() {
+        Map<String, Object> config = new HashMap<>();
+        config.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, properties.getBootstrapServers());
+        config.put(ProducerConfig.CLIENT_ID_CONFIG, properties.getClientId());
+
+        return new KafkaTemplate<>(
+                new DefaultKafkaProducerFactory<>(config, new StringSerializer(), new StringSerializer()));
+    }
+
     @Bean
     @ConditionalOnMissingBean
     public ConsumerFactory<String, Object> kafkaConsumerFactory() {

@@ -58,7 +58,10 @@ public class SsrfProtectionFilter implements Filter {
             URI uri = URI.create(url);
             String host = uri.getHost();
             if (host == null) {
-                return true;
+                // A leading-slash value is a path, not a fetch target: ApiAccessControlFilter looks
+                // permissions up with url=/api/v1/orders/query, and blocking that fails every
+                // business API closed. Anything else without an authority stays blocked.
+                return !url.startsWith("/");
             }
 
             if (BLOCKED_HOSTS.contains(host.toLowerCase())) {

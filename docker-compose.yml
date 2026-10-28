@@ -1,79 +1,123 @@
-version: '3.8'
-
 # SCM Platform - 完整开发环境
 # 包含所有必需的中间件服务
-# 使用说明: docker-compose up -d
+# 使用说明: docker compose up -d
+
+name: scm-platform
+
+# ============================================================
+# YAML 锚点：核心业务服务的公共环境与依赖（core profile 使用）
+# ============================================================
+x-core-service-env: &core-service-env
+  DB_HOST: postgres
+  DB_PORT: 5432
+  DB_USERNAME: ${POSTGRES_USER:-admin}
+  DB_PASSWORD: ${POSTGRES_PASSWORD:-admin123}
+  REDIS_HOST: redis
+  REDIS_PORT: 6379
+  REDIS_PASSWORD: ${REDIS_PASSWORD:-admin123}
+  # 业务代码里有一批服务直接读 spring.data.redis.*，两套名字都给上
+  SPRING_DATA_REDIS_HOST: redis
+  SPRING_DATA_REDIS_PORT: 6379
+  SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD:-admin123}
+  NACOS_SERVER: nacos:8848
+  SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR: nacos:8848
+  SPRING_CLOUD_NACOS_CONFIG_ENABLED: "false"
+  SEATA_ENABLED: "false"
+  KAFKA_BOOTSTRAP: kafka:9092
+  RABBITMQ_HOST: rabbitmq
+  RABBITMQ_PORT: 5672
+  RABBITMQ_USERNAME: admin
+  RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-admin123}
+  # 访问令牌用 HS512 签名，secret 必须 >= 64 字节，且所有服务必须相同
+  JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set in .env (>= 64 chars)}
+  JAVA_TOOL_OPTIONS: "-Xmx320m -XX:MaxMetaspaceSize=192m"
+  TZ: Asia/Shanghai
+
+x-core-service: &core-service
+  profiles: ["core"]
+  depends_on:
+    - nacos
+    - postgres
+    - redis
+    - kafka
+    - rabbitmq
+  networks:
+    - scm-network
 
 services:
   # ============================================================
   # 服务注册与配置中心
   # ============================================================
   nacos:
-    image: nacos/nacos-server:v2.3.0
+    image: nacos/nacos-server:v3.2.4
     container_name: scm-nacos
     environment:
       MODE: standalone
-      SPRING_DATASOURCE_PLATFORM: mysql
-      MYSQL_SERVICE_HOST: mysql-nacos
-      MYSQL_SERVICE_DB_NAME: nacos
-      MYSQL_SERVICE_PORT: 3306
-      MYSQL_SERVICE_USER: nacos
-      MYSQL_SERVICE_PASSWORD: ${NACOS_MYSQL_PASSWORD:-nacos}
-      NACOS_AUTH_ENABLE: true
+      NACOS_AUTH_ENABLE: ${NACOS_AUTH_ENABLE:-false}
       # 生产环境必须通过 NACOS_AUTH_TOKEN 环境变量覆盖
       NACOS_AUTH_TOKEN: ${NACOS_AUTH_TOKEN:-SecretKey012345678901234567890123456789012345678901234567890123456789}
-      NACOS_AUTH_IDENTITY_KEY: nacos
-      NACOS_AUTH_IDENTITY_VALUE: nacos
+      NACOS_AUTH_IDENTITY_KEY: ${NACOS_AUTH_IDENTITY_KEY:-serverIdentity}
+      NACOS_AUTH_IDENTITY_VALUE: ${NACOS_AUTH_IDENTITY_VALUE:-security}
+      JVM_XMS: 512m
+      JVM_XMX: 768m
+      JVM_XMN: 512m
+      JVM_MS: 128m
+      JVM_MMS: 320m
+      TOMCAT_ACCESSLOG_ENABLED: "false"
+      TIME_ZONE: Asia/Shanghai
     ports:
       - "8848:8848"
       - "9848:9848"
       - "9849:9849"
+      # Nacos 3.x 控制台独立端口
+      - "8080:8080"
     volumes:
       - nacos_data:/home/nacos/data
       - nacos_logs:/home/nacos/logs
-    depends_on:
-      - mysql-nacos
     networks:
       - scm-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8848/nacos"]
+      test: ["CMD", "curl", "-f", "http://localhost:8848/nacos/"]
       interval: 30s
       timeout: 10s
       retries: 5
-
-  mysql-nacos:
-    image: mysql:8.0
-    container_name: scm-mysql-nacos
-    environment:
-      MYSQL_ROOT_PASSWORD: ${NACOS_MYSQL_ROOT_PASSWORD:-root}
-      MYSQL_DATABASE: nacos
-      MYSQL_USER: nacos
-      MYSQL_PASSWORD: ${NACOS_MYSQL_PASSWORD:-nacos}
-    volumes:
-      - mysql_nacos_data:/var/lib/mysql
-    networks:
-      - scm-network
 
   # ============================================================
   # PostgreSQL - 主数据库
   # ============================================================
   postgres:
-    image: postgres:16-alpine
+    # 不用 alpine 变体：musl 版在部分宿主机上 initdb 写 postmaster.pid 会 EPERM
+    image: postgres:18
     container_name: scm-postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-admin}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-admin123}
       POSTGRES_DB: postgres
-      PGDATA: /var/lib/postgresql/data/pgdata
+      # PostgreSQL 18 起数据目录改为 /var/lib/postgresql/<major>/docker
+      PGDATA: /var/lib/postgresql/18/docker
+      # 供 scripts/db/init-all-databases.sh 使用
+      PG_ADMIN_USER: ${POSTGRES_USER:-admin}
+      PG_ADMIN_PASSWORD: ${POSTGRES_PASSWORD:-admin123}
+      # initdb 阶段临时实例只监听 unix socket，必须用 socket 目录而不是 localhost
+      PG_HOST: /var/run/postgresql
+      PG_PORT: 5432
+      # 供 scripts/db/init-seata.sh 使用
+      PGPASSWORD: ${POSTGRES_PASSWORD:-admin123}
+      DB_HOST: /var/run/postgresql
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER:-admin}
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      # PG18 官方镜像要求挂载 /var/lib/postgresql，而不是 .../data
+      - postgres_data:/var/lib/postgresql
       - ./scripts/db:/docker-entrypoint-initdb.d:ro
+      # CI 校验脚本依赖已建好的业务表，首次初始化时必须跳过
+      - /dev/null:/docker-entrypoint-initdb.d/ci_validate_tenant_id.sql:ro
     networks:
       - scm-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin} -d postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -82,7 +126,7 @@ services:
   # Redis Sentinel - 高可用Redis集群
   # ============================================================
   redis:
-    image: redis:7.2-alpine
+    image: redis:8-alpine
     command: redis-server /usr/local/etc/redis/redis.conf
     volumes:
       - ./deploy/redis/redis.conf:/usr/local/etc/redis/redis.conf
@@ -98,7 +142,7 @@ services:
       retries: 5
 
   redis-slave-1:
-    image: redis:7.2-alpine
+    image: redis:8-alpine
     command: redis-server /usr/local/etc/redis/redis.conf --replicaof redis 6379
     volumes:
       - ./deploy/redis/redis.conf:/usr/local/etc/redis/redis.conf
@@ -108,7 +152,7 @@ services:
       - scm-network
 
   redis-slave-2:
-    image: redis:7.2-alpine
+    image: redis:8-alpine
     command: redis-server /usr/local/etc/redis/redis.conf --replicaof redis 6379
     volumes:
       - ./deploy/redis/redis.conf:/usr/local/etc/redis/redis.conf
@@ -118,7 +162,7 @@ services:
       - scm-network
 
   redis-sentinel-1:
-    image: redis:7.2-alpine
+    image: redis:8-alpine
     command: redis-sentinel /usr/local/etc/redis/sentinel.conf
     volumes:
       - ./deploy/redis/sentinel.conf:/usr/local/etc/redis/sentinel.conf
@@ -132,7 +176,7 @@ services:
       - scm-network
 
   redis-sentinel-2:
-    image: redis:7.2-alpine
+    image: redis:8-alpine
     command: redis-sentinel /usr/local/etc/redis/sentinel.conf
     volumes:
       - ./deploy/redis/sentinel.conf:/usr/local/etc/redis/sentinel.conf
@@ -146,7 +190,7 @@ services:
       - scm-network
 
   redis-sentinel-3:
-    image: redis:7.2-alpine
+    image: redis:8-alpine
     command: redis-sentinel /usr/local/etc/redis/sentinel.conf
     volumes:
       - ./deploy/redis/sentinel.conf:/usr/local/etc/redis/sentinel.conf
@@ -160,38 +204,29 @@ services:
       - scm-network
 
   # ============================================================
-  # Kafka - 消息队列（高吞吐量）
+  # Kafka - 消息队列（KRaft 模式，Kafka 4.x 起不再依赖 ZooKeeper）
   # ============================================================
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.6.0
-    container_name: scm-zookeeper
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-    volumes:
-      - zookeeper_data:/var/lib/zookeeper/data
-      - zookeeper_logs:/var/lib/zookeeper/log
-    networks:
-      - scm-network
-
   kafka:
-    image: confluentinc/cp-kafka:7.6.0
+    image: confluentinc/cp-kafka:8.4.0
     container_name: scm-kafka
-    depends_on:
-      - zookeeper
     ports:
       - "9092:9092"
       - "9093:9093"
     environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9094
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9094,PLAINTEXT_HOST://0.0.0.0:9093
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9093
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
     volumes:
       - kafka_data:/var/lib/kafka/data
     networks:
@@ -206,7 +241,8 @@ services:
   # RabbitMQ - 消息队列（可靠性）
   # ============================================================
   rabbitmq:
-    image: rabbitmq:3.12-management-alpine
+    # 不用 alpine 变体：Erlang/mnesia 在部分宿主机 volume 上写入会 eperm
+    image: rabbitmq:4.4.0-management
     container_name: scm-rabbitmq
     environment:
       RABBITMQ_DEFAULT_USER: admin
@@ -228,7 +264,7 @@ services:
   # Elasticsearch - 搜索引擎
   # ============================================================
   elasticsearch:
-    image: elasticsearch:8.11.4
+    image: elasticsearch:9.5.5
     container_name: scm-elasticsearch
     environment:
       - discovery.type=single-node
@@ -248,7 +284,7 @@ services:
       retries: 5
 
   kibana:
-    image: kibana:8.11.4
+    image: kibana:9.5.5
     container_name: scm-kibana
     depends_on:
       - elasticsearch
@@ -263,7 +299,7 @@ services:
   # Seata - 分布式事务协调器
   # ============================================================
   seata-server:
-    image: seataio/seata-server:2.2.0
+    image: apache/seata-server:2.6.0
     container_name: scm-seata
     ports:
       - "8091:8091"
@@ -283,7 +319,7 @@ services:
   # XXL-Job - 分布式任务调度
   # ============================================================
   xxl-job-admin:
-    image: xuxueli/xxl-job-admin:2.4.3
+    image: xuxueli/xxl-job-admin:3.5.0
     container_name: scm-xxl-job
     ports:
       - "8088:8080"
@@ -300,7 +336,7 @@ services:
       - scm-network
 
   mysql-xxljob:
-    image: mysql:8.0
+    image: mysql:9.7.4
     container_name: scm-mysql-xxljob
     environment:
       MYSQL_ROOT_PASSWORD: ${XXLJOB_MYSQL_PASSWORD:-root}
@@ -315,7 +351,7 @@ services:
   # Sentinel Dashboard - 流量控制
   # ============================================================
   sentinel:
-    image: bladex/sentinel-dashboard:1.8.7
+    image: bladex/sentinel-dashboard:1.8.10
     container_name: scm-sentinel
     ports:
       - "8858:8858"
@@ -326,7 +362,7 @@ services:
   # 监控 - Prometheus + Grafana
   # ============================================================
   prometheus:
-    image: prom/prometheus:v2.48.0
+    image: prom/prometheus:v3.15.1
     container_name: scm-prometheus
     ports:
       - "9090:9090"
@@ -341,7 +377,7 @@ services:
       - scm-network
 
   grafana:
-    image: grafana/grafana:10.2.0
+    image: grafana/grafana:13.2.4
     container_name: scm-grafana
     ports:
       - "3000:3000"
@@ -362,7 +398,7 @@ services:
   # 链路追踪 - SkyWalking
   # ============================================================
   skywalking-oap:
-    image: apache/skywalking-oap-server:9.7.0
+    image: apache/skywalking-oap-server:10.4.0
     container_name: scm-skywalking-oap
     depends_on:
       - elasticsearch
@@ -383,7 +419,7 @@ services:
       retries: 5
 
   skywalking-ui:
-    image: apache/skywalking-ui:9.7.0
+    image: apache/skywalking-ui:10.4.0
     container_name: scm-skywalking-ui
     depends_on:
       - skywalking-oap
@@ -413,7 +449,7 @@ services:
   # PgBouncer - 连接池
   # ============================================================
   pgbouncer:
-    image: edoburu/pgbouncer:1.23.1
+    image: edoburu/pgbouncer:v1.26.1-p0
     container_name: scm-pgbouncer
     volumes:
       - ./deploy/pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
@@ -434,7 +470,7 @@ services:
   # Schema Registry - Kafka Schema管理
   # ============================================================
   schema-registry:
-    image: confluentinc/cp-schema-registry:7.6.0
+    image: confluentinc/cp-schema-registry:8.4.0
     container_name: scm-schema-registry
     environment:
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
@@ -447,7 +483,8 @@ services:
     networks:
       - scm-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8081/subjects"]
+      # 镜像里没有 curl/wget，只能用 bash 的 /dev/tcp 探活
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8081' || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -456,13 +493,13 @@ services:
   # ClickHouse - OLAP Columnar Database for Analytics
   # ============================================================
   clickhouse-keeper:
-    image: clickhouse/clickhouse-keeper:24-alpine
+    image: clickhouse/clickhouse-keeper:26.10-alpine
     container_name: scm-clickhouse-keeper
     networks:
       - scm-network
 
   clickhouse:
-    image: clickhouse/clickhouse-server:24-alpine
+    image: clickhouse/clickhouse-server:26.10-alpine
     container_name: scm-clickhouse
     ports:
       - "8123:8123"
@@ -657,6 +694,222 @@ services:
       - scm-network
 
 # ============================================================
+# 核心业务服务（可选：docker compose --profile core up -d）
+#
+# 需先在本机构建各模块的可执行 jar：
+#   mvn clean install -DskipTests -f com.scm.parent/pom.xml
+# 然后把仓库（含各模块 service/target/*.jar）同步到本目录再 up。
+#
+# 内存：本机 8G 跑不下全部服务（infra 已占约 4~5G），每个 JVM 限 320m 堆；
+# 建议按需分批 `up -d`，或加 --scale 之前先看 `docker stats`。
+# ============================================================
+  scm-gateway:
+    <<: *core-service
+    build:
+      context: ./scm-gateway
+    container_name: scm-gateway
+    environment:
+      <<: *core-service-env
+      SPRING_APPLICATION_NAME: scm-gateway
+    ports:
+      - "8761:8761"
+
+  scm-auth:
+    <<: *core-service
+    build:
+      context: ./scm-auth
+    container_name: scm-auth
+    environment:
+      <<: *core-service-env
+      # 网关路由写的是 lb://auth-service，注册名必须一致
+      SPRING_APPLICATION_NAME: auth-service
+    ports:
+      - "8106:8106"
+
+  scm-system:
+    <<: *core-service
+    build:
+      context: ./scm-system
+    container_name: scm-system
+    environment:
+      <<: *core-service-env
+      # 网关路由写的是 lb://system-service；权限/用户内部客户端也解析这个名字
+      SPRING_APPLICATION_NAME: system-service
+    ports:
+      - "8081:8081"
+
+  scm-product:
+    <<: *core-service
+    build:
+      context: ./scm-product
+    container_name: scm-product
+    environment:
+      <<: *core-service-env
+      SPRING_APPLICATION_NAME: scm-product
+      # 搜索索引由 ES 提供；没有 ES 时搜索接口会报错，但启动与其余接口正常
+      ELASTICSEARCH_URIS: http://elasticsearch:9200
+    ports:
+      - "8201:8201"
+
+  scm-inventory:
+    <<: *core-service
+    build:
+      context: ./scm-inventory
+    container_name: scm-inventory
+    environment:
+      <<: *core-service-env
+      SPRING_APPLICATION_NAME: scm-inventory
+    ports:
+      - "8202:8202"
+
+  scm-order:
+    <<: *core-service
+    build:
+      context: ./scm-order
+    container_name: scm-order
+    environment:
+      <<: *core-service-env
+      SPRING_APPLICATION_NAME: scm-order
+    ports:
+      - "8203:8203"
+
+  scm-warehouse:
+    <<: *core-service
+    build:
+      context: ./scm-warehouse
+    container_name: scm-warehouse
+    environment:
+      <<: *core-service-env
+      SPRING_APPLICATION_NAME: scm-warehouse
+    ports:
+      - "8204:8204"
+
+  scm-logistics:
+    <<: *core-service
+    build:
+      context: ./scm-logistics
+    container_name: scm-logistics
+    environment:
+      <<: *core-service-env
+      SPRING_APPLICATION_NAME: scm-logistics
+    ports:
+      - "8205:8205"
+
+  scm-supplier:
+    <<: *core-service
+    build:
+      context: ./scm-supplier
+    container_name: scm-supplier
+    environment:
+      <<: *core-service-env
+      SPRING_APPLICATION_NAME: scm-supplier
+    ports:
+      - "8206:8206"
+
+  scm-purchase:
+    <<: *core-service
+    build:
+      context: ./scm-purchase
+    container_name: scm-purchase
+    environment:
+      <<: *core-service-env
+      SPRING_APPLICATION_NAME: scm-purchase
+    ports:
+      - "8207:8207"
+
+  scm-finance:
+    <<: *core-service
+    build:
+      context: ./scm-finance
+    container_name: scm-finance
+    environment:
+      <<: *core-service-env
+      SPRING_APPLICATION_NAME: scm-finance
+    ports:
+      - "8208:8208"
+
+  scm-approval:
+    <<: *core-service
+    build:
+      context: ./scm-approval
+    container_name: scm-approval
+    environment:
+      <<: *core-service-env
+      SPRING_APPLICATION_NAME: scm-approval
+    ports:
+      - "8209:8209"
+
+  scm-message:
+    <<: *core-service
+    build:
+      context: ./scm-message
+    container_name: scm-message
+    environment:
+      <<: *core-service-env
+      SPRING_APPLICATION_NAME: scm-message
+      # 模块默认 8209 与 scm-approval 冲突，容器里改成 8216
+      SERVER_PORT: 8216
+    ports:
+      - "8216:8216"
+
+  scm-audit:
+    <<: *core-service
+    build:
+      context: ./scm-audit
+    container_name: scm-audit
+    environment:
+      <<: *core-service-env
+      SPRING_APPLICATION_NAME: scm-audit
+    ports:
+      - "8210:8210"
+
+  scm-notify:
+    <<: *core-service
+    build:
+      context: ./scm-notify
+    container_name: scm-notify
+    environment:
+      <<: *core-service-env
+      SPRING_APPLICATION_NAME: scm-notify
+    ports:
+      - "8211:8211"
+
+  scm-tenant:
+    <<: *core-service
+    build:
+      context: ./scm-tenant
+    container_name: scm-tenant
+    environment:
+      <<: *core-service-env
+      SPRING_APPLICATION_NAME: scm-tenant
+    ports:
+      - "8212:8212"
+
+  scm-document:
+    <<: *core-service
+    build:
+      context: ./scm-document
+    container_name: scm-document
+    environment:
+      <<: *core-service-env
+      SPRING_APPLICATION_NAME: scm-document
+    ports:
+      - "8213:8213"
+
+  scm-file:
+    <<: *core-service
+    build:
+      context: ./scm-file
+    container_name: scm-file
+    environment:
+      <<: *core-service-env
+      SPRING_APPLICATION_NAME: scm-file
+      # 模块默认 8201 与 scm-product 冲突，容器里改成 8214
+      SERVER_PORT: 8214
+    ports:
+      - "8214:8214"
+
+# ============================================================
 # 网络配置
 # ============================================================
 networks:
@@ -672,14 +925,11 @@ networks:
 volumes:
   # 数据库
   postgres_data:
-  mysql_nacos_data:
   mysql_xxljob_data:
 
   # 缓存与消息队列
   redis_data:
   kafka_data:
-  zookeeper_data:
-  zookeeper_logs:
   rabbitmq_data:
 
   # 搜索引擎

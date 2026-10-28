@@ -9,7 +9,7 @@
  * truth (they are also consumed by the Ant Design theme). The shadcn/ui
  * variables below are aliases of those tokens so Tailwind utilities
  * (`bg-background`, `text-muted-foreground`, ...) and Ant Design components
- * render with the same palette in both light and dark mode.
+ * render with the same white/neutral + violet palette in both themes.
  *
  * Dark mode is driven by the `data-theme="dark"` attribute that
  * `ThemeProvider` sets on `<html>` — not by a `.dark` class.
@@ -24,43 +24,38 @@
   --popover: var(--color-bg-elevated);
   --popover-foreground: var(--color-text);
   --primary: var(--color-primary);
-  --primary-foreground: #ffffff;
-  --secondary: #f1f3f7;
+  --primary-foreground: var(--color-primary-on);
+  --secondary: var(--color-bg-sunken);
   --secondary-foreground: var(--color-text);
-  --muted: #f1f3f7;
+  --muted: var(--color-bg-sunken);
   --muted-foreground: var(--color-text-secondary);
   --accent: var(--color-primary-bg);
-  --accent-foreground: var(--color-primary);
+  --accent-foreground: var(--color-primary-text);
   --destructive: var(--color-error);
   --destructive-foreground: #ffffff;
   --border: var(--color-border);
   --input: var(--color-border);
-  --ring: var(--color-primary);
-  --radius: var(--radius-base);
-  --chart-1: #4f46e5;
-  --chart-2: #16a34a;
-  --chart-3: #d97706;
-  --chart-4: #7c3aed;
-  --chart-5: #dc2626;
+  --ring: var(--color-clay);
+  /* Controls stay at 8px so shadcn and Ant Design buttons/inputs line up on
+     the same screen; panels go one or two steps larger. */
+  --radius: 8px;
+  --chart-1: var(--color-chart-1);
+  --chart-2: var(--color-chart-2);
+  --chart-3: var(--color-chart-3);
+  --chart-4: var(--color-chart-4);
+  --chart-5: var(--color-chart-5);
   --sidebar: var(--color-bg-sider);
   --sidebar-foreground: var(--color-text);
   --sidebar-primary: var(--color-primary);
-  --sidebar-primary-foreground: #ffffff;
+  --sidebar-primary-foreground: var(--color-primary-on);
   --sidebar-accent: var(--color-primary-bg);
-  --sidebar-accent-foreground: var(--color-primary);
+  --sidebar-accent-foreground: var(--color-primary-text);
   --sidebar-border: var(--color-border-secondary);
-  --sidebar-ring: var(--color-primary);
+  --sidebar-ring: var(--color-clay);
 }
 
 [data-theme="dark"] {
-  --secondary: #1c2029;
-  --secondary-foreground: var(--color-text);
-  --muted: #1c2029;
-  --muted-foreground: var(--color-text-secondary);
-  --accent: rgba(99, 102, 241, 0.16);
-  --accent-foreground: #a5b4fc;
-  --sidebar-accent: rgba(99, 102, 241, 0.16);
-  --sidebar-accent-foreground: #a5b4fc;
+  --destructive-foreground: #141413;
 }
 
 @theme inline {
@@ -88,6 +83,8 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+  --color-ink: var(--color-bg-ink);
+  --color-sunken: var(--color-bg-sunken);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -101,9 +98,11 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 14px);
 
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  --font-sans: var(--font-family-sans);
+  --font-serif: var(--font-family-serif);
+  --font-mono: var(--font-family-mono);
 }
 
 @layer base {
@@ -112,7 +111,114 @@
   }
 
   body {
-    @apply bg-background text-foreground;
-    font-family: var(--font-sans);
+    @apply bg-background text-foreground font-sans;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: var(--color-primary-bg);
+    color: var(--color-text);
   }
 }
+
+/*
+ * Type hierarchy: the app shell is a data console, so every heading is sans,
+ * semibold and tightly tracked. Serif is reserved for the auth-screen brand
+ * wordmark — see `auth-brand-card.tsx`.
+ *
+ * This block is deliberately NOT inside `@layer base`: Ant Design injects its
+ * styles at runtime as unlayered CSS, and unlayered rules outrank any layer —
+ * so a base-layer declaration can never beat `.ant-typography h3`. The `html`
+ * prefix gives each selector one more element than the Ant Design rule it
+ * replaces, which is enough without reaching for `!important`.
+ */
+html h1,
+html h2,
+html h3,
+html h4,
+html h5,
+html h1.ant-typography,
+html h2.ant-typography,
+html h3.ant-typography,
+html h4.ant-typography,
+html h5.ant-typography,
+html .ant-typography h1,
+html .ant-typography h2,
+html .ant-typography h3,
+html .ant-typography h4,
+html .ant-typography h5,
+html .ant-card-head-title,
+html .ant-modal-title,
+html .ant-descriptions-title,
+html [data-slot='card-title'] {
+  font-family: var(--font-family-sans);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.3;
+}
+
+/*
+ * Ant Design table alignment with the shadcn table: the header is a compact
+ * 11px label band, body figures are tabular and the sortable header cells keep
+ * a flat, borderless feel. Values are set in px because AntD's component
+ * tokens do not expose header letter-spacing or font-variant.
+ */
+html .ant-table-wrapper .ant-table-thead > tr > th {
+  font-size: var(--table-header-font-size);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--color-text);
+}
+
+html .ant-table-wrapper .ant-table-tbody > tr > td {
+  font-size: var(--table-font-size);
+  font-variant-numeric: tabular-nums;
+}
+
+html .ant-table-wrapper .ant-table-tbody > tr > td .ant-typography,
+html .ant-table-wrapper .ant-table-tbody > tr > td .ant-tag {
+  font-size: inherit;
+}
+
+/*
+ * Ant Design list screens wrap their table in a Card. Let the table run
+ * edge-to-edge like the shadcn TablePanel instead of floating inside a 24px
+ * gutter; the pagination keeps its own 16px margin.
+ */
+html .ant-card:has(> .ant-card-body > .ant-table-wrapper) {
+  overflow: hidden;
+}
+
+html .ant-card:has(> .ant-card-body > .ant-table-wrapper) > .ant-card-body {
+  padding: 0;
+}
+
+/* Ant Design pages still render their title as a plain <h2>. Match the
+   shadcn PageHeader scale so both stacks read the same. */
+html .ant-layout-content h2 {
+  font-size: 22px;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+/* Pagination: flat cells with a single soft-active state, matching the
+   table footer built for the shadcn screens. */
+html .ant-pagination .ant-pagination-item,
+html .ant-pagination .ant-pagination-prev,
+html .ant-pagination .ant-pagination-next,
+html .ant-pagination .ant-pagination-jump-prev,
+html .ant-pagination .ant-pagination-jump-next {
+  border: none;
+}
+
+html .ant-pagination .ant-pagination-item-active {
+  background: var(--color-primary-bg);
+}
+
+/* Thin, unobtrusive scrollbars for data panels. */
+[data-slot='table-container'] {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+

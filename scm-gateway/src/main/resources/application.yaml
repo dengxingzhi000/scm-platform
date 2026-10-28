@@ -32,6 +32,18 @@ spring:
             locator:
               enabled: true
               lower-case-service-id: true
+          # The SPA is served from another origin in dev (localhost:3000), and the
+          # gateway is the only public entry point, so it answers the CORS preflight.
+          globalcors:
+            add-to-simple-url-handler-mapping: true
+            cors-configurations:
+              '[/**]':
+                allowedOriginPatterns:
+                  - "http://localhost:*"
+                allowedMethods: "*"
+                allowedHeaders: "*"
+                allowCredentials: true
+                maxAge: 3600
           routes:
             - id: auth-service
               uri: lb://auth-service

@@ -8,8 +8,13 @@ import type {
   OrderQueryRequest,
   OrderResponse,
   OrderStatusUpdateRequest,
+  PaymentCreateRequest,
   PaymentPage,
+  PaymentQueryRequest,
   PaymentResponse,
+  PaymentStatusUpdateRequest,
+  RefundCreateRequest,
+  RefundItemResponse,
   RefundPage,
   RefundQueryRequest,
   RefundResponse,
@@ -43,6 +48,8 @@ export const orderApiService = {
     pageNum: number;
     pageSize: number;
   }) => post<OrderItemPage>(`${ORDER_BASE}/order-items/query`, request),
+  getOrderItem: (id: string) =>
+    get<OrderItemResponse>(`${ORDER_BASE}/order-items/${id}`),
   createOrder: (request: unknown) =>
     post<OrderResponse>(`${ORDER_BASE}/orders`, request),
   updateOrderStatus: (id: string, request: OrderStatusUpdateRequest) =>
@@ -51,8 +58,10 @@ export const orderApiService = {
     put<OrderResponse>(`${ORDER_BASE}/orders/${id}/cancel`, request),
 
   getRefund: (id: string) => get<RefundResponse>(`${ORDER_BASE}/refunds/${id}`),
+  createRefund: (request: RefundCreateRequest) =>
+    post<RefundResponse>(`${ORDER_BASE}/refunds`, request),
   listRefundItems: (id: string) =>
-    get<RefundResponse>(`${ORDER_BASE}/refunds/${id}/items`),
+    get<RefundItemResponse[]>(`${ORDER_BASE}/refunds/${id}/items`),
   listRefundsByOrder: (orderId: string) =>
     get<RefundResponse[]>(`${ORDER_BASE}/refunds/order/${orderId}`),
   queryRefunds: (request: RefundQueryRequest) =>
@@ -70,11 +79,17 @@ export const orderApiService = {
 
   getPayment: (id: string) =>
     get<PaymentResponse>(`${ORDER_BASE}/payments/${id}`),
+  createPayment: (request: PaymentCreateRequest) =>
+    post<PaymentResponse>(`${ORDER_BASE}/payments`, request),
+  updatePaymentStatus: (id: string, request: PaymentStatusUpdateRequest) =>
+    put<PaymentResponse>(`${ORDER_BASE}/payments/${id}/status`, request),
   listPaymentsByOrder: (orderId: string) =>
     get<PaymentResponse[]>(`${ORDER_BASE}/payments/order/${orderId}`),
-  queryPayments: (request: unknown) =>
+  queryPayments: (request: PaymentQueryRequest) =>
     post<PaymentPage>(`${ORDER_BASE}/payments/query`, request),
 
+  getStatusHistory: (id: string) =>
+    get<StatusHistoryResponse>(`${ORDER_BASE}/status-history/${id}`),
   listStatusHistoryByOrder: (orderId: string) =>
     get<StatusHistoryResponse[]>(`${ORDER_BASE}/status-history/order/${orderId}`),
 };

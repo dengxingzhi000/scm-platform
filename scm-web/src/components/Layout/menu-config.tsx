@@ -31,32 +31,35 @@ function getItem(
 export const appMenuItems: MenuItem[] = [
   getItem('仪表盘', '/dashboard', <DashboardOutlined />),
   getItem('数据分析', '/analytics', <BarChartOutlined />),
-  getItem('商品管理', '/product', <ShopOutlined />, [
+  getItem('商品管理', 'group-product', <ShopOutlined />, [
     getItem('商品列表', '/product'),
     getItem('商品分类', '/product/category'),
     getItem('品牌管理', '/product/brand'),
+    getItem('SKU 管理', '/product/sku'),
+    getItem('属性模板', '/product/attribute-template'),
   ]),
-  getItem('订单管理', '/order', <ShoppingCartOutlined />, [
+  getItem('订单管理', 'group-order', <ShoppingCartOutlined />, [
     getItem('订单列表', '/order'),
     getItem('退款管理', '/order/refund'),
+    getItem('支付管理', '/order/payment'),
   ]),
-  getItem('库存管理', '/inventory', <InboxOutlined />, [
+  getItem('库存管理', 'group-inventory', <InboxOutlined />, [
     getItem('库存列表', '/inventory'),
     getItem('库存预警', '/inventory/alerts'),
   ]),
-  getItem('仓库管理', '/warehouse', <ApartmentOutlined />, [
+  getItem('仓库管理', 'group-warehouse', <ApartmentOutlined />, [
     getItem('仓库列表', '/warehouse'),
     getItem('入库管理', '/warehouse/inbound'),
     getItem('出库管理', '/warehouse/outbound'),
     getItem('拣货波次', '/warehouse/wave-picking'),
   ]),
-  getItem('采购管理', '/purchase', <FileTextOutlined />, [
+  getItem('采购管理', 'group-purchase', <FileTextOutlined />, [
     getItem('采购订单', '/purchase'),
     getItem('询价管理', '/purchase/rfq'),
     getItem('报价管理', '/purchase/quotation'),
   ]),
   getItem('供应商管理', '/supplier', <TeamOutlined />),
-  getItem('物流管理', '/logistics', <CarOutlined />, [
+  getItem('物流管理', 'group-logistics', <CarOutlined />, [
     getItem('运单管理', '/logistics'),
     getItem('物流跟踪', '/logistics/tracking'),
     getItem('承运商管理', '/logistics/carrier'),
@@ -73,6 +76,8 @@ export const appMenuItems: MenuItem[] = [
     getItem('权限管理', '/system/permission'),
     getItem('部门管理', '/system/dept'),
     getItem('字典管理', '/system/dictionary'),
+    getItem('状态字典', '/system/status'),
+    getItem('决策矩阵', '/system/decision'),
   ]),
   getItem('通知管理', '/notification', <NotificationOutlined />),
 ]
@@ -92,6 +97,24 @@ function collectLabel(items: MenuItem[]) {
 }
 collectLabel(appMenuItems)
 
+/** Leaf route key -> key of its parent submenu group. */
+const parentGroupMap: Record<string, string> = {}
+function collectParentGroups(items: MenuItem[], parentKey?: string) {
+  for (const item of items) {
+    if (!item) continue
+    const { key, children } = item as {
+      key?: string
+      children?: MenuItem[]
+    }
+    if (children && children.length > 0) {
+      collectParentGroups(children, String(key))
+    } else if (parentKey && key) {
+      parentGroupMap[key] = parentKey
+    }
+  }
+}
+collectParentGroups(appMenuItems)
+
 export function stripLocale(pathname: string): string {
   return pathname.replace(/^\/[a-z]{2}-[A-Z]{2}/, '') || pathname
 }
@@ -107,6 +130,12 @@ export function matchMenuKey(pathname: string): string | null {
 
 export function getMenuLabel(key: string): string {
   return labelMap[key] ?? key
+}
+
+/** Submenu group key that should be open for the current route. */
+export function getParentGroupKey(pathname: string): string | null {
+  const matched = matchMenuKey(pathname)
+  return matched ? parentGroupMap[matched] ?? null : null
 }
 
 /** Breadcrumb trail (root → matched item) for the current route. */

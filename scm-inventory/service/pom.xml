@@ -113,6 +113,9 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
+                    <skip>false</skip>
+                    <!-- scm-order's tests compile against this module's classes, so the plain jar
+                         must stay the installed main artifact; the boot jar gets its own classifier. -->
                     <classifier>exec</classifier>
                 </configuration>
             </plugin>

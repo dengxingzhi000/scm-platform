@@ -14,7 +14,7 @@ export default function TrackingTimeline({ waybillId }: Props) {
           children: (
             <div>
               <div style={{ fontWeight: i === 0 ? 'bold' : 'normal' }}>{e.description}</div>
-              <div style={{ fontSize: 12, color: '#8c8c8c' }}>{e.time} · {e.location}</div>
+              <div style={{ fontSize: 12, color: 'var(--color-text-tertiary)' }}>{e.time} · {e.location}</div>
             </div>
           ),
           color: i === 0 ? 'green' : 'gray',

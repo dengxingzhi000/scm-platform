@@ -52,10 +52,10 @@ export default function OrderStatusChart({
           emphasis: {
             label: { show: true, fontSize: 14, fontWeight: "bold" as const },
           },
-          data: data.map((item) => ({
+          data: data.map((item, index) => ({
             name: item.status,
             value: item.count,
-            itemStyle: { color: item.color },
+            itemStyle: { color: tokens.chart[index % tokens.chart.length] },
           })),
         },
       ],

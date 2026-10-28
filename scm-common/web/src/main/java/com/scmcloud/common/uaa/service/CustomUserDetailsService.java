@@ -1,6 +1,7 @@
 package com.scmcloud.common.uaa.service;
 
 import com.scmcloud.common.web.domain.SecurityUser;
+import org.apache.dubbo.config.annotation.DubboReference;
 import com.scmcloud.system.api.UserDubboService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +26,8 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @NullMarked
 public class CustomUserDetailsService implements UserDetailsService {
-    private final UserDubboService userDubboService;
+    @DubboReference(check = false)
+    private UserDubboService userDubboService;
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {

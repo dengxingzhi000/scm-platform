@@ -1,7 +1,7 @@
 package com.scmcloud.common.security.handler;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.scmcloud.common.security.util.IpUtils;
+import com.scmcloud.common.security.util.SecurityErrorResponseWriter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -11,8 +11,6 @@ import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Jwt 鎷掔粷澶勭悊锟?
@@ -25,27 +23,18 @@ import java.util.Map;
 @Slf4j
 @NullMarked
 public class JwtAccessDeniedHandler implements AccessDeniedHandler {
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     public void handle(HttpServletRequest request, HttpServletResponse response,
                        AccessDeniedException accessDeniedException) throws IOException {
 
-        log.warn("Access denied: {} for user: {} from IP: {}",
+        // Spring Security quotes the principal and the missing authority in this message.
+        log.warn("Access denied: {} for user: {} from IP: {}, reason: {}",
                 request.getRequestURI(),
                 request.getUserPrincipal() != null ? request.getUserPrincipal().getName() : "anonymous",
-                IpUtils.getClientIp(request));
+                IpUtils.getClientIp(request), accessDeniedException.getMessage());
 
-        response.setContentType("application/json;charset=UTF-8");
-        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-
-        Map<String, Object> result = new HashMap<>();
-        result.put("code", 403);
-        result.put("message", "Insufficient permissions, access denied");
-        result.put("error", accessDeniedException.getMessage());
-        result.put("path", request.getRequestURI());
-        result.put("timestamp", System.currentTimeMillis());
-
-        response.getWriter().write(objectMapper.writeValueAsString(result));
+        SecurityErrorResponseWriter.write(request, response, HttpServletResponse.SC_FORBIDDEN,
+                "ACCESS_DENIED", "Insufficient permissions, access denied");
     }
 }

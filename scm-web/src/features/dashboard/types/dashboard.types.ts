@@ -9,7 +9,6 @@ export interface KPIData {
     period: string
   }
   icon: string
-  color: string
   /** Mini trend series rendered with Recharts inside the KPI card. */
   sparkline?: number[]
 }
@@ -19,14 +18,12 @@ export interface SalesTrendData {
   series: Array<{
     name: string
     data: number[]
-    color?: string
   }>
 }
 
 export interface OrderStatusData {
   status: string
   count: number
-  color: string
 }
 
 export interface RecentOrder {

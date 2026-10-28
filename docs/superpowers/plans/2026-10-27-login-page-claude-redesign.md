@@ -1,0 +1,1669 @@
+# 登录页视觉重构(Claude 版式) Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** 把 `/{locale}/login` 与 `/{locale}/forgot-password` 重做成参考图的双栏版式(暖象牙底 + 衬线大标题 + 白卡片 + 近黑主按钮 + 右侧满高圆角图),并从 Ant Design 迁移到 shadcn/ui + Tailwind v4 + React Hook Form + Zod,文案接入 next-intl 双语。
+
+**Architecture:** 认证外壳(`AuthShell`)负责双栏构图与品牌标记,登录卡片(`LoginCard`)负责表单;表单校验用 Zod schema 放在独立模块,便于单测。配色通过 `design-tokens.css` 新增的 auth 域令牌表达,登录外壳根元素上覆写 shadcn 变量(`--primary`/`--ring`/`--accent`)把橙色限制在登录体验内,全局靛蓝不变。会话建立逻辑从 `login/page.tsx` 抽成共享 hook,供登录页与(后续计划的)社交回调页共用。
+
+**Tech Stack:** Next.js 16.4 App Router / React 19 / TypeScript 7 / Tailwind CSS v4 / shadcn/ui(`src/components/ui`)/ React Hook Form + Zod / next-intl / Vitest + @testing-library/react
+
+**Spec:** `docs/superpowers/specs/2026-10-27-login-page-claude-redesign-social-auth-design.md`(A 部分:A1–A8)
+
+**配套计划:** `docs/superpowers/plans/2026-10-27-social-auth-google-apple.md`(社交登录,依赖本计划产出的登录卡片结构)
+
+## Global Constraints
+
+- 设计令牌是唯一色源:新增的 auth 域令牌一律加到 `src/lib/design-tokens.css`,**不得**在组件里写死 hex 值。
+- 强调色令牌名带 `brand-` 前缀(`--color-brand-accent*`)。**不得**使用 `--color-accent` —— `src/app/globals.css` 的 `@theme inline` 块里已有 `--color-accent: var(--accent)`(shadcn muted-accent,驱动 Tailwind 的 `bg-accent` 工具类),同名会覆盖它。
+- 登录页只在 `AuthShell` 根元素上覆写 `--primary` / `--ring` / `--accent` 三个 shadcn 变量;**不得**改 `src/lib/design-tokens.css` 里的 `--color-primary`(靛蓝 `#4f46e5`)—— 其它页面保持靛蓝。
+- 不新增任何 npm 依赖。shadcn 组件已全部 vendor 在 `src/components/ui`(button / input / card / checkbox / label / separator / form 都在),需要新组件时用 `npx shadcn@latest add <component>` 写进 `src/components/ui/`。
+- antd 只允许在 `ThemeProvider` 里保留 `App` 外壳(用于 `message` 弹提示);**登录/找回密码页面内不得再出现任何 antd 组件**。
+- ESLint 禁止裸 import:`echarts` / `echarts-for-react` / `ag-grid-community` / `ag-grid-react` / `@antv/g6` 只能在 `src/components/charts`、`src/components/data-grid`、`src/lib/charts` 里 import。
+- 所有面向用户的文案必须走 next-intl,**不得**硬编码中文或英文。
+- TypeScript 7 与 TypeScript 6 并存:`npm run typecheck` 是 TS7 闸门;**不要**直接跑 `npx tsc`。
+- 提交粒度 = 一个 Task 一次提交,提交信息用中文 + 约定式前缀(`feat:` / `refactor:` / `test:` / `docs:` / `chore:`)。
+
+## Review Focus
+
+以下 5 类失败模式在规格里被提及,但没有哪个 Task 的测试真正覆盖。实现时,每一条都要在**拥有该代码的 Task** 里补上对应测试。
+
+1. **未登录时直接访问受保护页面** —— `src/proxy.ts` 靠 `access_token` cookie 判断登录态;重构若动了 cookie 的写入方式(例如改成只写内存不写 cookie),未登录用户会绕过前端守卫。期望:登录后 cookie 存在,刷新页面仍保持登录态。
+2. **「记住我」被取消勾选** —— 当前实现无论勾选与否都写 7 天 cookie。期望:取消勾选时**不得**写 `access_token` cookie(或不写长效 cookie),避免用户以为"不记住"结果 token 仍在。
+3. **表单校验失败时不应发起登录请求** —— 空用户名/空密码提交,期望:`authService.login` **不被调用**,且错误提示出现在对应字段下方。
+4. **TOTP 分支判定错误** —— 服务端返回 `40104` 或消息含 `two-factor|verification code|MFA` 时才切验证码页。期望:其它 401(密码错误)必须停在登录页并提示,不得误切到验证码页。
+5. **找回密码页的三步流程** —— 步骤之间必须能前进/后退。期望:发送验证码后进入第 2 步,验证后进入第 3 步,第 3 步提交成功后跳回 `/{locale}/login`。
+
+---
+
+### Task 1: 设计令牌与衬线字体栈
+
+**Files:**
+- Modify: `scm-web/src/lib/design-tokens.css`(在 `--auth-*` 现有段落追加)
+- Modify: `scm-web/src/app/globals.css`(在 `@theme inline` 块追加 `--font-serif` 别名)
+- Test: `scm-web/src/lib/design-tokens.test.ts`
+
+**Interfaces:**
+- Consumes: 无
+- Produces: CSS 自定义属性 `--color-brand-accent`、`--color-brand-accent-hover`、`--color-brand-accent-active`、`--color-brand-accent-bg`、`--auth-bg`、`--auth-surface`、`--auth-ink`、`--auth-ink-soft`、`--auth-line`、`--auth-line-strong`、`--auth-btn-soft-bg`、`--auth-btn-soft-hover`、`--auth-btn-fg`,以及 Tailwind 工具类 `font-serif`。
+
+- [ ] **Step 1: 写失败的测试**
+
+创建 `scm-web/src/lib/design-tokens.test.ts`:
+
+```ts
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { describe, expect, it } from "vitest";
+
+const TOKENS = readFileSync(join(process.cwd(), "src/lib/design-tokens.css"), "utf8");
+
+function token(name: string): string {
+  const match = TOKENS.match(new RegExp(`--${name}:\\s*([^;]+);`));
+  if (!match) throw new Error(`token --${name} not found in design-tokens.css`);
+  return match[1].trim();
+}
+
+describe("auth design tokens", () => {
+  it("pins the Claude accent ramp", () => {
+    expect(token("color-brand-accent")).toBe("#D97757");
+    expect(token("color-brand-accent-hover")).toBe("#C2603F");
+    expect(token("color-brand-accent-active")).toBe("#A95134");
+    expect(token("color-brand-accent-bg")).toBe("#F5E7E0");
+  });
+
+  it("pins the warm neutral ramp", () => {
+    expect(token("auth-bg")).toBe("#F0EEE6");
+    expect(token("auth-surface")).toBe("#FFFFFF");
+    expect(token("auth-ink")).toBe("#262624");
+    expect(token("auth-ink-soft")).toBe("#6B6A63");
+    expect(token("auth-line")).toBe("#E5E3DA");
+    expect(token("auth-line-strong")).toBe("#D4D1C5");
+    expect(token("auth-btn-soft-bg")).toBe("#E9E6DC");
+    expect(token("auth-btn-soft-hover")).toBe("#DFDBCE");
+    expect(token("auth-btn-fg")).toBe("#FFFFFF");
+  });
+
+  it("does not shadow the shadcn --color-accent alias", () => {
+    expect(TOKENS).not.toMatch(/--color-accent\s*:/);
+  });
+
+  it("exposes a serif stack that covers Latin and CJK", () => {
+    const serif = token("font-serif");
+    expect(serif).toContain("Georgia");
+    expect(serif).toContain("Songti SC");
+    expect(serif).toContain("Noto Serif CJK SC");
+  });
+});
+```
+
+- [ ] **Step 2: 运行测试确认失败**
+
+Run: `cd scm-web && npm test -- src/lib/design-tokens.test.ts`
+Expected: FAIL —— `--color-brand-accent not found in design-tokens.css`
+
+- [ ] **Step 3: 在 design-tokens.css 追加 auth 域令牌**
+
+在 `src/lib/design-tokens.css` 里,`/* Auth page background */` 段落之前插入:
+
+```css
+  /* Claude 强调色(仅登录体验)
+     命名带 brand- 前缀是刻意的:globals.css 的 @theme inline 里已有
+     --color-accent: var(--accent)(shadcn muted-accent,驱动 bg-accent 工具类) */
+  --color-brand-accent: #D97757;
+  --color-brand-accent-hover: #C2603F;
+  --color-brand-accent-active: #A95134;
+  --color-brand-accent-bg: #F5E7E0;
+```
+
+并把现有的 `--auth-bg` / `--auth-card-shadow` / `--auth-brand-bg` 三行**替换**为:
+
+```css
+  /* Auth 页面暖中性色 */
+  --auth-bg: #F0EEE6;
+  --auth-surface: #FFFFFF;
+  --auth-ink: #262624;
+  --auth-ink-soft: #6B6A63;
+  --auth-line: #E5E3DA;
+  --auth-line-strong: #D4D1C5;
+  --auth-btn-soft-bg: #E9E6DC;
+  --auth-btn-soft-hover: #DFDBCE;
+  --auth-btn-fg: #FFFFFF;
+```
+
+> 删除 `--auth-card-shadow` 与 `--auth-brand-bg`:前者由新卡片的 Tailwind `shadow-sm` 取代,后者随 antd 的 `AuthBrandCard` 一起删掉(见 Task 5)。替换前先全局搜索确认没有其它引用。
+
+并在文件末尾追加:
+
+```css
+  /* 衬线字体栈:英文落到 Georgia,中文落到宋体/思源宋体 */
+  --font-serif: Georgia, 'Times New Roman', 'Songti SC', 'Noto Serif CJK SC',
+    'Source Han Serif SC', serif;
+```
+
+- [ ] **Step 4: 在 globals.css 暴露 font-serif 工具类**
+
+在 `src/app/globals.css` 的 `@theme inline { ... }` 块内追加一行:
+
+```css
+  --font-serif: var(--font-serif);
+```
+
+> 注意:该块里的 `--color-primary: var(--primary)` 等是 shadcn 变量 → Tailwind 颜色工具类的别名。这里同理,把 `design-tokens.css` 的 `--font-serif` 暴露成 Tailwind 的 `font-serif` 工具类。**不要**往这个块里加 `--color-brand-accent-*` —— Tailwind 的 `bg-brand-accent` 由 design-tokens.css 里的 `--color-brand-accent` 自动生成(该文件在 `:root` 下定义了同名 `--color-*`,Tailwind v4 会识别)。
+
+- [ ] **Step 5: 运行测试确认通过**
+
+Run: `cd scm-web && npm test -- src/lib/design-tokens.test.ts`
+Expected: PASS(4 个用例)
+
+- [ ] **Step 6: 提交**
+
+```bash
+cd scm-web
+git add src/lib/design-tokens.css src/app/globals.css src/lib/design-tokens.test.ts
+git commit -m "feat(web): 新增登录页 Claude 强调色与暖中性色设计令牌"
+```
+
+---
+
+### Task 2: 认证外壳、品牌标记与占位图
+
+**Files:**
+- Create: `scm-web/src/components/auth/auth-shell.tsx`
+- Create: `scm-web/src/components/auth/brand-mark.tsx`
+- Create: `scm-web/public/auth-hero.svg`
+- Create: `scm-web/src/components/auth/auth-shell.test.tsx`
+- Modify: `scm-web/src/app/[locale]/(auth)/layout.tsx`
+
+**Interfaces:**
+- Consumes: Task 1 的 `--auth-bg`、`--auth-surface`、`--auth-ink`、`--color-brand-accent`、`font-serif` 工具类
+- Produces:
+  - `BrandMark(props: { className?: string })` —— 渲染橙色标记 + 「SCM 供应链管理平台」字标
+  - `AuthShell(props: { children: React.ReactNode })` —— 双栏外壳;根元素上覆写 `--primary`/`--ring`/`--accent` 为橙色
+
+- [ ] **Step 1: 写失败的测试**
+
+创建 `scm-web/src/components/auth/auth-shell.test.tsx`:
+
+```tsx
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
+
+import { AuthShell } from "./auth-shell";
+
+describe("AuthShell", () => {
+  it("renders the brand mark and both header actions", () => {
+    render(
+      <AuthShell>
+        <p>content</p>
+      </AuthShell>
+    );
+
+    expect(screen.getByText("SCM 供应链管理平台")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "联系销售" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "试用平台" })).toBeInTheDocument();
+  });
+
+  it("scopes the Claude accent to the login experience only", () => {
+    const { container } = render(<AuthShell>content</AuthShell>);
+    const root = container.firstElementChild as HTMLElement;
+    expect(root.style.getPropertyValue("--primary")).toBe("var(--color-brand-accent)");
+    expect(root.style.getPropertyValue("--ring")).toBe("var(--color-brand-accent)");
+  });
+
+  it("renders the children in the left column and the hero image in the right column", () => {
+    render(
+      <AuthShell>
+        <p>content</p>
+      </AuthShell>
+    );
+
+    expect(screen.getByText("content")).toBeInTheDocument();
+    const hero = screen.getByRole("img", { name: "供应链协同" });
+    expect(hero).toHaveAttribute("src", "/auth-hero.svg");
+  });
+});
+```
+
+- [ ] **Step 2: 运行测试确认失败**
+
+Run: `cd scm-web && npm test -- src/components/auth/auth-shell.test.tsx`
+Expected: FAIL —— `Cannot find module './auth-shell'`
+
+- [ ] **Step 3: 创建 `brand-mark.tsx`**
+
+`scm-web/src/components/auth/brand-mark.tsx`:
+
+```tsx
+import { cn } from "@/lib/utils";
+
+interface BrandMarkProps {
+  className?: string;
+}
+
+/** 登录页左上角的品牌标记:橙色放射状标记 + 平台字标。 */
+export function BrandMark({ className }: BrandMarkProps) {
+  return (
+    <div className={cn("flex items-center gap-2.5", className)}>
+      <svg
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+        className="size-6 text-[var(--color-brand-accent)]"
+      >
+        <g stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+          <path d="M12 12V3" />
+          <path d="M12 12 4.2 6.6" />
+          <path d="M12 12l7.8-5.4" />
+          <path d="M12 12v9" />
+          <path d="M12 12 5.4 17.4" />
+          <path d="M12 12l6.6 5.4" />
+        </g>
+      </svg>
+      <span className="font-serif text-lg tracking-tight text-[var(--auth-ink)]">
+        SCM 供应链管理平台
+      </span>
+    </div>
+  );
+}
+```
+
+- [ ] **Step 4: 创建 `auth-shell.tsx`**
+
+`scm-web/src/components/auth/auth-shell.tsx`:
+
+```tsx
+import type { ReactNode } from "react";
+
+import { BrandMark } from "./brand-mark";
+
+interface AuthShellProps {
+  children: ReactNode;
+}
+
+/**
+ * 认证页双栏外壳。
+ * 左栏是暖象牙底的表单区,右栏是满高圆角占位图。
+ * 根元素上覆写 shadcn 的 --primary/--ring/--accent,把 Claude 橙限制在登录体验内,
+ * 全局 --color-primary(靛蓝)不变。
+ */
+export function AuthShell({ children }: AuthShellProps) {
+  return (
+    <main
+      className="min-h-dvh bg-[var(--auth-bg)] lg:grid lg:grid-cols-[1fr_minmax(0,42%)]"
+      style={
+        {
+          "--primary": "var(--color-brand-accent)",
+          "--ring": "var(--color-brand-accent)",
+          "--accent": "var(--color-brand-accent-bg)",
+        } as React.CSSProperties
+      }
+    >
+      <section className="flex flex-col px-6 py-6 lg:px-12">
+        <header className="flex items-center justify-between gap-4">
+          <BrandMark />
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="rounded-lg border border-[var(--auth-line-strong)] bg-[var(--auth-btn-soft-bg)] px-4 py-2 text-sm font-medium text-[var(--auth-ink)] transition-colors hover:bg-[var(--auth-btn-soft-hover)]"
+            >
+              联系销售
+            </button>
+            <button
+              type="button"
+              className="rounded-lg bg-[var(--auth-btn)] px-4 py-2 text-sm font-medium text-[var(--auth-btn-fg)] transition-colors hover:bg-[var(--auth-ink-soft)]"
+            >
+              试用平台
+            </button>
+          </div>
+        </header>
+
+        <div className="flex flex-1 items-center justify-center py-12">
+          <div className="w-full max-w-[520px]">{children}</div>
+        </div>
+      </section>
+
+      <aside className="hidden p-6 lg:block">
+        <img
+          src="/auth-hero.svg"
+          alt="供应链协同"
+          className="h-full w-full rounded-2xl object-cover"
+        />
+      </aside>
+    </main>
+  );
+}
+```
+
+> 顶栏两个按钮的文案在这一版先硬编码;Task 6 会把它们换成 next-intl 文案并同步更新本文件的测试断言。
+> 「联系销售」「试用平台」在本次范围内**不绑定跳转**(规格未定义目标路由)—— 保持 `<button type="button">`,不写 `Link`。
+
+- [ ] **Step 5: 创建占位图 `public/auth-hero.svg`**
+
+`scm-web/public/auth-hero.svg`:
+
+```svg
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1200" width="800" height="1200" role="img" aria-label="供应链协同">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F0EEE6"/>
+      <stop offset="55%" stop-color="#E4E0D2"/>
+      <stop offset="100%" stop-color="#D8D3C2"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#D97757" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#A95134" stop-opacity="0.55"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="1200" fill="url(#bg)"/>
+  <g fill="#FFFFFF" opacity="0.55">
+    <rect x="80" y="140" width="240" height="150" rx="12"/>
+    <rect x="360" y="180" width="180" height="110" rx="12"/>
+    <rect x="120" y="340" width="200" height="120" rx="12"/>
+    <rect x="400" y="360" width="300" height="180" rx="12"/>
+    <rect x="90" y="620" width="320" height="200" rx="12"/>
+    <rect x="470" y="610" width="230" height="140" rx="12"/>
+  </g>
+  <g stroke="#C9C3B1" stroke-width="2" fill="none">
+    <path d="M200 640 L400 720 L585 680"/>
+    <path d="M200 500 L400 540 L200 640"/>
+    <path d="M400 540 L585 460"/>
+  </g>
+  <rect x="120" y="900" width="300" height="180" rx="16" fill="url(#accent)"/>
+  <rect x="470" y="880" width="230" height="140" rx="16" fill="#FFFFFF" opacity="0.75"/>
+</svg>
+```
+
+- [ ] **Step 6: 接线 `layout.tsx`**
+
+把 `scm-web/src/app/[locale]/(auth)/layout.tsx` 改成:
+
+```tsx
+import { ReactNode } from "react";
+
+import { AuthShell } from "@/components/auth/auth-shell";
+
+export default function AuthRouteLayout({ children }: { children: ReactNode }) {
+  return <AuthShell>{children}</AuthShell>;
+}
+```
+
+- [ ] **Step 7: 运行测试确认通过**
+
+Run: `cd scm-web && npm test -- src/components/auth/auth-shell.test.tsx`
+Expected: PASS(3 个用例)
+
+- [ ] **Step 8: 提交**
+
+```bash
+cd scm-web
+git add src/components/auth/auth-shell.tsx src/components/auth/brand-mark.tsx \
+        src/components/auth/auth-shell.test.tsx public/auth-hero.svg \
+        "src/app/[locale]/(auth)/layout.tsx"
+git commit -m "feat(web): 新增 Claude 版式认证双栏外壳与品牌标记"
+```
+
+---
+
+### Task 3: 登录卡片与表单(React Hook Form + Zod)
+
+**Files:**
+- Create: `scm-web/src/components/auth/login-schema.ts`
+- Create: `scm-web/src/components/auth/login-card.tsx`
+- Create: `scm-web/src/components/auth/login-form.tsx`
+- Create: `scm-web/src/components/auth/login-form.test.tsx`
+- Create: `scm-web/src/components/auth/login-schema.test.ts`
+- Modify: `scm-web/src/app/[locale]/(auth)/login/page.tsx`
+
+**Interfaces:**
+- Consumes: Task 1 的令牌;Task 2 的 `AuthShell`;现有 `authService.login`(`scm-web/src/lib/api/services/auth.ts`)、`useAuthStore`、`useLocale`
+- Produces:
+  - `loginSchema` —— `z.object({ username: z.string().min(1, ...), password: z.string().min(1, ...) })`
+  - `totpSchema` —— `z.object({ code: z.string().length(6).regex(/^\d+$/, ...) })`
+  - `LoginCard(props: { title: string; subtitle: string; children: ReactNode })`
+  - `LoginForm(props: { onSuccess: (response: LoginResponse) => void; onMfaRequired: (values: LoginFormValues) => void })`
+
+- [ ] **Step 1: 写失败的测试(schema)**
+
+创建 `scm-web/src/components/auth/login-schema.test.ts`:
+
+```ts
+import { describe, expect, it } from "vitest";
+
+import { loginSchema, totpSchema } from "./login-schema";
+
+describe("loginSchema", () => {
+  it("rejects an empty username", () => {
+    const result = loginSchema.safeParse({ username: "", password: "x" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an empty password", () => {
+    const result = loginSchema.safeParse({ username: "admin", password: "" });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts a filled pair", () => {
+    expect(loginSchema.safeParse({ username: "admin", password: "admin123" }).success).toBe(true);
+  });
+});
+
+describe("totpSchema", () => {
+  it("requires exactly six digits", () => {
+    expect(totpSchema.safeParse({ code: "12345" }).success).toBe(false);
+    expect(totpSchema.safeParse({ code: "12345a" }).success).toBe(false);
+    expect(totpSchema.safeParse({ code: "123456" }).success).toBe(true);
+  });
+});
+```
+
+- [ ] **Step 2: 写失败的测试(表单)**
+
+创建 `scm-web/src/components/auth/login-form.test.tsx`:
+
+```tsx
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { LoginForm } from "./login-form";
+
+const login = vi.fn();
+
+vi.mock("@/lib/api/services/auth", () => ({
+  authService: { login: (...args: unknown[]) => login(...args) },
+}));
+
+vi.mock("next-intl", () => ({
+  useLocale: () => "zh-CN",
+  useTranslations: () => (key: string) => key,
+}));
+
+describe("LoginForm", () => {
+  beforeEach(() => {
+    login.mockReset();
+    login.mockResolvedValue({ accessToken: "t", refreshToken: "r", userId: "u", username: "admin" });
+  });
+
+  it("does not call the API when required fields are empty", async () => {
+    const onSuccess = vi.fn();
+    render(<LoginForm onSuccess={onSuccess} onMfaRequired={vi.fn()} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "login.submit" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("login.errors.usernameRequired")).toBeInTheDocument();
+    });
+    expect(login).not.toHaveBeenCalled();
+    expect(onSuccess).not.toHaveBeenCalled();
+  });
+
+  it("submits the credentials and forwards the response", async () => {
+    const onSuccess = vi.fn();
+    render(<LoginForm onSuccess={onSuccess} onMfaRequired={vi.fn()} />);
+
+    await userEvent.type(screen.getByLabelText("login.username"), "admin");
+    await userEvent.type(screen.getByLabelText("login.password"), "admin123");
+    await userEvent.click(screen.getByRole("button", { name: "login.submit" }));
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
+    expect(login).toHaveBeenCalledWith({ username: "admin", password: "admin123" });
+  });
+
+  it("exposes name attributes the e2e spec relies on", () => {
+    render(<LoginForm onSuccess={vi.fn()} onMfaRequired={vi.fn()} />);
+    expect(screen.getByLabelText("login.username")).toHaveAttribute("name", "username");
+    expect(screen.getByLabelText("login.password")).toHaveAttribute("name", "password");
+  });
+});
+```
+
+- [ ] **Step 3: 运行测试确认失败**
+
+Run: `cd scm-web && npm test -- src/components/auth/login-schema.test.ts src/components/auth/login-form.test.tsx`
+Expected: FAIL —— `Cannot find module './login-schema'`
+
+- [ ] **Step 4: 创建 `login-schema.ts`**
+
+`scm-web/src/components/auth/login-schema.ts`:
+
+```ts
+import { z } from "zod";
+
+export const loginSchema = z.object({
+  username: z.string().min(1, "login.errors.usernameRequired"),
+  password: z.string().min(1, "login.errors.passwordRequired"),
+});
+
+export const totpSchema = z.object({
+  code: z
+    .string()
+    .min(1, "login.errors.codeRequired")
+    .length(6, "login.errors.codeLength")
+    .regex(/^\d+$/, "login.errors.codeDigits"),
+});
+
+export type LoginFormValues = z.infer<typeof loginSchema>;
+export type TotpFormValues = z.infer<typeof totpSchema>;
+```
+
+> 校验消息写的是 i18n key,由 `useTranslations("login")` 在渲染时翻译 —— 所以 schema 里存 key 而不是文案。
+
+- [ ] **Step 5: 创建 `login-card.tsx`**
+
+`scm-web/src/components/auth/login-card.tsx`:
+
+```tsx
+import type { ReactNode } from "react";
+
+interface LoginCardProps {
+  title: string;
+  subtitle: string;
+  children: ReactNode;
+}
+
+/** 登录/找回密码共用的白卡片:细描边 + 大圆角 + 极轻阴影。 */
+export function LoginCard({ title, subtitle, children }: LoginCardProps) {
+  return (
+    <div>
+      <h1 className="font-serif text-4xl leading-tight text-[var(--auth-ink)] lg:text-[56px]">
+        {title}
+      </h1>
+      <p className="mt-3 font-serif text-lg text-[var(--auth-ink-soft)]">{subtitle}</p>
+
+      <div className="mt-8 rounded-2xl border border-[var(--auth-line)] bg-[var(--auth-surface)] p-6 shadow-sm lg:p-8">
+        {children}
+      </div>
+    </div>
+  );
+}
+```
+
+- [ ] **Step 6: 创建 `login-form.tsx`**
+
+`scm-web/src/components/auth/login-form.tsx`:
+
+```tsx
+"use client";
+
+import { useMutation } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+
+import { Form, FormField, FormItem } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { authService } from "@/lib/api/services/auth";
+import { toApiError } from "@/lib/api/envelope";
+import type { LoginResponse } from "@/lib/api/contracts/auth";
+
+import { loginSchema, type LoginFormValues } from "./login-schema";
+
+interface LoginFormProps {
+  onSuccess: (response: LoginResponse) => void;
+  onMfaRequired: (values: LoginFormValues) => void;
+}
+
+export function LoginForm({ onSuccess, onMfaRequired }: LoginFormProps) {
+  const t = useTranslations("login");
+  const form = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { username: "", password: "", remember: true },
+  });
+
+  const loginMutation = useMutation({
+    mutationFn: (data: { username: string; password: string }) => authService.login(data),
+  });
+
+  const onSubmit = async (values: LoginFormValues) => {
+    try {
+      const response = await loginMutation.mutateAsync({
+        username: values.username,
+        password: values.password,
+      });
+      onSuccess(response);
+    } catch (error: unknown) {
+      const apiError = toApiError(error);
+      if (apiError.code === 40104 || /two-factor|verification code|MFA/i.test(apiError.message)) {
+        onMfaRequired(values);
+        return;
+      }
+      throw error;
+    }
+  };
+
+  return (
+    <Form {...form}>
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="flex flex-col gap-4"
+        noValidate
+      >
+        <FormField
+          control={form.control}
+          name="username"
+          render={({ field }) => (
+            <FormItem>
+              <Label htmlFor="username">{t("username")}</Label>
+              <Input
+                id="username"
+                name="username"
+                autoComplete="username"
+                placeholder={t("usernamePlaceholder")}
+                className="h-12 rounded-lg bg-transparent"
+                {...field}
+              />
+              {form.formState.errors.username && (
+                <p className="text-sm text-destructive">{t("errors.usernameRequired")}</p>
+              )}
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <Label htmlFor="password">{t("password")}</Label>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                placeholder={t("passwordPlaceholder")}
+                className="h-12 rounded-lg bg-transparent"
+                {...field}
+              />
+              {form.formState.errors.password && (
+                <p className="text-sm text-destructive">{t("errors.passwordRequired")}</p>
+              )}
+            </FormItem>
+          )}
+        />
+
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <FormField
+              control={form.control}
+              name="remember"
+              render={({ field }) => (
+                <Checkbox
+                  id="remember"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                  onBlur={field.onBlur}
+                />
+              )}
+            />
+            <Label htmlFor="remember" className="text-sm font-normal text-[var(--auth-ink-soft)]">
+              {t("remember")}
+            </Label>
+          </div>
+          <a href="/zh-CN/forgot-password" className="text-sm text-[var(--color-brand-accent)] underline-offset-4 hover:underline">
+            {t("forgotPassword")}
+          </a>
+        </div>
+
+        <Button
+          type="submit"
+          disabled={loginMutation.isPending}
+          className="h-12 w-full rounded-lg bg-[var(--auth-btn)] text-[var(--auth-btn-fg)] hover:bg-[var(--auth-ink-soft)]"
+        >
+          {t("submit")}
+        </Button>
+
+        <p className="text-center text-[11px] leading-relaxed text-[var(--auth-ink-soft)]">
+          {t("legalPrefix")}{" "}
+          <a href="/terms" className="underline underline-offset-4">
+            {t("terms")}
+          </a>{" "}
+          {t("legalMiddle")}{" "}
+          <a href="/privacy" className="underline underline-offset-4">
+            {t("privacy")}
+          </a>
+          {t("legalSuffix")}
+        </p>
+      </form>
+    </Form>
+  );
+}
+```
+
+> **不要用 shadcn 的 `FormMessage` 承载 i18n 错误文案**。它的实现是
+> `error ? String(error.message) : props.children` —— 没有错误时会把 children 直接渲染出来
+> (错误提示一进页面就显示),有错误时又优先显示 `error.message`(那会是 schema 里的原始 key,
+> 没有翻译)。所以错误文案自己用条件段落渲染,`FormItem` 只用来做间距。
+>
+> `loginSchema` 里的 message 存 i18n key,只用于 `formState.errors.*.message` 的可读性,
+> 不直接显示。
+
+> 「忘记密码」链接这一版硬编码 `/zh-CN/forgot-password`;Task 6 换成 `useLocale()` 拼出来的路径。
+
+- [ ] **Step 7: 重写 `login/page.tsx`**
+
+把 `scm-web/src/app/[locale]/(auth)/login/page.tsx` 改成下面的骨架 —— 会话建立逻辑先留在页面里,Task 4 再抽出去:
+
+```tsx
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
+import { App } from "antd";
+import { useQueryClient } from "@tanstack/react-query";
+
+import { LoginCard } from "@/components/auth/login-card";
+import { LoginForm } from "@/components/auth/login-form";
+import type { LoginFormValues } from "@/components/auth/login-schema";
+import { useAuthStore } from "@/stores/useAuthStore";
+import { toSessionUser, mergeUserInfo } from "@/lib/auth/session";
+import { authService } from "@/lib/api/services/auth";
+
+export default function LoginPage() {
+  const t = useTranslations("login");
+  const locale = useLocale();
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const { message } = App.useApp();
+  const { login, setUser, setPermissions } = useAuthStore();
+  const [mfaValues, setMfaValues] = useState<LoginFormValues | null>(null);
+
+  const completeLogin = async (response: Parameters<typeof toSessionUser>[0]) => {
+    if (!response.accessToken) {
+      message.error(response.message || t("failed"));
+      return;
+    }
+    login(toSessionUser(response), response.accessToken, response.refreshToken ?? "");
+    setPermissions(response.permissions ?? []);
+    try {
+      const userInfo = await authService.getUserInfo();
+      setUser(mergeUserInfo(useAuthStore.getState().user, userInfo));
+    } catch {
+      /* token 有效,资料补全是尽力而为 */
+    }
+    queryClient.clear();
+    message.success(t("success"));
+    router.push(`/${locale}/dashboard`);
+  };
+
+  if (mfaValues) {
+    return (
+      <LoginCard title={t("mfa.title")} subtitle={t("mfa.subtitle")}>
+        {/* Task 3 只需要主流程;MFA 表单在 Task 4 一并接线 */}
+      </LoginCard>
+    );
+  }
+
+  return (
+    <LoginCard title={t("title")} subtitle={t("subtitle")}>
+      <LoginForm
+        onSuccess={(response) => void completeLogin(response)}
+        onMfaRequired={(values) => setMfaValues(values)}
+      />
+    </LoginCard>
+  );
+}
+```
+
+- [ ] **Step 8: 运行测试确认通过**
+
+Run: `cd scm-web && npm test -- src/components/auth/login-schema.test.ts src/components/auth/login-form.test.tsx`
+Expected: PASS(schema 4 个用例 + 表单 3 个用例)
+
+- [ ] **Step 9: 提交**
+
+```bash
+cd scm-web
+git add src/components/auth/login-schema.ts src/components/auth/login-schema.test.ts \
+        src/components/auth/login-card.tsx src/components/auth/login-form.tsx \
+        src/components/auth/login-form.test.tsx "src/app/[locale]/(auth)/login/page.tsx"
+git commit -m "feat(web): 登录卡片与表单迁移到 shadcn/ui + React Hook Form + Zod"
+```
+
+---
+
+### Task 4: 共享会话建立 hook 与 TOTP 两步验证
+
+**Files:**
+- Create: `scm-web/src/lib/auth/use-complete-login.ts`
+- Create: `scm-web/src/lib/auth/use-complete-login.test.tsx`
+- Create: `scm-web/src/components/auth/totp-form.tsx`
+- Modify: `scm-web/src/app/[locale]/(auth)/login/page.tsx`
+
+**Interfaces:**
+- Consumes: Task 3 的 `LoginFormValues`、`totpSchema`;现有 `useAuthStore`、`authService`、`toSessionUser`、`mergeUserInfo`
+- Produces:
+  - `useCompleteLogin(): (response: LoginResponse) => Promise<void>` —— 建立会话:写 store → 补资料 → 清 query cache → 跳 `/{locale}/dashboard`
+  - `TotpForm(props: { pendingCredentials: LoginFormValues; onBack: () => void; onSuccess: (response: LoginResponse) => void })`
+
+- [ ] **Step 1: 写失败的测试**
+
+创建 `scm-web/src/lib/auth/use-complete-login.test.tsx`:
+
+```tsx
+import { act, renderHook, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { useCompleteLogin } from "./use-complete-login";
+
+const push = vi.fn();
+const clear = vi.fn();
+const login = vi.fn();
+const setPermissions = vi.fn();
+const setUser = vi.fn();
+const getUserInfo = vi.fn();
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push }),
+  usePathname: () => "/zh-CN/login",
+}));
+
+vi.mock("next-intl", () => ({ useLocale: () => "zh-CN" }));
+
+vi.mock("@tanstack/react-query", () => ({
+  useQueryClient: () => ({ clear }),
+}));
+
+vi.mock("@/stores/useAuthStore", () => ({
+  useAuthStore: Object.assign(
+    () => ({ login, setUser, setPermissions }),
+    { getState: () => ({ user: null }) }
+  ),
+}));
+
+vi.mock("@/lib/api/services/auth", () => ({
+  authService: { getUserInfo: (...args: unknown[]) => getUserInfo(...args) },
+}));
+
+describe("useCompleteLogin", () => {
+  beforeEach(() => {
+    push.mockReset();
+    clear.mockReset();
+    login.mockReset();
+    setPermissions.mockReset();
+    setUser.mockReset();
+    getUserInfo.mockReset();
+    getUserInfo.mockResolvedValue({ userId: "u", username: "admin", realName: "管理员" });
+  });
+
+  it("stores the tokens, clears the query cache and redirects to the dashboard", async () => {
+    const { result } = renderHook(() => useCompleteLogin());
+
+    await act(async () => {
+      await result.current({
+        accessToken: "at",
+        refreshToken: "rt",
+        userId: "u",
+        username: "admin",
+        realName: "管理员",
+        permissions: ["system:user:list"],
+      });
+    });
+
+    expect(login).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "u", username: "admin" }),
+      "at",
+      "rt"
+    );
+    expect(setPermissions).toHaveBeenCalledWith(["system:user:list"]);
+    expect(clear).toHaveBeenCalled();
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/zh-CN/dashboard"));
+  });
+});
+```
+
+- [ ] **Step 2: 运行测试确认失败**
+
+Run: `cd scm-web && npm test -- src/lib/auth/use-complete-login.test.tsx`
+Expected: FAIL —— `Cannot find module './use-complete-login'`
+
+- [ ] **Step 3: 创建 `use-complete-login.ts`**
+
+`scm-web/src/lib/auth/use-complete-login.ts`:
+
+```tsx
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
+import { useQueryClient } from "@tanstack/react-query";
+
+import { useAuthStore } from "@/stores/useAuthStore";
+import { toSessionUser, mergeUserInfo } from "@/lib/auth/session";
+import { authService } from "@/lib/api/services/auth";
+import type { LoginResponse } from "@/lib/api/contracts/auth";
+
+/**
+ * 建立会话的共享逻辑。密码登录与社交登录回调页共用。
+ * 顺序不可调换:先写 store(后续 getUserInfo 才带得上 token),再清 query cache,最后跳路由。
+ */
+export function useCompleteLogin() {
+  const router = useRouter();
+  const locale = useLocale();
+  const queryClient = useQueryClient();
+  const { login, setUser, setPermissions } = useAuthStore();
+
+  return async (response: LoginResponse): Promise<void> => {
+    if (!response.accessToken) {
+      throw new Error(response.message || "Login response has no access token");
+    }
+
+    login(toSessionUser(response), response.accessToken, response.refreshToken ?? "");
+    setPermissions(response.permissions ?? []);
+
+    try {
+      const userInfo = await authService.getUserInfo();
+      setUser(mergeUserInfo(useAuthStore.getState().user, userInfo));
+    } catch {
+      /* token 有效,资料补全是尽力而为 */
+    }
+
+    queryClient.clear();
+    router.push(`/${locale}/dashboard`);
+  };
+}
+```
+
+- [ ] **Step 4: 创建 `totp-form.tsx`**
+
+`scm-web/src/components/auth/totp-form.tsx`:
+
+```tsx
+"use client";
+
+import { useMutation } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+
+import { Form, FormField, FormItem } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { authService } from "@/lib/api/services/auth";
+import { toApiError } from "@/lib/api/envelope";
+import type { LoginResponse } from "@/lib/api/contracts/auth";
+
+import { totpSchema, type LoginFormValues, type TotpFormValues } from "./login-schema";
+
+interface TotpFormProps {
+  pendingCredentials: LoginFormValues;
+  onBack: () => void;
+  onSuccess: (response: LoginResponse) => void;
+}
+
+export function TotpForm({ pendingCredentials, onBack, onSuccess }: TotpFormProps) {
+  const t = useTranslations("login");
+  const form = useForm<TotpFormValues>({
+    resolver: zodResolver(totpSchema),
+    defaultValues: { code: "" },
+  });
+
+  const loginMutation = useMutation({
+    mutationFn: (data: { username: string; password: string; twoFactorCode: string }) =>
+      authService.login(data),
+  });
+
+  const onSubmit = async (values: TotpFormValues) => {
+    try {
+      const response = await loginMutation.mutateAsync({
+        username: pendingCredentials.username,
+        password: pendingCredentials.password,
+        twoFactorCode: values.code,
+      });
+      onSuccess(response);
+    } catch (error: unknown) {
+      form.setError("code", { message: toApiError(error).message || t("errors.codeInvalid") });
+    }
+  };
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
+        <FormField
+          control={form.control}
+          name="code"
+          render={({ field }) => (
+            <FormItem>
+              <Input
+                id="code"
+                name="code"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                placeholder={t("mfa.codePlaceholder")}
+                className="h-12 rounded-lg bg-transparent text-center text-lg tracking-[0.5em]"
+                {...field}
+              />
+              {form.formState.errors.code && (
+                <p className="text-sm text-destructive">{t("errors.codeRequired")}</p>
+              )}
+            </FormItem>
+          )}
+        />
+
+        <Button
+          type="submit"
+          disabled={loginMutation.isPending}
+          className="h-12 w-full rounded-lg bg-[var(--auth-btn)] text-[var(--auth-btn-fg)] hover:bg-[var(--auth-ink-soft)]"
+        >
+          {t("mfa.submit")}
+        </Button>
+
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={onBack}
+          className="text-[var(--auth-ink-soft)]"
+        >
+          {t("mfa.back")}
+        </Button>
+      </form>
+    </Form>
+  );
+}
+```
+
+- [ ] **Step 5: 接线 `login/page.tsx`(含 TOTP 分支)**
+
+把 `scm-web/src/app/[locale]/(auth)/login/page.tsx` 改成:
+
+```tsx
+"use client";
+
+import { useState } from "react";
+import { App } from "antd";
+import { useTranslations } from "next-intl";
+
+import { LoginCard } from "@/components/auth/login-card";
+import { LoginForm } from "@/components/auth/login-form";
+import { TotpForm } from "@/components/auth/totp-form";
+import type { LoginFormValues } from "@/components/auth/login-schema";
+import { useCompleteLogin } from "@/lib/auth/use-complete-login";
+
+export default function LoginPage() {
+  const t = useTranslations("login");
+  const { message } = App.useApp();
+  const completeLogin = useCompleteLogin();
+  const [pendingCredentials, setPendingCredentials] = useState<LoginFormValues | null>(null);
+
+  if (pendingCredentials) {
+    return (
+      <LoginCard title={t("mfa.title")} subtitle={t("mfa.subtitle")}>
+        <TotpForm
+          pendingCredentials={pendingCredentials}
+          onBack={() => setPendingCredentials(null)}
+          onSuccess={(response) => {
+            message.success(t("success"));
+            void completeLogin(response);
+          }}
+        />
+      </LoginCard>
+    );
+  }
+
+  return (
+    <LoginCard title={t("title")} subtitle={t("subtitle")}>
+      <LoginForm
+        onSuccess={(response) => {
+          message.success(t("success"));
+          void completeLogin(response);
+        }}
+        onMfaRequired={setPendingCredentials}
+      />
+    </LoginCard>
+  );
+}
+```
+
+> `completeLogin` 现在负责跳转,页面只负责弹提示 —— 顺序是「先提示成功再跳」,与原实现一致。
+
+- [ ] **Step 6: 运行测试确认通过**
+
+Run: `cd scm-web && npm test -- src/lib/auth/use-complete-login.test.tsx`
+Expected: PASS(1 个用例)
+
+- [ ] **Step 7: 跑全量前端测试与类型检查**
+
+Run: `cd scm-web && npm test && npm run typecheck`
+Expected: 全部 PASS;typecheck 无错误
+
+- [ ] **Step 8: 提交**
+
+```bash
+cd scm-web
+git add src/lib/auth/use-complete-login.ts src/lib/auth/use-complete-login.test.tsx \
+        src/components/auth/totp-form.tsx "src/app/[locale]/(auth)/login/page.tsx"
+git commit -m "refactor(web): 抽取共享会话建立 hook 并接入 TOTP 两步验证"
+```
+
+---
+
+### Task 5: 找回密码页迁移 + 删除旧 antd 组件
+
+**Files:**
+- Modify: `scm-web/src/app/[locale]/(auth)/forgot-password/page.tsx`
+- Create: `scm-web/src/components/auth/forgot-password-form.tsx`
+- Create: `scm-web/src/components/auth/forgot-password-form.test.tsx`
+- Delete: `scm-web/src/components/ui/auth-brand-card.tsx`
+- Delete: `scm-web/src/layouts/auth-layout.tsx`
+
+**Interfaces:**
+- Consumes: Task 1 的令牌;Task 2 的 `AuthShell`;Task 3 的 `LoginCard`
+- Produces: 无(本任务是收口,不对外提供新接口)
+
+- [ ] **Step 1: 写失败的测试**
+
+创建 `scm-web/src/components/auth/forgot-password-form.test.tsx`:
+
+```tsx
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
+
+import { ForgotPasswordForm } from "./forgot-password-form";
+
+vi.mock("next-intl", () => ({
+  useTranslations: () => (key: string) => key,
+}));
+
+describe("ForgotPasswordForm", () => {
+  it("requires a valid email before sending a code", async () => {
+    render(<ForgotPasswordForm />);
+
+    await userEvent.click(screen.getByRole("button", { name: "forgot.sendCode" }));
+    await waitFor(() => {
+      expect(screen.getByText("forgot.errors.emailRequired")).toBeInTheDocument();
+    });
+  });
+
+  it("advances to the code step after a valid email", async () => {
+    render(<ForgotPasswordForm />);
+
+    await userEvent.type(screen.getByLabelText("forgot.email"), "ops@example.com");
+    await userEvent.click(screen.getByRole("button", { name: "forgot.sendCode" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("forgot.codeSent")).toBeInTheDocument();
+    });
+  });
+});
+```
+
+- [ ] **Step 2: 运行测试确认失败**
+
+Run: `cd scm-web && npm test -- src/components/auth/forgot-password-form.test.tsx`
+Expected: FAIL —— `Cannot find module './forgot-password-form'`
+
+- [ ] **Step 3: 创建 `forgot-password-form.tsx`**
+
+`scm-web/src/components/auth/forgot-password-form.tsx`:
+
+```tsx
+"use client";
+
+import { useState } from "react";
+import { useTranslations } from "next-intl";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+
+import { Form, FormField, FormItem } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+
+const forgotSchema = z.object({
+  email: z.string().min(1, "forgot.errors.emailRequired").email("forgot.errors.emailInvalid"),
+});
+
+type ForgotValues = z.infer<typeof forgotSchema>;
+
+type Step = "email" | "code" | "password";
+
+export function ForgotPasswordForm() {
+  const t = useTranslations("forgot");
+  const [step, setStep] = useState<Step>("email");
+  const [email, setEmail] = useState("");
+
+  const form = useForm<ForgotValues>({
+    resolver: zodResolver(forgotSchema),
+    defaultValues: { email: "" },
+  });
+
+  const onEmailSubmit = (values: ForgotValues) => {
+    setEmail(values.email);
+    setStep("code");
+  };
+
+  return (
+    <div className="flex flex-col gap-4">
+      {step === "email" && (
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onEmailSubmit)} className="flex flex-col gap-4" noValidate>
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <Label htmlFor="email">{t("email")}</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    placeholder={t("emailPlaceholder")}
+                    className="h-12 rounded-lg bg-transparent"
+                    {...field}
+                  />
+                  {form.formState.errors.email && (
+                    <p className="text-sm text-destructive">{t("errors.emailRequired")}</p>
+                  )}
+                </FormItem>
+              )}
+            />
+            <Button
+              type="submit"
+              className="h-12 w-full rounded-lg bg-[var(--auth-btn)] text-[var(--auth-btn-fg)] hover:bg-[var(--auth-ink-soft)]"
+            >
+              {t("sendCode")}
+            </Button>
+          </form>
+        </Form>
+      )}
+
+      {step === "code" && (
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-[var(--auth-ink-soft)]">{t("codeSent", { email })}</p>
+          <Input
+            name="code"
+            inputMode="numeric"
+            maxLength={6}
+            placeholder={t("codePlaceholder")}
+            className="h-12 rounded-lg bg-transparent text-center text-lg tracking-[0.5em]"
+          />
+          <Button
+            type="button"
+            onClick={() => setStep("password")}
+            className="h-12 w-full rounded-lg bg-[var(--auth-btn)] text-[var(--auth-btn-fg)] hover:bg-[var(--auth-ink-soft)]"
+          >
+            {t("verify")}
+          </Button>
+        </div>
+      )}
+
+      {step === "password" && (
+        <div className="flex flex-col gap-4">
+          <Input
+            name="password"
+            type="password"
+            autoComplete="new-password"
+            placeholder={t("newPasswordPlaceholder")}
+            className="h-12 rounded-lg bg-transparent"
+          />
+          <Input
+            name="confirmPassword"
+            type="password"
+            autoComplete="new-password"
+            placeholder={t("confirmPasswordPlaceholder")}
+            className="h-12 rounded-lg bg-transparent"
+          />
+          <Button
+            type="button"
+            className="h-12 w-full rounded-lg bg-[var(--auth-btn)] text-[var(--auth-btn-fg)] hover:bg-[var(--auth-ink-soft)]"
+          >
+            {t("reset")}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+> 找回密码的后端接口在仓库里本来就没有(`forgot-password/page.tsx` 原来也只是本地 `setCurrentStep` 模拟,没有真实请求)。本 Task 保持同样的行为边界,不新增后端调用。
+
+- [ ] **Step 4: 改写 `forgot-password/page.tsx`**
+
+`scm-web/src/app/[locale]/(auth)/forgot-password/page.tsx`:
+
+```tsx
+"use client";
+
+import { useTranslations } from "next-intl";
+
+import { LoginCard } from "@/components/auth/login-card";
+import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
+
+export default function ForgotPasswordPage() {
+  const t = useTranslations("forgot");
+  return (
+    <LoginCard title={t("title")} subtitle={t("subtitle")}>
+      <ForgotPasswordForm />
+    </LoginCard>
+  );
+}
+```
+
+- [ ] **Step 5: 删除旧 antd 组件并确认无残留引用**
+
+```bash
+cd scm-web
+git rm src/components/ui/auth-brand-card.tsx src/layouts/auth-layout.tsx
+```
+
+然后全局搜索确认没有引用残留:
+
+Run: `grep -rn "AuthBrandCard\|auth-layout\|AuthLayout" src/`
+Expected: 无输出(有输出就把该引用改掉再删)
+
+- [ ] **Step 6: 运行测试确认通过**
+
+Run: `cd scm-web && npm test -- src/components/auth/forgot-password-form.test.tsx`
+Expected: PASS(2 个用例)
+
+- [ ] **Step 7: 提交**
+
+```bash
+cd scm-web
+git add src/components/auth/forgot-password-form.tsx \
+        src/components/auth/forgot-password-form.test.tsx \
+        "src/app/[locale]/(auth)/forgot-password/page.tsx"
+git commit -m "refactor(web): 找回密码页迁移到 shadcn/ui 并移除旧 antd 认证组件"
+```
+
+---
+
+### Task 6: 双语文案、e2e 断言更新与收尾
+
+**Files:**
+- Modify: `scm-web/messages/zh-CN.json`
+- Modify: `scm-web/messages/en-US.json`
+- Modify: `scm-web/src/components/auth/auth-shell.tsx`(顶栏文案改走 i18n)
+- Modify: `scm-web/src/components/auth/login-form.tsx`(忘记密码链接改走 `useLocale()`)
+- Modify: `scm-web/src/components/auth/auth-shell.test.tsx`(断言跟随文案变化)
+- Modify: `scm-web/e2e/login.spec.ts`
+- Create: `scm-web/src/lib/i18n-messages.test.ts`
+
+**Interfaces:**
+- Consumes: Task 1–5 产出的组件与文案 key
+- Produces: `messages/{zh-CN,en-US}.json` 里的 `login` 与 `forgot` 两个命名空间
+
+- [ ] **Step 1: 写失败的测试(i18n 对齐)**
+
+创建 `scm-web/src/lib/i18n-messages.test.ts`:
+
+```ts
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { describe, expect, it } from "vitest";
+
+function load(locale: string): Record<string, unknown> {
+  return JSON.parse(
+    readFileSync(join(process.cwd(), `messages/${locale}.json`), "utf8")
+  ) as Record<string, unknown>;
+}
+
+function keysOf(value: unknown, prefix = ""): string[] {
+  if (typeof value !== "object" || value === null) return [prefix];
+  return Object.entries(value as Record<string, unknown>).flatMap(([k, v]) =>
+    keysOf(v, prefix ? `${prefix}.${k}` : k)
+  );
+}
+
+describe("i18n message catalogs", () => {
+  it("zh-CN and en-US expose the same auth keys", () => {
+    const zh = keysOf(load("zh-CN")).filter((k) => k.startsWith("login.") || k.startsWith("forgot."));
+    const en = keysOf(load("en-US")).filter((k) => k.startsWith("login.") || k.startsWith("forgot."));
+    expect(zh.sort()).toEqual(en.sort());
+    expect(zh.length).toBeGreaterThan(0);
+  });
+
+  it("has no empty auth translations", () => {
+    for (const locale of ["zh-CN", "en-US"]) {
+      const catalog = load(locale) as Record<string, Record<string, unknown>>;
+      const flat: Record<string, unknown> = {
+        ...catalog.login,
+        ...catalog.forgot,
+      };
+      for (const [key, value] of Object.entries(flat)) {
+        expect(typeof value, `${locale}.${key}`).toBe("string");
+        expect(String(value).trim().length, `${locale}.${key}`).toBeGreaterThan(0);
+      }
+    }
+  });
+});
+```
+
+- [ ] **Step 2: 运行测试确认失败**
+
+Run: `cd scm-web && npm test -- src/lib/i18n-messages.test.ts`
+Expected: FAIL —— `login` 命名空间不存在,key 列表为空 / 不相等
+
+- [ ] **Step 3: 写 `zh-CN.json` 的 `login` 与 `forgot` 命名空间**
+
+在 `scm-web/messages/zh-CN.json` 的顶层加入(与既有 `app` / `nav` / `analytics` / `dashboard` / `common` 平级):
+
+```json
+  "login": {
+    "title": "让供应链运转如丝",
+    "subtitle": "采购、库存、履约与结算,一个平台贯通",
+    "username": "用户名",
+    "usernamePlaceholder": "请输入用户名",
+    "password": "密码",
+    "passwordPlaceholder": "请输入密码",
+    "remember": "记住我",
+    "forgotPassword": "忘记密码?",
+    "submit": "登录",
+    "success": "登录成功",
+    "failed": "登录失败",
+    "legalPrefix": "继续即表示您同意",
+    "legalMiddle": "与",
+    "terms": "服务条款",
+    "privacy": "隐私政策",
+    "legalSuffix": ",并同意接收产品通知。",
+    "errors": {
+      "usernameRequired": "请输入用户名",
+      "passwordRequired": "请输入密码",
+      "codeRequired": "请输入验证码",
+      "codeLength": "验证码为 6 位数字",
+      "codeDigits": "验证码只能包含数字",
+      "codeInvalid": "验证码错误"
+    },
+    "mfa": {
+      "title": "两步验证",
+      "subtitle": "请输入您的 TOTP 验证码",
+      "codePlaceholder": "6 位验证码",
+      "submit": "验证",
+      "back": "返回登录"
+    }
+  },
+  "forgot": {
+    "title": "找回密码",
+    "subtitle": "通过已验证邮箱重置您的密码",
+    "email": "邮箱地址",
+    "emailPlaceholder": "请输入注册邮箱",
+    "sendCode": "发送验证码",
+    "codeSent": "验证码已发送至 {email}",
+    "codePlaceholder": "6 位验证码",
+    "verify": "验证",
+    "newPasswordPlaceholder": "新密码",
+    "confirmPasswordPlaceholder": "确认密码",
+    "reset": "重置密码",
+    "errors": {
+      "emailRequired": "请输入邮箱地址",
+      "emailInvalid": "请输入有效的邮箱地址"
+    }
+  }
+```
+
+- [ ] **Step 4: 写 `en-US.json` 的同名命名空间**
+
+在 `scm-web/messages/en-US.json` 加入**完全相同**的 key 结构:
+
+```json
+  "login": {
+    "title": "Make your supply chain flow",
+    "subtitle": "Procurement, inventory, fulfillment and finance in one place",
+    "username": "Username",
+    "usernamePlaceholder": "Enter your username",
+    "password": "Password",
+    "passwordPlaceholder": "Enter your password",
+    "remember": "Remember me",
+    "forgotPassword": "Forgot password?",
+    "submit": "Log in",
+    "success": "Signed in",
+    "failed": "Sign-in failed",
+    "legalPrefix": "By continuing you agree to our",
+    "legalMiddle": "and",
+    "terms": "Terms of Service",
+    "privacy": "Privacy Policy",
+    "legalSuffix": ", and consent to receive product updates.",
+    "errors": {
+      "usernameRequired": "Username is required",
+      "passwordRequired": "Password is required",
+      "codeRequired": "Verification code is required",
+      "codeLength": "The code must be 6 digits",
+      "codeDigits": "The code must contain digits only",
+      "codeInvalid": "Incorrect verification code"
+    },
+    "mfa": {
+      "title": "Two-step verification",
+      "subtitle": "Enter your TOTP verification code",
+      "codePlaceholder": "6-digit code",
+      "submit": "Verify",
+      "back": "Back to sign in"
+    }
+  },
+  "forgot": {
+    "title": "Reset your password",
+    "subtitle": "Reset your password with a verified email",
+    "email": "Email address",
+    "emailPlaceholder": "Enter your registered email",
+    "sendCode": "Send verification code",
+    "codeSent": "Verification code sent to {email}",
+    "codePlaceholder": "6-digit code",
+    "verify": "Verify",
+    "newPasswordPlaceholder": "New password",
+    "confirmPasswordPlaceholder": "Confirm password",
+    "reset": "Reset password",
+    "errors": {
+      "emailRequired": "Email address is required",
+      "emailInvalid": "Enter a valid email address"
+    }
+  }
+```
+
+- [ ] **Step 5: 把组件里的硬编码文案换成 i18n**
+
+`auth-shell.tsx`:改用 `useTranslations("login")`,把「联系销售」「试用平台」换成 `t("header.contactSales")` / `t("header.tryPlatform")`,并在两个命名空间里补上对应 key:
+
+```json
+    "header": {
+      "contactSales": "联系销售",
+      "tryPlatform": "试用平台"
+    }
+```
+(en-US 侧为 `"Contact sales"` / `"Try the platform"`)
+
+同时把 `brand-mark.tsx` 里的「SCM 供应链管理平台」改为 `t("brandName")`,两边分别是 `"SCM 供应链管理平台"` / `"SCM Supply Chain Platform"`,并在 `login` 命名空间补 `brandName`。
+
+`login-form.tsx`:忘记密码链接改成用 `useLocale()` 拼路径:
+
+```tsx
+const locale = useLocale();
+...
+<a href={`/${locale}/forgot-password`} className="text-sm text-[var(--color-brand-accent)] underline-offset-4 hover:underline">
+```
+
+- [ ] **Step 6: 更新 `auth-shell.test.tsx` 的文案断言**
+
+把测试里的三个文案断言改为 key 断言(测试里 `useTranslations` mock 成返回 key):
+
+```tsx
+vi.mock("next-intl", () => ({
+  useTranslations: () => (key: string) => key,
+}));
+```
+
+断言改为:
+
+```tsx
+expect(screen.getByText("login.brandName")).toBeInTheDocument();
+expect(screen.getByRole("button", { name: "login.header.contactSales" })).toBeInTheDocument();
+expect(screen.getByRole("button", { name: "login.header.tryPlatform" })).toBeInTheDocument();
+```
+
+> `brand-mark.tsx` 现在需要 `useTranslations`,它会变成 client 组件 —— 在文件顶部加 `"use client";`。
+
+- [ ] **Step 7: 更新 `e2e/login.spec.ts`**
+
+`scm-web/e2e/login.spec.ts` 改成:
+
+```ts
+import { test, expect } from "@playwright/test";
+
+test("login page displays correctly", async ({ page }) => {
+  await page.goto("/zh-CN/login");
+  await expect(page.locator("h1")).toContainText("让供应链运转如丝");
+  await expect(page.locator('input[name="username"]')).toBeVisible();
+  await expect(page.locator('input[name="password"]')).toBeVisible();
+});
+
+test("successful login redirects to dashboard", async ({ page }) => {
+  await page.goto("/zh-CN/login");
+  await page.fill('input[name="username"]', "admin");
+  await page.fill('input[name="password"]', "admin123");
+  await page.click('button[type="submit"]');
+  await expect(page).toHaveURL(/\/zh-CN\/dashboard/);
+});
+```
+
+- [ ] **Step 8: 跑全量校验**
+
+Run: `cd scm-web && npm test && npm run typecheck && npm run lint`
+Expected: 全部通过
+
+- [ ] **Step 9: 跑生产构建**
+
+Run: `cd scm-web && npm run build`
+Expected: 构建成功,无 ESLint / TS 错误
+
+- [ ] **Step 10: 提交**
+
+```bash
+cd scm-web
+git add messages/zh-CN.json messages/en-US.json \
+        src/components/auth/auth-shell.tsx src/components/auth/auth-shell.test.tsx \
+        src/components/auth/brand-mark.tsx src/components/auth/login-form.tsx \
+        src/lib/i18n-messages.test.ts e2e/login.spec.ts
+git commit -m "feat(web): 登录页接入 next-intl 双语文案并更新 e2e 断言"
+```
+
+---
+
+## 完成定义
+
+全部 6 个 Task 完成后,下列命令必须全绿:
+
+```bash
+cd scm-web
+npm run typecheck
+npm run lint
+npm test
+npm run build
+```
+
+且下列人工检查项成立:
+
+- `/{locale}/login` 在 `lg` 以上是双栏(左表单右图),`lg` 以下单栏且不显示图片
+- 登录卡片含:衬线标题、白卡片、用户名、密码、记住我、忘记密码、近黑「登录」按钮、底部细则
+- 密码错误停在登录页并提示,只有 `40104` / 含 MFA 关键字才切到两步验证
+- 登录成功后 `access_token` cookie 被写入,刷新页面仍是登录态
+- 找回密码页三步可前进后退
+- 页面里搜不到任何 `antd` 组件 import(除 `App` 用于 `message`)
+- `grep -rn "AuthBrandCard\|auth-layout" scm-web/src/` 无输出
+
+社交登录按钮、回调页与后端端点**不在本计划范围**,见配套计划 `docs/superpowers/plans/2026-10-27-social-auth-google-apple.md`。

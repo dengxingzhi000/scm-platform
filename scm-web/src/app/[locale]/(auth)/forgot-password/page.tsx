@@ -44,7 +44,7 @@ export default function ForgotPasswordPage() {
       title: '验证邮箱',
       content: (
         <Form onFinish={onEmailSubmit} layout="vertical">
-          <Form.Item name="email" rules={[{ required: true, message: '请输入邮箱地址' }, { type: 'email', message: '请输入有效的邮箱地址' }]}>
+          <Form.Item name="email" label="邮箱" rules={[{ required: true, message: '请输入邮箱地址' }, { type: 'email', message: '请输入有效的邮箱地址' }]}>
             <Input prefix={<MailOutlined />} placeholder="请输入注册邮箱" size="large" />
           </Form.Item>
           <Form.Item>
@@ -58,7 +58,7 @@ export default function ForgotPasswordPage() {
       content: (
         <Form onFinish={onCodeSubmit} layout="vertical">
           <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>验证码已发送至 {email}</Text>
-          <Form.Item name="code" rules={[{ required: true, message: '请输入验证码' }, { len: 6, message: '验证码为6位数字' }]}>
+          <Form.Item name="code" label="验证码" rules={[{ required: true, message: '请输入验证码' }, { len: 6, message: '验证码为6位数字' }]}>
             <Input prefix={<SafetyOutlined />} placeholder="6位验证码" maxLength={6} size="large" />
           </Form.Item>
           <Form.Item>
@@ -71,10 +71,10 @@ export default function ForgotPasswordPage() {
       title: '重置密码',
       content: (
         <Form onFinish={onPasswordSubmit} layout="vertical">
-          <Form.Item name="password" rules={[{ required: true, message: '请输入新密码' }, { min: 8, message: '密码至少8位' }]}>
+          <Form.Item name="password" label="新密码" rules={[{ required: true, message: '请输入新密码' }, { min: 8, message: '密码至少8位' }]}>
             <Input.Password prefix={<LockOutlined />} placeholder="新密码" size="large" />
           </Form.Item>
-          <Form.Item name="confirmPassword" dependencies={['password']} rules={[{ required: true, message: '请确认密码' }, ({ getFieldValue }) => ({ validator(_, value) { if (!value || getFieldValue('password') === value) return Promise.resolve(); return Promise.reject(new Error('两次密码不一致')) } })]}>
+          <Form.Item name="confirmPassword" label="确认密码" dependencies={['password']} rules={[{ required: true, message: '请确认密码' }, ({ getFieldValue }) => ({ validator(_, value) { if (!value || getFieldValue('password') === value) return Promise.resolve(); return Promise.reject(new Error('两次密码不一致')) } })]}>
             <Input.Password prefix={<LockOutlined />} placeholder="确认密码" size="large" />
           </Form.Item>
           <Form.Item>

@@ -198,6 +198,56 @@ export interface RefundQueryRequest {
   pageSize: number;
 }
 
+/** Every field the backend marks required must be sent, including `items`. */
+export interface RefundItemRequest {
+  orderItemId: string;
+  skuId: string;
+  skuCode?: string;
+  skuName: string;
+  quantity: number;
+  refundAmount: number;
+  remark?: string;
+}
+
+export interface RefundCreateRequest {
+  refundNo: string;
+  orderId: string;
+  orderNo: string;
+  userId: string;
+  refundType: number;
+  reason: string;
+  description?: string;
+  refundAmount: number;
+  items: RefundItemRequest[];
+}
+
+export interface PaymentQueryRequest {
+  paymentNo?: string;
+  orderId?: string;
+  userId?: string;
+  status?: PaymentStatus;
+  startTime?: string;
+  endTime?: string;
+  pageNum: number;
+  pageSize: number;
+}
+
+export interface PaymentCreateRequest {
+  paymentNo: string;
+  orderId: string;
+  orderNo: string;
+  userId: string;
+  paymentMethod: number;
+  paymentChannel?: string;
+  paymentAmount: number;
+  remark?: string;
+}
+
+export interface PaymentStatusUpdateRequest {
+  targetStatus: PaymentStatus;
+  reason?: string;
+}
+
 export type OrderPage = MpPage<OrderResponse>;
 export type OrderItemPage = MpPage<OrderItemResponse>;
 export type RefundPage = MpPage<RefundResponse>;
