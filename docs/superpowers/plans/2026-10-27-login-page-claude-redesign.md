@@ -1134,7 +1134,152 @@ export function useCompleteLogin() {
 }
 ```
 
-- [ ] **Step 4: 创建 `totp-form.tsx`**
+- [ ] **Step 4: 写失败的测试(TOTP 表单 + MFA 分流)**
+
+创建 `scm-web/src/components/auth/totp-form.test.tsx`:
+
+```tsx
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { TotpForm } from "./totp-form";
+
+const login = vi.fn();
+
+vi.mock("@/lib/api/services/auth", () => ({
+  authService: { login: (...args: unknown[]) => login(...args) },
+}));
+
+// useMutation 需要 QueryClient 上下文;直接 mock 掉,让测试只关心表单行为
+vi.mock("@tanstack/react-query", () => ({
+  useMutation: () => ({
+    mutateAsync: (...args: unknown[]) => login(...args),
+    isPending: false,
+  }),
+}));
+
+vi.mock("next-intl", () => ({
+  // 模拟命名空间:useTranslations("login") 的 t("mfa.submit") 解析为 login.mfa.submit
+  useTranslations: (ns: string) => (key: string) => `${ns}.${key}`,
+}));
+
+const credentials = { username: "admin", password: "admin123" };
+
+describe("TotpForm", () => {
+  beforeEach(() => {
+    login.mockReset();
+  });
+
+  it("sends the pending credentials together with the code", async () => {
+    const onSuccess = vi.fn();
+    login.mockResolvedValue({ accessToken: "t", refreshToken: "r", userId: "u", username: "admin" });
+    render(<TotpForm pendingCredentials={credentials} onBack={vi.fn()} onSuccess={onSuccess} />);
+
+    await userEvent.type(screen.getByLabelText("login.mfa.title"), "123456");
+    await userEvent.click(screen.getByRole("button", { name: "login.mfa.submit" }));
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
+    expect(login).toHaveBeenCalledWith({ ...credentials, twoFactorCode: "123456" });
+  });
+
+  it("rejects a code that is not six digits before hitting the API", async () => {
+    render(<TotpForm pendingCredentials={credentials} onBack={vi.fn()} onSuccess={vi.fn()} />);
+
+    await userEvent.type(screen.getByLabelText("login.mfa.title"), "123");
+    await userEvent.click(screen.getByRole("button", { name: "login.mfa.submit" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("login.errors.codeLength")).toBeInTheDocument();
+    });
+    expect(login).not.toHaveBeenCalled();
+  });
+
+  it("surfaces a rejected code without leaving the TOTP step", async () => {
+    const onSuccess = vi.fn();
+    login.mockRejectedValue(
+      Object.assign(new Error("验证码错误"), {
+        response: { status: 400, data: { code: 40002, message: "验证码错误" } },
+      })
+    );
+    render(<TotpForm pendingCredentials={credentials} onBack={vi.fn()} onSuccess={onSuccess} />);
+
+    await userEvent.type(screen.getByLabelText("login.mfa.title"), "000000");
+    await userEvent.click(screen.getByRole("button", { name: "login.mfa.submit" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("验证码错误")).toBeInTheDocument();
+    });
+    expect(onSuccess).not.toHaveBeenCalled();
+  });
+
+  it("goes back to the password step", async () => {
+    const onBack = vi.fn();
+    render(<TotpForm pendingCredentials={credentials} onBack={onBack} onSuccess={vi.fn()} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "login.mfa.back" }));
+    expect(onBack).toHaveBeenCalledTimes(1);
+    expect(login).not.toHaveBeenCalled();
+  });
+});
+```
+
+> 验证码输入框需要一个 `<Label htmlFor="code">` 才能被 `getByLabelText` 找到 ——
+> 上面第一条用例用 `login.mfa.title` 当标签文案,所以 `totp-form.tsx` 里那个
+> `FormItem` 必须补一个 `<Label htmlFor="code">{t("mfa.title")}</Label>`。
+> 这是 Task 3 的登录表单已经建立的同一套约定(标签 + `htmlFor` 与输入框 `id` 对齐)。
+
+同时在 `scm-web/src/components/auth/login-form.test.tsx` 末尾追加两条 MFA 分流用例
+(它们钉住的是「密码登录零回归」的核心保证 —— `isMfaRequired` 判定错一次,TOTP 用户就永远进不了第二步):
+
+```tsx
+  it("routes a 40104 challenge to the MFA step, not to the error path", async () => {
+    const onMfaRequired = vi.fn();
+    const onError = vi.fn();
+    login.mockRejectedValue(
+      Object.assign(new Error("需要二次验证"), {
+        response: { status: 401, data: { code: 40104, message: "需要二次验证" } },
+      })
+    );
+    render(<LoginForm onSuccess={vi.fn()} onMfaRequired={onMfaRequired} onError={onError} />);
+
+    await userEvent.type(screen.getByLabelText("login.username"), "admin");
+    await userEvent.type(screen.getByLabelText("login.password"), "admin123");
+    await userEvent.click(screen.getByRole("button", { name: "login.submit" }));
+
+    await waitFor(() => expect(onMfaRequired).toHaveBeenCalledTimes(1));
+    expect(onMfaRequired).toHaveBeenCalledWith({ username: "admin", password: "admin123", remember: true });
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it("routes a message-only MFA challenge the same way", async () => {
+    const onMfaRequired = vi.fn();
+    const onError = vi.fn();
+    login.mockRejectedValue(
+      Object.assign(new Error("MFA required"), {
+        response: { status: 401, data: { code: 0, message: "MFA required" } },
+      })
+    );
+    render(<LoginForm onSuccess={vi.fn()} onMfaRequired={onMfaRequired} onError={onError} />);
+
+    await userEvent.type(screen.getByLabelText("login.username"), "admin");
+    await userEvent.type(screen.getByLabelText("login.password"), "admin123");
+    await userEvent.click(screen.getByRole("button", { name: "login.submit" }));
+
+    await waitFor(() => expect(onMfaRequired).toHaveBeenCalledTimes(1));
+    expect(onError).not.toHaveBeenCalled();
+  });
+```
+
+> 断言 `onError` **没有**被调用,与断言 `onMfaRequired` 被调用同样重要:
+> 两条路径互斥,只测其中一条会让「两个都触发」的实现照样变绿。
+
+- [ ] **Step 5: 运行测试确认失败**
+
+Run: `cd scm-web && npm test -- src/components/auth/totp-form.test.tsx`
+Expected: FAIL —— `Failed to resolve import "./totp-form"`
+
+- [ ] **Step 6: 创建 `totp-form.tsx`**
 
 `scm-web/src/components/auth/totp-form.tsx`:
 
@@ -1149,6 +1294,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormField, FormItem } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { authService } from "@/lib/api/services/auth";
 import { toApiError } from "@/lib/api/envelope";
 import type { LoginResponse } from "@/lib/api/contracts/auth";
@@ -1194,6 +1340,7 @@ export function TotpForm({ pendingCredentials, onBack, onSuccess }: TotpFormProp
           name="code"
           render={({ field }) => (
             <FormItem>
+              <Label htmlFor="code">{t("mfa.title")}</Label>
               <Input
                 id="code"
                 name="code"
@@ -1235,7 +1382,7 @@ export function TotpForm({ pendingCredentials, onBack, onSuccess }: TotpFormProp
 }
 ```
 
-- [ ] **Step 5: 接线 `login/page.tsx`(含 TOTP 分支)**
+- [ ] **Step 7: 接线 `login/page.tsx`(含 TOTP 分支)**
 
 把 `scm-web/src/app/[locale]/(auth)/login/page.tsx` 改成:
 
@@ -1292,22 +1439,24 @@ export default function LoginPage() {
 > `onError` 接住非 MFA 失败(密码错误 / 账号锁定 / 网络错误)并弹后端返回的文案,
 > 与原页面 `message.error(apiError.message || '登录失败')` 等价。
 
-- [ ] **Step 6: 运行测试确认通过**
+- [ ] **Step 8: 运行测试确认通过**
 
-Run: `cd scm-web && npm test -- src/lib/auth/use-complete-login.test.tsx`
-Expected: PASS(1 个用例)
+Run: `cd scm-web && npm test -- src/lib/auth/use-complete-login.test.tsx src/components/auth/totp-form.test.tsx src/components/auth/login-form.test.tsx`
+Expected: PASS(hook 1 个用例 + TOTP 表单 4 个用例 + 登录表单 6 个用例)
 
-- [ ] **Step 7: 跑全量前端测试与类型检查**
+- [ ] **Step 9: 跑全量前端测试与类型检查**
 
 Run: `cd scm-web && npm test && npm run typecheck`
 Expected: 全部 PASS;typecheck 无错误
 
-- [ ] **Step 8: 提交**
+- [ ] **Step 10: 提交**
 
 ```bash
 cd scm-web
 git add src/lib/auth/use-complete-login.ts src/lib/auth/use-complete-login.test.tsx \
-        src/components/auth/totp-form.tsx "src/app/[locale]/(auth)/login/page.tsx"
+        src/components/auth/totp-form.tsx src/components/auth/totp-form.test.tsx \
+        src/components/auth/login-form.test.tsx \
+        "src/app/[locale]/(auth)/login/page.tsx"
 git commit -m "refactor(web): 抽取共享会话建立 hook 并接入 TOTP 两步验证"
 ```
 
