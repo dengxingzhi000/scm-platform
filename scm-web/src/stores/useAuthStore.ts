@@ -38,7 +38,10 @@ interface AuthState {
   permissions: string[]
   isAuthenticated: boolean
   isLoading: boolean
-  /** 是否记住我:决定 access_token cookie 是 7 天持久 cookie 还是会话 cookie。 */
+  /**
+   * 记住模式的可读镜像:决定 access_token cookie 是 7 天持久 cookie 还是会话 cookie。
+   * 只作展示用 —— 真正的判断以标记 cookie 为准(这个值只活在内存里,刷新后会复位)。
+   */
   rememberMe: boolean
   login: (user: User, accessToken: string, refreshToken: string, remember?: boolean) => void
   logout: () => void
@@ -59,17 +62,17 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
   rememberMe: true,
 
   login: (user, accessToken, refreshToken, remember) => {
-    // `remember` 省略时沿用当前模式 —— apiClient 的 401 刷新路径
-    // (src/lib/api/client.ts:100)会不带参数地重新 login(),
-    // 那条路径不能把「不记住我」的会话又变回 7 天持久 cookie。
-    const persist = remember ?? get().rememberMe
+    // `remember` 省略时以标记 cookie 为准 —— 它的生命周期与 token cookie 一致,
+    // 页面刷新后依然可信。store 里的 rememberMe 只活在内存里,刷新后会回到默认的 true,
+    // 拿它当兜底会把「不记住我」的会话又写成 7 天持久 cookie。
+    const persist = remember ?? (getCookie(PERSIST_COOKIE) !== null)
     set({ user, accessToken, refreshToken, isAuthenticated: true, isLoading: false, rememberMe: persist })
     // 不记住我 → 会话 cookie(没有 expires)。同名同 path 的 cookie 会被浏览器整体替换,
     // 所以用户「先勾选后取消」时,之前那个 7 天的持久 cookie 也随之消失。
     setCookie('access_token', accessToken, persist ? 7 : undefined)
     // 记住模式本身也要活过页面刷新 —— 401 刷新路径会不带参数地重新 login(),
-    // 它读的是 store 里的 rememberMe,而 store 不持久化。
-    // 标记 cookie 的生命周期与 token 一致,所以两边不会各走各的。
+    // 它的兜底读的就是这个标记 cookie。标记 cookie 的生命周期与 token 一致,
+    // 所以两边不会各走各的。
     if (persist) {
       setCookie(PERSIST_COOKIE, '1', 7)
     } else {

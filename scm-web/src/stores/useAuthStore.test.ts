@@ -102,6 +102,51 @@ describe("useAuthStore 的 cookie 持久化", () => {
     expect(useAuthStore.getState().rememberMe).toBe(true);
   });
 
+  it("刷新后 store 状态复位也不会把会话升级成持久 cookie", () => {
+    // 用户取消「记住我」登录 → 只有会话 cookie,没有标记 cookie
+    useAuthStore.getState().login(user, "at", "rt", false);
+    expect(document.cookie).not.toContain("access_token_persist");
+
+    // 模拟一次页面刷新:store 回到初始值(rememberMe 又是 true),cookie 还在
+    useAuthStore.setState({ rememberMe: true });
+
+    // 401 刷新路径会不带 remember 参数地重新 login()
+    const writes = captureCookieWrites();
+    useAuthStore.getState().login(user, "at2", "rt", undefined);
+
+    const token = writes.find((w) => w.includes("access_token=at2"));
+    expect(token).toBeTruthy();
+    expect(token).not.toContain("expires=");
+  });
+
+  it("刷新后记住我的会话仍然是持久 cookie", () => {
+    useAuthStore.getState().login(user, "at", "rt", true);
+    useAuthStore.setState({ rememberMe: true });
+
+    const writes = captureCookieWrites();
+    useAuthStore.getState().login(user, "at2", "rt", undefined);
+
+    const token = writes.find((w) => w.includes("access_token=at2"));
+    expect(token).toBeTruthy();
+    expect(token).toContain("expires=");
+  });
+
+  it("兜底以标记 cookie 为准,而不是 store 里的 rememberMe", () => {
+    // 记住我登录 → 标记 cookie 在
+    useAuthStore.getState().login(user, "at", "rt", true);
+    expect(document.cookie).toContain("access_token_persist");
+
+    // store 里的内存状态说「不记住我」,但标记 cookie 才是真相来源
+    useAuthStore.setState({ rememberMe: false });
+
+    const writes = captureCookieWrites();
+    useAuthStore.getState().login(user, "at2", "rt", undefined);
+
+    const token = writes.find((w) => w.includes("access_token=at2"));
+    expect(token).toBeTruthy();
+    expect(token).toContain("expires=");
+  });
+
   it("记住我时写标记 cookie,过期时间与 token 一致", () => {
     const writes = captureCookieWrites();
 
