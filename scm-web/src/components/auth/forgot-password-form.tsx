@@ -86,7 +86,6 @@ export function ForgotPasswordForm({ onDone }: ForgotPasswordFormProps) {
     setStep("code");
   };
 
-  /** 回到邮箱步:把用户敲过的地址还回去,改一版就能重发验证码,不用刷新页面。 */
   /**
    * 回到邮箱步:把用户敲过的地址还回去,改一版就能重发验证码,不用刷新页面。
    * 输入框的值由 email state 驱动,这里同步把表单的值重置成同一个邮箱 ——

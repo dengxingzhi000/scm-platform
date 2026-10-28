@@ -5,15 +5,20 @@ import { describe, expect, it, vi } from "vitest";
 import { ForgotPasswordForm } from "./forgot-password-form";
 
 vi.mock("next-intl", () => ({
-  // 模拟 next-intl 的命名空间行为:useTranslations("forgot") 返回的 t 会把命名空间拼进 key
-  useTranslations: (ns: string) => (key: string) => `${ns}.${key}`,
+  // 模拟 next-intl 的命名空间行为:useTranslations("forgot") 返回的 t 会把命名空间拼进 key。
+  // 带插值参数时也把值带出来 —— 否则 t("codeSent", { email }) 渲染成裸 key,
+  // 测试就分不清「验证码发给了哪个地址」。
+  useTranslations: (ns: string) => (key: string, values?: Record<string, string>) =>
+    values?.email ? `${ns}.${key}:${values.email}` : `${ns}.${key}`,
 }));
 
 /** 走完邮箱步,停在验证码步。 */
 const advanceToCodeStep = async () => {
   await userEvent.type(screen.getByLabelText("forgot.email"), "ops@example.com");
   await userEvent.click(screen.getByRole("button", { name: "forgot.sendCode" }));
-  await waitFor(() => expect(screen.getByText("forgot.codeSent")).toBeInTheDocument());
+  await waitFor(() =>
+    expect(screen.getByText("forgot.codeSent:ops@example.com")).toBeInTheDocument()
+  );
 };
 
 /** 从验证码步走到重置密码步。 */
@@ -71,7 +76,7 @@ describe("ForgotPasswordForm", () => {
       expect(screen.getByText("forgot.errors.codeLength")).toBeInTheDocument();
     });
     // 没通过校验就不能进入下一步
-    expect(screen.getByText("forgot.codeSent")).toBeInTheDocument();
+    expect(screen.getByText("forgot.codeSent:ops@example.com")).toBeInTheDocument();
   });
 
   it("advances to the password step with a six-digit code", async () => {
@@ -163,7 +168,9 @@ describe("ForgotPasswordForm", () => {
     // 输入框里还留着地址,校验也得认它 —— 否则会误报「请输入邮箱地址」
     await userEvent.click(screen.getByRole("button", { name: "forgot.sendCode" }));
 
-    await waitFor(() => expect(screen.getByText("forgot.codeSent")).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText("forgot.codeSent:ops@example.com")).toBeInTheDocument()
+    );
     expect(screen.queryByText("forgot.errors.emailRequired")).not.toBeInTheDocument();
   });
 
@@ -175,5 +182,24 @@ describe("ForgotPasswordForm", () => {
 
     await waitFor(() => expect(screen.getByLabelText("forgot.code")).toBeInTheDocument());
     expect(screen.queryByLabelText("forgot.newPassword")).not.toBeInTheDocument();
+  });
+
+  it("回到邮箱步改了地址之后,验证码步显示的是新地址", async () => {
+    render(<ForgotPasswordForm onDone={vi.fn()} />);
+    await advanceToCodeStep();
+
+    await userEvent.click(screen.getByRole("button", { name: "forgot.backStep" }));
+    const emailInput = await screen.findByLabelText("forgot.email");
+    await userEvent.clear(emailInput);
+    await userEvent.type(emailInput, "ops2@example.com");
+
+    // 输入框要真的接住新地址 —— 否则说明它被旧的 state 按住了
+    expect(emailInput).toHaveValue("ops2@example.com");
+
+    await userEvent.click(screen.getByRole("button", { name: "forgot.sendCode" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("forgot.codeSent:ops2@example.com")).toBeInTheDocument();
+    });
   });
 });

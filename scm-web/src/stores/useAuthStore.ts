@@ -28,6 +28,9 @@ function deleteCookie(name: string) {
   document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`
 }
 
+/** 记住模式的标记 cookie:过期时间与 access_token 一致(都是 7 天),两边不会各走各的。 */
+const PERSIST_COOKIE = 'access_token_persist'
+
 interface AuthState {
   user: User | null
   accessToken: string | null
@@ -64,6 +67,14 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     // 不记住我 → 会话 cookie(没有 expires)。同名同 path 的 cookie 会被浏览器整体替换,
     // 所以用户「先勾选后取消」时,之前那个 7 天的持久 cookie 也随之消失。
     setCookie('access_token', accessToken, persist ? 7 : undefined)
+    // 记住模式本身也要活过页面刷新 —— 401 刷新路径会不带参数地重新 login(),
+    // 它读的是 store 里的 rememberMe,而 store 不持久化。
+    // 标记 cookie 的生命周期与 token 一致,所以两边不会各走各的。
+    if (persist) {
+      setCookie(PERSIST_COOKIE, '1', 7)
+    } else {
+      deleteCookie(PERSIST_COOKIE)
+    }
   },
 
   logout: () => {
@@ -77,6 +88,8 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       rememberMe: true,
     })
     deleteCookie('access_token')
+    // token 没了,标记也得跟着没 —— 否则下次登录会平白继承「记住我」。
+    deleteCookie(PERSIST_COOKIE)
   },
 
   setUser: (user) => set({ user }),
@@ -92,6 +105,11 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     const { accessToken } = get()
     const cookieToken = getCookie('access_token')
     const token = accessToken ?? cookieToken
+
+    // 从标记 cookie 恢复记住模式:store 本身不持久化,刷新后 rememberMe 会回到默认的 true,
+    // 那会让 401 刷新路径把「不记住我」的会话又写成 7 天持久 cookie。
+    // 要放在下面的 token 判断之前 —— 没有 token 时模式也得恢复。
+    set({ rememberMe: getCookie(PERSIST_COOKIE) !== null })
 
     if (!token) {
       set({ isLoading: false })
