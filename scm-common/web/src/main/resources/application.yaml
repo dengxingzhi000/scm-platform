@@ -134,6 +134,8 @@ frog:
       referrer-policy-enabled: true
       referrer-policy: STRICT_ORIGIN_WHEN_CROSS_ORIGIN
     https-redirect:
-      enabled: true
+      # Off by default: when enabled, HttpsRedirectConfig replaces the servlet container's
+      # connector, so its http-port overrides every service's own server.port.
+      enabled: false
       http-port: 8080
       redirect-port: 8443

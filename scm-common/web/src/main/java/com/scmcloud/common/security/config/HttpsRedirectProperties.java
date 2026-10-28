@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "frog.security.https-redirect")
 @Data
 public class HttpsRedirectProperties {
-    private boolean enabled = true;
+    private boolean enabled = false;
     private int httpPort = 8080;
     private int redirectPort = 8443;
 }
