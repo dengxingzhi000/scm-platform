@@ -9,9 +9,13 @@ export interface User {
   roles?: string[]
 }
 
-function setCookie(name: string, value: string, days = 7) {
-  const expires = new Date(Date.now() + days * 864e5).toUTCString()
-  document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`
+/**
+ * 写 cookie。`days` 省略时写**会话 cookie**(不设 expires)——
+ * 刷新页面仍然保持登录,关掉浏览器就失效。
+ */
+function setCookie(name: string, value: string, days?: number) {
+  const expires = days === undefined ? '' : `; expires=${new Date(Date.now() + days * 864e5).toUTCString()}`
+  document.cookie = `${name}=${encodeURIComponent(value)}${expires}; path=/; SameSite=Lax`
 }
 
 function getCookie(name: string): string | null {
@@ -31,7 +35,7 @@ interface AuthState {
   permissions: string[]
   isAuthenticated: boolean
   isLoading: boolean
-  /** 是否记住我:决定 access_token cookie 是不是 7 天持久 cookie。 */
+  /** 是否记住我:决定 access_token cookie 是 7 天持久 cookie 还是会话 cookie。 */
   rememberMe: boolean
   login: (user: User, accessToken: string, refreshToken: string, remember?: boolean) => void
   logout: () => void
@@ -57,12 +61,9 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     // 那条路径不能把「不记住我」的会话又变回 7 天持久 cookie。
     const persist = remember ?? get().rememberMe
     set({ user, accessToken, refreshToken, isAuthenticated: true, isLoading: false, rememberMe: persist })
-    if (persist) {
-      setCookie('access_token', accessToken)
-    } else {
-      // 之前可能留下过持久 cookie(用户先勾选后取消),清掉
-      deleteCookie('access_token')
-    }
+    // 不记住我 → 会话 cookie(没有 expires)。同名同 path 的 cookie 会被浏览器整体替换,
+    // 所以用户「先勾选后取消」时,之前那个 7 天的持久 cookie 也随之消失。
+    setCookie('access_token', accessToken, persist ? 7 : undefined)
   },
 
   logout: () => {
@@ -73,6 +74,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       permissions: [],
       isAuthenticated: false,
       isLoading: false,
+      rememberMe: true,
     })
     deleteCookie('access_token')
   },

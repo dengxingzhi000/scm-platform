@@ -6,7 +6,7 @@ const user = { id: "1", username: "admin", displayName: "Admin" };
 
 /**
  * jsdom 的 document.cookie 读回来只剩 name=value,expires 之类的属性看不见 ——
- * 要证明「7 天持久 cookie」只能看写进去的原始字符串。
+ * 要证明「7 天持久 cookie」还是「会话 cookie」只能看写进去的原始字符串。
  * 这里包一层 setter:既记录写入,又照常写进真实的 cookie jar。
  */
 function captureCookieWrites() {
@@ -47,24 +47,44 @@ describe("useAuthStore 的 cookie 持久化", () => {
     expect(days).toBeLessThan(7.01);
   });
 
-  it("不记住我时不写 access_token cookie", () => {
+  it("不记住我时写的是会话 cookie(没有 expires)", () => {
+    const { writes, restore } = captureCookieWrites();
     useAuthStore.getState().login(user, "at", "rt", false);
-    expect(document.cookie).not.toContain("access_token");
+    restore();
+    expect(writes).toHaveLength(1);
+    expect(writes[0]).toContain("access_token=at");
+    expect(writes[0]).not.toContain("expires=");
+    // cookie 必须真的在 —— 否则刷新页面时 proxy.ts 会把人弹回登录页
+    expect(document.cookie).toContain("access_token=at");
   });
 
-  it("不记住我时清掉之前留下的持久 cookie", () => {
+  it("不记住我时用会话 cookie 覆盖掉之前的持久 cookie", () => {
     useAuthStore.getState().login(user, "at", "rt", true);
     expect(document.cookie).toContain("access_token=at");
 
-    // 用户先勾选后取消 —— 旧的持久 cookie 不能留着
+    const { writes, restore } = captureCookieWrites();
     useAuthStore.getState().login(user, "at2", "rt", false);
-    expect(document.cookie).not.toContain("access_token");
+    restore();
+
+    expect(writes[0]).not.toContain("expires=");
+    expect(document.cookie).toContain("access_token=at2");
   });
 
   it("省略 remember 时沿用当前模式", () => {
     useAuthStore.getState().login(user, "at", "rt", false);
-    // 401 刷新路径不带参数地重新 login():不能把会话又变回持久 cookie
+
+    const { writes, restore } = captureCookieWrites();
     useAuthStore.getState().login(user, "at2", "rt", undefined);
-    expect(document.cookie).not.toContain("access_token");
+    restore();
+
+    expect(writes[0]).not.toContain("expires=");
+  });
+
+  it("退出登录后 rememberMe 复位为 true", () => {
+    useAuthStore.getState().login(user, "at", "rt", false);
+    expect(useAuthStore.getState().rememberMe).toBe(false);
+
+    useAuthStore.getState().logout();
+    expect(useAuthStore.getState().rememberMe).toBe(true);
   });
 });
