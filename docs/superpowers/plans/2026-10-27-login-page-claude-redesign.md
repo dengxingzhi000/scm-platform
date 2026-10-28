@@ -1564,9 +1564,24 @@ vi.mock("next-intl", () => ({
   useTranslations: (ns: string) => (key: string) => `${ns}.${key}`,
 }));
 
+/** 走完邮箱步,停在验证码步。 */
+const advanceToCodeStep = async () => {
+  await userEvent.type(screen.getByLabelText("forgot.email"), "ops@example.com");
+  await userEvent.click(screen.getByRole("button", { name: "forgot.sendCode" }));
+  await waitFor(() => expect(screen.getByText("forgot.codeSent")).toBeInTheDocument());
+};
+
+/** 走完验证码步,停在重置密码步。 */
+const advanceToPasswordStep = async () => {
+  await advanceToCodeStep();
+  await userEvent.type(screen.getByLabelText("forgot.code"), "123456");
+  await userEvent.click(screen.getByRole("button", { name: "forgot.verify" }));
+  await waitFor(() => expect(screen.getByLabelText("forgot.newPassword")).toBeInTheDocument());
+};
+
 describe("ForgotPasswordForm", () => {
   it("requires a valid email before sending a code", async () => {
-    render(<ForgotPasswordForm />);
+    render(<ForgotPasswordForm onDone={vi.fn()} />);
 
     await userEvent.click(screen.getByRole("button", { name: "forgot.sendCode" }));
     await waitFor(() => {
@@ -1574,15 +1589,83 @@ describe("ForgotPasswordForm", () => {
     });
   });
 
-  it("advances to the code step after a valid email", async () => {
-    render(<ForgotPasswordForm />);
+  it("rejects a malformed email", async () => {
+    render(<ForgotPasswordForm onDone={vi.fn()} />);
 
-    await userEvent.type(screen.getByLabelText("forgot.email"), "ops@example.com");
+    await userEvent.type(screen.getByLabelText("forgot.email"), "not-an-email");
     await userEvent.click(screen.getByRole("button", { name: "forgot.sendCode" }));
 
     await waitFor(() => {
-      expect(screen.getByText("forgot.codeSent")).toBeInTheDocument();
+      expect(screen.getByText("forgot.errors.emailInvalid")).toBeInTheDocument();
     });
+  });
+
+  it("advances to the code step after a valid email", async () => {
+    render(<ForgotPasswordForm onDone={vi.fn()} />);
+
+    await advanceToCodeStep();
+  });
+
+  it("blocks the code step until six digits are entered", async () => {
+    render(<ForgotPasswordForm onDone={vi.fn()} />);
+    await advanceToCodeStep();
+
+    await userEvent.type(screen.getByLabelText("forgot.code"), "123");
+    await userEvent.click(screen.getByRole("button", { name: "forgot.verify" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("forgot.errors.codeLength")).toBeInTheDocument();
+    });
+    // 没通过校验就不能进入下一步
+    expect(screen.getByText("forgot.codeSent")).toBeInTheDocument();
+  });
+
+  it("advances to the password step with a six-digit code", async () => {
+    render(<ForgotPasswordForm onDone={vi.fn()} />);
+
+    await advanceToPasswordStep();
+  });
+
+  it("rejects a password shorter than eight characters", async () => {
+    const onDone = vi.fn();
+    render(<ForgotPasswordForm onDone={onDone} />);
+    await advanceToPasswordStep();
+
+    await userEvent.type(screen.getByLabelText("forgot.newPassword"), "short");
+    await userEvent.type(screen.getByLabelText("forgot.confirmPassword"), "short");
+    await userEvent.click(screen.getByRole("button", { name: "forgot.reset" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("forgot.errors.passwordMin")).toBeInTheDocument();
+    });
+    expect(onDone).not.toHaveBeenCalled();
+  });
+
+  it("rejects a mismatched confirmation", async () => {
+    const onDone = vi.fn();
+    render(<ForgotPasswordForm onDone={onDone} />);
+    await advanceToPasswordStep();
+
+    await userEvent.type(screen.getByLabelText("forgot.newPassword"), "admin12345");
+    await userEvent.type(screen.getByLabelText("forgot.confirmPassword"), "admin12346");
+    await userEvent.click(screen.getByRole("button", { name: "forgot.reset" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("forgot.errors.passwordMismatch")).toBeInTheDocument();
+    });
+    expect(onDone).not.toHaveBeenCalled();
+  });
+
+  it("reports completion once the passwords match", async () => {
+    const onDone = vi.fn();
+    render(<ForgotPasswordForm onDone={onDone} />);
+    await advanceToPasswordStep();
+
+    await userEvent.type(screen.getByLabelText("forgot.newPassword"), "admin12345");
+    await userEvent.type(screen.getByLabelText("forgot.confirmPassword"), "admin12345");
+    await userEvent.click(screen.getByRole("button", { name: "forgot.reset" }));
+
+    await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
   });
 });
 ```
@@ -1610,26 +1693,65 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 
-const buildForgotSchema = (t: (key: string) => string) =>
+/** next-intl 的 t:key 进、文案出。三个 schema 工厂共用。 */
+type Translator = (key: string) => string;
+
+const buildEmailSchema = (t: Translator) =>
   z.object({
     email: z.string().min(1, t("errors.emailRequired")).email(t("errors.emailInvalid")),
   });
 
-type ForgotValues = z.infer<ReturnType<typeof buildForgotSchema>>;
+const buildCodeSchema = (t: Translator) =>
+  z.object({
+    code: z.string().min(1, t("errors.codeRequired")).length(6, t("errors.codeLength")),
+  });
+
+const buildPasswordSchema = (t: Translator) =>
+  z
+    .object({
+      password: z.string().min(1, t("errors.passwordRequired")).min(8, t("errors.passwordMin")),
+      confirmPassword: z.string().min(1, t("errors.confirmRequired")),
+    })
+    .refine((values) => values.password === values.confirmPassword, {
+      message: t("errors.passwordMismatch"),
+      path: ["confirmPassword"],
+    });
+
+type EmailValues = z.infer<ReturnType<typeof buildEmailSchema>>;
+type CodeValues = z.infer<ReturnType<typeof buildCodeSchema>>;
+type PasswordValues = z.infer<ReturnType<typeof buildPasswordSchema>>;
 
 type Step = "email" | "code" | "password";
 
-export function ForgotPasswordForm() {
+interface ForgotPasswordFormProps {
+  /** 三步都通过(模拟重置成功)。提示与跳转由页面负责 —— 与 LoginForm 的分工一致。 */
+  onDone: () => void;
+}
+
+/** 三个步骤共用的主按钮样式,免得同一串令牌重复四遍。 */
+const primaryButtonClass =
+  "h-12 w-full rounded-lg bg-[var(--auth-btn)] text-[var(--auth-btn-fg)] hover:bg-[var(--auth-ink-soft)]";
+
+export function ForgotPasswordForm({ onDone }: ForgotPasswordFormProps) {
   const t = useTranslations("forgot");
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
 
-  const form = useForm<ForgotValues>({
-    resolver: zodResolver(buildForgotSchema(t)),
+  // 每一步一个表单:三步的校验目标互不相干,共用一个表单只会让 defaultValues 越滚越大。
+  const emailForm = useForm<EmailValues>({
+    resolver: zodResolver(buildEmailSchema(t)),
     defaultValues: { email: "" },
   });
+  const codeForm = useForm<CodeValues>({
+    resolver: zodResolver(buildCodeSchema(t)),
+    defaultValues: { code: "" },
+  });
+  const passwordForm = useForm<PasswordValues>({
+    resolver: zodResolver(buildPasswordSchema(t)),
+    defaultValues: { password: "", confirmPassword: "" },
+  });
 
-  const onEmailSubmit = (values: ForgotValues) => {
+  const onEmailSubmit = (values: EmailValues) => {
     setEmail(values.email);
     setStep("code");
   };
@@ -1637,35 +1759,35 @@ export function ForgotPasswordForm() {
   return (
     <div className="flex flex-col gap-4">
       {step === "email" && (
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onEmailSubmit)} className="flex flex-col gap-4" noValidate>
+        <Form {...emailForm}>
+          <form
+            onSubmit={emailForm.handleSubmit(onEmailSubmit)}
+            className="flex flex-col gap-4"
+            noValidate
+          >
             <FormField
-              control={form.control}
+              control={emailForm.control}
               name="email"
               render={({ field }) => (
                 <FormItem>
                   <Label htmlFor="email">{t("email")}</Label>
                   <Input
                     id="email"
-                    name="email"
                     type="email"
                     autoComplete="email"
                     placeholder={t("emailPlaceholder")}
                     className="h-12 rounded-lg bg-transparent"
                     {...field}
                   />
-                  {form.formState.errors.email && (
+                  {emailForm.formState.errors.email && (
                     <p className="text-sm text-destructive">
-                      {form.formState.errors.email.message}
+                      {emailForm.formState.errors.email.message}
                     </p>
                   )}
                 </FormItem>
               )}
             />
-            <Button
-              type="submit"
-              className="h-12 w-full rounded-lg bg-[var(--auth-btn)] text-[var(--auth-btn-fg)] hover:bg-[var(--auth-ink-soft)]"
-            >
+            <Button type="submit" className={primaryButtonClass}>
               {t("sendCode")}
             </Button>
           </form>
@@ -1673,55 +1795,107 @@ export function ForgotPasswordForm() {
       )}
 
       {step === "code" && (
-        <div className="flex flex-col gap-4">
-          <p className="text-sm text-[var(--auth-ink-soft)]">{t("codeSent", { email })}</p>
-          <Input
-            name="code"
-            inputMode="numeric"
-            maxLength={6}
-            placeholder={t("codePlaceholder")}
-            className="h-12 rounded-lg bg-transparent text-center text-lg tracking-[0.5em]"
-          />
-          <Button
-            type="button"
-            onClick={() => setStep("password")}
-            className="h-12 w-full rounded-lg bg-[var(--auth-btn)] text-[var(--auth-btn-fg)] hover:bg-[var(--auth-ink-soft)]"
+        <Form {...codeForm}>
+          <form
+            onSubmit={codeForm.handleSubmit(() => setStep("password"))}
+            className="flex flex-col gap-4"
+            noValidate
           >
-            {t("verify")}
-          </Button>
-        </div>
+            <p className="text-sm text-[var(--auth-ink-soft)]">{t("codeSent", { email })}</p>
+            <FormField
+              control={codeForm.control}
+              name="code"
+              render={({ field }) => (
+                <FormItem>
+                  <Label htmlFor="code">{t("code")}</Label>
+                  <Input
+                    id="code"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={6}
+                    placeholder={t("codePlaceholder")}
+                    className="h-12 rounded-lg bg-transparent text-center text-lg tracking-[0.5em]"
+                    {...field}
+                  />
+                  {codeForm.formState.errors.code && (
+                    <p className="text-sm text-destructive">
+                      {codeForm.formState.errors.code.message}
+                    </p>
+                  )}
+                </FormItem>
+              )}
+            />
+            <Button type="submit" className={primaryButtonClass}>
+              {t("verify")}
+            </Button>
+          </form>
+        </Form>
       )}
 
       {step === "password" && (
-        <div className="flex flex-col gap-4">
-          <Input
-            name="password"
-            type="password"
-            autoComplete="new-password"
-            placeholder={t("newPasswordPlaceholder")}
-            className="h-12 rounded-lg bg-transparent"
-          />
-          <Input
-            name="confirmPassword"
-            type="password"
-            autoComplete="new-password"
-            placeholder={t("confirmPasswordPlaceholder")}
-            className="h-12 rounded-lg bg-transparent"
-          />
-          <Button
-            type="button"
-            className="h-12 w-full rounded-lg bg-[var(--auth-btn)] text-[var(--auth-btn-fg)] hover:bg-[var(--auth-ink-soft)]"
+        <Form {...passwordForm}>
+          <form
+            onSubmit={passwordForm.handleSubmit(() => onDone())}
+            className="flex flex-col gap-4"
+            noValidate
           >
-            {t("reset")}
-          </Button>
-        </div>
+            <FormField
+              control={passwordForm.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <Label htmlFor="password">{t("newPassword")}</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    autoComplete="new-password"
+                    placeholder={t("newPasswordPlaceholder")}
+                    className="h-12 rounded-lg bg-transparent"
+                    {...field}
+                  />
+                  {passwordForm.formState.errors.password && (
+                    <p className="text-sm text-destructive">
+                      {passwordForm.formState.errors.password.message}
+                    </p>
+                  )}
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={passwordForm.control}
+              name="confirmPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <Label htmlFor="confirmPassword">{t("confirmPassword")}</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    autoComplete="new-password"
+                    placeholder={t("confirmPasswordPlaceholder")}
+                    className="h-12 rounded-lg bg-transparent"
+                    {...field}
+                  />
+                  {passwordForm.formState.errors.confirmPassword && (
+                    <p className="text-sm text-destructive">
+                      {passwordForm.formState.errors.confirmPassword.message}
+                    </p>
+                  )}
+                </FormItem>
+              )}
+            />
+            <Button type="submit" className={primaryButtonClass}>
+              {t("reset")}
+            </Button>
+          </form>
+        </Form>
       )}
     </div>
   );
 }
 ```
 
-> 找回密码的后端接口在仓库里本来就没有(`forgot-password/page.tsx` 原来也只是本地 `setCurrentStep` 模拟,没有真实请求)。本 Task 保持同样的行为边界,不新增后端调用。
+> 找回密码的后端接口在仓库里本来就没有(`forgot-password/page.tsx` 原来也只是本地 `setCurrentStep` 模拟,没有真实请求)。本 Task 保持同样的行为边界,不新增后端调用 —— **但三步的校验规则必须与旧页面逐条对齐**:
+> 验证码必填且 6 位;新密码必填且至少 8 位;确认密码必填且两次一致。旧页面这三条规则就是它全部的行为。
 
 - [ ] **Step 4: 改写 `forgot-password/page.tsx`**
 
@@ -1730,16 +1904,39 @@ export function ForgotPasswordForm() {
 ```tsx
 "use client";
 
-import { useTranslations } from "next-intl";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
+import { App } from "antd";
 
 import { LoginCard } from "@/components/auth/login-card";
 import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
 
 export default function ForgotPasswordPage() {
   const t = useTranslations("forgot");
+  const locale = useLocale();
+  const router = useRouter();
+  const { message } = App.useApp();
+
+  // 找回密码没有后端接口,三步走完即视为重置成功 ——
+  // 与原页面一致:弹一句成功提示,然后回登录页。不能什么都不做(那是个死胡同)。
+  const handleDone = () => {
+    message.success(t("resetSuccess"));
+    router.push(`/${locale}/login`);
+  };
+
   return (
     <LoginCard title={t("title")} subtitle={t("subtitle")}>
-      <ForgotPasswordForm />
+      <ForgotPasswordForm onDone={handleDone} />
+      {/* 旧页面卡片底部有「返回登录」入口。丢了它,用户从登录页点进来就再也回不去了。 */}
+      <p className="mt-6 text-center text-sm">
+        <Link
+          href={`/${locale}/login`}
+          className="text-[var(--auth-ink-soft)] underline-offset-4 hover:text-[var(--auth-ink)] hover:underline"
+        >
+          {t("back")}
+        </Link>
+      </p>
     </LoginCard>
   );
 }
@@ -1767,7 +1964,7 @@ Expected: 无输出(有输出就把该引用改掉再删)
 - [ ] **Step 6: 运行测试确认通过**
 
 Run: `cd scm-web && npm test -- src/components/auth/forgot-password-form.test.tsx`
-Expected: PASS(2 个用例)
+Expected: PASS(8 个用例)
 
 - [ ] **Step 7: 提交**
 
@@ -1900,14 +2097,25 @@ Expected: FAIL —— `login` 命名空间不存在,key 列表为空 / 不相等
     "emailPlaceholder": "请输入注册邮箱",
     "sendCode": "发送验证码",
     "codeSent": "验证码已发送至 {email}",
+    "code": "验证码",
     "codePlaceholder": "6 位验证码",
     "verify": "验证",
+    "newPassword": "新密码",
     "newPasswordPlaceholder": "新密码",
+    "confirmPassword": "确认密码",
     "confirmPasswordPlaceholder": "确认密码",
     "reset": "重置密码",
+    "resetSuccess": "密码重置成功",
+    "back": "返回登录",
     "errors": {
       "emailRequired": "请输入邮箱地址",
-      "emailInvalid": "请输入有效的邮箱地址"
+      "emailInvalid": "请输入有效的邮箱地址",
+      "codeRequired": "请输入验证码",
+      "codeLength": "验证码为 6 位数字",
+      "passwordRequired": "请输入新密码",
+      "passwordMin": "密码至少 8 位",
+      "confirmRequired": "请确认密码",
+      "passwordMismatch": "两次密码不一致"
     }
   }
 ```
@@ -1957,14 +2165,25 @@ Expected: FAIL —— `login` 命名空间不存在,key 列表为空 / 不相等
     "emailPlaceholder": "Enter your registered email",
     "sendCode": "Send verification code",
     "codeSent": "Verification code sent to {email}",
+    "code": "Verification code",
     "codePlaceholder": "6-digit code",
     "verify": "Verify",
+    "newPassword": "New password",
     "newPasswordPlaceholder": "New password",
+    "confirmPassword": "Confirm password",
     "confirmPasswordPlaceholder": "Confirm password",
     "reset": "Reset password",
+    "resetSuccess": "Password reset",
+    "back": "Back to sign in",
     "errors": {
       "emailRequired": "Email address is required",
-      "emailInvalid": "Enter a valid email address"
+      "emailInvalid": "Enter a valid email address",
+      "codeRequired": "Verification code is required",
+      "codeLength": "The code must be 6 digits",
+      "passwordRequired": "New password is required",
+      "passwordMin": "Password must be at least 8 characters",
+      "confirmRequired": "Please confirm your password",
+      "passwordMismatch": "The two passwords do not match"
     }
   }
 ```
