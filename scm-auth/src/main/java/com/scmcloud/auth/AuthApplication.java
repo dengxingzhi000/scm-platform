@@ -25,7 +25,10 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @EnableTransactionManagement
 @EnableCaching
 @EnableScheduling
-@ComponentScan(basePackages = {"com.scmcloud", "com.scmcloud.common", "com.scmcloud.auth"})
+// Scanned "com.scmcloud" once, which pulled in scm-audit-service's commandService while its
+// mapper package was not in @MapperScan, so the context failed with "No qualifying bean of type
+// SysAuditLogMapper". Keep the scan to this service plus the shared library.
+@ComponentScan(basePackages = {"com.scmcloud.auth", "com.scmcloud.common"})
 @EnableDubbo(scanBasePackages = "com.scmcloud")
 public class AuthApplication {
     
