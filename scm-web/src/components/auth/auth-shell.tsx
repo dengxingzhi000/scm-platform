@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useTranslations } from "next-intl";
 
 import { BrandMark } from "./brand-mark";
 
@@ -13,6 +14,8 @@ interface AuthShellProps {
  * 全局 --color-primary(靛蓝)不变。
  */
 export function AuthShell({ children }: AuthShellProps) {
+  const t = useTranslations("login");
+
   return (
     <main
       className="min-h-dvh bg-[var(--auth-bg)] lg:grid lg:grid-cols-[1fr_minmax(0,42%)]"
@@ -32,13 +35,13 @@ export function AuthShell({ children }: AuthShellProps) {
               type="button"
               className="rounded-lg border border-[var(--auth-line-strong)] bg-[var(--auth-btn-soft-bg)] px-4 py-2 text-sm font-medium text-[var(--auth-ink)] transition-colors hover:bg-[var(--auth-btn-soft-hover)]"
             >
-              联系销售
+              {t("header.contactSales")}
             </button>
             <button
               type="button"
               className="rounded-lg bg-[var(--auth-btn)] px-4 py-2 text-sm font-medium text-[var(--auth-btn-fg)] transition-colors hover:bg-[var(--auth-ink-soft)]"
             >
-              试用平台
+              {t("header.tryPlatform")}
             </button>
           </div>
         </header>
@@ -51,7 +54,7 @@ export function AuthShell({ children }: AuthShellProps) {
       <aside className="hidden p-6 lg:block">
         <img
           src="/auth-hero.svg"
-          alt="供应链协同"
+          alt={t("heroAlt")}
           className="h-full w-full rounded-2xl object-cover"
         />
       </aside>

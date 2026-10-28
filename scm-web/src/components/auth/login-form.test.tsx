@@ -82,6 +82,16 @@ describe("LoginForm", () => {
     expect(screen.getByLabelText("login.password")).toHaveAttribute("name", "password");
   });
 
+  it("links to forgot-password in the active locale", () => {
+    render(<LoginForm onSuccess={vi.fn()} onMfaRequired={vi.fn()} onError={vi.fn()} />);
+    // useLocale 在测试里 mock 成 "zh-CN";写死 /zh-CN 的实现也能过,所以这条只证明前缀来自 locale,
+    // 真正的多语言验证靠下面 Step 7 的 e2e 用 /en-US/login 再跑一遍
+    expect(screen.getByRole("link", { name: "login.forgotPassword" })).toHaveAttribute(
+      "href",
+      "/zh-CN/forgot-password"
+    );
+  });
+
   it("routes a 40104 challenge to the MFA step, not to the error path", async () => {
     const onMfaRequired = vi.fn();
     const onError = vi.fn();

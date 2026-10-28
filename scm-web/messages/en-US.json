@@ -54,5 +54,72 @@
     "status": "Status",
     "enabled": "Enabled",
     "disabled": "Disabled"
+  },
+  "login": {
+    "title": "Make your supply chain flow",
+    "subtitle": "Procurement, inventory, fulfillment and finance in one place",
+    "username": "Username",
+    "usernamePlaceholder": "Enter your username",
+    "password": "Password",
+    "passwordPlaceholder": "Enter your password",
+    "remember": "Remember me",
+    "forgotPassword": "Forgot password?",
+    "submit": "Log in",
+    "success": "Signed in",
+    "failed": "Sign-in failed",
+    "brandName": "SCM Supply Chain Platform",
+    "heroAlt": "Supply chain collaboration",
+    "header": {
+      "contactSales": "Contact sales",
+      "tryPlatform": "Try the platform"
+    },
+    "legalPrefix": "By continuing you agree to our",
+    "legalMiddle": "and",
+    "terms": "Terms of Service",
+    "privacy": "Privacy Policy",
+    "legalSuffix": ", and consent to receive product updates.",
+    "errors": {
+      "usernameRequired": "Username is required",
+      "passwordRequired": "Password is required",
+      "codeRequired": "Verification code is required",
+      "codeLength": "The code must be 6 digits",
+      "codeDigits": "The code must contain digits only",
+      "codeInvalid": "Incorrect verification code"
+    },
+    "mfa": {
+      "title": "Two-step verification",
+      "subtitle": "Enter your TOTP verification code",
+      "codePlaceholder": "6-digit code",
+      "submit": "Verify",
+      "back": "Back to sign in"
+    }
+  },
+  "forgot": {
+    "title": "Reset your password",
+    "subtitle": "Reset your password with a verified email",
+    "email": "Email address",
+    "emailPlaceholder": "Enter your registered email",
+    "sendCode": "Send verification code",
+    "codeSent": "Verification code sent to {email}",
+    "code": "Verification code",
+    "codePlaceholder": "6-digit code",
+    "verify": "Verify",
+    "newPassword": "New password",
+    "newPasswordPlaceholder": "New password",
+    "confirmPassword": "Confirm password",
+    "confirmPasswordPlaceholder": "Confirm password",
+    "reset": "Reset password",
+    "resetSuccess": "Password reset",
+    "back": "Back to sign in",
+    "errors": {
+      "emailRequired": "Email address is required",
+      "emailInvalid": "Enter a valid email address",
+      "codeRequired": "Verification code is required",
+      "codeLength": "The code must be 6 digits",
+      "passwordRequired": "New password is required",
+      "passwordMin": "Password must be at least 8 characters",
+      "confirmRequired": "Please confirm your password",
+      "passwordMismatch": "The two passwords do not match"
+    }
   }
 }

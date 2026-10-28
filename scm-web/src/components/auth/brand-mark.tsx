@@ -1,3 +1,5 @@
+import { useTranslations } from "next-intl";
+
 import { cn } from "@/lib/utils";
 
 interface BrandMarkProps {
@@ -6,6 +8,8 @@ interface BrandMarkProps {
 
 /** 登录页左上角的品牌标记:橙色放射状标记 + 平台字标。 */
 export function BrandMark({ className }: BrandMarkProps) {
+  const t = useTranslations("login");
+
   return (
     <div className={cn("flex items-center gap-2.5", className)}>
       <svg
@@ -23,7 +27,7 @@ export function BrandMark({ className }: BrandMarkProps) {
         </g>
       </svg>
       <span className="font-serif text-lg tracking-tight text-[var(--auth-ink)]">
-        SCM 供应链管理平台
+        {t("brandName")}
       </span>
     </div>
   );

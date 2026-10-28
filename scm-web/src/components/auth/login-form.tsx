@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation } from "@tanstack/react-query";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -28,6 +28,7 @@ const isMfaRequired = (message: string, code: number): boolean =>
 
 export function LoginForm({ onSuccess, onMfaRequired, onError }: LoginFormProps) {
   const t = useTranslations("login");
+  const locale = useLocale();
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(buildLoginSchema(t)),
     defaultValues: { username: "", password: "", remember: true },
@@ -126,7 +127,7 @@ export function LoginForm({ onSuccess, onMfaRequired, onError }: LoginFormProps)
               {t("remember")}
             </Label>
           </div>
-          <Link href="/zh-CN/forgot-password" className="text-sm text-[var(--color-brand-accent)] underline-offset-4 hover:underline">
+          <Link href={`/${locale}/forgot-password`} className="text-sm text-[var(--color-brand-accent)] underline-offset-4 hover:underline">
             {t("forgotPassword")}
           </Link>
         </div>

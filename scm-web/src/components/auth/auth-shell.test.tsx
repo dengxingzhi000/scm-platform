@@ -1,7 +1,12 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { AuthShell } from "./auth-shell";
+
+vi.mock("next-intl", () => ({
+  // 模拟 next-intl 的命名空间行为:useTranslations("login") 返回的 t 会把命名空间拼进 key
+  useTranslations: (ns: string) => (key: string) => `${ns}.${key}`,
+}));
 
 describe("AuthShell", () => {
   it("renders the brand mark and both header actions", () => {
@@ -11,9 +16,9 @@ describe("AuthShell", () => {
       </AuthShell>
     );
 
-    expect(screen.getByText("SCM 供应链管理平台")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "联系销售" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "试用平台" })).toBeInTheDocument();
+    expect(screen.getByText("login.brandName")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "login.header.contactSales" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "login.header.tryPlatform" })).toBeInTheDocument();
   });
 
   it("scopes the Claude accent to the login experience only", () => {
@@ -31,7 +36,7 @@ describe("AuthShell", () => {
     );
 
     expect(screen.getByText("content")).toBeInTheDocument();
-    const hero = screen.getByRole("img", { name: "供应链协同" });
+    const hero = screen.getByRole("img", { name: "login.heroAlt" });
     expect(hero).toHaveAttribute("src", "/auth-hero.svg");
   });
 });
