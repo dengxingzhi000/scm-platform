@@ -1079,6 +1079,49 @@ describe("useCompleteLogin", () => {
     expect(clear).toHaveBeenCalled();
     await waitFor(() => expect(push).toHaveBeenCalledWith("/zh-CN/dashboard"));
   });
+
+  it("returns a failure result instead of throwing when the response has no token", async () => {
+    const { result } = renderHook(() => useCompleteLogin());
+
+    let outcome: Awaited<ReturnType<typeof result.current>> | undefined;
+    await act(async () => {
+      // 后端以 HTTP 200 + 错误信封拒绝 —— 没有 accessToken
+      outcome = await result.current({ message: "账号已锁定" });
+    });
+
+    expect(outcome).toEqual({ ok: false, message: "账号已锁定" });
+    // 关键:没有建会话、没有跳转 —— 也不能抛异常(抛了就是 unhandled rejection,用户无反馈)
+    expect(login).not.toHaveBeenCalled();
+    expect(setPermissions).not.toHaveBeenCalled();
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it("falls back to an empty message when the failure has none", async () => {
+    const { result } = renderHook(() => useCompleteLogin());
+
+    let outcome: Awaited<ReturnType<typeof result.current>> | undefined;
+    await act(async () => {
+      outcome = await result.current({});
+    });
+
+    expect(outcome).toEqual({ ok: false, message: "" });
+  });
+
+  it("reports success so the caller knows to show the success toast", async () => {
+    const { result } = renderHook(() => useCompleteLogin());
+
+    let outcome: Awaited<ReturnType<typeof result.current>> | undefined;
+    await act(async () => {
+      outcome = await result.current({
+        accessToken: "at",
+        refreshToken: "rt",
+        userId: "u",
+        username: "admin",
+      });
+    });
+
+    expect(outcome).toEqual({ ok: true });
+  });
 });
 ```
 
@@ -1104,6 +1147,14 @@ import { authService } from "@/lib/api/services/auth";
 import type { LoginResponse } from "@/lib/api/contracts/auth";
 
 /**
+ * 建立会话的结果。**不要用抛异常表达失败** —— 这个 hook 由 `onSuccess` 回调调用,
+ * 而 `onSuccess` 的签名是 `(response) => void`,返回的 promise 没人 await:
+ * 抛出去就变成 unhandled rejection,用户点完登录**毫无反馈**。
+ * 用可判别联合逼调用方处理失败分支。
+ */
+export type LoginCompletion = { ok: true } | { ok: false; message: string };
+
+/**
  * 建立会话的共享逻辑。密码登录与社交登录回调页共用。
  * 顺序不可调换:先写 store(后续 getUserInfo 才带得上 token),再清 query cache,最后跳路由。
  */
@@ -1113,9 +1164,11 @@ export function useCompleteLogin() {
   const queryClient = useQueryClient();
   const { login, setUser, setPermissions } = useAuthStore();
 
-  return async (response: LoginResponse): Promise<void> => {
+  return async (response: LoginResponse): Promise<LoginCompletion> => {
+    // 后端可能以 HTTP 200 返回带 message 的错误信封 —— 此时没有 token,不能进 store。
+    // 旧页面在这里 `message.error(...)` 然后停在原地;现在把文案交给调用方去弹。
     if (!response.accessToken) {
-      throw new Error(response.message || "Login response has no access token");
+      return { ok: false, message: response.message ?? "" };
     }
 
     login(toSessionUser(response), response.accessToken, response.refreshToken ?? "");
@@ -1130,9 +1183,13 @@ export function useCompleteLogin() {
 
     queryClient.clear();
     router.push(`/${locale}/dashboard`);
+    return { ok: true };
   };
 }
 ```
+
+> `LoginResponse.message` 在契约里是可选的;`?? ""` 让调用方能退回自己的兜底文案
+> (`error.message || t("failed")` 的写法依赖空串是假值)。
 
 - [ ] **Step 4: 写失败的测试(TOTP 表单 + MFA 分流)**
 
@@ -1343,7 +1400,6 @@ export function TotpForm({ pendingCredentials, onBack, onSuccess }: TotpFormProp
               <Label htmlFor="code">{t("mfa.title")}</Label>
               <Input
                 id="code"
-                name="code"
                 inputMode="numeric"
                 autoComplete="one-time-code"
                 maxLength={6}
@@ -1398,6 +1454,7 @@ import { LoginForm } from "@/components/auth/login-form";
 import { TotpForm } from "@/components/auth/totp-form";
 import type { LoginFormValues } from "@/components/auth/login-schema";
 import { useCompleteLogin } from "@/lib/auth/use-complete-login";
+import type { LoginResponse } from "@/lib/api/contracts/auth";
 
 export default function LoginPage() {
   const t = useTranslations("login");
@@ -1405,16 +1462,32 @@ export default function LoginPage() {
   const completeLogin = useCompleteLogin();
   const [pendingCredentials, setPendingCredentials] = useState<LoginFormValues | null>(null);
 
+  /**
+   * 密码登录与 TOTP 登录共用同一个收尾:先建会话,成功了才提示成功。
+   * 不能先 `message.success` 再建会话 —— 后端以 200 + 错误信封返回时没有 token,
+   * 那样会先闪一句「登录成功」再毫无反应地停在原页。
+   */
+  const handleSuccess = async (response: LoginResponse) => {
+    try {
+      const result = await completeLogin(response);
+      if (!result.ok) {
+        message.error(result.message || t("failed"));
+        return;
+      }
+      message.success(t("success"));
+    } catch {
+      // 兜底:建会话途中的意外异常也不能变成静默失败
+      message.error(t("failed"));
+    }
+  };
+
   if (pendingCredentials) {
     return (
       <LoginCard title={t("mfa.title")} subtitle={t("mfa.subtitle")}>
         <TotpForm
           pendingCredentials={pendingCredentials}
           onBack={() => setPendingCredentials(null)}
-          onSuccess={(response) => {
-            message.success(t("success"));
-            void completeLogin(response);
-          }}
+          onSuccess={(response) => void handleSuccess(response)}
         />
       </LoginCard>
     );
@@ -1423,10 +1496,7 @@ export default function LoginPage() {
   return (
     <LoginCard title={t("title")} subtitle={t("subtitle")}>
       <LoginForm
-        onSuccess={(response) => {
-          message.success(t("success"));
-          void completeLogin(response);
-        }}
+        onSuccess={(response) => void handleSuccess(response)}
         onMfaRequired={setPendingCredentials}
         onError={(error) => message.error(error.message || t("failed"))}
       />
@@ -1435,14 +1505,17 @@ export default function LoginPage() {
 }
 ```
 
-> `completeLogin` 现在负责跳转,页面只负责弹提示 —— 顺序是「先提示成功再跳」,与原实现一致。
+> `completeLogin` 负责建会话与跳转,页面负责所有提示 —— 且**成功提示在会话建立之后**,
+> 与原实现一致(旧页面的 `message.success` 也在 `completeLogin` 内部、store 写完才调)。
+> `onError` 接住非 MFA 失败(密码错误 / 账号锁定 / 网络错误)并弹后端返回的文案,
+> 与原页面 `message.error(apiError.message || '登录失败')` 等价。
 > `onError` 接住非 MFA 失败(密码错误 / 账号锁定 / 网络错误)并弹后端返回的文案,
 > 与原页面 `message.error(apiError.message || '登录失败')` 等价。
 
 - [ ] **Step 8: 运行测试确认通过**
 
 Run: `cd scm-web && npm test -- src/lib/auth/use-complete-login.test.tsx src/components/auth/totp-form.test.tsx src/components/auth/login-form.test.tsx`
-Expected: PASS(hook 1 个用例 + TOTP 表单 4 个用例 + 登录表单 6 个用例)
+Expected: PASS(hook 4 个用例 + TOTP 表单 4 个用例 + 登录表单 6 个用例)
 
 - [ ] **Step 9: 跑全量前端测试与类型检查**
 
