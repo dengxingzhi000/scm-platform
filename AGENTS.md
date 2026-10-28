@@ -86,7 +86,7 @@ dev box:
 |---|---|
 | Host | `192.168.0.117` |
 | User | `root` |
-| Password | `demin` |
+| Password | 见密码管理器条目 `scm-platform / prod-vm`（不写进仓库） |
 
 ```bash
 ssh root@192.168.0.117

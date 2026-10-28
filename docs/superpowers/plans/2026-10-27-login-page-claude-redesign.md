@@ -52,16 +52,53 @@
 创建 `scm-web/src/lib/design-tokens.test.ts`:
 
 ```ts
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const TOKENS = readFileSync(join(process.cwd(), "src/lib/design-tokens.css"), "utf8");
+const GLOBALS = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
+
+/**
+ * 去掉 CSS 注释再匹配:注释里提到 `--color-accent: var(--accent)` 只是说明文字,
+ * 不是令牌声明 —— 断言要盯的是「有没有声明」,不是「有没有提到」。
+ */
+const DECLARATIONS = TOKENS.replace(/\/\*[\s\S]*?\*\//g, "");
+
+/**
+ * Tailwind v4 只从 `@theme` 块里读变量:别名写在普通 `:root` 里不会生成
+ * `font-serif` 工具类(而且不会报错,只是样式静默失效)。所以断言要落在块内。
+ */
+const THEME_BLOCK = (() => {
+  const match = GLOBALS.match(/@theme\s+inline\s*\{([\s\S]*?)\n\}/);
+  if (!match) throw new Error("@theme inline block not found in globals.css");
+  return match[1];
+})();
+
+/**
+ * 深色模式块。登录页配色是固定浅色(规格 A1 没给深色变体),
+ * 这里不允许再出现 `--auth-bg` / `--auth-ink` 覆写:近黑文字落在深色底上不可读。
+ */
+const DARK_BLOCK = (() => {
+  const match = TOKENS.match(/\[data-theme=['"]dark['"]\]\s*\{([\s\S]*?)\n\}/);
+  if (!match) throw new Error("[data-theme='dark'] block not found in design-tokens.css");
+  return match[1].replace(/\/\*[\s\S]*?\*\//g, "");
+})();
 
 function token(name: string): string {
-  const match = TOKENS.match(new RegExp(`--${name}:\\s*([^;]+);`));
+  const match = DECLARATIONS.match(new RegExp(`--${name}:\\s*([^;]+);`));
   if (!match) throw new Error(`token --${name} not found in design-tokens.css`);
   return match[1].trim();
+}
+
+/** 源码文件(排除测试文件),用来核对「被引用的令牌都有定义」。 */
+function sourceFiles(dir = join(process.cwd(), "src")): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) return sourceFiles(path);
+    if (!/\.tsx?$/.test(entry.name)) return [];
+    return /\.test\.tsx?$/.test(entry.name) ? [] : [path];
+  });
 }
 
 describe("auth design tokens", () => {
@@ -79,22 +116,55 @@ describe("auth design tokens", () => {
     expect(token("auth-ink-soft")).toBe("#6B6A63");
     expect(token("auth-line")).toBe("#E5E3DA");
     expect(token("auth-line-strong")).toBe("#D4D1C5");
+    expect(token("auth-btn")).toBe("#262624");
     expect(token("auth-btn-soft-bg")).toBe("#E9E6DC");
     expect(token("auth-btn-soft-hover")).toBe("#DFDBCE");
     expect(token("auth-btn-fg")).toBe("#FFFFFF");
   });
 
   it("does not shadow the shadcn --color-accent alias", () => {
-    expect(TOKENS).not.toMatch(/--color-accent\s*:/);
+    expect(DECLARATIONS).not.toMatch(/--color-accent\s*:/);
+  });
+
+  it("keeps the global indigo primary for every non-auth page", () => {
+    expect(token("color-primary")).toBe("#4f46e5");
+  });
+
+  it("does not override the fixed-light auth palette in dark mode", () => {
+    expect(DARK_BLOCK).not.toMatch(/--auth-bg\s*:/);
+    expect(DARK_BLOCK).not.toMatch(/--auth-ink\s*:/);
   });
 
   it("exposes a serif stack that covers Latin and CJK", () => {
-    const serif = token("font-serif");
+    // 令牌在 design-tokens.css 里叫 --scm-font-serif:globals.css 的 @theme inline
+    // 要写 --font-serif: var(--scm-font-serif),同名会变成自引用。
+    const serif = token("scm-font-serif");
     expect(serif).toContain("Georgia");
     expect(serif).toContain("Songti SC");
     expect(serif).toContain("Noto Serif CJK SC");
+
+    // 别名必须落在 @theme inline 块内(普通 :root 不生成工具类),且不能自引用。
+    expect(THEME_BLOCK).toMatch(/--font-serif:\s*var\(--scm-font-serif\);/);
+    expect(THEME_BLOCK).not.toMatch(/--font-serif:\s*var\(--font-serif\)/);
+  });
+
+  it("defines every auth token that the source still references", () => {
+    const referenced = new Set<string>();
+    for (const file of sourceFiles()) {
+      const content = readFileSync(file, "utf8");
+      for (const match of content.matchAll(/var\(--((?:auth|color-brand)[a-z0-9-]*)\)/g)) {
+        referenced.add(match[1]);
+      }
+    }
+
+    // 扫描本身要有效:空集合说明遍历挂了,断言会变成空转。
+    expect(referenced.size).toBeGreaterThan(0);
+    for (const name of referenced) {
+      expect(DECLARATIONS, `--${name} 被引用但未定义`).toMatch(new RegExp(`--${name}\\s*:`));
+    }
   });
 });
+
 ```
 
 - [ ] **Step 2: 运行测试确认失败**
@@ -126,18 +196,32 @@ Expected: FAIL —— `--color-brand-accent not found in design-tokens.css`
   --auth-ink-soft: #6B6A63;
   --auth-line: #E5E3DA;
   --auth-line-strong: #D4D1C5;
+  --auth-btn: #262624;
   --auth-btn-soft-bg: #E9E6DC;
   --auth-btn-soft-hover: #DFDBCE;
   --auth-btn-fg: #FFFFFF;
 ```
 
-> 删除 `--auth-card-shadow` 与 `--auth-brand-bg`:前者由新卡片的 Tailwind `shadow-sm` 取代,后者随 antd 的 `AuthBrandCard` 一起删掉(见 Task 5)。替换前先全局搜索确认没有其它引用。
+> `--auth-btn` 是主按钮的底色(近黑),Task 2/3/5 的主按钮都用 `bg-[var(--auth-btn)]` ——
+> 少这一条,主按钮会静默丢掉背景色。
+>
+> **`--auth-card-shadow` 不要删** —— 它被 antd 的 `auth-brand-card.tsx` 用着(那个组件 Task 5 才删)。
+> 现在删掉会让登录/找回密码卡片在 Task 3/5 之前渲染成无阴影(`box-shadow: var(--undefined)` 计算值非法)。
+> Task 5 删组件时连同这个令牌一起删。
+> **但不要删 `--auth-brand-bg`** —— 它还有第二个消费者:应用侧边栏的 logo 徽标
+> (`src/components/Layout/sidebar.tsx`)。保留它,并加一行注释说明它已不再用于登录页。
+>
+> 登录页配色是**固定的浅色调**:`[data-theme="dark"]` 块里**不要**再覆写 `--auth-bg` /
+> `--auth-ink` 等 —— 深色底上放近黑的标题会读不清。`--auth-brand-bg` 的深色变体保留。
 
 并在文件末尾追加:
 
 ```css
-  /* 衬线字体栈:英文落到 Georgia,中文落到宋体/思源宋体 */
-  --font-serif: Georgia, 'Times New Roman', 'Songti SC', 'Noto Serif CJK SC',
+  /* 衬线字体栈:英文落到 Georgia,中文落到宋体/思源宋体
+     名字带 scm- 前缀是刻意的:globals.css 的 @theme inline 要写
+     --font-serif: var(--scm-font-serif)。若两边都叫 --font-serif,
+     @theme 生成的那条就是自引用,--font-serif 会解析成 invalid。 */
+  --scm-font-serif: Georgia, 'Times New Roman', 'Songti SC', 'Noto Serif CJK SC',
     'Source Han Serif SC', serif;
 ```
 
@@ -146,15 +230,26 @@ Expected: FAIL —— `--color-brand-accent not found in design-tokens.css`
 在 `src/app/globals.css` 的 `@theme inline { ... }` 块内追加一行:
 
 ```css
-  --font-serif: var(--font-serif);
+  --font-serif: var(--scm-font-serif);
 ```
 
-> 注意:该块里的 `--color-primary: var(--primary)` 等是 shadcn 变量 → Tailwind 颜色工具类的别名。这里同理,把 `design-tokens.css` 的 `--font-serif` 暴露成 Tailwind 的 `font-serif` 工具类。**不要**往这个块里加 `--color-brand-accent-*` —— Tailwind 的 `bg-brand-accent` 由 design-tokens.css 里的 `--color-brand-accent` 自动生成(该文件在 `:root` 下定义了同名 `--color-*`,Tailwind v4 会识别)。
+> 该块里的 `--color-primary: var(--primary)` 等是 shadcn 变量 → Tailwind 颜色工具类的别名。
+> 这里同理,把 `design-tokens.css` 的 `--scm-font-serif` 暴露成 Tailwind 的 `font-serif` 工具类。
+> **注意**:这里的 `--font-serif` 必须指向 `--scm-font-serif`,**不能**写成
+> `--font-serif: var(--font-serif)` —— 那是一条自引用,变量会解析失败,`font-serif` 工具类
+> 随之失效。
+> **不要**往这个块里加 `--color-brand-accent-*`。Tailwind v4 只会从 `@theme` 块里生成
+> `--color-*` 工具类;`design-tokens.css` 里的 `--color-brand-accent` 定义在普通 `:root`
+> 块中,**不会**生成 `bg-brand-accent` 这样的工具类。所以组件里一律用
+> `bg-[var(--color-brand-accent)]` / `text-[var(--color-brand-accent)]` 这种任意值写法。
+> 也不要把 `--color-brand-accent` 写进 `@theme inline` —— 那会和 `:root` 里的同名声明
+> 形成自引用。
+
 
 - [ ] **Step 5: 运行测试确认通过**
 
 Run: `cd scm-web && npm test -- src/lib/design-tokens.test.ts`
-Expected: PASS(4 个用例)
+Expected: PASS(7 个用例)
 
 - [ ] **Step 6: 提交**
 
@@ -420,7 +515,7 @@ git commit -m "feat(web): 新增 Claude 版式认证双栏外壳与品牌标记"
   - `loginSchema` —— `z.object({ username: z.string().min(1, ...), password: z.string().min(1, ...) })`
   - `totpSchema` —— `z.object({ code: z.string().length(6).regex(/^\d+$/, ...) })`
   - `LoginCard(props: { title: string; subtitle: string; children: ReactNode })`
-  - `LoginForm(props: { onSuccess: (response: LoginResponse) => void; onMfaRequired: (values: LoginFormValues) => void })`
+  - `LoginForm(props: { onSuccess: (response: LoginResponse) => void; onMfaRequired: (values: LoginFormValues) => void; onError: (error: ApiError) => void })`
 
 - [ ] **Step 1: 写失败的测试(schema)**
 
@@ -429,29 +524,40 @@ git commit -m "feat(web): 新增 Claude 版式认证双栏外壳与品牌标记"
 ```ts
 import { describe, expect, it } from "vitest";
 
-import { loginSchema, totpSchema } from "./login-schema";
+import { buildLoginSchema, buildTotpSchema } from "./login-schema";
 
-describe("loginSchema", () => {
+// 翻译函数原样返回 key,这样断言里能直接看到是哪个 key
+const t = (key: string) => key;
+
+describe("buildLoginSchema", () => {
   it("rejects an empty username", () => {
-    const result = loginSchema.safeParse({ username: "", password: "x" });
+    const result = buildLoginSchema(t).safeParse({ username: "", password: "x" });
     expect(result.success).toBe(false);
   });
 
   it("rejects an empty password", () => {
-    const result = loginSchema.safeParse({ username: "admin", password: "" });
+    const result = buildLoginSchema(t).safeParse({ username: "admin", password: "" });
     expect(result.success).toBe(false);
   });
 
   it("accepts a filled pair", () => {
-    expect(loginSchema.safeParse({ username: "admin", password: "admin123" }).success).toBe(true);
+    expect(buildLoginSchema(t).safeParse({ username: "admin", password: "admin123" }).success).toBe(true);
+  });
+
+  it("puts the translated message into the error", () => {
+    const result = buildLoginSchema(t).safeParse({ username: "", password: "" });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0].message).toBe("errors.usernameRequired");
+    }
   });
 });
 
-describe("totpSchema", () => {
+describe("buildTotpSchema", () => {
   it("requires exactly six digits", () => {
-    expect(totpSchema.safeParse({ code: "12345" }).success).toBe(false);
-    expect(totpSchema.safeParse({ code: "12345a" }).success).toBe(false);
-    expect(totpSchema.safeParse({ code: "123456" }).success).toBe(true);
+    expect(buildTotpSchema(t).safeParse({ code: "12345" }).success).toBe(false);
+    expect(buildTotpSchema(t).safeParse({ code: "12345a" }).success).toBe(false);
+    expect(buildTotpSchema(t).safeParse({ code: "123456" }).success).toBe(true);
   });
 });
 ```
@@ -473,9 +579,20 @@ vi.mock("@/lib/api/services/auth", () => ({
   authService: { login: (...args: unknown[]) => login(...args) },
 }));
 
+// useMutation 需要 QueryClient 上下文;这里直接 mock 掉,让测试只关心表单行为。
+// useQuery 也要一并提供 —— Task 6 会把 SocialAuthButtons(useQuery)插进这个表单。
+vi.mock("@tanstack/react-query", () => ({
+  useMutation: () => ({
+    mutateAsync: (...args: unknown[]) => login(...args),
+    isPending: false,
+  }),
+  useQuery: () => ({ data: [] as string[] }),
+}));
+
 vi.mock("next-intl", () => ({
   useLocale: () => "zh-CN",
-  useTranslations: () => (key: string) => key,
+  // 模拟 next-intl 的命名空间行为:useTranslations("login") 返回的 t 会把命名空间拼进 key
+  useTranslations: (ns: string) => (key: string) => `${ns}.${key}`,
 }));
 
 describe("LoginForm", () => {
@@ -486,7 +603,7 @@ describe("LoginForm", () => {
 
   it("does not call the API when required fields are empty", async () => {
     const onSuccess = vi.fn();
-    render(<LoginForm onSuccess={onSuccess} onMfaRequired={vi.fn()} />);
+    render(<LoginForm onSuccess={onSuccess} onMfaRequired={vi.fn()} onError={vi.fn()} />);
 
     await userEvent.click(screen.getByRole("button", { name: "login.submit" }));
 
@@ -499,7 +616,7 @@ describe("LoginForm", () => {
 
   it("submits the credentials and forwards the response", async () => {
     const onSuccess = vi.fn();
-    render(<LoginForm onSuccess={onSuccess} onMfaRequired={vi.fn()} />);
+    render(<LoginForm onSuccess={onSuccess} onMfaRequired={vi.fn()} onError={vi.fn()} />);
 
     await userEvent.type(screen.getByLabelText("login.username"), "admin");
     await userEvent.type(screen.getByLabelText("login.password"), "admin123");
@@ -509,8 +626,27 @@ describe("LoginForm", () => {
     expect(login).toHaveBeenCalledWith({ username: "admin", password: "admin123" });
   });
 
+  it("reports a non-MFA server failure instead of swallowing it", async () => {
+    const onError = vi.fn();
+    // 后端拒绝:密码错误。必须走 onError,不能静默 ——
+    // 旧页面在这里调 message.error,丢了就是「点登录没反应」。
+    login.mockRejectedValue(
+      Object.assign(new Error("密码错误"), {
+        response: { status: 400, data: { code: 40001, message: "密码错误" } },
+      })
+    );
+    render(<LoginForm onSuccess={vi.fn()} onMfaRequired={vi.fn()} onError={onError} />);
+
+    await userEvent.type(screen.getByLabelText("login.username"), "admin");
+    await userEvent.type(screen.getByLabelText("login.password"), "wrong");
+    await userEvent.click(screen.getByRole("button", { name: "login.submit" }));
+
+    await waitFor(() => expect(onError).toHaveBeenCalledTimes(1));
+    expect(onError.mock.calls[0][0]).toMatchObject({ message: "密码错误" });
+  });
+
   it("exposes name attributes the e2e spec relies on", () => {
-    render(<LoginForm onSuccess={vi.fn()} onMfaRequired={vi.fn()} />);
+    render(<LoginForm onSuccess={vi.fn()} onMfaRequired={vi.fn()} onError={vi.fn()} />);
     expect(screen.getByLabelText("login.username")).toHaveAttribute("name", "username");
     expect(screen.getByLabelText("login.password")).toHaveAttribute("name", "password");
   });
@@ -529,24 +665,42 @@ Expected: FAIL —— `Cannot find module './login-schema'`
 ```ts
 import { z } from "zod";
 
-export const loginSchema = z.object({
-  username: z.string().min(1, "login.errors.usernameRequired"),
-  password: z.string().min(1, "login.errors.passwordRequired"),
-});
+/** next-intl 的翻译函数签名(只用到 key,不接参数)。 */
+export type Translator = (key: string) => string;
 
-export const totpSchema = z.object({
-  code: z
-    .string()
-    .min(1, "login.errors.codeRequired")
-    .length(6, "login.errors.codeLength")
-    .regex(/^\d+$/, "login.errors.codeDigits"),
-});
+/**
+ * 校验 schema 是**工厂**而不是常量:错误文案要在 schema 构建时就翻译好,
+ * 这样组件只要渲染 `errors.x?.message` 即可 ——
+ * 校验错误是已翻译的文案,服务端错误(如验证码错误)是后端原样返回的文案,
+ * 两条路径共用同一处渲染,不需要再做一层 key 映射。
+ */
+export function buildLoginSchema(t: Translator) {
+  return z.object({
+    username: z.string().min(1, t("errors.usernameRequired")),
+    password: z.string().min(1, t("errors.passwordRequired")),
+    // `remember` 只在 `defaultValues` 里出现,不是校验目标 —— 但它必须是 schema 的一部分,
+    // 否则 `LoginFormValues` 里没有它,`useForm` 的 defaultValues 与 `FormField name="remember"`
+    // 都会报类型错(连带 control/handleSubmit 的泛型一起塌)。
+    remember: z.boolean().optional(),
+  });
+}
 
-export type LoginFormValues = z.infer<typeof loginSchema>;
-export type TotpFormValues = z.infer<typeof totpSchema>;
+export function buildTotpSchema(t: Translator) {
+  return z.object({
+    code: z
+      .string()
+      .min(1, t("errors.codeRequired"))
+      .length(6, t("errors.codeLength"))
+      .regex(/^\d+$/, t("errors.codeDigits")),
+  });
+}
+
+export type LoginFormValues = z.infer<ReturnType<typeof buildLoginSchema>>;
+export type TotpFormValues = z.infer<ReturnType<typeof buildTotpSchema>>;
 ```
 
-> 校验消息写的是 i18n key,由 `useTranslations("login")` 在渲染时翻译 —— 所以 schema 里存 key 而不是文案。
+> **不要**把 i18n key 存进 schema 的 message —— 那样组件还得把 key 再翻译一次,
+> 而服务端错误(不是 key)就没法走同一条渲染路径。
 
 - [ ] **Step 5: 创建 `login-card.tsx`**
 
@@ -599,17 +753,23 @@ import { authService } from "@/lib/api/services/auth";
 import { toApiError } from "@/lib/api/envelope";
 import type { LoginResponse } from "@/lib/api/contracts/auth";
 
-import { loginSchema, type LoginFormValues } from "./login-schema";
+import { buildLoginSchema, type LoginFormValues } from "./login-schema";
+import type { ApiError } from "@/lib/api/envelope";
+
+/** 服务端要求二次验证。抽成常量函数是为了让旧页面的判定规则原样保留。 */
+const isMfaRequired = (message: string, code: number): boolean =>
+  code === 40104 || /two-factor|verification code|MFA/i.test(message);
 
 interface LoginFormProps {
   onSuccess: (response: LoginResponse) => void;
   onMfaRequired: (values: LoginFormValues) => void;
+  onError: (error: ApiError) => void;
 }
 
-export function LoginForm({ onSuccess, onMfaRequired }: LoginFormProps) {
+export function LoginForm({ onSuccess, onMfaRequired, onError }: LoginFormProps) {
   const t = useTranslations("login");
   const form = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
+    resolver: zodResolver(buildLoginSchema(t)),
     defaultValues: { username: "", password: "", remember: true },
   });
 
@@ -626,11 +786,14 @@ export function LoginForm({ onSuccess, onMfaRequired }: LoginFormProps) {
       onSuccess(response);
     } catch (error: unknown) {
       const apiError = toApiError(error);
-      if (apiError.code === 40104 || /two-factor|verification code|MFA/i.test(apiError.message)) {
+      if (isMfaRequired(apiError.message, apiError.code)) {
         onMfaRequired(values);
         return;
       }
-      throw error;
+      // 非 MFA 失败(密码错误 / 账号锁定 / 网络错误)必须冒泡给页面去弹提示。
+      // 不能 `throw error`:onSubmit 是 handleSubmit 的回调,抛出的 promise 无人 catch,
+      // 用户点了登录会**毫无反馈**(旧页面在这里调 message.error)。
+      onError(apiError);
     }
   };
 
@@ -656,7 +819,9 @@ export function LoginForm({ onSuccess, onMfaRequired }: LoginFormProps) {
                 {...field}
               />
               {form.formState.errors.username && (
-                <p className="text-sm text-destructive">{t("errors.usernameRequired")}</p>
+                <p className="text-sm text-destructive">
+                  {form.formState.errors.username.message}
+                </p>
               )}
             </FormItem>
           )}
@@ -678,7 +843,9 @@ export function LoginForm({ onSuccess, onMfaRequired }: LoginFormProps) {
                 {...field}
               />
               {form.formState.errors.password && (
-                <p className="text-sm text-destructive">{t("errors.passwordRequired")}</p>
+                <p className="text-sm text-destructive">
+                  {form.formState.errors.password.message}
+                </p>
               )}
             </FormItem>
           )}
@@ -732,13 +899,12 @@ export function LoginForm({ onSuccess, onMfaRequired }: LoginFormProps) {
 }
 ```
 
-> **不要用 shadcn 的 `FormMessage` 承载 i18n 错误文案**。它的实现是
+> **不要用 shadcn 的 `FormMessage` 承载错误文案**。它的实现是
 > `error ? String(error.message) : props.children` —— 没有错误时会把 children 直接渲染出来
-> (错误提示一进页面就显示),有错误时又优先显示 `error.message`(那会是 schema 里的原始 key,
-> 没有翻译)。所以错误文案自己用条件段落渲染,`FormItem` 只用来做间距。
->
-> `loginSchema` 里的 message 存 i18n key,只用于 `formState.errors.*.message` 的可读性,
-> 不直接显示。
+> (错误提示一进页面就显示),有错误时又优先显示 `error.message`。
+> 所以错误文案自己用条件段落渲染,`FormItem` 只用来做间距。
+> 段落里直接渲染 `errors.x?.message`:校验错误在 schema 构建时已翻译,
+> 服务端错误(如验证码错误)是后端原样返回的文案 —— 两条路径共用这一处渲染。
 
 > 「忘记密码」链接这一版硬编码 `/zh-CN/forgot-password`;Task 6 换成 `useLocale()` 拼出来的路径。
 
@@ -802,6 +968,7 @@ export default function LoginPage() {
       <LoginForm
         onSuccess={(response) => void completeLogin(response)}
         onMfaRequired={(values) => setMfaValues(values)}
+        onError={(error) => message.error(error.message || t("failed"))}
       />
     </LoginCard>
   );
@@ -811,7 +978,7 @@ export default function LoginPage() {
 - [ ] **Step 8: 运行测试确认通过**
 
 Run: `cd scm-web && npm test -- src/components/auth/login-schema.test.ts src/components/auth/login-form.test.tsx`
-Expected: PASS(schema 4 个用例 + 表单 3 个用例)
+Expected: PASS(schema 5 个用例 + 表单 4 个用例)
 
 - [ ] **Step 9: 提交**
 
@@ -912,6 +1079,49 @@ describe("useCompleteLogin", () => {
     expect(clear).toHaveBeenCalled();
     await waitFor(() => expect(push).toHaveBeenCalledWith("/zh-CN/dashboard"));
   });
+
+  it("returns a failure result instead of throwing when the response has no token", async () => {
+    const { result } = renderHook(() => useCompleteLogin());
+
+    let outcome: Awaited<ReturnType<typeof result.current>> | undefined;
+    await act(async () => {
+      // 后端以 HTTP 200 + 错误信封拒绝 —— 没有 accessToken
+      outcome = await result.current({ message: "账号已锁定" });
+    });
+
+    expect(outcome).toEqual({ ok: false, message: "账号已锁定" });
+    // 关键:没有建会话、没有跳转 —— 也不能抛异常(抛了就是 unhandled rejection,用户无反馈)
+    expect(login).not.toHaveBeenCalled();
+    expect(setPermissions).not.toHaveBeenCalled();
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it("falls back to an empty message when the failure has none", async () => {
+    const { result } = renderHook(() => useCompleteLogin());
+
+    let outcome: Awaited<ReturnType<typeof result.current>> | undefined;
+    await act(async () => {
+      outcome = await result.current({});
+    });
+
+    expect(outcome).toEqual({ ok: false, message: "" });
+  });
+
+  it("reports success so the caller knows to show the success toast", async () => {
+    const { result } = renderHook(() => useCompleteLogin());
+
+    let outcome: Awaited<ReturnType<typeof result.current>> | undefined;
+    await act(async () => {
+      outcome = await result.current({
+        accessToken: "at",
+        refreshToken: "rt",
+        userId: "u",
+        username: "admin",
+      });
+    });
+
+    expect(outcome).toEqual({ ok: true });
+  });
 });
 ```
 
@@ -937,6 +1147,14 @@ import { authService } from "@/lib/api/services/auth";
 import type { LoginResponse } from "@/lib/api/contracts/auth";
 
 /**
+ * 建立会话的结果。**不要用抛异常表达失败** —— 这个 hook 由 `onSuccess` 回调调用,
+ * 而 `onSuccess` 的签名是 `(response) => void`,返回的 promise 没人 await:
+ * 抛出去就变成 unhandled rejection,用户点完登录**毫无反馈**。
+ * 用可判别联合逼调用方处理失败分支。
+ */
+export type LoginCompletion = { ok: true } | { ok: false; message: string };
+
+/**
  * 建立会话的共享逻辑。密码登录与社交登录回调页共用。
  * 顺序不可调换:先写 store(后续 getUserInfo 才带得上 token),再清 query cache,最后跳路由。
  */
@@ -946,9 +1164,11 @@ export function useCompleteLogin() {
   const queryClient = useQueryClient();
   const { login, setUser, setPermissions } = useAuthStore();
 
-  return async (response: LoginResponse): Promise<void> => {
+  return async (response: LoginResponse): Promise<LoginCompletion> => {
+    // 后端可能以 HTTP 200 返回带 message 的错误信封 —— 此时没有 token,不能进 store。
+    // 旧页面在这里 `message.error(...)` 然后停在原地;现在把文案交给调用方去弹。
     if (!response.accessToken) {
-      throw new Error(response.message || "Login response has no access token");
+      return { ok: false, message: response.message ?? "" };
     }
 
     login(toSessionUser(response), response.accessToken, response.refreshToken ?? "");
@@ -963,11 +1183,160 @@ export function useCompleteLogin() {
 
     queryClient.clear();
     router.push(`/${locale}/dashboard`);
+    return { ok: true };
   };
 }
 ```
 
-- [ ] **Step 4: 创建 `totp-form.tsx`**
+> `LoginResponse.message` 在契约里是可选的;`?? ""` 让调用方能退回自己的兜底文案
+> (`error.message || t("failed")` 的写法依赖空串是假值)。
+
+- [ ] **Step 4: 写失败的测试(TOTP 表单 + MFA 分流)**
+
+创建 `scm-web/src/components/auth/totp-form.test.tsx`:
+
+```tsx
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { TotpForm } from "./totp-form";
+
+const login = vi.fn();
+
+vi.mock("@/lib/api/services/auth", () => ({
+  authService: { login: (...args: unknown[]) => login(...args) },
+}));
+
+// useMutation 需要 QueryClient 上下文;直接 mock 掉,让测试只关心表单行为
+vi.mock("@tanstack/react-query", () => ({
+  useMutation: () => ({
+    mutateAsync: (...args: unknown[]) => login(...args),
+    isPending: false,
+  }),
+}));
+
+vi.mock("next-intl", () => ({
+  // 模拟命名空间:useTranslations("login") 的 t("mfa.submit") 解析为 login.mfa.submit
+  useTranslations: (ns: string) => (key: string) => `${ns}.${key}`,
+}));
+
+const credentials = { username: "admin", password: "admin123" };
+
+describe("TotpForm", () => {
+  beforeEach(() => {
+    login.mockReset();
+  });
+
+  it("sends the pending credentials together with the code", async () => {
+    const onSuccess = vi.fn();
+    login.mockResolvedValue({ accessToken: "t", refreshToken: "r", userId: "u", username: "admin" });
+    render(<TotpForm pendingCredentials={credentials} onBack={vi.fn()} onSuccess={onSuccess} />);
+
+    await userEvent.type(screen.getByLabelText("login.mfa.title"), "123456");
+    await userEvent.click(screen.getByRole("button", { name: "login.mfa.submit" }));
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
+    expect(login).toHaveBeenCalledWith({ ...credentials, twoFactorCode: "123456" });
+  });
+
+  it("rejects a code that is not six digits before hitting the API", async () => {
+    render(<TotpForm pendingCredentials={credentials} onBack={vi.fn()} onSuccess={vi.fn()} />);
+
+    await userEvent.type(screen.getByLabelText("login.mfa.title"), "123");
+    await userEvent.click(screen.getByRole("button", { name: "login.mfa.submit" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("login.errors.codeLength")).toBeInTheDocument();
+    });
+    expect(login).not.toHaveBeenCalled();
+  });
+
+  it("surfaces a rejected code without leaving the TOTP step", async () => {
+    const onSuccess = vi.fn();
+    login.mockRejectedValue(
+      Object.assign(new Error("验证码错误"), {
+        response: { status: 400, data: { code: 40002, message: "验证码错误" } },
+      })
+    );
+    render(<TotpForm pendingCredentials={credentials} onBack={vi.fn()} onSuccess={onSuccess} />);
+
+    await userEvent.type(screen.getByLabelText("login.mfa.title"), "000000");
+    await userEvent.click(screen.getByRole("button", { name: "login.mfa.submit" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("验证码错误")).toBeInTheDocument();
+    });
+    expect(onSuccess).not.toHaveBeenCalled();
+  });
+
+  it("goes back to the password step", async () => {
+    const onBack = vi.fn();
+    render(<TotpForm pendingCredentials={credentials} onBack={onBack} onSuccess={vi.fn()} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "login.mfa.back" }));
+    expect(onBack).toHaveBeenCalledTimes(1);
+    expect(login).not.toHaveBeenCalled();
+  });
+});
+```
+
+> 验证码输入框需要一个 `<Label htmlFor="code">` 才能被 `getByLabelText` 找到 ——
+> 上面第一条用例用 `login.mfa.title` 当标签文案,所以 `totp-form.tsx` 里那个
+> `FormItem` 必须补一个 `<Label htmlFor="code">{t("mfa.title")}</Label>`。
+> 这是 Task 3 的登录表单已经建立的同一套约定(标签 + `htmlFor` 与输入框 `id` 对齐)。
+
+同时在 `scm-web/src/components/auth/login-form.test.tsx` 末尾追加两条 MFA 分流用例
+(它们钉住的是「密码登录零回归」的核心保证 —— `isMfaRequired` 判定错一次,TOTP 用户就永远进不了第二步):
+
+```tsx
+  it("routes a 40104 challenge to the MFA step, not to the error path", async () => {
+    const onMfaRequired = vi.fn();
+    const onError = vi.fn();
+    login.mockRejectedValue(
+      Object.assign(new Error("需要二次验证"), {
+        response: { status: 401, data: { code: 40104, message: "需要二次验证" } },
+      })
+    );
+    render(<LoginForm onSuccess={vi.fn()} onMfaRequired={onMfaRequired} onError={onError} />);
+
+    await userEvent.type(screen.getByLabelText("login.username"), "admin");
+    await userEvent.type(screen.getByLabelText("login.password"), "admin123");
+    await userEvent.click(screen.getByRole("button", { name: "login.submit" }));
+
+    await waitFor(() => expect(onMfaRequired).toHaveBeenCalledTimes(1));
+    expect(onMfaRequired).toHaveBeenCalledWith({ username: "admin", password: "admin123", remember: true });
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it("routes a message-only MFA challenge the same way", async () => {
+    const onMfaRequired = vi.fn();
+    const onError = vi.fn();
+    login.mockRejectedValue(
+      Object.assign(new Error("MFA required"), {
+        response: { status: 401, data: { code: 0, message: "MFA required" } },
+      })
+    );
+    render(<LoginForm onSuccess={vi.fn()} onMfaRequired={onMfaRequired} onError={onError} />);
+
+    await userEvent.type(screen.getByLabelText("login.username"), "admin");
+    await userEvent.type(screen.getByLabelText("login.password"), "admin123");
+    await userEvent.click(screen.getByRole("button", { name: "login.submit" }));
+
+    await waitFor(() => expect(onMfaRequired).toHaveBeenCalledTimes(1));
+    expect(onError).not.toHaveBeenCalled();
+  });
+```
+
+> 断言 `onError` **没有**被调用,与断言 `onMfaRequired` 被调用同样重要:
+> 两条路径互斥,只测其中一条会让「两个都触发」的实现照样变绿。
+
+- [ ] **Step 5: 运行测试确认失败**
+
+Run: `cd scm-web && npm test -- src/components/auth/totp-form.test.tsx`
+Expected: FAIL —— `Failed to resolve import "./totp-form"`
+
+- [ ] **Step 6: 创建 `totp-form.tsx`**
 
 `scm-web/src/components/auth/totp-form.tsx`:
 
@@ -982,11 +1351,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormField, FormItem } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { authService } from "@/lib/api/services/auth";
 import { toApiError } from "@/lib/api/envelope";
 import type { LoginResponse } from "@/lib/api/contracts/auth";
 
-import { totpSchema, type LoginFormValues, type TotpFormValues } from "./login-schema";
+import { buildTotpSchema, type LoginFormValues, type TotpFormValues } from "./login-schema";
 
 interface TotpFormProps {
   pendingCredentials: LoginFormValues;
@@ -997,7 +1367,7 @@ interface TotpFormProps {
 export function TotpForm({ pendingCredentials, onBack, onSuccess }: TotpFormProps) {
   const t = useTranslations("login");
   const form = useForm<TotpFormValues>({
-    resolver: zodResolver(totpSchema),
+    resolver: zodResolver(buildTotpSchema(t)),
     defaultValues: { code: "" },
   });
 
@@ -1027,9 +1397,9 @@ export function TotpForm({ pendingCredentials, onBack, onSuccess }: TotpFormProp
           name="code"
           render={({ field }) => (
             <FormItem>
+              <Label htmlFor="code">{t("mfa.title")}</Label>
               <Input
                 id="code"
-                name="code"
                 inputMode="numeric"
                 autoComplete="one-time-code"
                 maxLength={6}
@@ -1038,7 +1408,9 @@ export function TotpForm({ pendingCredentials, onBack, onSuccess }: TotpFormProp
                 {...field}
               />
               {form.formState.errors.code && (
-                <p className="text-sm text-destructive">{t("errors.codeRequired")}</p>
+                <p className="text-sm text-destructive">
+                  {form.formState.errors.code.message}
+                </p>
               )}
             </FormItem>
           )}
@@ -1066,7 +1438,7 @@ export function TotpForm({ pendingCredentials, onBack, onSuccess }: TotpFormProp
 }
 ```
 
-- [ ] **Step 5: 接线 `login/page.tsx`(含 TOTP 分支)**
+- [ ] **Step 7: 接线 `login/page.tsx`(含 TOTP 分支)**
 
 把 `scm-web/src/app/[locale]/(auth)/login/page.tsx` 改成:
 
@@ -1082,6 +1454,7 @@ import { LoginForm } from "@/components/auth/login-form";
 import { TotpForm } from "@/components/auth/totp-form";
 import type { LoginFormValues } from "@/components/auth/login-schema";
 import { useCompleteLogin } from "@/lib/auth/use-complete-login";
+import type { LoginResponse } from "@/lib/api/contracts/auth";
 
 export default function LoginPage() {
   const t = useTranslations("login");
@@ -1089,16 +1462,32 @@ export default function LoginPage() {
   const completeLogin = useCompleteLogin();
   const [pendingCredentials, setPendingCredentials] = useState<LoginFormValues | null>(null);
 
+  /**
+   * 密码登录与 TOTP 登录共用同一个收尾:先建会话,成功了才提示成功。
+   * 不能先 `message.success` 再建会话 —— 后端以 200 + 错误信封返回时没有 token,
+   * 那样会先闪一句「登录成功」再毫无反应地停在原页。
+   */
+  const handleSuccess = async (response: LoginResponse) => {
+    try {
+      const result = await completeLogin(response);
+      if (!result.ok) {
+        message.error(result.message || t("failed"));
+        return;
+      }
+      message.success(t("success"));
+    } catch {
+      // 兜底:建会话途中的意外异常也不能变成静默失败
+      message.error(t("failed"));
+    }
+  };
+
   if (pendingCredentials) {
     return (
       <LoginCard title={t("mfa.title")} subtitle={t("mfa.subtitle")}>
         <TotpForm
           pendingCredentials={pendingCredentials}
           onBack={() => setPendingCredentials(null)}
-          onSuccess={(response) => {
-            message.success(t("success"));
-            void completeLogin(response);
-          }}
+          onSuccess={(response) => void handleSuccess(response)}
         />
       </LoginCard>
     );
@@ -1107,35 +1496,40 @@ export default function LoginPage() {
   return (
     <LoginCard title={t("title")} subtitle={t("subtitle")}>
       <LoginForm
-        onSuccess={(response) => {
-          message.success(t("success"));
-          void completeLogin(response);
-        }}
+        onSuccess={(response) => void handleSuccess(response)}
         onMfaRequired={setPendingCredentials}
+        onError={(error) => message.error(error.message || t("failed"))}
       />
     </LoginCard>
   );
 }
 ```
 
-> `completeLogin` 现在负责跳转,页面只负责弹提示 —— 顺序是「先提示成功再跳」,与原实现一致。
+> `completeLogin` 负责建会话与跳转,页面负责所有提示 —— 且**成功提示在会话建立之后**,
+> 与原实现一致(旧页面的 `message.success` 也在 `completeLogin` 内部、store 写完才调)。
+> `onError` 接住非 MFA 失败(密码错误 / 账号锁定 / 网络错误)并弹后端返回的文案,
+> 与原页面 `message.error(apiError.message || '登录失败')` 等价。
+> `onError` 接住非 MFA 失败(密码错误 / 账号锁定 / 网络错误)并弹后端返回的文案,
+> 与原页面 `message.error(apiError.message || '登录失败')` 等价。
 
-- [ ] **Step 6: 运行测试确认通过**
+- [ ] **Step 8: 运行测试确认通过**
 
-Run: `cd scm-web && npm test -- src/lib/auth/use-complete-login.test.tsx`
-Expected: PASS(1 个用例)
+Run: `cd scm-web && npm test -- src/lib/auth/use-complete-login.test.tsx src/components/auth/totp-form.test.tsx src/components/auth/login-form.test.tsx`
+Expected: PASS(hook 4 个用例 + TOTP 表单 4 个用例 + 登录表单 6 个用例)
 
-- [ ] **Step 7: 跑全量前端测试与类型检查**
+- [ ] **Step 9: 跑全量前端测试与类型检查**
 
 Run: `cd scm-web && npm test && npm run typecheck`
 Expected: 全部 PASS;typecheck 无错误
 
-- [ ] **Step 8: 提交**
+- [ ] **Step 10: 提交**
 
 ```bash
 cd scm-web
 git add src/lib/auth/use-complete-login.ts src/lib/auth/use-complete-login.test.tsx \
-        src/components/auth/totp-form.tsx "src/app/[locale]/(auth)/login/page.tsx"
+        src/components/auth/totp-form.tsx src/components/auth/totp-form.test.tsx \
+        src/components/auth/login-form.test.tsx \
+        "src/app/[locale]/(auth)/login/page.tsx"
 git commit -m "refactor(web): 抽取共享会话建立 hook 并接入 TOTP 两步验证"
 ```
 
@@ -1166,12 +1560,28 @@ import { describe, expect, it, vi } from "vitest";
 import { ForgotPasswordForm } from "./forgot-password-form";
 
 vi.mock("next-intl", () => ({
-  useTranslations: () => (key: string) => key,
+  // 模拟 next-intl 的命名空间行为:useTranslations("forgot") 返回的 t 会把命名空间拼进 key
+  useTranslations: (ns: string) => (key: string) => `${ns}.${key}`,
 }));
+
+/** 走完邮箱步,停在验证码步。 */
+const advanceToCodeStep = async () => {
+  await userEvent.type(screen.getByLabelText("forgot.email"), "ops@example.com");
+  await userEvent.click(screen.getByRole("button", { name: "forgot.sendCode" }));
+  await waitFor(() => expect(screen.getByText("forgot.codeSent")).toBeInTheDocument());
+};
+
+/** 走完验证码步,停在重置密码步。 */
+const advanceToPasswordStep = async () => {
+  await advanceToCodeStep();
+  await userEvent.type(screen.getByLabelText("forgot.code"), "123456");
+  await userEvent.click(screen.getByRole("button", { name: "forgot.verify" }));
+  await waitFor(() => expect(screen.getByLabelText("forgot.newPassword")).toBeInTheDocument());
+};
 
 describe("ForgotPasswordForm", () => {
   it("requires a valid email before sending a code", async () => {
-    render(<ForgotPasswordForm />);
+    render(<ForgotPasswordForm onDone={vi.fn()} />);
 
     await userEvent.click(screen.getByRole("button", { name: "forgot.sendCode" }));
     await waitFor(() => {
@@ -1179,15 +1589,83 @@ describe("ForgotPasswordForm", () => {
     });
   });
 
-  it("advances to the code step after a valid email", async () => {
-    render(<ForgotPasswordForm />);
+  it("rejects a malformed email", async () => {
+    render(<ForgotPasswordForm onDone={vi.fn()} />);
 
-    await userEvent.type(screen.getByLabelText("forgot.email"), "ops@example.com");
+    await userEvent.type(screen.getByLabelText("forgot.email"), "not-an-email");
     await userEvent.click(screen.getByRole("button", { name: "forgot.sendCode" }));
 
     await waitFor(() => {
-      expect(screen.getByText("forgot.codeSent")).toBeInTheDocument();
+      expect(screen.getByText("forgot.errors.emailInvalid")).toBeInTheDocument();
     });
+  });
+
+  it("advances to the code step after a valid email", async () => {
+    render(<ForgotPasswordForm onDone={vi.fn()} />);
+
+    await advanceToCodeStep();
+  });
+
+  it("blocks the code step until six digits are entered", async () => {
+    render(<ForgotPasswordForm onDone={vi.fn()} />);
+    await advanceToCodeStep();
+
+    await userEvent.type(screen.getByLabelText("forgot.code"), "123");
+    await userEvent.click(screen.getByRole("button", { name: "forgot.verify" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("forgot.errors.codeLength")).toBeInTheDocument();
+    });
+    // 没通过校验就不能进入下一步
+    expect(screen.getByText("forgot.codeSent")).toBeInTheDocument();
+  });
+
+  it("advances to the password step with a six-digit code", async () => {
+    render(<ForgotPasswordForm onDone={vi.fn()} />);
+
+    await advanceToPasswordStep();
+  });
+
+  it("rejects a password shorter than eight characters", async () => {
+    const onDone = vi.fn();
+    render(<ForgotPasswordForm onDone={onDone} />);
+    await advanceToPasswordStep();
+
+    await userEvent.type(screen.getByLabelText("forgot.newPassword"), "short");
+    await userEvent.type(screen.getByLabelText("forgot.confirmPassword"), "short");
+    await userEvent.click(screen.getByRole("button", { name: "forgot.reset" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("forgot.errors.passwordMin")).toBeInTheDocument();
+    });
+    expect(onDone).not.toHaveBeenCalled();
+  });
+
+  it("rejects a mismatched confirmation", async () => {
+    const onDone = vi.fn();
+    render(<ForgotPasswordForm onDone={onDone} />);
+    await advanceToPasswordStep();
+
+    await userEvent.type(screen.getByLabelText("forgot.newPassword"), "admin12345");
+    await userEvent.type(screen.getByLabelText("forgot.confirmPassword"), "admin12346");
+    await userEvent.click(screen.getByRole("button", { name: "forgot.reset" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("forgot.errors.passwordMismatch")).toBeInTheDocument();
+    });
+    expect(onDone).not.toHaveBeenCalled();
+  });
+
+  it("reports completion once the passwords match", async () => {
+    const onDone = vi.fn();
+    render(<ForgotPasswordForm onDone={onDone} />);
+    await advanceToPasswordStep();
+
+    await userEvent.type(screen.getByLabelText("forgot.newPassword"), "admin12345");
+    await userEvent.type(screen.getByLabelText("forgot.confirmPassword"), "admin12345");
+    await userEvent.click(screen.getByRole("button", { name: "forgot.reset" }));
+
+    await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
   });
 });
 ```
@@ -1215,25 +1693,65 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 
-const forgotSchema = z.object({
-  email: z.string().min(1, "forgot.errors.emailRequired").email("forgot.errors.emailInvalid"),
-});
+/** next-intl 的 t:key 进、文案出。三个 schema 工厂共用。 */
+type Translator = (key: string) => string;
 
-type ForgotValues = z.infer<typeof forgotSchema>;
+const buildEmailSchema = (t: Translator) =>
+  z.object({
+    email: z.string().min(1, t("errors.emailRequired")).email(t("errors.emailInvalid")),
+  });
+
+const buildCodeSchema = (t: Translator) =>
+  z.object({
+    code: z.string().min(1, t("errors.codeRequired")).length(6, t("errors.codeLength")),
+  });
+
+const buildPasswordSchema = (t: Translator) =>
+  z
+    .object({
+      password: z.string().min(1, t("errors.passwordRequired")).min(8, t("errors.passwordMin")),
+      confirmPassword: z.string().min(1, t("errors.confirmRequired")),
+    })
+    .refine((values) => values.password === values.confirmPassword, {
+      message: t("errors.passwordMismatch"),
+      path: ["confirmPassword"],
+    });
+
+type EmailValues = z.infer<ReturnType<typeof buildEmailSchema>>;
+type CodeValues = z.infer<ReturnType<typeof buildCodeSchema>>;
+type PasswordValues = z.infer<ReturnType<typeof buildPasswordSchema>>;
 
 type Step = "email" | "code" | "password";
 
-export function ForgotPasswordForm() {
+interface ForgotPasswordFormProps {
+  /** 三步都通过(模拟重置成功)。提示与跳转由页面负责 —— 与 LoginForm 的分工一致。 */
+  onDone: () => void;
+}
+
+/** 三个步骤共用的主按钮样式,免得同一串令牌重复四遍。 */
+const primaryButtonClass =
+  "h-12 w-full rounded-lg bg-[var(--auth-btn)] text-[var(--auth-btn-fg)] hover:bg-[var(--auth-ink-soft)]";
+
+export function ForgotPasswordForm({ onDone }: ForgotPasswordFormProps) {
   const t = useTranslations("forgot");
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
 
-  const form = useForm<ForgotValues>({
-    resolver: zodResolver(forgotSchema),
+  // 每一步一个表单:三步的校验目标互不相干,共用一个表单只会让 defaultValues 越滚越大。
+  const emailForm = useForm<EmailValues>({
+    resolver: zodResolver(buildEmailSchema(t)),
     defaultValues: { email: "" },
   });
+  const codeForm = useForm<CodeValues>({
+    resolver: zodResolver(buildCodeSchema(t)),
+    defaultValues: { code: "" },
+  });
+  const passwordForm = useForm<PasswordValues>({
+    resolver: zodResolver(buildPasswordSchema(t)),
+    defaultValues: { password: "", confirmPassword: "" },
+  });
 
-  const onEmailSubmit = (values: ForgotValues) => {
+  const onEmailSubmit = (values: EmailValues) => {
     setEmail(values.email);
     setStep("code");
   };
@@ -1241,33 +1759,35 @@ export function ForgotPasswordForm() {
   return (
     <div className="flex flex-col gap-4">
       {step === "email" && (
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onEmailSubmit)} className="flex flex-col gap-4" noValidate>
+        <Form {...emailForm}>
+          <form
+            onSubmit={emailForm.handleSubmit(onEmailSubmit)}
+            className="flex flex-col gap-4"
+            noValidate
+          >
             <FormField
-              control={form.control}
+              control={emailForm.control}
               name="email"
               render={({ field }) => (
                 <FormItem>
                   <Label htmlFor="email">{t("email")}</Label>
                   <Input
                     id="email"
-                    name="email"
                     type="email"
                     autoComplete="email"
                     placeholder={t("emailPlaceholder")}
                     className="h-12 rounded-lg bg-transparent"
                     {...field}
                   />
-                  {form.formState.errors.email && (
-                    <p className="text-sm text-destructive">{t("errors.emailRequired")}</p>
+                  {emailForm.formState.errors.email && (
+                    <p className="text-sm text-destructive">
+                      {emailForm.formState.errors.email.message}
+                    </p>
                   )}
                 </FormItem>
               )}
             />
-            <Button
-              type="submit"
-              className="h-12 w-full rounded-lg bg-[var(--auth-btn)] text-[var(--auth-btn-fg)] hover:bg-[var(--auth-ink-soft)]"
-            >
+            <Button type="submit" className={primaryButtonClass}>
               {t("sendCode")}
             </Button>
           </form>
@@ -1275,55 +1795,107 @@ export function ForgotPasswordForm() {
       )}
 
       {step === "code" && (
-        <div className="flex flex-col gap-4">
-          <p className="text-sm text-[var(--auth-ink-soft)]">{t("codeSent", { email })}</p>
-          <Input
-            name="code"
-            inputMode="numeric"
-            maxLength={6}
-            placeholder={t("codePlaceholder")}
-            className="h-12 rounded-lg bg-transparent text-center text-lg tracking-[0.5em]"
-          />
-          <Button
-            type="button"
-            onClick={() => setStep("password")}
-            className="h-12 w-full rounded-lg bg-[var(--auth-btn)] text-[var(--auth-btn-fg)] hover:bg-[var(--auth-ink-soft)]"
+        <Form {...codeForm}>
+          <form
+            onSubmit={codeForm.handleSubmit(() => setStep("password"))}
+            className="flex flex-col gap-4"
+            noValidate
           >
-            {t("verify")}
-          </Button>
-        </div>
+            <p className="text-sm text-[var(--auth-ink-soft)]">{t("codeSent", { email })}</p>
+            <FormField
+              control={codeForm.control}
+              name="code"
+              render={({ field }) => (
+                <FormItem>
+                  <Label htmlFor="code">{t("code")}</Label>
+                  <Input
+                    id="code"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={6}
+                    placeholder={t("codePlaceholder")}
+                    className="h-12 rounded-lg bg-transparent text-center text-lg tracking-[0.5em]"
+                    {...field}
+                  />
+                  {codeForm.formState.errors.code && (
+                    <p className="text-sm text-destructive">
+                      {codeForm.formState.errors.code.message}
+                    </p>
+                  )}
+                </FormItem>
+              )}
+            />
+            <Button type="submit" className={primaryButtonClass}>
+              {t("verify")}
+            </Button>
+          </form>
+        </Form>
       )}
 
       {step === "password" && (
-        <div className="flex flex-col gap-4">
-          <Input
-            name="password"
-            type="password"
-            autoComplete="new-password"
-            placeholder={t("newPasswordPlaceholder")}
-            className="h-12 rounded-lg bg-transparent"
-          />
-          <Input
-            name="confirmPassword"
-            type="password"
-            autoComplete="new-password"
-            placeholder={t("confirmPasswordPlaceholder")}
-            className="h-12 rounded-lg bg-transparent"
-          />
-          <Button
-            type="button"
-            className="h-12 w-full rounded-lg bg-[var(--auth-btn)] text-[var(--auth-btn-fg)] hover:bg-[var(--auth-ink-soft)]"
+        <Form {...passwordForm}>
+          <form
+            onSubmit={passwordForm.handleSubmit(() => onDone())}
+            className="flex flex-col gap-4"
+            noValidate
           >
-            {t("reset")}
-          </Button>
-        </div>
+            <FormField
+              control={passwordForm.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <Label htmlFor="password">{t("newPassword")}</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    autoComplete="new-password"
+                    placeholder={t("newPasswordPlaceholder")}
+                    className="h-12 rounded-lg bg-transparent"
+                    {...field}
+                  />
+                  {passwordForm.formState.errors.password && (
+                    <p className="text-sm text-destructive">
+                      {passwordForm.formState.errors.password.message}
+                    </p>
+                  )}
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={passwordForm.control}
+              name="confirmPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <Label htmlFor="confirmPassword">{t("confirmPassword")}</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    autoComplete="new-password"
+                    placeholder={t("confirmPasswordPlaceholder")}
+                    className="h-12 rounded-lg bg-transparent"
+                    {...field}
+                  />
+                  {passwordForm.formState.errors.confirmPassword && (
+                    <p className="text-sm text-destructive">
+                      {passwordForm.formState.errors.confirmPassword.message}
+                    </p>
+                  )}
+                </FormItem>
+              )}
+            />
+            <Button type="submit" className={primaryButtonClass}>
+              {t("reset")}
+            </Button>
+          </form>
+        </Form>
       )}
     </div>
   );
 }
 ```
 
-> 找回密码的后端接口在仓库里本来就没有(`forgot-password/page.tsx` 原来也只是本地 `setCurrentStep` 模拟,没有真实请求)。本 Task 保持同样的行为边界,不新增后端调用。
+> 找回密码的后端接口在仓库里本来就没有(`forgot-password/page.tsx` 原来也只是本地 `setCurrentStep` 模拟,没有真实请求)。本 Task 保持同样的行为边界,不新增后端调用 —— **但三步的校验规则必须与旧页面逐条对齐**:
+> 验证码必填且 6 位;新密码必填且至少 8 位;确认密码必填且两次一致。旧页面这三条规则就是它全部的行为。
 
 - [ ] **Step 4: 改写 `forgot-password/page.tsx`**
 
@@ -1332,16 +1904,39 @@ export function ForgotPasswordForm() {
 ```tsx
 "use client";
 
-import { useTranslations } from "next-intl";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
+import { App } from "antd";
 
 import { LoginCard } from "@/components/auth/login-card";
 import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
 
 export default function ForgotPasswordPage() {
   const t = useTranslations("forgot");
+  const locale = useLocale();
+  const router = useRouter();
+  const { message } = App.useApp();
+
+  // 找回密码没有后端接口,三步走完即视为重置成功 ——
+  // 与原页面一致:弹一句成功提示,然后回登录页。不能什么都不做(那是个死胡同)。
+  const handleDone = () => {
+    message.success(t("resetSuccess"));
+    router.push(`/${locale}/login`);
+  };
+
   return (
     <LoginCard title={t("title")} subtitle={t("subtitle")}>
-      <ForgotPasswordForm />
+      <ForgotPasswordForm onDone={handleDone} />
+      {/* 旧页面卡片底部有「返回登录」入口。丢了它,用户从登录页点进来就再也回不去了。 */}
+      <p className="mt-6 text-center text-sm">
+        <Link
+          href={`/${locale}/login`}
+          className="text-[var(--auth-ink-soft)] underline-offset-4 hover:text-[var(--auth-ink)] hover:underline"
+        >
+          {t("back")}
+        </Link>
+      </p>
     </LoginCard>
   );
 }
@@ -1354,6 +1949,13 @@ cd scm-web
 git rm src/components/ui/auth-brand-card.tsx src/layouts/auth-layout.tsx
 ```
 
+同时从 `src/lib/design-tokens.css` 的 `:root` 里删掉 `--auth-card-shadow`
+(`auth-brand-card.tsx` 是它最后一个消费者;**不要**删 `--auth-brand-bg` ——
+它还被 `src/components/Layout/sidebar.tsx` 用着)。
+
+> `design-tokens.test.ts` 里的契约守卫会自动发现这个令牌已无人引用 —— 它断言的是
+> 「被引用的令牌都有定义」,不是「定义的令牌都被引用」,所以删除它不会让测试变红。
+
 然后全局搜索确认没有引用残留:
 
 Run: `grep -rn "AuthBrandCard\|auth-layout\|AuthLayout" src/`
@@ -1362,7 +1964,7 @@ Expected: 无输出(有输出就把该引用改掉再删)
 - [ ] **Step 6: 运行测试确认通过**
 
 Run: `cd scm-web && npm test -- src/components/auth/forgot-password-form.test.tsx`
-Expected: PASS(2 个用例)
+Expected: PASS(8 个用例)
 
 - [ ] **Step 7: 提交**
 
@@ -1383,6 +1985,7 @@ git commit -m "refactor(web): 找回密码页迁移到 shadcn/ui 并移除旧 an
 - Modify: `scm-web/messages/en-US.json`
 - Modify: `scm-web/src/components/auth/auth-shell.tsx`(顶栏文案改走 i18n)
 - Modify: `scm-web/src/components/auth/login-form.tsx`(忘记密码链接改走 `useLocale()`)
+- Modify: `scm-web/src/components/auth/login-form.test.tsx`(补一条 locale 链接断言)
 - Modify: `scm-web/src/components/auth/auth-shell.test.tsx`(断言跟随文案变化)
 - Modify: `scm-web/e2e/login.spec.ts`
 - Create: `scm-web/src/lib/i18n-messages.test.ts`
@@ -1413,6 +2016,14 @@ function keysOf(value: unknown, prefix = ""): string[] {
   );
 }
 
+/** 递归取到叶子节点:命名空间下有嵌套对象(errors / mfa / social),浅层 spread 取不到叶子。 */
+function leavesOf(value: unknown, prefix = ""): Array<[string, unknown]> {
+  if (typeof value !== "object" || value === null) return [[prefix, value]];
+  return Object.entries(value as Record<string, unknown>).flatMap(([k, v]) =>
+    leavesOf(v, prefix ? `${prefix}.${k}` : k)
+  );
+}
+
 describe("i18n message catalogs", () => {
   it("zh-CN and en-US expose the same auth keys", () => {
     const zh = keysOf(load("zh-CN")).filter((k) => k.startsWith("login.") || k.startsWith("forgot."));
@@ -1423,14 +2034,14 @@ describe("i18n message catalogs", () => {
 
   it("has no empty auth translations", () => {
     for (const locale of ["zh-CN", "en-US"]) {
-      const catalog = load(locale) as Record<string, Record<string, unknown>>;
-      const flat: Record<string, unknown> = {
-        ...catalog.login,
-        ...catalog.forgot,
-      };
-      for (const [key, value] of Object.entries(flat)) {
-        expect(typeof value, `${locale}.${key}`).toBe("string");
-        expect(String(value).trim().length, `${locale}.${key}`).toBeGreaterThan(0);
+      const catalog = load(locale) as Record<string, unknown>;
+      for (const ns of ["login", "forgot"]) {
+        const leaves = leavesOf(catalog[ns], ns);
+        expect(leaves.length, `${locale}.${ns}`).toBeGreaterThan(0);
+        for (const [key, value] of leaves) {
+          expect(typeof value, key).toBe("string");
+          expect(String(value).trim().length, key).toBeGreaterThan(0);
+        }
       }
     }
   });
@@ -1459,6 +2070,12 @@ Expected: FAIL —— `login` 命名空间不存在,key 列表为空 / 不相等
     "submit": "登录",
     "success": "登录成功",
     "failed": "登录失败",
+    "brandName": "SCM 供应链管理平台",
+    "heroAlt": "供应链协同",
+    "header": {
+      "contactSales": "联系销售",
+      "tryPlatform": "试用平台"
+    },
     "legalPrefix": "继续即表示您同意",
     "legalMiddle": "与",
     "terms": "服务条款",
@@ -1487,14 +2104,25 @@ Expected: FAIL —— `login` 命名空间不存在,key 列表为空 / 不相等
     "emailPlaceholder": "请输入注册邮箱",
     "sendCode": "发送验证码",
     "codeSent": "验证码已发送至 {email}",
+    "code": "验证码",
     "codePlaceholder": "6 位验证码",
     "verify": "验证",
+    "newPassword": "新密码",
     "newPasswordPlaceholder": "新密码",
+    "confirmPassword": "确认密码",
     "confirmPasswordPlaceholder": "确认密码",
     "reset": "重置密码",
+    "resetSuccess": "密码重置成功",
+    "back": "返回登录",
     "errors": {
       "emailRequired": "请输入邮箱地址",
-      "emailInvalid": "请输入有效的邮箱地址"
+      "emailInvalid": "请输入有效的邮箱地址",
+      "codeRequired": "请输入验证码",
+      "codeLength": "验证码为 6 位数字",
+      "passwordRequired": "请输入新密码",
+      "passwordMin": "密码至少 8 位",
+      "confirmRequired": "请确认密码",
+      "passwordMismatch": "两次密码不一致"
     }
   }
 ```
@@ -1516,6 +2144,12 @@ Expected: FAIL —— `login` 命名空间不存在,key 列表为空 / 不相等
     "submit": "Log in",
     "success": "Signed in",
     "failed": "Sign-in failed",
+    "brandName": "SCM Supply Chain Platform",
+    "heroAlt": "Supply chain collaboration",
+    "header": {
+      "contactSales": "Contact sales",
+      "tryPlatform": "Try the platform"
+    },
     "legalPrefix": "By continuing you agree to our",
     "legalMiddle": "and",
     "terms": "Terms of Service",
@@ -1544,14 +2178,25 @@ Expected: FAIL —— `login` 命名空间不存在,key 列表为空 / 不相等
     "emailPlaceholder": "Enter your registered email",
     "sendCode": "Send verification code",
     "codeSent": "Verification code sent to {email}",
+    "code": "Verification code",
     "codePlaceholder": "6-digit code",
     "verify": "Verify",
+    "newPassword": "New password",
     "newPasswordPlaceholder": "New password",
+    "confirmPassword": "Confirm password",
     "confirmPasswordPlaceholder": "Confirm password",
     "reset": "Reset password",
+    "resetSuccess": "Password reset",
+    "back": "Back to sign in",
     "errors": {
       "emailRequired": "Email address is required",
-      "emailInvalid": "Enter a valid email address"
+      "emailInvalid": "Enter a valid email address",
+      "codeRequired": "Verification code is required",
+      "codeLength": "The code must be 6 digits",
+      "passwordRequired": "New password is required",
+      "passwordMin": "Password must be at least 8 characters",
+      "confirmRequired": "Please confirm your password",
+      "passwordMismatch": "The two passwords do not match"
     }
   }
 ```
@@ -1575,16 +2220,39 @@ Expected: FAIL —— `login` 命名空间不存在,key 列表为空 / 不相等
 ```tsx
 const locale = useLocale();
 ...
-<a href={`/${locale}/forgot-password`} className="text-sm text-[var(--color-brand-accent)] underline-offset-4 hover:underline">
+<Link href={`/${locale}/forgot-password`} className="text-sm text-[var(--color-brand-accent)] underline-offset-4 hover:underline">
+  {t("forgotPassword")}
+</Link>
+```
+
+> **保持 `next/link` 的 `Link`,不要换回 `<a>`** —— Task 3 就是因为 `@next/next/no-html-link-for-pages`
+> 报 15 条 lint 错才换的。这里只改 `href`,不动标签。
+
+`auth-shell.tsx` 的右栏占位图 `alt` 也是面向用户的文案,一并走 i18n:
+`alt={t("heroAlt")}`(对应 key `login.heroAlt`,见 Step 3/4 的 JSON)。
+
+改完在 `login-form.test.tsx` 追加一条用例,把「链接跟随当前 locale」钉住(否则下次又会被写死):
+
+```tsx
+it("links to forgot-password in the active locale", () => {
+  render(<LoginForm onSuccess={vi.fn()} onMfaRequired={vi.fn()} onError={vi.fn()} />);
+  // useLocale 在测试里 mock 成 "zh-CN";写死 /zh-CN 的实现也能过,所以这条只证明前缀来自 locale,
+  // 真正的多语言验证靠下面 Step 7 的 e2e 用 /en-US/login 再跑一遍
+  expect(screen.getByRole("link", { name: "login.forgotPassword" })).toHaveAttribute(
+    "href",
+    "/zh-CN/forgot-password"
+  );
+});
 ```
 
 - [ ] **Step 6: 更新 `auth-shell.test.tsx` 的文案断言**
 
-把测试里的三个文案断言改为 key 断言(测试里 `useTranslations` mock 成返回 key):
+把测试里的三个文案断言改为 key 断言(测试里 `useTranslations` mock 成带命名空间前缀):
 
 ```tsx
 vi.mock("next-intl", () => ({
-  useTranslations: () => (key: string) => key,
+  // 模拟 next-intl 的命名空间行为:useTranslations("login") 返回的 t 会把命名空间拼进 key
+  useTranslations: (ns: string) => (key: string) => `${ns}.${key}`,
 }));
 ```
 
@@ -1596,7 +2264,21 @@ expect(screen.getByRole("button", { name: "login.header.contactSales" })).toBeIn
 expect(screen.getByRole("button", { name: "login.header.tryPlatform" })).toBeInTheDocument();
 ```
 
-> `brand-mark.tsx` 现在需要 `useTranslations`,它会变成 client 组件 —— 在文件顶部加 `"use client";`。
+第三条既有断言(占位图)也要跟着改:
+
+```tsx
+const hero = screen.getByRole("img", { name: "login.heroAlt" });
+expect(hero).toHaveAttribute("src", "/auth-hero.svg");
+```
+
+> `auth-shell.test.tsx` 现在直接 `render(<AuthShell>)`;它一旦调用 `useTranslations`,
+> 测试就必须 mock `next-intl`,否则 `AuthShell` 会在没有 `NextIntlClientProvider` 的树里抛错。
+> 上面那段 `vi.mock` 要加在文件顶部(与 `login-form.test.tsx` 同一写法)。
+
+> `brand-mark.tsx` 与 `auth-shell.tsx` **不要**加 `"use client"` —— next-intl 的
+> `useTranslations` 在 Server Component 里同样可用,保持它们是服务端组件可以避免
+> 多余的 client boundary。`login-form.tsx` 与 `totp-form.tsx` 因为用了 React Hook Form
+> 的 hooks,**必须**保留 `"use client"`。
 
 - [ ] **Step 7: 更新 `e2e/login.spec.ts`**
 
@@ -1618,6 +2300,17 @@ test("successful login redirects to dashboard", async ({ page }) => {
   await page.fill('input[name="password"]', "admin123");
   await page.click('button[type="submit"]');
   await expect(page).toHaveURL(/\/zh-CN\/dashboard/);
+});
+
+test("login page renders the English copy", async ({ page }) => {
+  await page.goto("/en-US/login");
+  await expect(page.locator("h1")).toContainText("Make your supply chain flow");
+  await expect(page.locator('input[name="username"]')).toBeVisible();
+  // 忘记密码链接必须跟随 locale —— 写死 /zh-CN 的实现会在这里变红
+  await expect(page.getByRole("link", { name: "Forgot password?" })).toHaveAttribute(
+    "href",
+    "/en-US/forgot-password"
+  );
 });
 ```
 

@@ -54,5 +54,78 @@
     "status": "状态",
     "enabled": "启用",
     "disabled": "禁用"
+  },
+  "login": {
+    "title": "让供应链运转如丝",
+    "subtitle": "采购、库存、履约与结算,一个平台贯通",
+    "username": "用户名",
+    "usernamePlaceholder": "请输入用户名",
+    "password": "密码",
+    "passwordPlaceholder": "请输入密码",
+    "remember": "记住我",
+    "forgotPassword": "忘记密码?",
+    "submit": "登录",
+    "success": "登录成功",
+    "failed": "登录失败",
+    "brandName": "SCM 供应链管理平台",
+    "heroAlt": "供应链协同",
+    "header": {
+      "contactSales": "联系销售",
+      "tryPlatform": "试用平台"
+    },
+    "legalPrefix": "继续即表示您同意",
+    "legalMiddle": "与",
+    "terms": "服务条款",
+    "privacy": "隐私政策",
+    "legalSuffix": ",并同意接收产品通知。",
+    "errors": {
+      "usernameRequired": "请输入用户名",
+      "passwordRequired": "请输入密码",
+      "codeRequired": "请输入验证码",
+      "codeLength": "验证码为 6 位数字",
+      "codeDigits": "验证码只能包含数字",
+      "codeInvalid": "验证码错误"
+    },
+    "mfa": {
+      "title": "两步验证",
+      "subtitle": "请输入您的 TOTP 验证码",
+      "codePlaceholder": "6 位验证码",
+      "submit": "验证",
+      "back": "返回登录"
+    }
+  },
+  "forgot": {
+    "title": "找回密码",
+    "subtitle": "通过已验证邮箱重置您的密码",
+    "email": "邮箱地址",
+    "emailPlaceholder": "请输入注册邮箱",
+    "sendCode": "发送验证码",
+    "codeSent": "验证码已发送至 {email}",
+    "code": "验证码",
+    "codePlaceholder": "6 位验证码",
+    "verify": "验证",
+    "newPassword": "新密码",
+    "newPasswordPlaceholder": "新密码",
+    "confirmPassword": "确认密码",
+    "confirmPasswordPlaceholder": "确认密码",
+    "reset": "重置密码",
+    "resetSuccess": "密码重置成功",
+    "back": "返回登录",
+    "steps": {
+      "email": "验证邮箱",
+      "code": "验证身份",
+      "password": "重置密码"
+    },
+    "backStep": "上一步",
+    "errors": {
+      "emailRequired": "请输入邮箱地址",
+      "emailInvalid": "请输入有效的邮箱地址",
+      "codeRequired": "请输入验证码",
+      "codeLength": "验证码为 6 位数字",
+      "passwordRequired": "请输入新密码",
+      "passwordMin": "密码至少 8 位",
+      "confirmRequired": "请确认密码",
+      "passwordMismatch": "两次密码不一致"
+    }
   }
 }

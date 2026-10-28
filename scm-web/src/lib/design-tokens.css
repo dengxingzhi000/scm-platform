@@ -135,13 +135,29 @@
   --color-chart-7: #fde002;
   --color-chart-8: #949494;
 
-  /* Auth page — white paper with a single soft violet bloom */
-  --auth-bg:
-    radial-gradient(900px 520px at 12% -8%, rgba(136, 66, 253, 0.16), transparent 62%),
-    linear-gradient(180deg, #ffffff 0%, #f1f2f4 100%);
-  --auth-card-shadow: 0 24px 48px -28px rgba(0, 0, 0, 0.18);
+  /* Claude 强调色(仅登录体验)
+     命名带 brand- 前缀是刻意的:globals.css 的 @theme inline 里已有
+     --color-accent: var(--accent)(shadcn muted-accent,驱动 bg-accent 工具类) */
+  --color-brand-accent: #D97757;
+  --color-brand-accent-hover: #C2603F;
+  --color-brand-accent-active: #A95134;
+  --color-brand-accent-bg: #F5E7E0;
+
+  /* Auth 页面暖中性色 */
+  --auth-bg: #F0EEE6;
+  --auth-surface: #FFFFFF;
+  --auth-ink: #262624;
+  --auth-ink-soft: #6B6A63;
+  --auth-line: #E5E3DA;
+  --auth-line-strong: #D4D1C5;
+  --auth-btn: #262624; /* 近黑主按钮底色,与 --auth-ink 同值 */
+  --auth-btn-soft-bg: #E9E6DC;
+  --auth-btn-soft-hover: #DFDBCE;
+  --auth-btn-fg: #FFFFFF;
+
+  /* --auth-brand-bg 已不再用于登录页,只剩应用侧边栏的 logo 徽标在用
+     (src/components/Layout/sidebar.tsx);登录页的品牌色是 --color-brand-accent。 */
   --auth-brand-bg: #8842fd;
-  --brand-tile-ink: #ffffff;
 
   /* Duration */
   --duration-fast: 100ms;
@@ -215,11 +231,8 @@
   --color-chart-7: #fde002;
   --color-chart-8: #737373;
 
-  /* Auth page */
-  --auth-bg:
-    radial-gradient(900px 520px at 12% -8%, rgba(136, 66, 253, 0.22), transparent 62%),
-    linear-gradient(180deg, #0a0a0a 0%, #141414 100%);
-  --auth-card-shadow: 0 24px 48px -28px rgba(0, 0, 0, 0.7);
+  /* 登录页配色(--auth-*)是固定的浅色 —— 深色模式不覆盖:
+     否则近黑底 --auth-ink 标题会落在深色底上。
+     --auth-brand-bg 仍被应用侧边栏的 logo 徽标使用,保留深色变体。 */
   --auth-brand-bg: #8842fd;
-  --brand-tile-ink: #ffffff;
 }

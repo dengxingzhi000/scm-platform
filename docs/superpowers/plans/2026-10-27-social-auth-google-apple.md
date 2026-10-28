@@ -1647,14 +1647,23 @@ vi.mock("@/lib/api/services/auth", () => ({
   authService: { oauth2: { providers: (...args: unknown[]) => providers(...args) } },
 }));
 
+// useQuery 需要 QueryClient 上下文;直接 mock 掉,让测试只关心按钮渲染
+vi.mock("@tanstack/react-query", () => ({
+  useQuery: () => ({ data: providersResult }),
+}));
+
+let providersResult: string[] = [];
+
 vi.mock("next-intl", () => ({
-  useTranslations: () => (key: string) => key,
+  // 模拟 next-intl 的命名空间行为:useTranslations("login") 返回的 t 会把命名空间拼进 key
+  useTranslations: (ns: string) => (key: string) => `${ns}.${key}`,
   useLocale: () => "zh-CN",
 }));
 
 describe("SocialAuthButtons", () => {
   beforeEach(() => {
     providers.mockReset();
+    providersResult = ["google"];
     providers.mockResolvedValue(["google"]);
   });
 
@@ -1669,6 +1678,7 @@ describe("SocialAuthButtons", () => {
   });
 
   it("hides the buttons when the provider list cannot be fetched", async () => {
+    providersResult = [];
     providers.mockRejectedValue(new Error("network"));
     const { SocialAuthButtons } = await import("./social-auth-buttons");
     render(<SocialAuthButtons />);
@@ -1911,6 +1921,11 @@ vi.mock("@/lib/api/services/auth", () => ({
 
 vi.mock("@/lib/auth/use-complete-login", () => ({
   useCompleteLogin: () => complete,
+}));
+
+vi.mock("next-intl", () => ({
+  // 模拟 next-intl 的命名空间行为:useTranslations("login") 返回的 t 会把命名空间拼进 key
+  useTranslations: (ns: string) => (key: string) => `${ns}.${key}`,
 }));
 
 describe("SocialAuthCallback", () => {
