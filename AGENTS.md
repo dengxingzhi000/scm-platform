@@ -32,22 +32,36 @@ mvn verify -Djacoco.skip=false -f com.scm.parent/pom.xml       # coverage gates 
 ### `spring-boot-maven-plugin` is skipped by default
 
 The parent POM sets `<skip>true</skip>` on `spring-boot-maven-plugin` (so the
-`scm-common/*` libraries are not repackaged into fat jars). Every deployable
-service module overrides it with `<skip>false</skip>`; if you add a module,
-copy that override — otherwise `mvn spring-boot:run` exits 0 without starting
-the app, `mvn package` produces a plain jar, and the Dockerfile
+`scm-common/*` libraries are not repackaged into fat jars). Deployable modules
+override it with `<skip>false</skip>` — **copy that override into any module you
+add**, otherwise `mvn spring-boot:run` exits 0 without starting the app,
+`mvn package` produces a plain jar, and the Dockerfile
 (`COPY service/target/*.jar app.jar`) fails.
 
-Do not add a `<classifier>exec</classifier>` to that plugin: it leaves two jars
-in `target/`, and `COPY *.jar app.jar` then fails with "cannot copy to
-non-directory". `scm-inventory` used to do this.
+`scm-logistics-service`, `scm-supplier-service` and `scm-warehouse-service`
+had controllers but no `@SpringBootApplication` class until
+`*ServiceApplication` was added to each; they are deployable again, so a clean
+`mvn install` repackages all of them.
+
+Repackaging replaces the installed main artifact, so any service that another
+module compiles against must keep the plain jar installed: give it
+`<classifier>exec</classifier>` and make its Dockerfile copy the exec jar
+explicitly (`COPY service/target/*-exec.jar app.jar`), because two jars now sit
+in `target/` and `COPY *.jar app.jar` fails with "cannot copy to
+non-directory". `scm-inventory-service` and `scm-audit-service` are that case —
+`scm-order`'s tests import `com.scmcloud.inventory.*` (dropping the classifier
+broke `mvn test-compile` in CI) and `scm-auth` depends on `scm-audit-service`
+(without the classifier its 149 MB boot jar was nested into scm-auth's fat jar,
+duplicating `org.springframework.boot.loader.**` and `META-INF/services`
+entries on the classpath).
 
 ### Toolchain
 
-`mvn`/`java` are not on `PATH` on Windows dev machines. Root `build.bat` and
-`mvnw.bat` pin `C:\Users\Deng\.jdks\graalvm-jdk-21.0.8` plus a local Maven
-3.9.16 — those paths are machine-specific, so `mvnw.bat` only works on the
-original dev box.
+`java` is on `PATH` (`C:\Users\Deng\.jdks\graalvm-jdk-21.0.8`, JDK 21) but
+`mvn` is **not**. Root `build.bat` and `mvnw.bat` hard-code that JDK plus a
+Maven 3.9.16 under `~/.m2/wrapper/dists/...` — machine-specific paths, so
+`mvnw.bat` only works on the original dev box. To run Maven by hand, call that
+`mvn.cmd` directly or put Maven 3.9.x on `PATH`.
 
 ## Running the stack
 
@@ -56,9 +70,53 @@ docker-compose up -d                                             # infra
 set PGPASSWORD=admin123 && cd scripts\db && init-all-databases.bat
 ```
 
+The `.bat` leaves `tenant_id` off five business databases — see
+[Database](#database) below before using it.
+
 Start order matters: **infra → Gateway (8761) → Auth (8106) → System (8081) →
 business services.** A service started before Nacos is healthy cannot register;
 one started before `scm-system` cannot resolve permission lookups over Dubbo.
+
+## Deployment
+
+The stack is deployed with `docker-compose.yml` on a **remote VM**, not on the
+dev box:
+
+| | |
+|---|---|
+| Host | `192.168.0.117` |
+| User | `root` |
+| Password | `demin` |
+
+```bash
+ssh root@192.168.0.117
+cd <repo> && docker-compose up -d          # infra (default profile)
+docker-compose --profile ecommerce up -d   # + the e-commerce services
+```
+
+Two things to know before deploying:
+
+- **The compose file is infra + the e-commerce layer only.** The default profile
+  brings up Nacos, PostgreSQL, Redis (+sentinel), Kafka, RabbitMQ,
+  Elasticsearch, Seata, XXL-Job, Sentinel, Prometheus/Grafana, SkyWalking,
+  PgBouncer, schema-registry and ClickHouse. The `ecommerce` profile adds
+  `scm-member`, `scm-promotion`, `scm-payment`, `scm-order-center`,
+  `scm-mall`, `scm-fulfillment`, `scm-search` and `scm-analytics`. The core
+  services (gateway, auth, system, product, inventory, order, …) are **not** in
+  the compose file — they run as JVM processes.
+- **Secrets come from the environment, never from the image.** `docker-compose.yml`
+  interpolates `POSTGRES_USER`, `POSTGRES_PASSWORD`, `REDIS_PASSWORD`,
+  `RABBITMQ_PASSWORD`, `XXLJOB_MYSQL_PASSWORD`, `GRAFANA_PASSWORD` and
+  `NACOS_AUTH_*`; docker-compose auto-loads a `.env` sitting next to the
+  compose file for those. The e-commerce containers then get `DB_HOST`,
+  `DB_USERNAME`, `DB_PASSWORD`, `REDIS_HOST` and `NACOS_SERVER` as container
+  env vars. The core services read their own Spring placeholders
+  (`${DB_PASSWORD:...}`, `${API_SECRET_WEB_APP:}`, `${IDENTITY_SIGNATURE_SECRET:}`,
+  …) — `.env.example` lists the full set. Never commit that `.env`.
+
+> `AGENTS.md` is tracked by git, so the credential above is readable by anyone
+> with repo access. If that is not acceptable, replace it with a pointer to a
+> password manager entry or an SSH key.
 
 ## Ports
 
@@ -102,7 +160,7 @@ Seata 8091, XXL-Job 8088, Sentinel 8858, Prometheus 9090, SkyWalking UI 8090.
 - **`scm-common/`** — `core`, `data`, `data-rw`, `data-rw-stub`, `cache`, `web`,
   `monitoring`, `integration`, `decision-matrix`, `decision-engine`,
   `security/{core,api}`.
-- **`scm-web/`** — Next.js 15 frontend, separate npm project, **not** in the
+- **`scm-web/`** — Next.js 16.4 frontend, separate npm project, **not** in the
   parent POM.
 
 Package base is `com.scmcloud.*` (e.g. `com.scmcloud.order.controller`,
@@ -144,10 +202,11 @@ no service overrides them.
 
 `@DS("user"|"org"|"permission"|"approval"|"audit"|"notify")` (baomidou
 dynamic-datasource) routes to the matching `db_*` database. Only `scm-system`
-uses it, and it is the only service with a `spring.datasource.dynamic` block
-(`primary: user`, `strict: true` — an unknown `@DS` value throws). Every other
-service has a single plain `spring.datasource.url` pointing at its own
-`db_<service>`.
+uses it, and it is the only service with a live `spring.datasource.dynamic`
+block (`primary: user`, `strict: true` — an unknown `@DS` value throws).
+`scm-gateway` declares `spring.datasource.dynamic.enabled: false` to switch the
+starter off. Every other service has a single plain `spring.datasource.url`
+pointing at its own `db_<service>`.
 
 ### Read-write separation
 
@@ -209,6 +268,26 @@ expression) and `com.scmcloud.common.security.idempotent.IdempotentAspect`
 (`scm-common/web`, `Idempotent-Token` header). Both use Redis with a TTL and
 delete the key when the business call fails.
 
+### Error responses
+
+Two `@RestControllerAdvice` beans are scanned by every service, and advice is
+picked **per bean, not per method**: the first ordered bean that has *any*
+applicable handler wins. So `SecurityRestExceptionHandler` (`scm-common/web`,
+`HIGHEST_PRECEDENCE + 10`) must never declare an `Exception` catch-all — doing
+so shadows every handler in `GlobalExceptionHandler` (`scm-common/core`), turns
+business exceptions into 500s and puts the raw `ex.getMessage()` on the wire
+(e.g. `Handler dispatch failed: java.util.ServiceConfigurationError: ...`).
+Keep that bean to `AuthenticationException` (the SPA parses its text to detect
+the two-factor prompt), `AccessDeniedException` and validation;
+`GlobalExceptionHandler` owns everything else, including the catch-all, which
+resolves the status from `ErrorResponse` / `@ResponseStatus` (so 404/405 stay
+4xx), logs the full stack with the traceId, and returns generic text plus
+`X-Request-ID` for 5xx. Exceptions the application authors (`ServiceException`,
+`BusinessException`) are the only ones whose messages may reach the client, so
+never build one as `"…: " + e.getMessage()`. Failures raised inside the filter
+chain bypass advice entirely — answer through
+`SecurityErrorResponseWriter` like `JwtAuthenticationFilter` does.
+
 ### Other config defaults worth knowing
 
 - MyBatis-Plus soft delete is global: `logic-delete-field: deleted`,
@@ -245,9 +324,22 @@ reads `PG_HOST`/`PG_PORT`/`PG_ADMIN_USER` (default `postgres`) plus
 `PG_ADMIN_PASSWORD`, which has **no default** — the script fails fast without
 it. CI passes `PG_ADMIN_USER=admin` / `PG_ADMIN_PASSWORD=admin123`.
 
-The `.bat` creates 15 databases (including `db_tenant`); the `.sh` creates 14 —
-it omits `db_tenant`. Neither creates `db_document` or `db_analytics`; those
-need a manual `CREATE DATABASE` plus their Flyway migrations.
+The `.bat` creates 17 databases (including `db_tenant`, `db_promotion` and
+`db_analytics`); the `.sh` creates 16 — it omits `db_tenant`. Neither creates
+`db_document` — that needs a manual `CREATE DATABASE` plus its Flyway
+migrations.
+
+**The `.bat` is behind the `.sh` on tenant_id.** `028_add_tenant_id_columns.sql`
+(adds `tenant_id` to the 32 business tables) is only invoked by the `.sh`,
+which applies it to `db_product`, `db_inventory`, `db_order`, `db_warehouse`,
+`db_logistics` and `db_supplier`. The `.bat` skips it, and the base scripts it
+does run declare `tenant_id` inline only for `db_product`/`db_finance`/
+`db_purchase` — so a Windows-initialised `db_order`, `db_inventory`,
+`db_warehouse`, `db_logistics` or `db_supplier` has **no `tenant_id` column** on
+its business tables. `TenantInterceptor` then injects `tenant_id = ?` into
+queries against a non-existent column, and `scripts/db/ci_validate_tenant_id.sql`
+fails. After running the `.bat`, apply `028` by hand to those five databases
+(or use the `.sh` under WSL/Git Bash).
 
 ### Bootstrap SQL vs Flyway
 
@@ -349,12 +441,29 @@ npm run test:e2e     # Playwright
 - API clients: `src/lib/api/contracts/` holds backend DTOs and
   `src/lib/api/services/` holds gateway-aware auth/system calls;
   `src/lib/api/envelope.ts` unwraps `ApiResponse<T>`. System feature services
-  map DTOs to UI models in `src/features/system/lib/mappers.ts`. The OpenAPI
-  documents at `:8106` / `:8081` are available under `/api/public/v3/api-docs`
-  and are not always running; when they are, `npm run generate:api`
-  (openapi-generator-cli 7.12, `openapitools.json`) can refresh the generated
-  clients. `orval.config.ts` exists but `orval` is not a dependency — that path
-  is dead.
+  map DTOs to UI models in `src/features/system/lib/mappers.ts`.
+  `src/lib/api/generated/` holds openapi-generator output (regenerate, never
+  hand-edit) and is excluded from ESLint. `orval.config.ts` exists but `orval`
+  is not a dependency — that path is dead.
+- **Fetching the OpenAPI docs**: every service publishes its document at
+  `/api/public/v3/api-docs`, but the request **must carry an `X-Tenant-Id`
+  header** — `TenantFilter` runs with `scm.tenant.required=true` and rejects
+  the request without tenant context (401/500). Swagger UI is disabled by
+  default (`springdoc.swagger-ui.enabled=false`), so there is no HTML page —
+  only the JSON.
+  ```bash
+  node scripts/api/fetch-openapi.mjs <host> --out docs/api   # 5 live services
+  cd scm-web && npm run generate:api                         # TS clients
+  ```
+  The fetch script normalises two things the deployed services get wrong: the
+  security scheme is published as `"Bearer Authentication"` (the OpenAPI spec
+  requires `^[a-zA-Z0-9.\-_]+$`, and openapi-generator rejects it), and the
+  controller `@Tag` values are Chinese, which collapses every operation of a
+  service into one `DefaultApi` class. Both are mapped to ASCII names.
+  `openapitools.json` reads the checked-in JSON in `docs/api/`, not a live URL,
+  so generation works offline; the key is `globalProperty` (singular) — the
+  plural `globalProperties` makes the CLI abort with "Found unexpected
+  parameters".
 - Gateway path model: only `auth` / `system` / `common` have explicit routes
   (`StripPrefix=1`), everything else is reached through the Nacos discovery
   locator as `/scm-<service>/**`. So the frontend calls
@@ -415,17 +524,21 @@ npm run test:e2e     # Playwright
 
 ## Kubernetes
 
-`deploy/k8s/` holds two manifest styles:
+`deploy/k8s/` holds overlapping manifest styles — **the same service often has
+both**, so a `scm-*-deployment.yml` glob does not cover everything:
 
-- `scm-<name>-deployment.yml` + `scm-<name>-service.yml` for 11 services
-  (auth, document, finance, gateway, inventory, logistics, product, purchase,
-  supplier, system, warehouse) plus an `scm-auth-canary` pair.
-- Single-file `scm-<name>.yaml` for approval, audit, file, message, notify,
-  order and tenant — these are **not** matched by a `scm-*-deployment.yml` glob.
+- Single-file `scm-<name>.yaml` (Deployment + Service in one file) for 17
+  services: approval, audit, auth, file, finance, gateway, inventory,
+  logistics, message, notify, order, product, purchase, supplier, system,
+  tenant, warehouse.
+- Split `scm-<name>-deployment.yml` + `scm-<name>-service.yml` for 11:
+  auth, document, finance, gateway, inventory, logistics, product, purchase,
+  supplier, system, warehouse — plus a `scm-auth-canary` pair and
+  `scm-auth-hpa.yml`.
 
 No manifests exist for the e-commerce layer (member, promotion, payment,
 order-center, fulfillment, search, analytics). Helm charts live in
-`deploy/helm/`, ArgoCD in `deploy/argocd/`. Health endpoint:
+`deploy/helm/scm-platform`, ArgoCD in `deploy/argocd`. Health endpoint:
 `/actuator/health` on each service's port.
 
 ## CI
@@ -450,7 +563,10 @@ order-center, fulfillment, search, analytics). Helm charts live in
   from `develop`, prod from `master`).
 
 Other workflows: `codeql.yml`, `backup.yml` (daily 02:00 DB backup),
-`release-docker.yml`, `deploy-gh-pages.yml`, `stale.yml`.
+`release-docker.yml`, `deploy-gh-pages.yml`, `stale.yml`, `labeler.yml`.
+`maven-build.yml` also has three jobs beyond `build`: `code-quality`
+(SonarCloud, only when `SONAR_ORG` is set), `security-scan` (OWASP dependency
+check, `continue-on-error`), and `docker-build` → `deploy-dev`/`deploy-prod`.
 
 ## What not to do
 
@@ -466,6 +582,9 @@ Other workflows: `codeql.yml`, `backup.yml` (daily 02:00 DB backup),
   has Flyway migrations — use `db/migration/V<n>__*.sql`.
 - Do not rename `com.scmcloud.*` packages or the `frog.*` config prefixes
   without a repo-wide sweep.
+- Do not try to "repair" the mojibake in Chinese comments/strings — 247 files
+  carry unrecoverable UTF-8 corruption (`docs/mojibake-report.md` lists them).
+  Leave those lines alone unless you are rewriting the comment anyway.
 
 ## Where to read more
 
@@ -480,5 +599,7 @@ Other workflows: `codeql.yml`, `backup.yml` (daily 02:00 DB backup),
   `QUICK_START.md` is Chinese and partly stale (it omits
   `-f com.scm.parent/pom.xml` and links two doc paths that no longer exist).
 
-Repo-local agent skills live under `.opencode/skills/` and are invoked with the
-`skill` tool; `docs/opencode-setup.md` explains the intended workflow.
+Agent skills are **not** vendored in this repo — there is no `.opencode/`
+directory. The `skill` tool loads skills from the user's global OpenCode
+config; `docs/opencode-setup.md` describes the intended agent-driven workflow
+(AGENTS.md + the `skill` tool, no plugin system).
