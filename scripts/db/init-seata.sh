@@ -86,7 +86,8 @@ for db_name in "${business_dbs[@]}"; do
     has_undo=$(psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$db_name" -t \
         -c "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'undo_log');" | xargs)
     if [ "$has_undo" = "t" ]; then
-        ((success_count++))
+        # 不能用 ((success_count++))：首次自增返回 0，set -e 会直接退出
+        success_count=$((success_count + 1))
     fi
 done
 echo -e "${GREEN}✓ $success_count/${#business_dbs[@]} 个数据库${NC}"

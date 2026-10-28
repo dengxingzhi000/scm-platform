@@ -3,8 +3,10 @@
 -- 用于 AT 模式的分布式事务管理
 -- ============================================================
 
--- 创建 Seata 数据库
-CREATE DATABASE IF NOT EXISTS seata WITH ENCODING = 'UTF8';
+-- 创建 Seata 数据库（PostgreSQL 不支持 CREATE DATABASE IF NOT EXISTS）
+SELECT 'CREATE DATABASE seata WITH ENCODING = ''UTF8'''
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'seata');
+\gexec
 
 \c seata;
 
