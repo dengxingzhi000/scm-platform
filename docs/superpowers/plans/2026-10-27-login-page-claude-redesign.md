@@ -1985,6 +1985,7 @@ git commit -m "refactor(web): 找回密码页迁移到 shadcn/ui 并移除旧 an
 - Modify: `scm-web/messages/en-US.json`
 - Modify: `scm-web/src/components/auth/auth-shell.tsx`(顶栏文案改走 i18n)
 - Modify: `scm-web/src/components/auth/login-form.tsx`(忘记密码链接改走 `useLocale()`)
+- Modify: `scm-web/src/components/auth/login-form.test.tsx`(补一条 locale 链接断言)
 - Modify: `scm-web/src/components/auth/auth-shell.test.tsx`(断言跟随文案变化)
 - Modify: `scm-web/e2e/login.spec.ts`
 - Create: `scm-web/src/lib/i18n-messages.test.ts`
@@ -2069,6 +2070,12 @@ Expected: FAIL —— `login` 命名空间不存在,key 列表为空 / 不相等
     "submit": "登录",
     "success": "登录成功",
     "failed": "登录失败",
+    "brandName": "SCM 供应链管理平台",
+    "heroAlt": "供应链协同",
+    "header": {
+      "contactSales": "联系销售",
+      "tryPlatform": "试用平台"
+    },
     "legalPrefix": "继续即表示您同意",
     "legalMiddle": "与",
     "terms": "服务条款",
@@ -2137,6 +2144,12 @@ Expected: FAIL —— `login` 命名空间不存在,key 列表为空 / 不相等
     "submit": "Log in",
     "success": "Signed in",
     "failed": "Sign-in failed",
+    "brandName": "SCM Supply Chain Platform",
+    "heroAlt": "Supply chain collaboration",
+    "header": {
+      "contactSales": "Contact sales",
+      "tryPlatform": "Try the platform"
+    },
     "legalPrefix": "By continuing you agree to our",
     "legalMiddle": "and",
     "terms": "Terms of Service",
@@ -2207,7 +2220,29 @@ Expected: FAIL —— `login` 命名空间不存在,key 列表为空 / 不相等
 ```tsx
 const locale = useLocale();
 ...
-<a href={`/${locale}/forgot-password`} className="text-sm text-[var(--color-brand-accent)] underline-offset-4 hover:underline">
+<Link href={`/${locale}/forgot-password`} className="text-sm text-[var(--color-brand-accent)] underline-offset-4 hover:underline">
+  {t("forgotPassword")}
+</Link>
+```
+
+> **保持 `next/link` 的 `Link`,不要换回 `<a>`** —— Task 3 就是因为 `@next/next/no-html-link-for-pages`
+> 报 15 条 lint 错才换的。这里只改 `href`,不动标签。
+
+`auth-shell.tsx` 的右栏占位图 `alt` 也是面向用户的文案,一并走 i18n:
+`alt={t("heroAlt")}`(对应 key `login.heroAlt`,见 Step 3/4 的 JSON)。
+
+改完在 `login-form.test.tsx` 追加一条用例,把「链接跟随当前 locale」钉住(否则下次又会被写死):
+
+```tsx
+it("links to forgot-password in the active locale", () => {
+  render(<LoginForm onSuccess={vi.fn()} onMfaRequired={vi.fn()} onError={vi.fn()} />);
+  // useLocale 在测试里 mock 成 "zh-CN";写死 /zh-CN 的实现也能过,所以这条只证明前缀来自 locale,
+  // 真正的多语言验证靠下面 Step 7 的 e2e 用 /en-US/login 再跑一遍
+  expect(screen.getByRole("link", { name: "login.forgotPassword" })).toHaveAttribute(
+    "href",
+    "/zh-CN/forgot-password"
+  );
+});
 ```
 
 - [ ] **Step 6: 更新 `auth-shell.test.tsx` 的文案断言**
@@ -2228,6 +2263,17 @@ expect(screen.getByText("login.brandName")).toBeInTheDocument();
 expect(screen.getByRole("button", { name: "login.header.contactSales" })).toBeInTheDocument();
 expect(screen.getByRole("button", { name: "login.header.tryPlatform" })).toBeInTheDocument();
 ```
+
+第三条既有断言(占位图)也要跟着改:
+
+```tsx
+const hero = screen.getByRole("img", { name: "login.heroAlt" });
+expect(hero).toHaveAttribute("src", "/auth-hero.svg");
+```
+
+> `auth-shell.test.tsx` 现在直接 `render(<AuthShell>)`;它一旦调用 `useTranslations`,
+> 测试就必须 mock `next-intl`,否则 `AuthShell` 会在没有 `NextIntlClientProvider` 的树里抛错。
+> 上面那段 `vi.mock` 要加在文件顶部(与 `login-form.test.tsx` 同一写法)。
 
 > `brand-mark.tsx` 与 `auth-shell.tsx` **不要**加 `"use client"` —— next-intl 的
 > `useTranslations` 在 Server Component 里同样可用,保持它们是服务端组件可以避免
@@ -2254,6 +2300,17 @@ test("successful login redirects to dashboard", async ({ page }) => {
   await page.fill('input[name="password"]', "admin123");
   await page.click('button[type="submit"]');
   await expect(page).toHaveURL(/\/zh-CN\/dashboard/);
+});
+
+test("login page renders the English copy", async ({ page }) => {
+  await page.goto("/en-US/login");
+  await expect(page.locator("h1")).toContainText("Make your supply chain flow");
+  await expect(page.locator('input[name="username"]')).toBeVisible();
+  // 忘记密码链接必须跟随 locale —— 写死 /zh-CN 的实现会在这里变红
+  await expect(page.getByRole("link", { name: "Forgot password?" })).toHaveAttribute(
+    "href",
+    "/en-US/forgot-password"
+  );
 });
 ```
 
