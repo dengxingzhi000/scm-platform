@@ -55,4 +55,6 @@ export const inventoryApiService = {
     get<boolean>(`${INVENTORY_BASE}/reservation/check/${businessKey}`),
   reservationQuantity: (businessKey: string) =>
     get<number>(`${INVENTORY_BASE}/reservation/quantity/${businessKey}`),
+  /** Answers the raw count of released rows, not an ApiResponse envelope. */
+  releaseExpired: () => post<number>(`${INVENTORY_BASE}/reservation/release-expired`),
 };

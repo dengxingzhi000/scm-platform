@@ -15,7 +15,11 @@
     "test:e2e:ui": "playwright test --ui",
     "generate:api": "openapi-generator-cli generate",
     "generate:api:auth": "openapi-generator-cli generate --generator-key scm-auth-api",
-    "generate:api:system": "openapi-generator-cli generate --generator-key scm-system-api"
+    "generate:api:system": "openapi-generator-cli generate --generator-key scm-system-api",
+    "generate:api:product": "openapi-generator-cli generate --generator-key scm-product-api",
+    "generate:api:inventory": "openapi-generator-cli generate --generator-key scm-inventory-api",
+    "generate:api:order": "openapi-generator-cli generate --generator-key scm-order-api",
+    "fetch:api": "node ../scripts/api/fetch-openapi.mjs"
   },
   "dependencies": {
     "@ant-design/cssinjs": "^2.1.2",

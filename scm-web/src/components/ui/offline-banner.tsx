@@ -25,7 +25,7 @@ export default function OfflineBanner() {
 
   return (
     <Alert
-      message="网络连接已断开，请检查您的网络设置"
+      title="网络连接已断开，请检查您的网络设置"
       type="warning"
       showIcon
       banner

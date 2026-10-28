@@ -2,8 +2,7 @@ import { ReactNode } from "react";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
 import { AntdRegistry } from "@ant-design/nextjs-registry";
-import ThemeProvider from "@/providers/theme-provider";
-import QueryProvider from "@/components/providers/QueryProvider";
+import AppProvider from "@/providers/app-provider";
 import LocaleAttributes from "@/components/providers/locale-attributes";
 
 type Props = {
@@ -19,9 +18,7 @@ export default async function LocaleLayout({ children, params }: Props) {
     <NextIntlClientProvider messages={messages}>
       <LocaleAttributes locale={locale} />
       <AntdRegistry>
-        <ThemeProvider>
-          <QueryProvider>{children}</QueryProvider>
-        </ThemeProvider>
+        <AppProvider>{children}</AppProvider>
       </AntdRegistry>
     </NextIntlClientProvider>
   );

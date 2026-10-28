@@ -17,6 +17,18 @@ export interface UiPage<T> {
   pageSize: number;
 }
 
+/**
+ * Spring Data's `Page` serialization, used by the scm-product search endpoints
+ * (`/products/search*`). Shape differs from both `PageResult` and `MpPage`.
+ */
+export interface SpringPage<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+}
+
 export function toUiPage<T, R>(
   page: MpPage<T> | null | undefined,
   map: (item: T) => R
@@ -25,6 +37,19 @@ export function toUiPage<T, R>(
     records: (page?.records ?? []).map(map),
     total: page?.total ?? 0,
     current: page?.current ?? 1,
+    pageSize: page?.size ?? 0,
+  };
+}
+
+export function springPageToUiPage<T, R>(
+  page: SpringPage<T> | null | undefined,
+  map: (item: T) => R
+): UiPage<R> {
+  return {
+    records: (page?.content ?? []).map(map),
+    total: page?.totalElements ?? 0,
+    // Spring's `number` is zero-based, so the UI page index starts at 1.
+    current: (page?.number ?? 0) + 1,
     pageSize: page?.size ?? 0,
   };
 }

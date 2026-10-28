@@ -26,6 +26,11 @@ export const useUIStore = create<UIState>()(
       setThemeMode: (mode) => set({ themeMode: mode }),
       setDensity: (density) => set({ density }),
     }),
-    { name: 'scm-ui' }
+    {
+      name: 'scm-ui',
+      // Server and the first client render must agree on the theme; localStorage is
+      // applied in an effect by StoreHydrator (see AppProvider).
+      skipHydration: true,
+    }
   )
 )

@@ -32,6 +32,7 @@ interface AuthState {
   isAuthenticated: boolean
   isLoading: boolean
   login: (user: User, accessToken: string, refreshToken: string) => void
+  setTokens: (accessToken: string, refreshToken: string) => void
   logout: () => void
   setUser: (user: User) => void
   setPermissions: (permissions: string[]) => void
@@ -51,6 +52,15 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
   login: (user, accessToken, refreshToken) => {
     set({ user, accessToken, refreshToken, isAuthenticated: true, isLoading: false })
     setCookie('access_token', accessToken)
+    if (refreshToken) setCookie('refresh_token', refreshToken)
+  },
+
+  // Refresh runs after a full page reload, where `user` is still null — tokens must be
+  // persisted without requiring a profile.
+  setTokens: (accessToken, refreshToken) => {
+    set({ accessToken, refreshToken, isAuthenticated: true })
+    setCookie('access_token', accessToken)
+    if (refreshToken) setCookie('refresh_token', refreshToken)
   },
 
   logout: () => {
@@ -63,6 +73,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       isLoading: false,
     })
     deleteCookie('access_token')
+    deleteCookie('refresh_token')
   },
 
   setUser: (user) => set({ user }),
@@ -75,7 +86,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
   },
 
   initialize: async () => {
-    const { accessToken } = get()
+    const { accessToken, refreshToken } = get()
     const cookieToken = getCookie('access_token')
     const token = accessToken ?? cookieToken
 
@@ -84,6 +95,11 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       return
     }
 
-    set({ accessToken: token, isLoading: true })
+    set({
+      accessToken: token,
+      refreshToken: refreshToken ?? getCookie('refresh_token'),
+      isAuthenticated: true,
+      isLoading: false,
+    })
   },
 }))

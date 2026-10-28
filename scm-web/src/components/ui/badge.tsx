@@ -5,22 +5,25 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const badgeVariants = cva(
-  "inline-flex items-center justify-center rounded-md border px-2 py-0.5 text-xs font-medium w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 aria-invalid:border-destructive transition-[color,box-shadow] overflow-hidden",
+  "inline-flex items-center justify-center rounded-full border px-2.5 py-0.5 text-xs font-medium w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 aria-invalid:border-destructive transition-[color,background-color] overflow-hidden",
   {
     variants: {
+      // Same-hue tint with a darker text of that hue, so a chip never has to
+      // carry white-on-colour contrast.
       variant: {
         default:
-          "border-transparent bg-primary text-primary-foreground [a&]:hover:bg-primary/90",
+          "border-[var(--color-primary)]/25 bg-[var(--color-primary-soft)] text-[var(--color-primary-text)]",
         secondary:
-          "border-transparent bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90",
+          "border-border bg-sunken text-muted-foreground",
         destructive:
-          "border-transparent bg-destructive text-destructive-foreground [a&]:hover:bg-destructive/90",
+          "border-[var(--color-error)]/25 bg-[var(--color-error-soft)] text-[var(--color-error-text)]",
         outline:
-          "text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
+          "border-border text-foreground [a&]:hover:bg-sunken [a&]:hover:text-foreground",
         success:
-          "border-transparent bg-emerald-600 text-white [a&]:hover:bg-emerald-600/90",
+          "border-[var(--color-success)]/25 bg-[var(--color-success-soft)] text-[var(--color-success-text)]",
         warning:
-          "border-transparent bg-amber-600 text-white [a&]:hover:bg-amber-600/90",
+          "border-[var(--color-warning)]/25 bg-[var(--color-warning-soft)] text-[var(--color-warning-text)]",
+        info: "border-[var(--color-info)]/25 bg-[var(--color-info-soft)] text-[var(--color-info-text)]",
       },
     },
     defaultVariants: {

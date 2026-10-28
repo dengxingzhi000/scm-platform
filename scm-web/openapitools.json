@@ -8,7 +8,7 @@
       "scm-auth-api": {
         "generatorName": "typescript-axios",
         "output": "#{cwd}/src/lib/api/generated/auth",
-        "inputSpec": "http://localhost:8106/api/public/v3/api-docs",
+        "inputSpec": "../docs/api/openapi-scm-auth.json",
         "additionalProperties": {
           "withInterfaces": true,
           "useSingleRequestParameter": true,
@@ -16,7 +16,7 @@
           "typescriptThreePlus": true,
           "withNodeImports": false
         },
-        "globalProperties": {
+        "globalProperty": {
           "apiDocs": false,
           "modelDocs": false
         }
@@ -24,7 +24,7 @@
       "scm-system-api": {
         "generatorName": "typescript-axios",
         "output": "#{cwd}/src/lib/api/generated/system",
-        "inputSpec": "http://localhost:8081/api/public/v3/api-docs",
+        "inputSpec": "../docs/api/openapi-scm-system.json",
         "additionalProperties": {
           "withInterfaces": true,
           "useSingleRequestParameter": true,
@@ -32,7 +32,55 @@
           "typescriptThreePlus": true,
           "withNodeImports": false
         },
-        "globalProperties": {
+        "globalProperty": {
+          "apiDocs": false,
+          "modelDocs": false
+        }
+      },
+      "scm-product-api": {
+        "generatorName": "typescript-axios",
+        "output": "#{cwd}/src/lib/api/generated/product",
+        "inputSpec": "../docs/api/openapi-scm-product.json",
+        "additionalProperties": {
+          "withInterfaces": true,
+          "useSingleRequestParameter": true,
+          "supportsES6": true,
+          "typescriptThreePlus": true,
+          "withNodeImports": false
+        },
+        "globalProperty": {
+          "apiDocs": false,
+          "modelDocs": false
+        }
+      },
+      "scm-inventory-api": {
+        "generatorName": "typescript-axios",
+        "output": "#{cwd}/src/lib/api/generated/inventory",
+        "inputSpec": "../docs/api/openapi-scm-inventory.json",
+        "additionalProperties": {
+          "withInterfaces": true,
+          "useSingleRequestParameter": true,
+          "supportsES6": true,
+          "typescriptThreePlus": true,
+          "withNodeImports": false
+        },
+        "globalProperty": {
+          "apiDocs": false,
+          "modelDocs": false
+        }
+      },
+      "scm-order-api": {
+        "generatorName": "typescript-axios",
+        "output": "#{cwd}/src/lib/api/generated/order",
+        "inputSpec": "../docs/api/openapi-scm-order.json",
+        "additionalProperties": {
+          "withInterfaces": true,
+          "useSingleRequestParameter": true,
+          "supportsES6": true,
+          "typescriptThreePlus": true,
+          "withNodeImports": false
+        },
+        "globalProperty": {
           "apiDocs": false,
           "modelDocs": false
         }

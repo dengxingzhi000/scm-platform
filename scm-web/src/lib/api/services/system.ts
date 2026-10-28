@@ -2,6 +2,9 @@ import apiClient from "../client";
 import { unwrap } from "../envelope";
 import type {
   ApiPermissionDTO,
+  AvailableActionDTO,
+  ConflictDTO,
+  DecisionRuleDTO,
   DeptDTO,
   DictItemDTO,
   DictTypeDTO,
@@ -10,12 +13,20 @@ import type {
   PermissionDTO,
   RoleDTO,
   RoleQuery,
+  StatusDictDTO,
+  StatusTransitionDTO,
   TemporaryRoleGrantDTO,
+  TransitionCheckDTO,
+  TransitionResultDTO,
   UserDTO,
   UserQuery,
+  WeightProfileDTO,
 } from "../contracts/system";
 
 const SYSTEM_BASE = "/system/api/system";
+
+/** scm-system's decision-matrix controllers are mounted on `/api/v1`, not `/api/system`. */
+const DECISION_BASE = "/system/api/v1/decision";
 
 const get = <T>(url: string, params?: object) =>
   unwrap<T>(apiClient.get(url, { params }));
@@ -28,6 +39,9 @@ const postWithParams = <T>(url: string, params: object) =>
 
 const put = <T>(url: string, data?: unknown) =>
   unwrap<T>(apiClient.put(url, data));
+
+const putWithParams = <T>(url: string, params: object) =>
+  unwrap<T>(apiClient.put(url, null, { params }));
 
 const del = <T>(url: string) => unwrap<T>(apiClient.delete(url));
 
@@ -144,5 +158,90 @@ export const systemService = {
       }),
     apiPermissions: () =>
       get<ApiPermissionDTO[]>(`${SYSTEM_BASE}/permissions/api`),
+  },
+
+  /**
+   * The status machine lives under `/api/system/status/**`, so it shares the
+   * gateway's explicit `/system/**` route.
+   */
+  status: {
+    listDict: (bizType: string) =>
+      get<StatusDictDTO[]>(`${SYSTEM_BASE}/status/dict/${bizType}`),
+    getDict: (bizType: string, statusCode: string) =>
+      get<StatusDictDTO>(
+        `${SYSTEM_BASE}/status/dict/${bizType}/${statusCode}`
+      ),
+    /** Update takes the whole row, `id` included — it is not a path variable. */
+    createDict: (data: StatusDictDTO) =>
+      post<void>(`${SYSTEM_BASE}/status/dict`, data),
+    updateDict: (data: StatusDictDTO) =>
+      put<void>(`${SYSTEM_BASE}/status/dict`, data),
+    deleteDict: (id: string) => del<void>(`${SYSTEM_BASE}/status/dict/${id}`),
+
+    listTransitions: (bizType: string) =>
+      get<StatusTransitionDTO[]>(
+        `${SYSTEM_BASE}/status/transitions/${bizType}`
+      ),
+    createTransition: (data: StatusTransitionDTO) =>
+      post<void>(`${SYSTEM_BASE}/status/transitions`, data),
+    updateTransition: (data: StatusTransitionDTO) =>
+      put<void>(`${SYSTEM_BASE}/status/transitions`, data),
+    deleteTransition: (id: string) =>
+      del<void>(`${SYSTEM_BASE}/status/transitions/${id}`),
+
+    nextStatuses: (bizType: string, currentStatus: string) =>
+      get<string[]>(`${SYSTEM_BASE}/status/next-statuses`, {
+        bizType,
+        currentStatus,
+      }),
+    actions: (bizType: string, currentStatus: string) =>
+      get<AvailableActionDTO[]>(`${SYSTEM_BASE}/status/actions`, {
+        bizType,
+        currentStatus,
+      }),
+    check: (bizType: string, fromStatus: string, toStatus: string) =>
+      get<TransitionCheckDTO>(`${SYSTEM_BASE}/status/check`, {
+        bizType,
+        fromStatus,
+        toStatus,
+      }),
+    /** The transition itself is a POST whose arguments are query params. */
+    transition: (bizType: string, fromStatus: string, actionCode: string) =>
+      postWithParams<TransitionResultDTO>(`${SYSTEM_BASE}/status/transition`, {
+        bizType,
+        fromStatus,
+        actionCode,
+      }),
+  },
+
+  /**
+   * Decision-matrix endpoints sit at `/api/v1/decision/**` on scm-system, not
+   * under `/api/system/**`, so the gateway prefix differs from SYSTEM_BASE even
+   * though `/system/**` still matches and strips to the same path.
+   */
+  decision: {
+    listRules: (engineType: string) =>
+      get<DecisionRuleDTO[]>(`${DECISION_BASE}/rules/${engineType}`),
+    createRule: (data: DecisionRuleDTO) =>
+      post<DecisionRuleDTO>(`${DECISION_BASE}/rules`, data),
+    updateRule: (id: string, data: DecisionRuleDTO) =>
+      put<DecisionRuleDTO>(`${DECISION_BASE}/rules/${id}`, data),
+    deleteRule: (id: string) => del<void>(`${DECISION_BASE}/rules/${id}`),
+    toggleRule: (id: string, enabled: boolean) =>
+      putWithParams<void>(`${DECISION_BASE}/rules/${id}/toggle`, { enabled }),
+    detectConflicts: (engineType: string) =>
+      post<ConflictDTO[]>(`${DECISION_BASE}/rules/conflicts/${engineType}`),
+
+    listWeights: (engineType: string, scene?: string) =>
+      get<WeightProfileDTO[]>(`${DECISION_BASE}/weights/${engineType}`, {
+        scene,
+      }),
+    weightVersions: (engineType: string) =>
+      get<WeightProfileDTO[]>(`${DECISION_BASE}/weights/${engineType}/versions`),
+    createWeight: (data: WeightProfileDTO) =>
+      post<WeightProfileDTO>(`${DECISION_BASE}/weights`, data),
+    activateWeight: (id: string) =>
+      put<void>(`${DECISION_BASE}/weights/${id}/activate`),
+    deleteWeight: (id: string) => del<void>(`${DECISION_BASE}/weights/${id}`),
   },
 };

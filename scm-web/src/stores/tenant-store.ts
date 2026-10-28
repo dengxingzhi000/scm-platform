@@ -7,6 +7,18 @@ interface Tenant {
   code: string
 }
 
+/**
+ * Development default: the backend rejects requests without `X-Tenant-Id`, and there is no
+ * tenant picker before login. Set NEXT_PUBLIC_DEFAULT_TENANT_ID/CODE to target a real tenant.
+ */
+const defaultTenant: Tenant | null = process.env.NEXT_PUBLIC_DEFAULT_TENANT_ID
+  ? {
+      id: process.env.NEXT_PUBLIC_DEFAULT_TENANT_ID,
+      name: process.env.NEXT_PUBLIC_DEFAULT_TENANT_NAME || '默认租户',
+      code: process.env.NEXT_PUBLIC_DEFAULT_TENANT_CODE || 'default',
+    }
+  : null
+
 interface TenantState {
   currentTenant: Tenant | null
   tenantList: Tenant[]
@@ -20,7 +32,7 @@ interface TenantState {
 export const useTenantStore = create<TenantState>()(
   persist(
     (set) => ({
-      currentTenant: null,
+      currentTenant: defaultTenant,
       tenantList: [],
       tenantLoading: false,
       setTenant: (tenant) => set({ currentTenant: tenant }),
@@ -31,7 +43,15 @@ export const useTenantStore = create<TenantState>()(
     }),
     {
       name: 'scm-tenant',
+      // Hydration-safe: the server and the first client render use the same default tenant,
+      // then localStorage is applied in an effect (see AppProvider).
+      skipHydration: true,
       partialize: (state) => ({ currentTenant: state.currentTenant }),
+      // A previously persisted `null` must not shadow the development default.
+      merge: (persisted, current) => {
+        const stored = persisted as { currentTenant?: Tenant | null } | undefined
+        return { ...current, currentTenant: stored?.currentTenant ?? defaultTenant }
+      },
     }
   )
 )
