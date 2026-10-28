@@ -26,6 +26,9 @@ describe("AuthShell", () => {
     const root = container.firstElementChild as HTMLElement;
     expect(root.style.getPropertyValue("--primary")).toBe("var(--color-brand-accent)");
     expect(root.style.getPropertyValue("--ring")).toBe("var(--color-brand-accent)");
+    // --accent 覆写成桃色底,--accent-foreground 必须一起覆写 ——
+    // 否则 globals.css 里的 var(--color-primary)(靛蓝)会落在桃色底上。
+    expect(root.style.getPropertyValue("--accent-foreground")).toBe("var(--auth-ink)");
   });
 
   it("renders the children in the left column and the hero image in the right column", () => {

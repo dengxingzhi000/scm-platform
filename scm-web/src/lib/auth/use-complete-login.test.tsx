@@ -59,14 +59,34 @@ describe("useCompleteLogin", () => {
       });
     });
 
+    // login 现在总是被调用四个参数 —— 少写一个就不匹配。
     expect(login).toHaveBeenCalledWith(
       expect.objectContaining({ id: "u", username: "admin" }),
       "at",
-      "rt"
+      "rt",
+      undefined
     );
     expect(setPermissions).toHaveBeenCalledWith(["system:user:list"]);
     expect(clear).toHaveBeenCalled();
     await waitFor(() => expect(push).toHaveBeenCalledWith("/zh-CN/dashboard"));
+  });
+
+  it("passes the remember choice down to the store", async () => {
+    const { result } = renderHook(() => useCompleteLogin());
+
+    await act(async () => {
+      await result.current(
+        {
+          accessToken: "at",
+          refreshToken: "rt",
+          userId: "u",
+          username: "admin",
+        },
+        { remember: false }
+      );
+    });
+
+    expect(login).toHaveBeenCalledWith(expect.anything(), "at", "rt", false);
   });
 
   it("returns a failure result instead of throwing when the response has no token", async () => {

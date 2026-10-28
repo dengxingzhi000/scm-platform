@@ -24,6 +24,9 @@ export function AuthShell({ children }: AuthShellProps) {
           "--primary": "var(--color-brand-accent)",
           "--ring": "var(--color-brand-accent)",
           "--accent": "var(--color-brand-accent-bg)",
+          // --accent 换成桃色底,--accent-foreground 必须跟着换 ——
+          // globals.css 里它还是 var(--color-primary)(靛蓝),幽灵按钮 hover 会变成靛蓝配桃色。
+          "--accent-foreground": "var(--auth-ink)",
         } as React.CSSProperties
       }
     >

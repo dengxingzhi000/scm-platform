@@ -31,7 +31,9 @@ interface AuthState {
   permissions: string[]
   isAuthenticated: boolean
   isLoading: boolean
-  login: (user: User, accessToken: string, refreshToken: string) => void
+  /** 是否记住我:决定 access_token cookie 是不是 7 天持久 cookie。 */
+  rememberMe: boolean
+  login: (user: User, accessToken: string, refreshToken: string, remember?: boolean) => void
   logout: () => void
   setUser: (user: User) => void
   setPermissions: (permissions: string[]) => void
@@ -47,10 +49,20 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
   permissions: [],
   isAuthenticated: false,
   isLoading: true,
+  rememberMe: true,
 
-  login: (user, accessToken, refreshToken) => {
-    set({ user, accessToken, refreshToken, isAuthenticated: true, isLoading: false })
-    setCookie('access_token', accessToken)
+  login: (user, accessToken, refreshToken, remember) => {
+    // `remember` 省略时沿用当前模式 —— apiClient 的 401 刷新路径
+    // (src/lib/api/client.ts:100)会不带参数地重新 login(),
+    // 那条路径不能把「不记住我」的会话又变回 7 天持久 cookie。
+    const persist = remember ?? get().rememberMe
+    set({ user, accessToken, refreshToken, isAuthenticated: true, isLoading: false, rememberMe: persist })
+    if (persist) {
+      setCookie('access_token', accessToken)
+    } else {
+      // 之前可能留下过持久 cookie(用户先勾选后取消),清掉
+      deleteCookie('access_token')
+    }
   },
 
   logout: () => {

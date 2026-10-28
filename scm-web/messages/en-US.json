@@ -111,6 +111,12 @@
     "reset": "Reset password",
     "resetSuccess": "Password reset",
     "back": "Back to sign in",
+    "steps": {
+      "email": "Verify email",
+      "code": "Verify identity",
+      "password": "Reset password"
+    },
+    "backStep": "Back",
     "errors": {
       "emailRequired": "Email address is required",
       "emailInvalid": "Enter a valid email address",

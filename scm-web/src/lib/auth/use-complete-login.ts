@@ -17,6 +17,11 @@ import type { LoginResponse } from "@/lib/api/contracts/auth";
  */
 export type LoginCompletion = { ok: true } | { ok: false; message: string };
 
+/** 建立会话的选项。`remember` 省略时沿用 store 里当前的模式。 */
+export interface CompleteLoginOptions {
+  remember?: boolean;
+}
+
 /**
  * 建立会话的共享逻辑。密码登录与社交登录回调页共用。
  * 顺序不可调换:先写 store(后续 getUserInfo 才带得上 token),再清 query cache,最后跳路由。
@@ -27,14 +32,22 @@ export function useCompleteLogin() {
   const queryClient = useQueryClient();
   const { login, setUser, setPermissions } = useAuthStore();
 
-  return async (response: LoginResponse): Promise<LoginCompletion> => {
+  return async (
+    response: LoginResponse,
+    options?: CompleteLoginOptions
+  ): Promise<LoginCompletion> => {
     // 后端可能以 HTTP 200 返回带 message 的错误信封 —— 此时没有 token,不能进 store。
     // 旧页面在这里 `message.error(...)` 然后停在原地;现在把文案交给调用方去弹。
     if (!response.accessToken) {
       return { ok: false, message: response.message ?? "" };
     }
 
-    login(toSessionUser(response), response.accessToken, response.refreshToken ?? "");
+    login(
+      toSessionUser(response),
+      response.accessToken,
+      response.refreshToken ?? "",
+      options?.remember
+    );
     setPermissions(response.permissions ?? []);
 
     try {

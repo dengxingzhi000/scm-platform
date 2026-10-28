@@ -17,9 +17,9 @@ export default function LoginPage() {
   const completeLogin = useCompleteLogin();
   const [pendingCredentials, setPendingCredentials] = useState<LoginFormValues | null>(null);
 
-  const handleSuccess = async (response: LoginResponse) => {
+  const handleSuccess = async (response: LoginResponse, remember: boolean) => {
     try {
-      const result = await completeLogin(response);
+      const result = await completeLogin(response, { remember });
       if (!result.ok) {
         message.error(result.message || t("failed"));
         return;
@@ -37,7 +37,8 @@ export default function LoginPage() {
         <TotpForm
           pendingCredentials={pendingCredentials}
           onBack={() => setPendingCredentials(null)}
-          onSuccess={(response) => void handleSuccess(response)}
+          // 「记住我」的勾选状态要跨过 MFA 这一步 —— 从待验证的凭据里取
+          onSuccess={(response) => void handleSuccess(response, pendingCredentials.remember ?? true)}
         />
       </LoginCard>
     );
@@ -46,7 +47,7 @@ export default function LoginPage() {
   return (
     <LoginCard title={t("title")} subtitle={t("subtitle")}>
       <LoginForm
-        onSuccess={(response) => void handleSuccess(response)}
+        onSuccess={(response, remember) => void handleSuccess(response, remember)}
         onMfaRequired={setPendingCredentials}
         onError={(error) => message.error(error.message || t("failed"))}
       />

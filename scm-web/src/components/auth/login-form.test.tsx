@@ -57,6 +57,33 @@ describe("LoginForm", () => {
     expect(login).toHaveBeenCalledWith({ username: "admin", password: "admin123" });
   });
 
+  it("reports remember-me as enabled when the box stays checked", async () => {
+    const onSuccess = vi.fn();
+    render(<LoginForm onSuccess={onSuccess} onMfaRequired={vi.fn()} onError={vi.fn()} />);
+
+    await userEvent.type(screen.getByLabelText("login.username"), "admin");
+    await userEvent.type(screen.getByLabelText("login.password"), "admin123");
+    await userEvent.click(screen.getByRole("button", { name: "login.submit" }));
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
+    expect(onSuccess.mock.calls[0][1]).toBe(true);
+  });
+
+  it("reports remember-me as disabled when the box is cleared", async () => {
+    const onSuccess = vi.fn();
+    render(<LoginForm onSuccess={onSuccess} onMfaRequired={vi.fn()} onError={vi.fn()} />);
+
+    // Radix 的 Checkbox 是 <button role="checkbox">,label 的点击转发在 jsdom 里不可靠 ——
+    // 直接点勾选框本身。
+    await userEvent.click(screen.getByRole("checkbox"));
+    await userEvent.type(screen.getByLabelText("login.username"), "admin");
+    await userEvent.type(screen.getByLabelText("login.password"), "admin123");
+    await userEvent.click(screen.getByRole("button", { name: "login.submit" }));
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
+    expect(onSuccess.mock.calls[0][1]).toBe(false);
+  });
+
   it("reports a non-MFA server failure instead of swallowing it", async () => {
     const onError = vi.fn();
     // 后端拒绝:密码错误。必须走 onError,不能静默 ——

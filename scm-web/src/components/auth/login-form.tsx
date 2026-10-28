@@ -18,7 +18,7 @@ import type { LoginResponse } from "@/lib/api/contracts/auth";
 import { buildLoginSchema, type LoginFormValues } from "./login-schema";
 
 interface LoginFormProps {
-  onSuccess: (response: LoginResponse) => void;
+  onSuccess: (response: LoginResponse, remember: boolean) => void;
   onMfaRequired: (values: LoginFormValues) => void;
   onError: (error: ApiError) => void;
 }
@@ -44,7 +44,7 @@ export function LoginForm({ onSuccess, onMfaRequired, onError }: LoginFormProps)
         username: values.username,
         password: values.password,
       });
-      onSuccess(response);
+      onSuccess(response, values.remember ?? true);
     } catch (error: unknown) {
       const apiError = toApiError(error);
       if (isMfaRequired(apiError.message, apiError.code)) {
@@ -140,16 +140,13 @@ export function LoginForm({ onSuccess, onMfaRequired, onError }: LoginFormProps)
           {t("submit")}
         </Button>
 
+        {/*
+          「服务条款 / 隐私政策」目前没有对应路由(仓库里不存在 /terms 与 /privacy),
+          之前渲染成 <Link> 就是死链 —— 点下去会被 proxy.ts 弹回登录页,看起来像链接坏了。
+          路由上线后(记得补上 locale 前缀)再换回 Link。
+        */}
         <p className="text-center text-[11px] leading-relaxed text-[var(--auth-ink-soft)]">
-          {t("legalPrefix")}{" "}
-          <Link href="/terms" className="underline underline-offset-4">
-            {t("terms")}
-          </Link>{" "}
-          {t("legalMiddle")}{" "}
-          <Link href="/privacy" className="underline underline-offset-4">
-            {t("privacy")}
-          </Link>
-          {t("legalSuffix")}
+          {t("legalPrefix")} {t("terms")} {t("legalMiddle")} {t("privacy")}{t("legalSuffix")}
         </p>
       </form>
     </Form>
