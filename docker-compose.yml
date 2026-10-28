@@ -12,6 +12,17 @@ x-core-service-env: &core-service-env
   DB_PORT: 5432
   DB_USERNAME: ${POSTGRES_USER:-admin}
   DB_PASSWORD: ${POSTGRES_PASSWORD:-admin123}
+  # scm-system 的读写分离数据源用这套变量（开发环境主从都指向同一个库）
+  DB_MASTER_HOST: postgres
+  DB_SLAVE1_HOST: postgres
+  DB_SLAVE2_HOST: postgres
+  # 每个服务的 application.yml 只声明了 spring.datasource.url，而 dynamic-datasource
+  # 启动时要一个显式的 master 数据源；各服务的 MASTER_URL 在下面按库名单独给
+  SPRING_DATASOURCE_DYNAMIC_PRIMARY: master
+  SPRING_DATASOURCE_DYNAMIC_STRICT: "false"
+  SPRING_DATASOURCE_DYNAMIC_DATASOURCE_MASTER_DRIVER_CLASS_NAME: org.postgresql.Driver
+  SPRING_DATASOURCE_DYNAMIC_DATASOURCE_MASTER_USERNAME: ${POSTGRES_USER:-admin}
+  SPRING_DATASOURCE_DYNAMIC_DATASOURCE_MASTER_PASSWORD: ${POSTGRES_PASSWORD:-admin123}
   REDIS_HOST: redis
   REDIS_PORT: 6379
   REDIS_PASSWORD: ${REDIS_PASSWORD:-admin123}
@@ -23,13 +34,31 @@ x-core-service-env: &core-service-env
   SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR: nacos:8848
   SPRING_CLOUD_NACOS_CONFIG_ENABLED: "false"
   SEATA_ENABLED: "false"
+  # https-redirect 会替换 Tomcat connector，把 server.port 覆盖成 http-port(8080)；
+  # 代码里已改为默认关闭，这里显式关掉，保证当前已构建的镜像端口正确
+  FROG_SECURITY_HTTPS_REDIRECT_ENABLED: "false"
+  # Dubbo：容器各自独立网络命名空间，默认协议端口 20880 不会冲突；注册到同一个 Nacos
+  DUBBO_REGISTRY_ADDRESS: nacos://nacos:8848
+  DUBBO_CONSUMER_CHECK: "false"
+  DUBBO_APPLICATION_QOS_ENABLE: "false"
   KAFKA_BOOTSTRAP: kafka:9092
+  SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
   RABBITMQ_HOST: rabbitmq
   RABBITMQ_PORT: 5672
   RABBITMQ_USERNAME: admin
   RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-admin123}
+  # 多数服务的 application.yml 没有 rabbitmq/kafka 段，Spring 默认会连 localhost → 必须给显式的 SPRING_* 名字
+  SPRING_RABBITMQ_HOST: rabbitmq
+  SPRING_RABBITMQ_PORT: 5672
+  SPRING_RABBITMQ_USERNAME: admin
+  SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-admin123}
+  SPRING_ELASTICSEARCH_URIS: http://elasticsearch:9200
   # 访问令牌用 HS512 签名，secret 必须 >= 64 字节，且所有服务必须相同
   JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set in .env (>= 64 chars)}
+  # 字段加解密（AES-128，16 字节 hex）；scm-system 启动时强依赖
+  SECURITY_CRYPTO_AES_KEY: ${SECURITY_CRYPTO_AES_KEY:-6f1c2b9d4e8a7c3d5b2a1908f7e6d5c4}
+  # order/warehouse/supplier 的 XxlJobConfig 拒绝空地址，指向调度中心即可（不要求可达）
+  XXL_JOB_ADMIN: ${XXL_JOB_ADMIN:-http://scm-xxl-job:8080/xxl-job-admin}
   JAVA_TOOL_OPTIONS: "-Xmx320m -XX:MaxMetaspaceSize=192m"
   TZ: Asia/Shanghai
 
@@ -711,6 +740,11 @@ services:
     environment:
       <<: *core-service-env
       SPRING_APPLICATION_NAME: scm-gateway
+      # classpath 上 application.yaml / .yml 同时存在时端口会被盖成 8080，OS 环境变量优先级最高
+      SERVER_PORT: 8761
+      # 网关不做 URL→权限 的二次校验（它自己的 ApiSignatureFilter 负责入口校验），
+      # 而 PermissionAccessAutoConfiguration 强依赖 SysPermissionServiceClient，网关里没有这个 Bean。
+      SPRING_AUTOCONFIGURE_EXCLUDE: com.scmcloud.common.access.PermissionAccessAutoConfiguration
     ports:
       - "8761:8761"
 
@@ -723,6 +757,13 @@ services:
       <<: *core-service-env
       # 网关路由写的是 lb://auth-service，注册名必须一致
       SPRING_APPLICATION_NAME: auth-service
+      # classpath 上 application.yaml / .yml 同时存在时端口会被盖成 8080，OS 环境变量优先级最高
+      SERVER_PORT: 8106
+      # auth 的 application.yaml 默认开启 HTTPS 并引用 classpath:certs/auth-keystore.p12，
+      # 仓库里没有这个密钥库；容器内由网关/前端走明文 HTTP，这里关掉 SSL
+      SERVER_SSL_ENABLED: "false"
+      # dynamic-datasource 需要显式 master，否则启动时 CannotFindDataSourceException
+      SPRING_DATASOURCE_DYNAMIC_DATASOURCE_MASTER_URL: jdbc:postgresql://postgres:5432/db_user
     ports:
       - "8106:8106"
 
@@ -735,6 +776,10 @@ services:
       <<: *core-service-env
       # 网关路由写的是 lb://system-service；权限/用户内部客户端也解析这个名字
       SPRING_APPLICATION_NAME: system-service
+      # classpath 上 application.yaml / .yml 同时存在时端口会被盖成 8080，OS 环境变量优先级最高
+      SERVER_PORT: 8081
+      # dynamic-datasource 需要显式 master，否则启动时 CannotFindDataSourceException
+      SPRING_DATASOURCE_DYNAMIC_DATASOURCE_MASTER_URL: jdbc:postgresql://postgres:5432/db_user
     ports:
       - "8081:8081"
 
@@ -746,6 +791,10 @@ services:
     environment:
       <<: *core-service-env
       SPRING_APPLICATION_NAME: scm-product
+      # classpath 上 application.yaml / .yml 同时存在时端口会被盖成 8080，OS 环境变量优先级最高
+      SERVER_PORT: 8201
+      # dynamic-datasource 需要显式 master，否则启动时 CannotFindDataSourceException
+      SPRING_DATASOURCE_DYNAMIC_DATASOURCE_MASTER_URL: jdbc:postgresql://postgres:5432/db_product
       # 搜索索引由 ES 提供；没有 ES 时搜索接口会报错，但启动与其余接口正常
       ELASTICSEARCH_URIS: http://elasticsearch:9200
     ports:
@@ -759,6 +808,10 @@ services:
     environment:
       <<: *core-service-env
       SPRING_APPLICATION_NAME: scm-inventory
+      # classpath 上 application.yaml / .yml 同时存在时端口会被盖成 8080，OS 环境变量优先级最高
+      SERVER_PORT: 8202
+      # dynamic-datasource 需要显式 master，否则启动时 CannotFindDataSourceException
+      SPRING_DATASOURCE_DYNAMIC_DATASOURCE_MASTER_URL: jdbc:postgresql://postgres:5432/db_inventory
     ports:
       - "8202:8202"
 
@@ -770,6 +823,10 @@ services:
     environment:
       <<: *core-service-env
       SPRING_APPLICATION_NAME: scm-order
+      # classpath 上 application.yaml / .yml 同时存在时端口会被盖成 8080，OS 环境变量优先级最高
+      SERVER_PORT: 8203
+      # dynamic-datasource 需要显式 master，否则启动时 CannotFindDataSourceException
+      SPRING_DATASOURCE_DYNAMIC_DATASOURCE_MASTER_URL: jdbc:postgresql://postgres:5432/db_order
     ports:
       - "8203:8203"
 
@@ -781,6 +838,10 @@ services:
     environment:
       <<: *core-service-env
       SPRING_APPLICATION_NAME: scm-warehouse
+      # classpath 上 application.yaml / .yml 同时存在时端口会被盖成 8080，OS 环境变量优先级最高
+      SERVER_PORT: 8204
+      # dynamic-datasource 需要显式 master，否则启动时 CannotFindDataSourceException
+      SPRING_DATASOURCE_DYNAMIC_DATASOURCE_MASTER_URL: jdbc:postgresql://postgres:5432/db_warehouse
     ports:
       - "8204:8204"
 
@@ -792,6 +853,10 @@ services:
     environment:
       <<: *core-service-env
       SPRING_APPLICATION_NAME: scm-logistics
+      # classpath 上 application.yaml / .yml 同时存在时端口会被盖成 8080，OS 环境变量优先级最高
+      SERVER_PORT: 8205
+      # dynamic-datasource 需要显式 master，否则启动时 CannotFindDataSourceException
+      SPRING_DATASOURCE_DYNAMIC_DATASOURCE_MASTER_URL: jdbc:postgresql://postgres:5432/db_logistics
     ports:
       - "8205:8205"
 
@@ -803,6 +868,10 @@ services:
     environment:
       <<: *core-service-env
       SPRING_APPLICATION_NAME: scm-supplier
+      # classpath 上 application.yaml / .yml 同时存在时端口会被盖成 8080，OS 环境变量优先级最高
+      SERVER_PORT: 8206
+      # dynamic-datasource 需要显式 master，否则启动时 CannotFindDataSourceException
+      SPRING_DATASOURCE_DYNAMIC_DATASOURCE_MASTER_URL: jdbc:postgresql://postgres:5432/db_supplier
     ports:
       - "8206:8206"
 
@@ -814,6 +883,10 @@ services:
     environment:
       <<: *core-service-env
       SPRING_APPLICATION_NAME: scm-purchase
+      # classpath 上 application.yaml / .yml 同时存在时端口会被盖成 8080，OS 环境变量优先级最高
+      SERVER_PORT: 8207
+      # dynamic-datasource 需要显式 master，否则启动时 CannotFindDataSourceException
+      SPRING_DATASOURCE_DYNAMIC_DATASOURCE_MASTER_URL: jdbc:postgresql://postgres:5432/db_purchase
     ports:
       - "8207:8207"
 
@@ -825,6 +898,10 @@ services:
     environment:
       <<: *core-service-env
       SPRING_APPLICATION_NAME: scm-finance
+      # classpath 上 application.yaml / .yml 同时存在时端口会被盖成 8080，OS 环境变量优先级最高
+      SERVER_PORT: 8208
+      # dynamic-datasource 需要显式 master，否则启动时 CannotFindDataSourceException
+      SPRING_DATASOURCE_DYNAMIC_DATASOURCE_MASTER_URL: jdbc:postgresql://postgres:5432/db_finance
     ports:
       - "8208:8208"
 
@@ -836,6 +913,10 @@ services:
     environment:
       <<: *core-service-env
       SPRING_APPLICATION_NAME: scm-approval
+      # classpath 上 application.yaml / .yml 同时存在时端口会被盖成 8080，OS 环境变量优先级最高
+      SERVER_PORT: 8209
+      # dynamic-datasource 需要显式 master，否则启动时 CannotFindDataSourceException
+      SPRING_DATASOURCE_DYNAMIC_DATASOURCE_MASTER_URL: jdbc:postgresql://postgres:5432/db_approval
     ports:
       - "8209:8209"
 
@@ -847,6 +928,8 @@ services:
     environment:
       <<: *core-service-env
       SPRING_APPLICATION_NAME: scm-message
+      # dynamic-datasource 需要显式 master，否则启动时 CannotFindDataSourceException
+      SPRING_DATASOURCE_DYNAMIC_DATASOURCE_MASTER_URL: jdbc:postgresql://postgres:5432/db_system
       # 模块默认 8209 与 scm-approval 冲突，容器里改成 8216
       SERVER_PORT: 8216
     ports:
@@ -860,6 +943,10 @@ services:
     environment:
       <<: *core-service-env
       SPRING_APPLICATION_NAME: scm-audit
+      # classpath 上 application.yaml / .yml 同时存在时端口会被盖成 8080，OS 环境变量优先级最高
+      SERVER_PORT: 8210
+      # dynamic-datasource 需要显式 master，否则启动时 CannotFindDataSourceException
+      SPRING_DATASOURCE_DYNAMIC_DATASOURCE_MASTER_URL: jdbc:postgresql://postgres:5432/db_audit
     ports:
       - "8210:8210"
 
@@ -871,6 +958,10 @@ services:
     environment:
       <<: *core-service-env
       SPRING_APPLICATION_NAME: scm-notify
+      # classpath 上 application.yaml / .yml 同时存在时端口会被盖成 8080，OS 环境变量优先级最高
+      SERVER_PORT: 8211
+      # dynamic-datasource 需要显式 master，否则启动时 CannotFindDataSourceException
+      SPRING_DATASOURCE_DYNAMIC_DATASOURCE_MASTER_URL: jdbc:postgresql://postgres:5432/db_notify
     ports:
       - "8211:8211"
 
@@ -882,6 +973,10 @@ services:
     environment:
       <<: *core-service-env
       SPRING_APPLICATION_NAME: scm-tenant
+      # classpath 上 application.yaml / .yml 同时存在时端口会被盖成 8080，OS 环境变量优先级最高
+      SERVER_PORT: 8212
+      # dynamic-datasource 需要显式 master，否则启动时 CannotFindDataSourceException
+      SPRING_DATASOURCE_DYNAMIC_DATASOURCE_MASTER_URL: jdbc:postgresql://postgres:5432/db_tenant
     ports:
       - "8212:8212"
 
@@ -893,6 +988,10 @@ services:
     environment:
       <<: *core-service-env
       SPRING_APPLICATION_NAME: scm-document
+      # classpath 上 application.yaml / .yml 同时存在时端口会被盖成 8080，OS 环境变量优先级最高
+      SERVER_PORT: 8213
+      # dynamic-datasource 需要显式 master，否则启动时 CannotFindDataSourceException
+      SPRING_DATASOURCE_DYNAMIC_DATASOURCE_MASTER_URL: jdbc:postgresql://postgres:5432/db_document
     ports:
       - "8213:8213"
 
@@ -904,6 +1003,8 @@ services:
     environment:
       <<: *core-service-env
       SPRING_APPLICATION_NAME: scm-file
+      # dynamic-datasource 需要显式 master，否则启动时 CannotFindDataSourceException
+      SPRING_DATASOURCE_DYNAMIC_DATASOURCE_MASTER_URL: jdbc:postgresql://postgres:5432/db_system
       # 模块默认 8201 与 scm-product 冲突，容器里改成 8214
       SERVER_PORT: 8214
     ports:
