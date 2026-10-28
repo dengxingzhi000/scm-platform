@@ -161,7 +161,9 @@ describe("useAuthStore 的 cookie 持久化", () => {
     // toUTCString 只精确到秒,所以比时间戳而不是比字符串。
     const markerExpiry = new Date(marker!.match(/expires=([^;]+)/)![1]).getTime();
     const tokenExpiry = new Date(token!.match(/expires=([^;]+)/)![1]).getTime();
-    expect(Math.abs(markerExpiry - tokenExpiry)).toBeLessThan(1000);
+    // toUTCString() 只精确到秒,两次 Date.now() 相隔不到 1 ms 时会跨秒 →
+    // 差值是 1000 ms 的整数倍,所以容差必须含 1000,否则跨秒那一次会误报。
+    expect(Math.abs(markerExpiry - tokenExpiry)).toBeLessThanOrEqual(1000);
     const days = (markerExpiry - Date.now()) / 864e5;
     expect(days).toBeGreaterThan(6.99);
     expect(days).toBeLessThan(7.01);

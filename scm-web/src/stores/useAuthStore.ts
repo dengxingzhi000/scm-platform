@@ -39,7 +39,7 @@ interface AuthState {
   isAuthenticated: boolean
   isLoading: boolean
   /**
-   * 记住模式的可读镜像:决定 access_token cookie 是 7 天持久 cookie 还是会话 cookie。
+   * 记住模式的可读镜像:access_token cookie 是 7 天持久 cookie 还是会话 cookie。
    * 只作展示用 —— 真正的判断以标记 cookie 为准(这个值只活在内存里,刷新后会复位)。
    */
   rememberMe: boolean

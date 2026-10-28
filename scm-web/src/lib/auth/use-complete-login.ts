@@ -17,7 +17,7 @@ import type { LoginResponse } from "@/lib/api/contracts/auth";
  */
 export type LoginCompletion = { ok: true } | { ok: false; message: string };
 
-/** 建立会话的选项。`remember` 省略时沿用 store 里当前的模式。 */
+/** 建立会话的选项。`remember` 省略时以标记 cookie 为准(与 token cookie 同生命周期)。 */
 export interface CompleteLoginOptions {
   remember?: boolean;
 }
