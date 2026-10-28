@@ -7,12 +7,18 @@ import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.NimbusReactiveJwtDecoder;
+import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.oauth2.server.resource.authentication.ReactiveJwtAuthenticationConverterAdapter;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import reactor.core.publisher.Mono;
+
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Gateway OAuth2配置
@@ -25,15 +31,8 @@ import reactor.core.publisher.Mono;
 @EnableWebFluxSecurity
 public class GatewaySecurityConfig {
 
-    /**
-     * 认证服务 JWKS 地址（可配置，避免硬编码 K8s 内部服务名）。
-     * 默认指向 auth-service 内部地址，本地环境通过 application-local.yaml 覆盖。
-     */
-    @Value("${security.oauth2.resource-server.jwk-set-uri:http://auth-service:8106/oauth2/jwks}")
-    private String jwkSetUri;
-
     @Bean
-    public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
+    public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http, ReactiveJwtDecoder jwtDecoder) {
         http
                 .authorizeExchange(exchanges -> exchanges
                         // 认证服务的登录/刷新/OAuth2 授权端点（登录本身不能要求已认证）
@@ -48,13 +47,25 @@ public class GatewaySecurityConfig {
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt
-                                .jwkSetUri(jwkSetUri)
+                                .jwtDecoder(jwtDecoder)
                                 .jwtAuthenticationConverter(jwtAuthenticationConverter())
                         )
                 )
                 .csrf(ServerHttpSecurity.CsrfSpec::disable);
 
         return http.build();
+    }
+
+    /**
+     * 访问令牌由 scm-auth 的 JwtUtils 用共享的 jwt.secret 以 HS512 签发；授权服务器的
+     * JWKS 只覆盖 OAuth2 客户端，用它校验会报 "Unsupported algorithm of HS512"。
+     */
+    @Bean
+    public ReactiveJwtDecoder jwtDecoder(@Value("${jwt.secret}") String secret) {
+        SecretKeySpec key = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA512");
+        return NimbusReactiveJwtDecoder.withSecretKey(key)
+                .macAlgorithm(MacAlgorithm.HS512)
+                .build();
     }
 
     @Bean

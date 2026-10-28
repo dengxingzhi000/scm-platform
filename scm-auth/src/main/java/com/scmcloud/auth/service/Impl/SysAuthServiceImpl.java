@@ -17,6 +17,7 @@ import com.scmcloud.common.redis.script.LuaScriptRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -52,6 +53,7 @@ public class SysAuthServiceImpl implements ISysAuthService {
     private final SysUserServiceClient userServiceClient;
     private final ISysAuditLogService auditLogService;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final StringRedisTemplate stringRedisTemplate;
     private final SecurityProperties securityProperties;
     private final JwtProperties jwtProperties;
     private final BusinessMetrics businessMetrics;
@@ -78,7 +80,7 @@ public class SysAuthServiceImpl implements ISysAuthService {
         String lockKey = ACCOUNT_LOCK_PREFIX + username;
         String attemptKey = LOGIN_ATTEMPTS_PREFIX + username;
         try {
-            Long locked = redisTemplate.execute(
+            Long locked = stringRedisTemplate.execute(
                     luaScriptRegistry.get("auth:check_and_lock", Long.class),
                     List.of(lockKey, attemptKey),
                     String.valueOf(securityProperties.getMaxLoginAttempts()),

@@ -58,7 +58,9 @@ public class RestClientHttpExchangeConfig {
      */
     @Bean
     public SysUserServiceClient sysUserServiceClient(RestClient.Builder restClientBuilder) {
-        String baseUrl = resolveServiceUrl("user-service");
+        // Users live in scm-system (db_user), which registers as "system-service"; the old
+        // "user-service" name never resolved, so every lookup fell through to http://user-service.
+        String baseUrl = resolveServiceUrl("system-service");
         log.info("Creating SysUserServiceClient with baseUrl: {}", baseUrl);
 
         RestClient restClient = restClientBuilder
@@ -96,7 +98,9 @@ public class RestClientHttpExchangeConfig {
      */
     @Bean
     public SysPermissionServiceClient sysPermissionServiceClient(RestClient.Builder restClientBuilder) {
-        String baseUrl = resolveServiceUrl("permission-service");
+        // /api/system/permissions/** is served by scm-system ("system-service"), not a standalone
+        // permission service; ApiAccessControlFilter fails closed, so a wrong name denied every API.
+        String baseUrl = resolveServiceUrl("system-service");
         log.info("Creating SysPermissionServiceClient with baseUrl: {}", baseUrl);
 
         RestClient restClient = restClientBuilder
