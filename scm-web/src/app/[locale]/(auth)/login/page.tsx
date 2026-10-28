@@ -1,171 +1,60 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { useLocale } from 'next-intl'
-import { Form, Input, Button, App, Typography, Checkbox, Space } from 'antd'
-import { UserOutlined, LockOutlined, SafetyOutlined } from '@ant-design/icons'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { authService } from '@/lib/api/services/auth'
-import { toApiError } from '@/lib/api/envelope'
-import { toSessionUser, mergeUserInfo } from '@/lib/auth/session'
-import { useAuthStore } from '@/stores/useAuthStore'
-import type { LoginRequest, LoginResponse } from '@/lib/api/contracts/auth'
-import AuthBrandCard from '@/components/ui/auth-brand-card'
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
+import { App } from "antd";
+import { useQueryClient } from "@tanstack/react-query";
 
-const { Link } = Typography
-
-interface LoginForm {
-  username: string
-  password: string
-  remember?: boolean
-}
-
-interface TOTPForm {
-  code: string
-}
-
-const isMfaRequired = (message: string, code: number): boolean =>
-  code === 40104 || /two-factor|verification code|MFA/i.test(message)
+import { LoginCard } from "@/components/auth/login-card";
+import { LoginForm } from "@/components/auth/login-form";
+import type { LoginFormValues } from "@/components/auth/login-schema";
+import { useAuthStore } from "@/stores/useAuthStore";
+import { toSessionUser, mergeUserInfo } from "@/lib/auth/session";
+import { authService } from "@/lib/api/services/auth";
 
 export default function LoginPage() {
-  const [showTOTP, setShowTOTP] = useState(false)
-  const [pendingCredentials, setPendingCredentials] = useState<LoginForm | null>(null)
-  const router = useRouter()
-  const locale = useLocale()
-  const queryClient = useQueryClient()
-  const { message } = App.useApp()
-  const { login, setUser, setPermissions } = useAuthStore()
+  const t = useTranslations("login");
+  const locale = useLocale();
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const { message } = App.useApp();
+  const { login, setUser, setPermissions } = useAuthStore();
+  const [mfaValues, setMfaValues] = useState<LoginFormValues | null>(null);
 
-  const loginMutation = useMutation({
-    mutationFn: (data: LoginRequest) => authService.login(data),
-  })
-
-  const completeLogin = async (response: LoginResponse) => {
+  const completeLogin = async (response: Parameters<typeof toSessionUser>[0]) => {
     if (!response.accessToken) {
-      message.error(response.message || '登录失败')
-      return
+      message.error(response.message || t("failed"));
+      return;
     }
-
-    login(
-      toSessionUser(response),
-      response.accessToken,
-      response.refreshToken ?? ''
-    )
-    setPermissions(response.permissions ?? [])
-
+    login(toSessionUser(response), response.accessToken, response.refreshToken ?? "");
+    setPermissions(response.permissions ?? []);
     try {
-      const userInfo = await authService.getUserInfo()
-      setUser(mergeUserInfo(useAuthStore.getState().user, userInfo))
+      const userInfo = await authService.getUserInfo();
+      setUser(mergeUserInfo(useAuthStore.getState().user, userInfo));
     } catch {
-      // The token is valid; profile enrichment is best-effort.
+      /* token 有效,资料补全是尽力而为 */
     }
+    queryClient.clear();
+    message.success(t("success"));
+    router.push(`/${locale}/dashboard`);
+  };
 
-    queryClient.clear()
-    message.success('登录成功')
-    router.push(`/${locale}/dashboard`)
-  }
-
-  const onLoginFinish = async (values: LoginForm) => {
-    try {
-      const response = await loginMutation.mutateAsync({
-        username: values.username,
-        password: values.password,
-      })
-      await completeLogin(response)
-    } catch (error: unknown) {
-      const apiError = toApiError(error)
-      if (isMfaRequired(apiError.message, apiError.code)) {
-        setPendingCredentials(values)
-        setShowTOTP(true)
-        return
-      }
-      message.error(apiError.message || '登录失败')
-    }
-  }
-
-  const onTOTPFinish = async (values: TOTPForm) => {
-    if (!pendingCredentials) {
-      setShowTOTP(false)
-      return
-    }
-
-    try {
-      const response = await loginMutation.mutateAsync({
-        username: pendingCredentials.username,
-        password: pendingCredentials.password,
-        twoFactorCode: values.code,
-      })
-      await completeLogin(response)
-    } catch (error: unknown) {
-      const apiError = toApiError(error)
-      message.error(apiError.message || '验证码错误')
-    }
-  }
-
-  if (showTOTP) {
+  if (mfaValues) {
     return (
-      <AuthBrandCard title="两步验证" subtitle="请输入您的 TOTP 验证码">
-        <Form name="totp" onFinish={onTOTPFinish} layout="vertical">
-          <Form.Item
-            name="code"
-            rules={[
-              { required: true, message: '请输入验证码' },
-              { len: 6, message: '验证码为6位数字' },
-              { pattern: /^\d+$/, message: '验证码只能包含数字' },
-            ]}
-          >
-            <Input
-              prefix={<SafetyOutlined />}
-              placeholder="6位验证码"
-              maxLength={6}
-              size="large"
-              style={{ textAlign: 'center', fontSize: 24, letterSpacing: 8 }}
-            />
-          </Form.Item>
-          <Form.Item>
-            <Button type="primary" htmlType="submit" loading={loginMutation.isPending} block size="large">
-              验证
-            </Button>
-          </Form.Item>
-          <Button
-            type="link"
-            block
-            onClick={() => {
-              setShowTOTP(false)
-              setPendingCredentials(null)
-            }}
-          >
-            返回登录
-          </Button>
-        </Form>
-      </AuthBrandCard>
-    )
+      <LoginCard title={t("mfa.title")} subtitle={t("mfa.subtitle")}>
+        {/* Task 3 只需要主流程;MFA 表单在 Task 4 一并接线 */}
+        {null}
+      </LoginCard>
+    );
   }
 
   return (
-    <AuthBrandCard title="欢迎回来" subtitle="登录您的供应链管理中台">
-      <Form name="login" onFinish={onLoginFinish} layout="vertical" initialValues={{ remember: true }}>
-        <Form.Item name="username" rules={[{ required: true, message: '请输入用户名' }]}>
-          <Input prefix={<UserOutlined />} placeholder="用户名" size="large" />
-        </Form.Item>
-        <Form.Item name="password" rules={[{ required: true, message: '请输入密码' }]}>
-          <Input.Password prefix={<LockOutlined />} placeholder="密码" size="large" />
-        </Form.Item>
-        <Form.Item>
-          <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-            <Form.Item name="remember" valuePropName="checked" noStyle>
-              <Checkbox>记住我</Checkbox>
-            </Form.Item>
-            <Link href={`/${locale}/forgot-password`}>忘记密码?</Link>
-          </Space>
-        </Form.Item>
-        <Form.Item>
-          <Button type="primary" htmlType="submit" loading={loginMutation.isPending} block size="large">
-            登录
-          </Button>
-        </Form.Item>
-      </Form>
-    </AuthBrandCard>
-  )
+    <LoginCard title={t("title")} subtitle={t("subtitle")}>
+      <LoginForm
+        onSuccess={(response) => void completeLogin(response)}
+        onMfaRequired={(values) => setMfaValues(values)}
+      />
+    </LoginCard>
+  );
 }
