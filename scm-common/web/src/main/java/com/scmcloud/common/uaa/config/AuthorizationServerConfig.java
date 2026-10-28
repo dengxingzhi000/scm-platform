@@ -25,10 +25,15 @@ import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.core.oidc.OidcScopes;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.server.authorization.InMemoryOAuth2AuthorizationConsentService;
+import org.springframework.security.oauth2.server.authorization.InMemoryOAuth2AuthorizationService;
+import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationConsentService;
+import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
 import org.springframework.security.oauth2.server.authorization.client.InMemoryRegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.config.annotation.web.configuration.OAuth2AuthorizationServerConfiguration;
+import org.springframework.security.config.annotation.web.configurers.oauth2.server.authorization.OAuth2AuthorizationServerConfigurer;
 import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
 import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
 import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
@@ -61,8 +66,9 @@ import java.util.UUID;
 @Configuration
 @ConditionalOnProperty(name = "security.uaa.enabled", havingValue = "true")
 @RequiredArgsConstructor
-@Import(OAuth2AuthorizationServerConfiguration.class)
 public class AuthorizationServerConfig {
+    private final PasswordEncoder passwordEncoder;
+
     @Value("${security.oauth2.authorizationserver.issuer:http://localhost:8090}")
     private String issuer;
 
@@ -82,9 +88,12 @@ public class AuthorizationServerConfig {
      */
     @Bean
     @Order(1)
-    public SecurityFilterChain authorizationServerSecurityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain scmAuthorizationServerSecurityFilterChain(HttpSecurity http) throws Exception {
+        OAuth2AuthorizationServerConfigurer authorizationServerConfigurer = new OAuth2AuthorizationServerConfigurer();
         http
-                .oauth2AuthorizationServer(authorizationServer ->
+                // Scope the chain to the protocol endpoints; a second catch-all chain is rejected.
+                .securityMatcher(authorizationServerConfigurer.getEndpointsMatcher())
+                .with(authorizationServerConfigurer, authorizationServer ->
                         authorizationServer
                                 .oidc(Customizer.withDefaults())
                                 .authorizationServerSettings(authorizationServerSettings())
@@ -103,8 +112,10 @@ public class AuthorizationServerConfig {
     @Order(2)
     public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
         http
+                // keep this chain off the catch-all path: SecurityConfig owns that one
+                .securityMatcher("/login", "/error")
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/actuator/**", "/login", "/error").permitAll()
+                        .requestMatchers("/login", "/error").permitAll()
                         .anyRequest().authenticated()
                 )
                 .formLogin(Customizer.withDefaults())
@@ -121,7 +132,7 @@ public class AuthorizationServerConfig {
         // Web 瀹㈡埛锟?
         RegisteredClient webClient = RegisteredClient.withId(UUIDv7Util.generateString())
                 .clientId("nearsync-web")
-                .clientSecret(passwordEncoder().encode("web-secret-2024"))
+                .clientSecret(passwordEncoder.encode("web-secret-2024"))
                 .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
                 .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_POST)
                 .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
@@ -168,7 +179,7 @@ public class AuthorizationServerConfig {
         // 鏈嶅姟闂磋皟鐢ㄥ鎴风
         RegisteredClient serviceClient = RegisteredClient.withId(UUIDv7Util.generateString())
                 .clientId("internal-service")
-                .clientSecret(passwordEncoder().encode("service-secret-2024"))
+                .clientSecret(passwordEncoder.encode("service-secret-2024"))
                 .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
                 .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
                 .scope("service.internal")
@@ -178,6 +189,17 @@ public class AuthorizationServerConfig {
                 .build();
 
         return new InMemoryRegisteredClientRepository(webClient, mobileClient, serviceClient);
+    }
+
+    /** Boot 4 no longer auto-configures these, so the authorization server keeps them in memory. */
+    @Bean
+    public OAuth2AuthorizationService authorizationService() {
+        return new InMemoryOAuth2AuthorizationService();
+    }
+
+    @Bean
+    public OAuth2AuthorizationConsentService authorizationConsentService() {
+        return new InMemoryOAuth2AuthorizationConsentService();
     }
 
     /**
@@ -234,10 +256,6 @@ public class AuthorizationServerConfig {
                 .build();
     }
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder(12);
-    }
 
     @Bean
     public OAuth2TokenCustomizer<JwtEncodingContext> jwtCustomizer() {

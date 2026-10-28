@@ -14,7 +14,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -54,7 +53,7 @@ public class DataSyncAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(DataSyncPublisher.class)
-    @ConditionalOnBean(KafkaTemplate.class)
+    @ConditionalOnClass(KafkaTemplate.class)
     public DataSyncPublisher dataSyncPublisher(KafkaTemplate<String, String> kafkaTemplate, ObjectMapper objectMapper,
                                                DataSyncProperties properties, MeterRegistry meterRegistry,
                                                Tracer tracer) {
@@ -67,7 +66,7 @@ public class DataSyncAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(IdempotentChecker.class)
-    @ConditionalOnBean(StringRedisTemplate.class)
+    @ConditionalOnClass(StringRedisTemplate.class)
     public IdempotentChecker idempotentChecker(StringRedisTemplate redisTemplate, DataSyncProperties properties) {
 
         log.info("[DataSync] Initializing idempotent checker");
@@ -105,7 +104,7 @@ public class DataSyncAutoConfiguration {
     }
 
     @Bean("dataSyncKafkaListenerContainerFactory")
-    @ConditionalOnBean(ConsumerFactory.class)
+    @ConditionalOnClass(ConsumerFactory.class)
     public ConcurrentKafkaListenerContainerFactory<String, String> dataSyncKafkaListenerContainerFactory(
             DataSyncProperties properties, KafkaProperties kafkaProperties) {
 
