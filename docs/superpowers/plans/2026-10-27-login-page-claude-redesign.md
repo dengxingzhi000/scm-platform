@@ -515,7 +515,7 @@ git commit -m "feat(web): 新增 Claude 版式认证双栏外壳与品牌标记"
   - `loginSchema` —— `z.object({ username: z.string().min(1, ...), password: z.string().min(1, ...) })`
   - `totpSchema` —— `z.object({ code: z.string().length(6).regex(/^\d+$/, ...) })`
   - `LoginCard(props: { title: string; subtitle: string; children: ReactNode })`
-  - `LoginForm(props: { onSuccess: (response: LoginResponse) => void; onMfaRequired: (values: LoginFormValues) => void })`
+  - `LoginForm(props: { onSuccess: (response: LoginResponse) => void; onMfaRequired: (values: LoginFormValues) => void; onError: (error: ApiError) => void })`
 
 - [ ] **Step 1: 写失败的测试(schema)**
 
@@ -603,7 +603,7 @@ describe("LoginForm", () => {
 
   it("does not call the API when required fields are empty", async () => {
     const onSuccess = vi.fn();
-    render(<LoginForm onSuccess={onSuccess} onMfaRequired={vi.fn()} />);
+    render(<LoginForm onSuccess={onSuccess} onMfaRequired={vi.fn()} onError={vi.fn()} />);
 
     await userEvent.click(screen.getByRole("button", { name: "login.submit" }));
 
@@ -616,7 +616,7 @@ describe("LoginForm", () => {
 
   it("submits the credentials and forwards the response", async () => {
     const onSuccess = vi.fn();
-    render(<LoginForm onSuccess={onSuccess} onMfaRequired={vi.fn()} />);
+    render(<LoginForm onSuccess={onSuccess} onMfaRequired={vi.fn()} onError={vi.fn()} />);
 
     await userEvent.type(screen.getByLabelText("login.username"), "admin");
     await userEvent.type(screen.getByLabelText("login.password"), "admin123");
@@ -626,8 +626,27 @@ describe("LoginForm", () => {
     expect(login).toHaveBeenCalledWith({ username: "admin", password: "admin123" });
   });
 
+  it("reports a non-MFA server failure instead of swallowing it", async () => {
+    const onError = vi.fn();
+    // 后端拒绝:密码错误。必须走 onError,不能静默 ——
+    // 旧页面在这里调 message.error,丢了就是「点登录没反应」。
+    login.mockRejectedValue(
+      Object.assign(new Error("密码错误"), {
+        response: { status: 400, data: { code: 40001, message: "密码错误" } },
+      })
+    );
+    render(<LoginForm onSuccess={vi.fn()} onMfaRequired={vi.fn()} onError={onError} />);
+
+    await userEvent.type(screen.getByLabelText("login.username"), "admin");
+    await userEvent.type(screen.getByLabelText("login.password"), "wrong");
+    await userEvent.click(screen.getByRole("button", { name: "login.submit" }));
+
+    await waitFor(() => expect(onError).toHaveBeenCalledTimes(1));
+    expect(onError.mock.calls[0][0]).toMatchObject({ message: "密码错误" });
+  });
+
   it("exposes name attributes the e2e spec relies on", () => {
-    render(<LoginForm onSuccess={vi.fn()} onMfaRequired={vi.fn()} />);
+    render(<LoginForm onSuccess={vi.fn()} onMfaRequired={vi.fn()} onError={vi.fn()} />);
     expect(screen.getByLabelText("login.username")).toHaveAttribute("name", "username");
     expect(screen.getByLabelText("login.password")).toHaveAttribute("name", "password");
   });
@@ -659,6 +678,10 @@ export function buildLoginSchema(t: Translator) {
   return z.object({
     username: z.string().min(1, t("errors.usernameRequired")),
     password: z.string().min(1, t("errors.passwordRequired")),
+    // `remember` 只在 `defaultValues` 里出现,不是校验目标 —— 但它必须是 schema 的一部分,
+    // 否则 `LoginFormValues` 里没有它,`useForm` 的 defaultValues 与 `FormField name="remember"`
+    // 都会报类型错(连带 control/handleSubmit 的泛型一起塌)。
+    remember: z.boolean().optional(),
   });
 }
 
@@ -731,13 +754,19 @@ import { toApiError } from "@/lib/api/envelope";
 import type { LoginResponse } from "@/lib/api/contracts/auth";
 
 import { buildLoginSchema, type LoginFormValues } from "./login-schema";
+import type { ApiError } from "@/lib/api/envelope";
+
+/** 服务端要求二次验证。抽成常量函数是为了让旧页面的判定规则原样保留。 */
+const isMfaRequired = (message: string, code: number): boolean =>
+  code === 40104 || /two-factor|verification code|MFA/i.test(message);
 
 interface LoginFormProps {
   onSuccess: (response: LoginResponse) => void;
   onMfaRequired: (values: LoginFormValues) => void;
+  onError: (error: ApiError) => void;
 }
 
-export function LoginForm({ onSuccess, onMfaRequired }: LoginFormProps) {
+export function LoginForm({ onSuccess, onMfaRequired, onError }: LoginFormProps) {
   const t = useTranslations("login");
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(buildLoginSchema(t)),
@@ -757,11 +786,14 @@ export function LoginForm({ onSuccess, onMfaRequired }: LoginFormProps) {
       onSuccess(response);
     } catch (error: unknown) {
       const apiError = toApiError(error);
-      if (apiError.code === 40104 || /two-factor|verification code|MFA/i.test(apiError.message)) {
+      if (isMfaRequired(apiError.message, apiError.code)) {
         onMfaRequired(values);
         return;
       }
-      throw error;
+      // 非 MFA 失败(密码错误 / 账号锁定 / 网络错误)必须冒泡给页面去弹提示。
+      // 不能 `throw error`:onSubmit 是 handleSubmit 的回调,抛出的 promise 无人 catch,
+      // 用户点了登录会**毫无反馈**(旧页面在这里调 message.error)。
+      onError(apiError);
     }
   };
 
@@ -936,6 +968,7 @@ export default function LoginPage() {
       <LoginForm
         onSuccess={(response) => void completeLogin(response)}
         onMfaRequired={(values) => setMfaValues(values)}
+        onError={(error) => message.error(error.message || t("failed"))}
       />
     </LoginCard>
   );
@@ -945,7 +978,7 @@ export default function LoginPage() {
 - [ ] **Step 8: 运行测试确认通过**
 
 Run: `cd scm-web && npm test -- src/components/auth/login-schema.test.ts src/components/auth/login-form.test.tsx`
-Expected: PASS(schema 4 个用例 + 表单 3 个用例)
+Expected: PASS(schema 5 个用例 + 表单 4 个用例)
 
 - [ ] **Step 9: 提交**
 
@@ -1248,6 +1281,7 @@ export default function LoginPage() {
           void completeLogin(response);
         }}
         onMfaRequired={setPendingCredentials}
+        onError={(error) => message.error(error.message || t("failed"))}
       />
     </LoginCard>
   );
@@ -1255,6 +1289,8 @@ export default function LoginPage() {
 ```
 
 > `completeLogin` 现在负责跳转,页面只负责弹提示 —— 顺序是「先提示成功再跳」,与原实现一致。
+> `onError` 接住非 MFA 失败(密码错误 / 账号锁定 / 网络错误)并弹后端返回的文案,
+> 与原页面 `message.error(apiError.message || '登录失败')` 等价。
 
 - [ ] **Step 6: 运行测试确认通过**
 
