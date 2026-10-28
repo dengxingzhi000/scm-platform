@@ -81,4 +81,41 @@ describe("LoginForm", () => {
     expect(screen.getByLabelText("login.username")).toHaveAttribute("name", "username");
     expect(screen.getByLabelText("login.password")).toHaveAttribute("name", "password");
   });
+
+  it("routes a 40104 challenge to the MFA step, not to the error path", async () => {
+    const onMfaRequired = vi.fn();
+    const onError = vi.fn();
+    login.mockRejectedValue(
+      Object.assign(new Error("需要二次验证"), {
+        response: { status: 401, data: { code: 40104, message: "需要二次验证" } },
+      })
+    );
+    render(<LoginForm onSuccess={vi.fn()} onMfaRequired={onMfaRequired} onError={onError} />);
+
+    await userEvent.type(screen.getByLabelText("login.username"), "admin");
+    await userEvent.type(screen.getByLabelText("login.password"), "admin123");
+    await userEvent.click(screen.getByRole("button", { name: "login.submit" }));
+
+    await waitFor(() => expect(onMfaRequired).toHaveBeenCalledTimes(1));
+    expect(onMfaRequired).toHaveBeenCalledWith({ username: "admin", password: "admin123", remember: true });
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it("routes a message-only MFA challenge the same way", async () => {
+    const onMfaRequired = vi.fn();
+    const onError = vi.fn();
+    login.mockRejectedValue(
+      Object.assign(new Error("MFA required"), {
+        response: { status: 401, data: { code: 0, message: "MFA required" } },
+      })
+    );
+    render(<LoginForm onSuccess={vi.fn()} onMfaRequired={onMfaRequired} onError={onError} />);
+
+    await userEvent.type(screen.getByLabelText("login.username"), "admin");
+    await userEvent.type(screen.getByLabelText("login.password"), "admin123");
+    await userEvent.click(screen.getByRole("button", { name: "login.submit" }));
+
+    await waitFor(() => expect(onMfaRequired).toHaveBeenCalledTimes(1));
+    expect(onError).not.toHaveBeenCalled();
+  });
 });
