@@ -56,7 +56,7 @@ export default function UserListPage() {
       render: (roles: string[]) => (
         <Space>
           {roles?.map((role) => (
-            <Tag key={role} color="blue">{role}</Tag>
+            <Tag key={role} color="processing">{role}</Tag>
           ))}
         </Space>
       ),

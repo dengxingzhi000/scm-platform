@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter, usePathname } from 'next/navigation'
-import { Layout, Avatar, Dropdown, Space, Tooltip, Switch, Button, Breadcrumb } from 'antd'
+import { Layout, Avatar, Dropdown, Space, Tooltip, Button, Breadcrumb } from 'antd'
 import {
   UserOutlined,
   LogoutOutlined,
@@ -65,19 +65,21 @@ export default function AppHeader() {
 
   return (
     <AntHeader
+      suppressHydrationWarning
       style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         background: 'var(--color-bg-header)',
-        borderBottom: '1px solid var(--color-border-secondary)',
+        borderBottom: '1px solid var(--color-border)',
         height: 'var(--header-height)',
+        paddingInline: 20,
         position: 'sticky',
         top: 0,
         zIndex: 100,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <Button
           type="text"
           aria-label={sidebarCollapsed ? '展开侧边栏' : '收起侧边栏'}
@@ -86,10 +88,11 @@ export default function AppHeader() {
         />
         <Breadcrumb
           items={getBreadcrumb(pathname).map((item) => ({ title: item.title }))}
+          style={{ fontSize: 12 }}
         />
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
         <TenantSwitcher />
 
         <Tooltip title="全屏">
@@ -102,21 +105,22 @@ export default function AppHeader() {
         </Tooltip>
 
         <Tooltip title={themeMode === 'dark' ? '浅色模式' : '深色模式'}>
-          <Switch
-            checkedChildren={<MoonOutlined />}
-            unCheckedChildren={<SunOutlined />}
-            checked={themeMode === 'dark'}
-            onChange={(checked) => setThemeMode(checked ? 'dark' : 'light')}
-            size="small"
+          <Button
+            type="text"
+            aria-label={themeMode === 'dark' ? '切换为浅色模式' : '切换为深色模式'}
+            icon={themeMode === 'dark' ? <SunOutlined /> : <MoonOutlined />}
+            onClick={() => setThemeMode(themeMode === 'dark' ? 'light' : 'dark')}
           />
         </Tooltip>
 
         <NotificationBell />
 
         <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
-          <Space style={{ cursor: 'pointer' }}>
-            <Avatar icon={<UserOutlined />} size="small" />
-            <span>{user?.displayName || user?.username || 'User'}</span>
+          <Space size={8} style={{ cursor: 'pointer', marginInlineStart: 4 }}>
+            <Avatar icon={<UserOutlined />} size={24} />
+            <span style={{ fontSize: 13, color: 'var(--color-text)' }}>
+              {user?.displayName || user?.username || 'User'}
+            </span>
           </Space>
         </Dropdown>
       </div>

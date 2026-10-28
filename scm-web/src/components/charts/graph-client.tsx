@@ -65,7 +65,7 @@ export default function GraphClient({
           fill: "var(--color-primary)",
           labelText: (datum) =>
             String(datum.data?.label ?? datum.id ?? ""),
-          labelFill: "#ffffff",
+          labelFill: "var(--color-primary-on)",
           fontSize: 11,
         },
       },
