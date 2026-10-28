@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { authService } from "@/lib/api/services/auth";
-import { toApiError } from "@/lib/api/envelope";
+import { toApiError, type ApiError } from "@/lib/api/envelope";
 import type { LoginResponse } from "@/lib/api/contracts/auth";
 
 import { buildLoginSchema, type LoginFormValues } from "./login-schema";
@@ -20,9 +20,13 @@ import { buildLoginSchema, type LoginFormValues } from "./login-schema";
 interface LoginFormProps {
   onSuccess: (response: LoginResponse) => void;
   onMfaRequired: (values: LoginFormValues) => void;
+  onError: (error: ApiError) => void;
 }
 
-export function LoginForm({ onSuccess, onMfaRequired }: LoginFormProps) {
+const isMfaRequired = (message: string, code: number): boolean =>
+  code === 40104 || /two-factor|verification code|MFA/i.test(message);
+
+export function LoginForm({ onSuccess, onMfaRequired, onError }: LoginFormProps) {
   const t = useTranslations("login");
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(buildLoginSchema(t)),
@@ -42,11 +46,13 @@ export function LoginForm({ onSuccess, onMfaRequired }: LoginFormProps) {
       onSuccess(response);
     } catch (error: unknown) {
       const apiError = toApiError(error);
-      if (apiError.code === 40104 || /two-factor|verification code|MFA/i.test(apiError.message)) {
+      if (isMfaRequired(apiError.message, apiError.code)) {
         onMfaRequired(values);
         return;
       }
-      throw error;
+      // 不能 throw:本函数是 form.handleSubmit 的回调,没有人 catch 这个 Promise,
+      // 抛出去就是「点登录没反应」+ 一条 unhandled rejection。交给调用方提示(旧页面是 message.error)。
+      onError(apiError);
     }
   };
 

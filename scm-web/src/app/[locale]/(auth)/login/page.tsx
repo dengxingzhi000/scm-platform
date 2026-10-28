@@ -54,6 +54,7 @@ export default function LoginPage() {
       <LoginForm
         onSuccess={(response) => void completeLogin(response)}
         onMfaRequired={(values) => setMfaValues(values)}
+        onError={(error) => message.error(error.message || t("failed"))}
       />
     </LoginCard>
   );

@@ -34,7 +34,7 @@ describe("LoginForm", () => {
 
   it("does not call the API when required fields are empty", async () => {
     const onSuccess = vi.fn();
-    render(<LoginForm onSuccess={onSuccess} onMfaRequired={vi.fn()} />);
+    render(<LoginForm onSuccess={onSuccess} onMfaRequired={vi.fn()} onError={vi.fn()} />);
 
     await userEvent.click(screen.getByRole("button", { name: "login.submit" }));
 
@@ -47,7 +47,7 @@ describe("LoginForm", () => {
 
   it("submits the credentials and forwards the response", async () => {
     const onSuccess = vi.fn();
-    render(<LoginForm onSuccess={onSuccess} onMfaRequired={vi.fn()} />);
+    render(<LoginForm onSuccess={onSuccess} onMfaRequired={vi.fn()} onError={vi.fn()} />);
 
     await userEvent.type(screen.getByLabelText("login.username"), "admin");
     await userEvent.type(screen.getByLabelText("login.password"), "admin123");
@@ -57,8 +57,27 @@ describe("LoginForm", () => {
     expect(login).toHaveBeenCalledWith({ username: "admin", password: "admin123" });
   });
 
+  it("reports a non-MFA server failure instead of swallowing it", async () => {
+    const onError = vi.fn();
+    // 后端拒绝:密码错误。必须走 onError,不能静默 ——
+    // 旧页面在这里调 message.error,丢了就是「点登录没反应」。
+    login.mockRejectedValue(
+      Object.assign(new Error("密码错误"), {
+        response: { status: 400, data: { code: 40001, message: "密码错误" } },
+      })
+    );
+    render(<LoginForm onSuccess={vi.fn()} onMfaRequired={vi.fn()} onError={onError} />);
+
+    await userEvent.type(screen.getByLabelText("login.username"), "admin");
+    await userEvent.type(screen.getByLabelText("login.password"), "wrong");
+    await userEvent.click(screen.getByRole("button", { name: "login.submit" }));
+
+    await waitFor(() => expect(onError).toHaveBeenCalledTimes(1));
+    expect(onError.mock.calls[0][0]).toMatchObject({ message: "密码错误" });
+  });
+
   it("exposes name attributes the e2e spec relies on", () => {
-    render(<LoginForm onSuccess={vi.fn()} onMfaRequired={vi.fn()} />);
+    render(<LoginForm onSuccess={vi.fn()} onMfaRequired={vi.fn()} onError={vi.fn()} />);
     expect(screen.getByLabelText("login.username")).toHaveAttribute("name", "username");
     expect(screen.getByLabelText("login.password")).toHaveAttribute("name", "password");
   });
