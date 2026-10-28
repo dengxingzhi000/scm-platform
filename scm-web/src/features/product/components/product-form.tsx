@@ -54,8 +54,6 @@ const defaultValues: ProductFormValues = {
   categoryId: "",
   brandId: undefined,
   price: "",
-  costPrice: "",
-  unit: "",
   status: "draft",
   description: "",
 };
@@ -245,41 +243,6 @@ export default function ProductForm({ id }: ProductFormProps) {
                       placeholder="0.00"
                       {...field}
                     />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="costPrice"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>成本价（元）</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      placeholder="可选"
-                      {...field}
-                      value={field.value ?? ""}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="unit"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>单位</FormLabel>
-                  <FormControl>
-                    <Input placeholder="台 / 件 / 箱" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

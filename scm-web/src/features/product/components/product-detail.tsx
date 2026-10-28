@@ -42,7 +42,6 @@ export default function ProductDetail({ id }: ProductDetailProps) {
           <Descriptions.Item label="品牌">{product.brandName || '-'}</Descriptions.Item>
           <Descriptions.Item label="售价">¥{product.price?.toLocaleString()}</Descriptions.Item>
           <Descriptions.Item label="成本价">{product.costPrice ? `¥${product.costPrice.toLocaleString()}` : '-'}</Descriptions.Item>
-          <Descriptions.Item label="单位">{product.unit}</Descriptions.Item>
           <Descriptions.Item label="状态"><Tag color={statusMap[product.status]?.color}>{statusMap[product.status]?.label}</Tag></Descriptions.Item>
           <Descriptions.Item label="描述" span={2}>{product.description || '-'}</Descriptions.Item>
         </Descriptions>

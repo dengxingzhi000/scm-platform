@@ -49,26 +49,31 @@ export default function SalesChart({ data, loading }: SalesChartProps) {
         },
         axisLabel: { color: tokens.textSecondary },
       },
-      series: data.series.map((series) => ({
-        name: series.name,
-        type: "line",
-        smooth: true,
-        data: series.data,
-        itemStyle: { color: series.color },
-        areaStyle: {
-          color: {
-            type: "linear" as const,
-            x: 0,
-            y: 0,
-            x2: 0,
-            y2: 1,
-            colorStops: [
-              { offset: 0, color: `${series.color}33` },
-              { offset: 1, color: `${series.color}05` },
-            ],
+      series: data.series.map((series, index) => {
+        // Series colours come from the theme so they flip with dark mode;
+        // the data layer stays colour-agnostic.
+        const color = tokens.chart[index % tokens.chart.length];
+        return {
+          name: series.name,
+          type: "line",
+          smooth: true,
+          data: series.data,
+          itemStyle: { color },
+          areaStyle: {
+            color: {
+              type: "linear" as const,
+              x: 0,
+              y: 0,
+              x2: 0,
+              y2: 1,
+              colorStops: [
+                { offset: 0, color: `${color}33` },
+                { offset: 1, color: `${color}05` },
+              ],
+            },
           },
-        },
-      })),
+        };
+      }),
     }),
     [data, tokens],
   );

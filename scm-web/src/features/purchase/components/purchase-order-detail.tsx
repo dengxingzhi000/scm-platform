@@ -1,6 +1,9 @@
 'use client'
-import { Descriptions, Card, Tag, Table, Button } from 'antd'
+import { Descriptions, Card, Tag, Table } from 'antd'
 import { useRouter } from 'next/navigation'
+import { ArrowLeft } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { PageHeader } from '@/components/ui/page-header'
 import { usePurchaseOrderDetail } from '../hooks'
 import { purchaseService } from '../services/purchase.service'
 
@@ -24,12 +27,19 @@ export default function PurchaseOrderDetail({ id }: Props) {
   const cfg = statusMap[order.status]
 
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <h2 style={{ margin: 0 }}>采购单详情</h2>
-        <Button onClick={() => router.push('/purchase')}>返回列表</Button>
-      </div>
-      <Card title="基本信息" loading={isLoading} style={{ marginBottom: 16 }}>
+    <div className="space-y-4">
+      <PageHeader
+        eyebrow="采购协同"
+        title="采购单详情"
+        description={`采购单号 ${order.purchaseNo} · 供应商 ${order.supplierName}`}
+        actions={
+          <Button variant="outline" onClick={() => router.push('/purchase')}>
+            <ArrowLeft />
+            返回列表
+          </Button>
+        }
+      />
+      <Card title="基本信息" loading={isLoading}>
         <Descriptions column={2}>
           <Descriptions.Item label="采购单号">{order.purchaseNo}</Descriptions.Item>
           <Descriptions.Item label="状态"><Tag color={cfg?.color}>{cfg?.label}</Tag></Descriptions.Item>

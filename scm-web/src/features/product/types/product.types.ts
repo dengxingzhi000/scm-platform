@@ -10,7 +10,6 @@ export interface Product {
   status: 'on_sale' | 'off_sale' | 'draft'
   price: number
   costPrice?: number
-  unit: string
   imageUrl?: string
   skus: SKU[]
   createdAt: string

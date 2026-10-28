@@ -31,16 +31,6 @@ export const productFormSchema = z.object({
   categoryId: z.string().min(1, "请选择商品分类"),
   brandId: z.string().optional(),
   price: moneyString("请输入售价"),
-  costPrice: z
-    .string()
-    .optional()
-    .refine(
-      (value) =>
-        !value ||
-        (Number.isFinite(Number(value)) && Number(value) >= 0),
-      "请输入有效的非负金额",
-    ),
-  unit: z.string().trim().min(1, "请输入单位").max(20, "单位最多 20 个字符"),
   status: z.enum(["on_sale", "off_sale", "draft"]),
   description: z.string().max(500, "描述最多 500 个字符").optional(),
 });
@@ -54,8 +44,6 @@ export type ProductFormPayload = Pick<
   | "categoryId"
   | "brandId"
   | "price"
-  | "costPrice"
-  | "unit"
   | "status"
   | "description"
 >;
@@ -67,8 +55,6 @@ export function toProductPayload(values: ProductFormValues): ProductFormPayload 
     categoryId: values.categoryId,
     brandId: values.brandId || undefined,
     price: Number(values.price),
-    costPrice: values.costPrice ? Number(values.costPrice) : undefined,
-    unit: values.unit.trim(),
     status: values.status,
     description: values.description?.trim() || undefined,
   };
@@ -81,9 +67,6 @@ export function toProductFormValues(product: Product): ProductFormValues {
     categoryId: product.categoryId,
     brandId: product.brandId,
     price: String(product.price),
-    costPrice:
-      product.costPrice === undefined ? "" : String(product.costPrice),
-    unit: product.unit,
     status: product.status,
     description: product.description ?? "",
   };

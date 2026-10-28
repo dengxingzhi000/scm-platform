@@ -18,6 +18,7 @@ import { PlayCircleOutlined, ReloadOutlined } from '@ant-design/icons'
 import AnalyticsChart from '@/features/analytics/components/analytics-chart'
 import AnalyticsResultTable from '@/features/analytics/components/analytics-result-table'
 import { useAnalyticsQuery, useDatasetFields, useDatasets } from '@/features/analytics/hooks'
+import { PageHeader } from '@/components/ui/page-header'
 
 const { Text } = Typography
 
@@ -114,7 +115,13 @@ export default function AnalyticsPage() {
   const error = datasetsQuery.error ?? fieldsQuery.error ?? queryMutation.error
 
   return (
-    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+    <Space orientation="vertical" size={16} style={{ width: '100%' }}>
+      <PageHeader
+        eyebrow="数据洞察"
+        title="数据分析"
+        description="选择数据集、维度与指标，运行即席查询并导出结果"
+      />
+
       <Card>
         <Row gutter={[16, 16]} align="bottom">
           <Col xs={24} lg={8}>
@@ -190,7 +197,7 @@ export default function AnalyticsPage() {
             style={{ marginTop: 16 }}
             type="error"
             showIcon
-            message="查询失败"
+            title="查询失败"
             description={error.message}
           />
         )}

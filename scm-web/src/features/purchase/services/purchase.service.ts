@@ -20,6 +20,21 @@ const mockPurchaseOrders: PurchaseOrder[] = [
   { id: '3', purchaseNo: 'PO-2026-003', supplierId: '2', supplierName: 'Samsung代理', items: [
     { id: '31', purchaseOrderId: '3', skuId: '41', skuCode: 'SKU-004', productName: 'Galaxy S24 Ultra', quantity: 80, unitPrice: 6000, totalPrice: 480000, receivedQuantity: 0 },
   ], totalAmount: 480000, status: 'approved', statusLabel: '已审批', createdAt: '2026-06-05', updatedAt: '2026-06-07' },
+  { id: '4', purchaseNo: 'PO-2026-004', supplierId: '4', supplierName: '深圳华强电子', items: [
+    { id: '41', purchaseOrderId: '4', skuId: '31', skuCode: 'SKU-003', productName: 'AirPods Pro 2', quantity: 200, unitPrice: 1800, totalPrice: 360000, receivedQuantity: 0 },
+  ], totalAmount: 360000, status: 'pending', statusLabel: '待审批', createdAt: '2026-06-09', updatedAt: '2026-06-09' },
+  { id: '5', purchaseNo: 'PO-2026-005', supplierId: '5', supplierName: '上海联创供应链', items: [
+    { id: '51', purchaseOrderId: '5', skuId: '51', skuCode: 'SKU-005', productName: '小米 14 Ultra', quantity: 120, unitPrice: 6200, totalPrice: 744000, receivedQuantity: 60 },
+  ], totalAmount: 744000, status: 'ordered', statusLabel: '已下单', createdAt: '2026-06-08', updatedAt: '2026-06-10' },
+  { id: '6', purchaseNo: 'PO-2026-006', supplierId: '8', supplierName: '苏州精工制造', items: [
+    { id: '61', purchaseOrderId: '6', skuId: '61', skuCode: 'SKU-006', productName: 'ThinkPad X1 Carbon', quantity: 40, unitPrice: 9000, totalPrice: 360000, receivedQuantity: 0 },
+  ], totalAmount: 360000, status: 'draft', statusLabel: '草稿', createdAt: '2026-06-11', updatedAt: '2026-06-11' },
+  { id: '7', purchaseNo: 'PO-2026-007', supplierId: '1', supplierName: 'Apple供应链', items: [
+    { id: '71', purchaseOrderId: '7', skuId: '71', skuCode: 'SKU-007', productName: 'iPhone 15 128G', quantity: 60, unitPrice: 5200, totalPrice: 312000, receivedQuantity: 0 },
+  ], totalAmount: 312000, status: 'cancelled', statusLabel: '已取消', createdAt: '2026-06-03', updatedAt: '2026-06-04' },
+  { id: '8', purchaseNo: 'PO-2026-008', supplierId: '6', supplierName: '广州捷普物流', items: [
+    { id: '81', purchaseOrderId: '8', skuId: '81', skuCode: 'SKU-008', productName: '包装耗材套装', quantity: 500, unitPrice: 60, totalPrice: 30000, receivedQuantity: 500 },
+  ], totalAmount: 30000, status: 'completed', statusLabel: '已完成', createdAt: '2026-05-28', updatedAt: '2026-06-02' },
 ]
 
 export const purchaseService = {

@@ -1,6 +1,9 @@
 'use client'
-import { Descriptions, Card, Tag, Table, Button, Timeline, Empty } from 'antd'
+import { Descriptions, Card, Tag, Table, Timeline, Empty } from 'antd'
 import { useRouter } from 'next/navigation'
+import { ArrowLeft } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { PageHeader } from '@/components/ui/page-header'
 import { useOrderDetail } from '../hooks'
 import { orderService } from '../services/order.service'
 import OrderStatusFlow from './order-status-flow'
@@ -35,13 +38,20 @@ export default function OrderDetail({ id }: OrderDetailProps) {
   const cfg = statusFlow[order.status]
 
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <h2 style={{ margin: 0 }}>订单详情</h2>
-        <Button onClick={() => router.push('/order')}>返回列表</Button>
-      </div>
+    <div className="space-y-4">
+      <PageHeader
+        eyebrow="订单履约"
+        title="订单详情"
+        description={`订单号 ${order.orderNo} · 下单用户 ${order.username}`}
+        actions={
+          <Button variant="outline" onClick={() => router.push('/order')}>
+            <ArrowLeft />
+            返回列表
+          </Button>
+        }
+      />
       <OrderStatusFlow status={order.status} />
-      <Card title="基本信息" style={{ marginTop: 16 }}>
+      <Card title="基本信息">
         <Descriptions column={2}>
           <Descriptions.Item label="订单号">{order.orderNo}</Descriptions.Item>
           <Descriptions.Item label="状态"><Tag color={cfg?.color}>{order.statusLabel}</Tag></Descriptions.Item>
@@ -59,10 +69,10 @@ export default function OrderDetail({ id }: OrderDetailProps) {
           <Descriptions.Item label="更新时间">{order.updatedAt}</Descriptions.Item>
         </Descriptions>
       </Card>
-      <Card title="商品明细" style={{ marginTop: 16 }}>
+      <Card title="商品明细">
         <Table columns={itemColumns} dataSource={order.items} loading={isLoading} rowKey="id" pagination={false} size="small" />
       </Card>
-      <Card title="订单日志" style={{ marginTop: 16 }}>
+      <Card title="订单日志">
         <Timeline items={timelineItems} />
       </Card>
     </div>

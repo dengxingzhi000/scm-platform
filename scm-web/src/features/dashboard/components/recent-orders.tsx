@@ -43,7 +43,7 @@ export default function RecentOrders({ orders, loading }: RecentOrdersProps) {
   const locale = useLocale();
 
   return (
-    <Card className="gap-3">
+    <Card className="gap-3 overflow-hidden">
       <CardHeader>
         <CardTitle>最近订单</CardTitle>
         <CardAction>
@@ -56,17 +56,19 @@ export default function RecentOrders({ orders, loading }: RecentOrdersProps) {
           </button>
         </CardAction>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-0">
         {loading ? (
-          <Skeleton className="h-64 w-full" />
+          <div className="px-6">
+            <Skeleton className="h-64 w-full" />
+          </div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>订单号</TableHead>
                 <TableHead>客户</TableHead>
-                <TableHead className="text-right">金额</TableHead>
-                <TableHead>状态</TableHead>
+                <TableHead numeric>金额</TableHead>
+                <TableHead className="text-center">状态</TableHead>
                 <TableHead>时间</TableHead>
               </TableRow>
             </TableHeader>
@@ -77,10 +79,10 @@ export default function RecentOrders({ orders, loading }: RecentOrdersProps) {
                     {order.orderNo}
                   </TableCell>
                   <TableCell>{order.customerName}</TableCell>
-                  <TableCell className="text-right">
+                  <TableCell numeric>
                     ¥{order.amount.toLocaleString()}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-center">
                     <Badge variant={statusVariants[order.status] ?? "outline"}>
                       {order.statusLabel}
                     </Badge>

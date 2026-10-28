@@ -109,6 +109,7 @@ export default function LoginPage() {
         <Form name="totp" onFinish={onTOTPFinish} layout="vertical">
           <Form.Item
             name="code"
+            label="验证码"
             rules={[
               { required: true, message: '请输入验证码' },
               { len: 6, message: '验证码为6位数字' },
@@ -146,11 +147,19 @@ export default function LoginPage() {
   return (
     <AuthBrandCard title="欢迎回来" subtitle="登录您的供应链管理中台">
       <Form name="login" onFinish={onLoginFinish} layout="vertical" initialValues={{ remember: true }}>
-        <Form.Item name="username" rules={[{ required: true, message: '请输入用户名' }]}>
-          <Input prefix={<UserOutlined />} placeholder="用户名" size="large" />
+        <Form.Item
+          name="username"
+          label="用户名"
+          rules={[{ required: true, message: '请输入用户名' }]}
+        >
+          <Input prefix={<UserOutlined />} placeholder="请输入用户名" size="large" autoComplete="username" />
         </Form.Item>
-        <Form.Item name="password" rules={[{ required: true, message: '请输入密码' }]}>
-          <Input.Password prefix={<LockOutlined />} placeholder="密码" size="large" />
+        <Form.Item
+          name="password"
+          label="密码"
+          rules={[{ required: true, message: '请输入密码' }]}
+        >
+          <Input.Password prefix={<LockOutlined />} placeholder="请输入密码" size="large" autoComplete="current-password" />
         </Form.Item>
         <Form.Item>
           <Space style={{ width: '100%', justifyContent: 'space-between' }}>

@@ -14,8 +14,6 @@ const validValues: ProductFormValues = {
   categoryId: "11",
   brandId: "1",
   price: "7999",
-  costPrice: "5500.5",
-  unit: " 台 ",
   status: "on_sale",
   description: "  旗舰机型  ",
 };
@@ -32,7 +30,6 @@ const product: Product = {
   status: "on_sale",
   price: 7999,
   costPrice: 5500,
-  unit: "台",
   skus: [],
   createdAt: "2026-01-01",
   updatedAt: "2026-01-02",
@@ -53,15 +50,6 @@ describe("productFormSchema", () => {
     expect(result.error?.issues[0]?.message).toBe("请输入有效的非负金额");
   });
 
-  it("rejects a negative cost price", () => {
-    const result = productFormSchema.safeParse({
-      ...validValues,
-      costPrice: "-1",
-    });
-
-    expect(result.success).toBe(false);
-  });
-
   it("rejects an empty name and an invalid code", () => {
     const result = productFormSchema.safeParse({
       ...validValues,
@@ -75,10 +63,9 @@ describe("productFormSchema", () => {
     );
   });
 
-  it("allows an empty optional cost price and brand", () => {
+  it("allows an empty optional brand and description", () => {
     const result = productFormSchema.safeParse({
       ...validValues,
-      costPrice: "",
       brandId: undefined,
       description: "",
     });
@@ -95,8 +82,6 @@ describe("toProductPayload", () => {
       categoryId: "11",
       brandId: "1",
       price: 7999,
-      costPrice: 5500.5,
-      unit: "台",
       status: "on_sale",
       description: "旗舰机型",
     });
@@ -106,12 +91,10 @@ describe("toProductPayload", () => {
     const payload = toProductPayload({
       ...validValues,
       brandId: "",
-      costPrice: "",
       description: "   ",
     });
 
     expect(payload.brandId).toBeUndefined();
-    expect(payload.costPrice).toBeUndefined();
     expect(payload.description).toBeUndefined();
   });
 });
@@ -124,8 +107,6 @@ describe("toProductFormValues", () => {
       categoryId: "11",
       brandId: "1",
       price: "7999",
-      costPrice: "5500",
-      unit: "台",
       status: "on_sale",
       description: "旗舰机型",
     });
@@ -134,12 +115,10 @@ describe("toProductFormValues", () => {
   it("uses an empty string when optional fields are missing", () => {
     const values = toProductFormValues({
       ...product,
-      costPrice: undefined,
       description: undefined,
       brandId: undefined,
     });
 
-    expect(values.costPrice).toBe("");
     expect(values.description).toBe("");
     expect(values.brandId).toBeUndefined();
   });
