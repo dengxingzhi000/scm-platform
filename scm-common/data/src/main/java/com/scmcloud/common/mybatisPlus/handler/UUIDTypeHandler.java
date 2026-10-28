@@ -6,6 +6,7 @@ import org.apache.ibatis.type.JdbcType;
 import org.apache.ibatis.type.MappedJdbcTypes;
 import org.apache.ibatis.type.MappedTypes;
 
+import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.UUID;
 import java.util.concurrent.atomic.LongAdder;
@@ -70,8 +71,8 @@ public class UUIDTypeHandler extends BaseTypeHandler<UUID> {
     public void setNonNullParameter(PreparedStatement ps, int i, UUID parameter, JdbcType jdbcType)
             throws SQLException {
         try {
-            byte[] bytes = uuidToBytes(parameter);
-            ps.setBytes(i, bytes);
+            // MySQL stores UUIDs as binary(16); PostgreSQL columns are uuid and reject bytea.
+            ps.setObject(i, parameter, java.sql.Types.OTHER);
         } catch (Exception e) {
             handleConversionError("setParameter", e, parameter);
             throw new SQLException("Failed to convert UUID to bytes: " + parameter, e);
@@ -150,6 +151,10 @@ public class UUIDTypeHandler extends BaseTypeHandler<UUID> {
      * @throws IllegalArgumentException 濡傛灉瀛楄妭闀垮害涓嶆槸16
      */
     private static UUID bytesToUuid(byte[] bytes) {
+        // PostgreSQL returns uuid columns as their 36-char text form through getBytes().
+        if (bytes.length == 36) {
+            return UUID.fromString(new String(bytes, StandardCharsets.UTF_8));
+        }
         if (bytes.length != UUID_BYTE_LENGTH) {
             throw new IllegalArgumentException(
                 String.format("Invalid UUID bytes length: expected %d but got %d",

@@ -1,9 +1,11 @@
 package com.scmcloud.inventory.engine;
 
+import org.springframework.stereotype.Component;
 import com.scmcloud.decision.constraint.Constraint;
 import com.scmcloud.decision.engine.ConstraintResult;
 import com.scmcloud.decision.engine.ConstraintType;
 
+@Component
 public class StockSufficientConstraint implements Constraint<WarehouseCandidate> {
 
     @Override

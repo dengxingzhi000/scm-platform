@@ -23,7 +23,7 @@ import java.util.concurrent.locks.LockSupport;
  * @apiNote 1.1 消除 busy-wait，修复 release() 竞态，移除 emoji 日志
  */
 @Slf4j
-@Component
+@Component("inventoryDistributedLock")
 @RequiredArgsConstructor
 public class DistributedLock {
     private final RedisTemplate<String, Object> redisTemplate;

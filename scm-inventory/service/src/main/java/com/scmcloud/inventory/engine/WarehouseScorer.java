@@ -1,8 +1,10 @@
 package com.scmcloud.inventory.engine;
 
+import org.springframework.stereotype.Component;
 import com.scmcloud.decision.scoring.Scorer;
 import com.scmcloud.decision.scoring.ScoringContext;
 
+@Component
 public class WarehouseScorer implements Scorer<WarehouseCandidate> {
     @Override
     public double score(WarehouseCandidate target, ScoringContext ctx) {

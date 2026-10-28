@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 
+import java.io.Serializable;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -16,7 +17,9 @@ import java.util.UUID;
  * @version 1.0
  */
 @Data
-public class PermissionDTO {
+public class PermissionDTO implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     private UUID id;
 
     @NotNull(message = "Parent ID cannot be empty")

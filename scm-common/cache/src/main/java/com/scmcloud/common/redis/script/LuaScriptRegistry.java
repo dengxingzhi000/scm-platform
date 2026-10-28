@@ -4,6 +4,7 @@ import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
+import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.data.redis.core.script.RedisScript;
@@ -53,8 +54,6 @@ public class LuaScriptRegistry {
     private final Map<String, String> preloadedShas = new ConcurrentHashMap<>();
     private final AtomicInteger preloadSuccessCount = new AtomicInteger(0);
     private final AtomicInteger preloadFailedCount = new AtomicInteger(0);
-    private static final RedisScript<String> SCRIPT_LOAD_WRAPPER =
-            new DefaultRedisScript<>("return redis.call('SCRIPT', 'LOAD', ARGV[1])", String.class);
 
     public LuaScriptRegistry(RedisTemplate<String, Object> redisTemplate) {
         this.redisTemplate = redisTemplate;
@@ -266,16 +265,16 @@ public class LuaScriptRegistry {
     /**
      * Preload a single script to Redis via SCRIPT LOAD.
      *
+     * <p>Redis refuses {@code SCRIPT LOAD} issued from inside a Lua script, so this goes straight
+     * to the connection; a {@code RedisCallback} also sidesteps the JSON value serializer of the
+     * shared template.
+     *
      * @return the SHA1 hash, or null on failure
      */
     private String preloadScript(RedisScript<?> script) {
         try {
-            Object result = redisTemplate.execute(
-                    SCRIPT_LOAD_WRAPPER,
-                    java.util.Collections.emptyList(),
-                    script.getScriptAsString()
-            );
-            return result != null ? result.toString() : null;
+            byte[] source = script.getScriptAsString().getBytes(StandardCharsets.UTF_8);
+            return redisTemplate.execute((RedisCallback<String>) connection -> connection.scriptLoad(source));
         } catch (Exception e) {
             log.warn("Failed to preload Lua script SHA: {}", e.getMessage());
             return null;
