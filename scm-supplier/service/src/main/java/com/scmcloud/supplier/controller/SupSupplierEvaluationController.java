@@ -28,7 +28,7 @@ public class SupSupplierEvaluationController {
     @Operation(summary = "查询评价详情", description = "根据评价ID查询供应商评价详情。")
     @GetMapping("/{id}")
     public ApiResponse<SupSupplierEvaluation> getById(@Parameter(description = "评价ID") @PathVariable String id) {
-        log.info("[API] 查询评价详情: id={}", id);
+        log.info("[API] 查询评价详情: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         SupSupplierEvaluation evaluation = evaluationService.getById(id);
         if (evaluation == null) {
             return ApiResponse.fail(404, "评价不存在");
@@ -39,7 +39,7 @@ public class SupSupplierEvaluationController {
     @Operation(summary = "创建供应商评价", description = "新增供应商评价，未填写总分时按质量、交付、服务与价格得分汇总。")
     @PostMapping
     public ApiResponse<SupSupplierEvaluation> create(@RequestBody SupSupplierEvaluation evaluation) {
-        log.info("[API] 创建供应商评价 supplierId={}", evaluation.getSupplierId());
+        log.info("[API] 创建供应商评价 supplierId={}", (evaluation.getSupplierId() + "").replace("\r", "_").replace("\n", "_"));
         evaluation.setId(UUID.randomUUID().toString());
         if (evaluation.getEvaluatedAt() == null) {
             evaluation.setEvaluatedAt(LocalDateTime.now());
@@ -52,7 +52,7 @@ public class SupSupplierEvaluationController {
         }
 
         evaluationService.save(evaluation);
-        log.info("[API] 评价创建成功: id={}", evaluation.getId());
+        log.info("[API] 评价创建成功: id={}", (evaluation.getId() + "").replace("\r", "_").replace("\n", "_"));
         return ApiResponse.success(evaluation);
     }
 
@@ -60,7 +60,7 @@ public class SupSupplierEvaluationController {
     @PutMapping("/{id}")
     public ApiResponse<SupSupplierEvaluation> update(@Parameter(description = "评价ID") @PathVariable String id,
                                                      @RequestBody SupSupplierEvaluation evaluation) {
-        log.info("[API] 更新评价: id={}", id);
+        log.info("[API] 更新评价: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         SupSupplierEvaluation existing = evaluationService.getById(id);
         if (existing == null) {
             return ApiResponse.fail(404, "评价不存在");
@@ -77,7 +77,7 @@ public class SupSupplierEvaluationController {
     @Operation(summary = "删除评价", description = "根据评价ID删除供应商评价。")
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@Parameter(description = "评价ID") @PathVariable String id) {
-        log.info("[API] 删除评价: id={}", id);
+        log.info("[API] 删除评价: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         boolean success = evaluationService.removeById(id);
         return success ? ApiResponse.success() : ApiResponse.fail(400, "删除失败");
     }
@@ -89,7 +89,7 @@ public class SupSupplierEvaluationController {
             @RequestParam(defaultValue = "10") int size,
             @Parameter(description = "供应商ID") @RequestParam(required = false) String supplierId,
             @Parameter(description = "评价周期，例如 2026-09") @RequestParam(required = false) String evaluationPeriod) {
-        log.info("[API] 分页查询评价: page={}, size={}, supplierId={}", page, size, supplierId);
+        log.info("[API] 分页查询评价: page={}, size={}, supplierId={}", (page + "").replace("\r", "_").replace("\n", "_"), (size + "").replace("\r", "_").replace("\n", "_"), (supplierId + "").replace("\r", "_").replace("\n", "_"));
         Page<SupSupplierEvaluation> result = evaluationService.pageList(page, size, supplierId, evaluationPeriod);
         return ApiResponse.success(result);
     }
@@ -97,14 +97,14 @@ public class SupSupplierEvaluationController {
     @Operation(summary = "查询供应商评价列表", description = "查询指定供应商的全部评价记录。")
     @GetMapping("/supplier/{supplierId}")
     public ApiResponse<List<SupSupplierEvaluation>> listBySupplierId(@Parameter(description = "供应商ID") @PathVariable String supplierId) {
-        log.info("[API] 查询供应商评价列表 supplierId={}", supplierId);
+        log.info("[API] 查询供应商评价列表 supplierId={}", (supplierId + "").replace("\r", "_").replace("\n", "_"));
         return ApiResponse.success(evaluationService.listBySupplierId(supplierId));
     }
 
     @Operation(summary = "查询供应商平均得分", description = "计算并返回指定供应商的平均评价得分。")
     @GetMapping("/supplier/{supplierId}/average-score")
     public ApiResponse<BigDecimal> getAverageScore(@Parameter(description = "供应商ID") @PathVariable String supplierId) {
-        log.info("[API] 计算供应商平均评价 supplierId={}", supplierId);
+        log.info("[API] 计算供应商平均评价 supplierId={}", (supplierId + "").replace("\r", "_").replace("\n", "_"));
         return ApiResponse.success(evaluationService.calculateAverageScore(supplierId));
     }
 

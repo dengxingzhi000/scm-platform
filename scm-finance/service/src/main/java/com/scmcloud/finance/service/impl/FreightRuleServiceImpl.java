@@ -36,7 +36,7 @@ public class FreightRuleServiceImpl extends ServiceImpl<FreightRuleMapper, Freig
     public BigDecimal calculateFreight(String ruleId, BigDecimal weight, Integer quantity,
                                        BigDecimal volume, BigDecimal orderAmount) {
         log.info("璁＄畻杩愯垂: ruleId={}, weight={}, quantity={}, volume={}, orderAmount={}",
-                ruleId, weight, quantity, volume, orderAmount);
+                (ruleId + "").replace("\r", "_").replace("\n", "_"), (weight + "").replace("\r", "_").replace("\n", "_"), (quantity + "").replace("\r", "_").replace("\n", "_"), (volume + "").replace("\r", "_").replace("\n", "_"), (orderAmount + "").replace("\r", "_").replace("\n", "_"));
 
         FreightRule rule = getById(ruleId);
         if (rule == null || Boolean.TRUE.equals(rule.getDeleted())) {
@@ -71,7 +71,7 @@ public class FreightRuleServiceImpl extends ServiceImpl<FreightRuleMapper, Freig
         }
 
         freight = freight.setScale(2, RoundingMode.HALF_UP);
-        log.info("杩愯垂璁＄畻缁撴灉: ruleId={}, freight={}", ruleId, freight);
+        log.info("杩愯垂璁＄畻缁撴灉: ruleId={}, freight={}", (ruleId + "").replace("\r", "_").replace("\n", "_"), (freight + "").replace("\r", "_").replace("\n", "_"));
         return freight;
     }
 

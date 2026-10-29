@@ -25,21 +25,21 @@ public class OrderCenterController {
     @Operation(summary = "创建订单", description = "根据订单主体与订单明细创建新订单并返回订单信息。")
     @PostMapping
     public OcOrder createOrder(@RequestBody CreateOrderRequest request) {
-        log.info("[API] Create order: orderNo={}", request.getOrder().getOrderNo());
+        log.info("[API] Create order: orderNo={}", (request.getOrder().getOrderNo() + "").replace("\r", "_").replace("\n", "_"));
         return orderService.createOrder(request.getOrder(), request.getItems());
     }
 
     @Operation(summary = "查询订单详情", description = "根据订单号查询订单中心订单详情。")
     @GetMapping("/{orderNo}")
     public OcOrder getOrder(@Parameter(description = "订单号") @PathVariable String orderNo) {
-        log.info("[API] Get order: orderNo={}", orderNo);
+        log.info("[API] Get order: orderNo={}", (orderNo + "").replace("\r", "_").replace("\n", "_"));
         return orderService.getOrder(orderNo);
     }
 
     @Operation(summary = "取消订单", description = "按订单号取消订单并记录取消原因。")
     @PostMapping("/{orderNo}/cancel")
     public boolean cancelOrder(@Parameter(description = "订单号") @PathVariable String orderNo, @RequestBody CancelRequest request) {
-        log.info("[API] Cancel order: orderNo={}, reason={}", orderNo, request.getReason());
+        log.info("[API] Cancel order: orderNo={}, reason={}", (orderNo + "").replace("\r", "_").replace("\n", "_"), (request.getReason() + "").replace("\r", "_").replace("\n", "_"));
         orderService.cancelOrder(orderNo, request.getReason());
         return true;
     }
@@ -47,7 +47,7 @@ public class OrderCenterController {
     @Operation(summary = "订单支付", description = "按订单号记录支付结果并完成订单支付状态流转。")
     @PostMapping("/{orderNo}/pay")
     public boolean payOrder(@Parameter(description = "订单号") @PathVariable String orderNo, @RequestBody PayRequest request) {
-        log.info("[API] Pay order: orderNo={}, paymentNo={}", orderNo, request.getPaymentNo());
+        log.info("[API] Pay order: orderNo={}, paymentNo={}", (orderNo + "").replace("\r", "_").replace("\n", "_"), (request.getPaymentNo() + "").replace("\r", "_").replace("\n", "_"));
         orderService.payOrder(orderNo, request.getPaymentNo());
         return true;
     }
@@ -55,7 +55,7 @@ public class OrderCenterController {
     @Operation(summary = "订单发货", description = "按订单号执行发货并绑定物流单号。")
     @PostMapping("/{orderNo}/ship")
     public boolean shipOrder(@Parameter(description = "订单号") @PathVariable String orderNo, @RequestBody ShipRequest request) {
-        log.info("[API] Ship order: orderNo={}, logisticsNo={}", orderNo, request.getLogisticsNo());
+        log.info("[API] Ship order: orderNo={}, logisticsNo={}", (orderNo + "").replace("\r", "_").replace("\n", "_"), (request.getLogisticsNo() + "").replace("\r", "_").replace("\n", "_"));
         orderService.shipOrder(orderNo, request.getLogisticsNo());
         return true;
     }
@@ -63,7 +63,7 @@ public class OrderCenterController {
     @Operation(summary = "订单送达", description = "按订单号将订单状态流转为已送达。")
     @PostMapping("/{orderNo}/deliver")
     public boolean deliverOrder(@Parameter(description = "订单号") @PathVariable String orderNo) {
-        log.info("[API] Deliver order: orderNo={}", orderNo);
+        log.info("[API] Deliver order: orderNo={}", (orderNo + "").replace("\r", "_").replace("\n", "_"));
         orderService.deliverOrder(orderNo);
         return true;
     }
@@ -71,7 +71,7 @@ public class OrderCenterController {
     @Operation(summary = "确认收货", description = "按订单号确认收货并完成订单状态流转。")
     @PostMapping("/{orderNo}/confirm")
     public boolean confirmOrder(@Parameter(description = "订单号") @PathVariable String orderNo) {
-        log.info("[API] Confirm order: orderNo={}", orderNo);
+        log.info("[API] Confirm order: orderNo={}", (orderNo + "").replace("\r", "_").replace("\n", "_"));
         orderService.confirmOrder(orderNo);
         return true;
     }

@@ -24,27 +24,31 @@ public class SysAuditLogServiceImpl
         extends ServiceImpl<SysAuditLogMapper, SysAuditLog>
         implements ISysAuditLogService, com.scmcloud.audit.service.ISysAuditLogService {
 
+    @Override
     public SysAuditLog createLog(SysAuditLog entity) {
         log.info("创建审计日志: userId={}, operationType={}, module={}",
-                entity.getUserId(), entity.getOperationType(), entity.getOperationModule());
+                (entity.getUserId() + "").replace("\r", "_").replace("\n", "_"), (entity.getOperationType() + "").replace("\r", "_").replace("\n", "_"), (entity.getOperationModule() + "").replace("\r", "_").replace("\n", "_"));
         entity.setId(UUID.randomUUID().toString());
         entity.setCreateTime(LocalDateTime.now());
         save(entity);
-        log.info("审计日志创建成功: id={}", entity.getId());
+        log.info("审计日志创建成功: id={}", (entity.getId() + "").replace("\r", "_").replace("\n", "_"));
         return entity;
     }
 
+    @Override
     public SysAuditLog getById(String id) {
         return lambdaQuery()
                 .eq(SysAuditLog::getId, id)
                 .one();
     }
 
+    @Override
     public boolean deleteById(String id) {
-        log.info("删除审计日志: id={}", id);
+        log.info("删除审计日志: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         return removeById(id);
     }
 
+    @Override
     public List<SysAuditLog> listByUserId(String userId) {
         return lambdaQuery()
                 .eq(SysAuditLog::getUserId, userId)
@@ -52,6 +56,7 @@ public class SysAuditLogServiceImpl
                 .list();
     }
 
+    @Override
     public List<SysAuditLog> listByModule(String module) {
         return lambdaQuery()
                 .eq(SysAuditLog::getOperationModule, module)
@@ -59,6 +64,7 @@ public class SysAuditLogServiceImpl
                 .list();
     }
 
+    @Override
     public List<SysAuditLog> listByBusinessType(String businessType) {
         return lambdaQuery()
                 .eq(SysAuditLog::getBusinessType, businessType)
@@ -66,10 +72,11 @@ public class SysAuditLogServiceImpl
                 .list();
     }
 
+    @Override
     public Page<SysAuditLog> pageQuery(int page, int size, String userId, String operationType,
                                         String module, String businessType, Integer riskLevel) {
         log.debug("分页查询审计日志: page={}, size={}, userId={}, operationType={}, module={}, businessType={}, riskLevel={}",
-                page, size, userId, operationType, module, businessType, riskLevel);
+                (page + "").replace("\r", "_").replace("\n", "_"), (size + "").replace("\r", "_").replace("\n", "_"), (userId + "").replace("\r", "_").replace("\n", "_"), (operationType + "").replace("\r", "_").replace("\n", "_"), (module + "").replace("\r", "_").replace("\n", "_"), (businessType + "").replace("\r", "_").replace("\n", "_"), (riskLevel + "").replace("\r", "_").replace("\n", "_"));
 
         LambdaQueryWrapper<SysAuditLog> wrapper = Wrappers.lambdaQuery();
 
@@ -97,6 +104,7 @@ public class SysAuditLogServiceImpl
     // --- Common ISysAuditLogService methods ---
 
     @Async
+    @Override
     public void recordLogin(UUID userId, String username, String ipAddress, boolean success, String remark) {
         SysAuditLog log = SysAuditLog.builder()
                 .userId(userId != null ? userId.toString() : null)
@@ -111,6 +119,7 @@ public class SysAuditLogServiceImpl
     }
 
     @Async
+    @Override
     public void recordLoginFailure(String username, String ipAddress, String reason) {
         SysAuditLog log = SysAuditLog.builder()
                 .username(username)
@@ -124,6 +133,7 @@ public class SysAuditLogServiceImpl
     }
 
     @Async
+    @Override
     public void recordLogout(UUID userId, String remark) {
         SysAuditLog log = SysAuditLog.builder()
                 .userId(userId != null ? userId.toString() : null)
@@ -136,6 +146,7 @@ public class SysAuditLogServiceImpl
     }
 
     @Async
+    @Override
     public void recordSecurityEvent(String eventType, Integer riskLevel, UUID userId, String username, String ipAddress,
                                     String resource, boolean success, String details) {
         try {
@@ -154,7 +165,7 @@ public class SysAuditLogServiceImpl
 
             if (riskLevel != null && riskLevel >= 4) {
                 log.warn("Security Alert: {}, User: {}, IP: {}",
-                        auditLog.getOperationType(), auditLog.getUsername(), auditLog.getIpAddress());
+                        (auditLog.getOperationType() + "").replace("\r", "_").replace("\n", "_"), (auditLog.getUsername() + "").replace("\r", "_").replace("\n", "_"), (auditLog.getIpAddress() + "").replace("\r", "_").replace("\n", "_"));
             }
         } catch (Exception e) {
             log.error("Failed to record security event", e);

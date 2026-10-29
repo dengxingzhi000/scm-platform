@@ -28,7 +28,7 @@ public class SysPermissionApprovalServiceImpl extends ServiceImpl<SysPermissionA
     @Override
     @Transactional(rollbackFor = Exception.class)
     public SysPermissionApproval submitApproval(SysPermissionApproval approval) {
-        log.info("Submit approval request: applicantId={}, type={}", approval.getApplicantId(), approval.getApprovalType());
+        log.info("Submit approval request: applicantId={}, type={}", (approval.getApplicantId() + "").replace("\r", "_").replace("\n", "_"), (approval.getApprovalType() + "").replace("\r", "_").replace("\n", "_"));
 
         approval.setId(UUIDv7Util.generateString());
         approval.setApprovalStatus(STATUS_PENDING);
@@ -40,7 +40,7 @@ public class SysPermissionApprovalServiceImpl extends ServiceImpl<SysPermissionA
             throw new RuntimeException("Failed to submit approval request");
         }
 
-        log.info("Approval request submitted successfully: id={}", approval.getId());
+        log.info("Approval request submitted successfully: id={}", (approval.getId() + "").replace("\r", "_").replace("\n", "_"));
         return approval;
     }
 
@@ -103,7 +103,7 @@ public class SysPermissionApprovalServiceImpl extends ServiceImpl<SysPermissionA
 
     @Override
     public List<SysPermissionApproval> listByApplicant(String applicantId) {
-        log.debug("Query approval list by applicant: applicantId={}", applicantId);
+        log.debug("Query approval list by applicant: applicantId={}", (applicantId + "").replace("\r", "_").replace("\n", "_"));
 
         LambdaQueryWrapper<SysPermissionApproval> wrapper = Wrappers.lambdaQuery();
         wrapper.eq(SysPermissionApproval::getApplicantId, applicantId)
@@ -114,7 +114,7 @@ public class SysPermissionApprovalServiceImpl extends ServiceImpl<SysPermissionA
 
     @Override
     public List<SysPermissionApproval> listPending(String approverId) {
-        log.debug("Query pending approval list: approverId={}", approverId);
+        log.debug("Query pending approval list: approverId={}", (approverId + "").replace("\r", "_").replace("\n", "_"));
 
         LambdaQueryWrapper<SysPermissionApproval> wrapper = Wrappers.lambdaQuery();
         wrapper.and(w -> w.eq(SysPermissionApproval::getApprovalStatus, STATUS_PENDING)

@@ -38,7 +38,7 @@ public class ReconciliationRecordController {
         record.setId(id);
         record.setUpdateTime(java.time.LocalDateTime.now());
         reconciliationRecordService.updateById(record);
-        log.info("对账记录更新成功: id={}", id);
+        log.info("对账记录更新成功: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         return ApiResponse.success(record);
     }
 
@@ -50,7 +50,7 @@ public class ReconciliationRecordController {
             record.setDeleted(true);
             record.setUpdateTime(java.time.LocalDateTime.now());
             reconciliationRecordService.updateById(record);
-            log.info("对账记录删除成功: id={}", id);
+            log.info("对账记录删除成功: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         }
         return ApiResponse.success();
     }

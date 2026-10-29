@@ -23,7 +23,7 @@ public class ProdCategoryServiceImpl extends ServiceImpl<ProdCategoryMapper, Pro
 
     @Override
     public List<ProdCategory> listByParentId(String parentId) {
-        log.debug("查询子分类 parentId={}", parentId);
+        log.debug("查询子分类 parentId={}", (parentId + "").replace("\r", "_").replace("\n", "_"));
         return lambdaQuery()
                 .eq(ProdCategory::getParentId, parentId)
                 .eq(ProdCategory::getDeleted, false)
@@ -46,7 +46,7 @@ public class ProdCategoryServiceImpl extends ServiceImpl<ProdCategoryMapper, Pro
 
     @Override
     public List<ProdCategory> searchByName(String name) {
-        log.debug("搜索分类: name={}", name);
+        log.debug("搜索分类: name={}", (name + "").replace("\r", "_").replace("\n", "_"));
         return lambdaQuery()
                 .like(StringUtils.hasText(name), ProdCategory::getCategoryName, name)
                 .eq(ProdCategory::getDeleted, false)

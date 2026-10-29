@@ -29,7 +29,7 @@ public class SupSettlementServiceImpl extends ServiceImpl<SupSettlementMapper, S
     @Override
     public Page<SupSettlement> pageList(int page, int size, String supplierId, Integer status,
                                         String settlementPeriod) {
-        log.debug("分页查询对账单 page={}, size={}, supplierId={}, status={}", page, size, supplierId, status);
+        log.debug("分页查询对账单 page={}, size={}, supplierId={}, status={}", (page + "").replace("\r", "_").replace("\n", "_"), (size + "").replace("\r", "_").replace("\n", "_"), (supplierId + "").replace("\r", "_").replace("\n", "_"), (status + "").replace("\r", "_").replace("\n", "_"));
 
         LambdaQueryWrapper<SupSettlement> wrapper = Wrappers.lambdaQuery();
 
@@ -54,7 +54,7 @@ public class SupSettlementServiceImpl extends ServiceImpl<SupSettlementMapper, S
         if (!StringUtils.hasText(supplierId)) {
             return List.of();
         }
-        log.debug("查询供应商的所有对账单: supplierId={}", supplierId);
+        log.debug("查询供应商的所有对账单: supplierId={}", (supplierId + "").replace("\r", "_").replace("\n", "_"));
         return lambdaQuery()
                 .eq(SupSettlement::getSupplierId, supplierId)
                 .eq(SupSettlement::getDeleted, false)
@@ -65,11 +65,11 @@ public class SupSettlementServiceImpl extends ServiceImpl<SupSettlementMapper, S
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean confirm(String id, String approverId, String approverName) {
-        log.info("确认对账单 id={}, approverId={}", id, approverId);
+        log.info("确认对账单 id={}, approverId={}", (id + "").replace("\r", "_").replace("\n", "_"), (approverId + "").replace("\r", "_").replace("\n", "_"));
 
         SupSettlement settlement = getById(id);
         if (settlement == null) {
-            log.warn("对账单不存在: id={}", id);
+            log.warn("对账单不存在: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
             return false;
         }
         statusValidator.validateTransition("SUPPLIER_SETTLEMENT", "DRAFT", "CONFIRMED");
@@ -82,7 +82,7 @@ public class SupSettlementServiceImpl extends ServiceImpl<SupSettlementMapper, S
 
         boolean success = updateById(settlement);
         if (success) {
-            log.info("对账单确认成功 id={}", id);
+            log.info("对账单确认成功 id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         }
         return success;
     }
@@ -90,11 +90,11 @@ public class SupSettlementServiceImpl extends ServiceImpl<SupSettlementMapper, S
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean markAsPaid(String id, String updateBy) {
-        log.info("标记对账单已付款: id={}", id);
+        log.info("标记对账单已付款: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
 
         SupSettlement settlement = getById(id);
         if (settlement == null) {
-            log.warn("对账单不存在: id={}", id);
+            log.warn("对账单不存在: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
             return false;
         }
         String implPayFromStatus;
@@ -114,7 +114,7 @@ public class SupSettlementServiceImpl extends ServiceImpl<SupSettlementMapper, S
 
         boolean success = updateById(settlement);
         if (success) {
-            log.info("对账单标记付款成功 id={}", id);
+            log.info("对账单标记付款成功 id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         }
         return success;
     }

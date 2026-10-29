@@ -52,7 +52,7 @@ public class WebAuthnRegistrationController {
             HttpServletRequest request) {
 
         WebAuthnRequestContext ctx = WebAuthnRequestContext.of(user, request, httpServletRequestUtils);
-        log.info("User {} requesting registration challenge from {}", ctx.userId(), ctx.ipAddress());
+        log.info("User {} requesting registration challenge from {}", (ctx.userId() + "").replace("\r", "_").replace("\n", "_"), (ctx.ipAddress() + "").replace("\r", "_").replace("\n", "_"));
 
         WebAuthnRegisterChallengeResponse challenge = credentialService.generateRegistrationChallenge(
                 ctx.userId(), ctx.username(), ctx.deviceId(), webAuthnConfig.getId());
@@ -69,7 +69,7 @@ public class WebAuthnRegistrationController {
             HttpServletRequest httpRequest) {
 
         WebAuthnRequestContext ctx = WebAuthnRequestContext.of(user, httpRequest, httpServletRequestUtils);
-        log.info("User {} registering new WebAuthn credential from {}", ctx.userId(), ctx.ipAddress());
+        log.info("User {} registering new WebAuthn credential from {}", (ctx.userId() + "").replace("\r", "_").replace("\n", "_"), (ctx.ipAddress() + "").replace("\r", "_").replace("\n", "_"));
 
         WebauthnCredentialDTO credential = credentialService.registerCredential(ctx.userId(), request);
 

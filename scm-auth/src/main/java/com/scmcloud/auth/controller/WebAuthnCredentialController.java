@@ -63,7 +63,7 @@ public class WebAuthnCredentialController {
 
         UUID userId = user.getUserId();
 
-        log.info("User {} updating device name for credential {}", userId, credentialId);
+        log.info("User {} updating device name for credential {}", (userId + "").replace("\r", "_").replace("\n", "_"), (credentialId + "").replace("\r", "_").replace("\n", "_"));
 
         WebauthnCredentialDTO credential = credentialService.updateDeviceName(
                 userId, credentialId, deviceName);
@@ -80,7 +80,7 @@ public class WebAuthnCredentialController {
 
         UUID userId = user.getUserId();
 
-        log.info("User {} deleting credential {}", userId, credentialId);
+        log.info("User {} deleting credential {}", (userId + "").replace("\r", "_").replace("\n", "_"), (credentialId + "").replace("\r", "_").replace("\n", "_"));
 
         credentialService.deleteCredential(userId, credentialId);
 
@@ -96,7 +96,7 @@ public class WebAuthnCredentialController {
 
         UUID userId = user.getUserId();
 
-        log.info("User {} deactivating credential {}", userId, credentialId);
+        log.info("User {} deactivating credential {}", (userId + "").replace("\r", "_").replace("\n", "_"), (credentialId + "").replace("\r", "_").replace("\n", "_"));
 
         credentialService.deactivateCredential(userId, credentialId);
 

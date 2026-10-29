@@ -24,7 +24,7 @@ public class StatusDictEventPublisher {
     public void publishChange(String tenantId, String bizType) {
         String payload = tenantId + ":" + bizType;
         kafkaTemplate.send(TOPIC, bizType, payload);
-        log.info("Published status dict change: {}", payload);
+        log.info("Published status dict change: {}", (payload + "").replace("\r", "_").replace("\n", "_"));
     }
 
     /**

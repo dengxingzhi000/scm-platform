@@ -27,7 +27,7 @@ public class SellerServiceImpl extends ServiceImpl<SellerMapper, Seller> impleme
         seller.setCreatedAt(now);
         seller.setUpdatedAt(now);
         save(seller);
-        log.info("Seller registered: sellerId={}, name={}", seller.getId(), seller.getSellerName());
+        log.info("Seller registered: sellerId={}, name={}", (seller.getId() + "").replace("\r", "_").replace("\n", "_"), (seller.getSellerName() + "").replace("\r", "_").replace("\n", "_"));
         return seller;
     }
 

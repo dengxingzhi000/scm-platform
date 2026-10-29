@@ -31,7 +31,7 @@ public class TrackingServiceImpl extends ServiceImpl<TrackingMapper, Tracking> i
         tracking.setCreatedAt(now);
         save(tracking);
         log.info("Tracking event recorded: fulfillmentNo={}, status={}, location={}",
-                tracking.getFulfillmentNo(), tracking.getStatus(), tracking.getLocation());
+                (tracking.getFulfillmentNo() + "").replace("\r", "_").replace("\n", "_"), (tracking.getStatus() + "").replace("\r", "_").replace("\n", "_"), (tracking.getLocation() + "").replace("\r", "_").replace("\n", "_"));
         return tracking;
     }
 

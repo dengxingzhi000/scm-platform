@@ -25,7 +25,7 @@ public class OrderCenterServiceImpl extends ServiceImpl<OcOrderMapper, OcOrder> 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public OcOrder createOrder(OcOrder order, List<OcOrderItem> items) {
-        log.info("Creating order: orderNo={}, userId={}", order.getOrderNo(), order.getUserId());
+        log.info("Creating order: orderNo={}, userId={}", (order.getOrderNo() + "").replace("\r", "_").replace("\n", "_"), (order.getUserId() + "").replace("\r", "_").replace("\n", "_"));
 
         order.setStatus(1);
         order.setCreatedAt(LocalDateTime.now());
@@ -54,7 +54,7 @@ public class OrderCenterServiceImpl extends ServiceImpl<OcOrderMapper, OcOrder> 
 
         orderItemMapper.insert(items);
 
-        log.info("Order created: orderNo={}", order.getOrderNo());
+        log.info("Order created: orderNo={}", (order.getOrderNo() + "").replace("\r", "_").replace("\n", "_"));
         return order;
     }
 
@@ -80,7 +80,7 @@ public class OrderCenterServiceImpl extends ServiceImpl<OcOrderMapper, OcOrder> 
         order.setUpdatedAt(LocalDateTime.now());
         updateById(order);
 
-        log.info("Order cancelled: orderNo={}, reason={}", orderNo, reason);
+        log.info("Order cancelled: orderNo={}, reason={}", (orderNo + "").replace("\r", "_").replace("\n", "_"), (reason + "").replace("\r", "_").replace("\n", "_"));
     }
 
     @Override
@@ -100,7 +100,7 @@ public class OrderCenterServiceImpl extends ServiceImpl<OcOrderMapper, OcOrder> 
         order.setUpdatedAt(LocalDateTime.now());
         updateById(order);
 
-        log.info("Order paid: orderNo={}, paymentNo={}", orderNo, paymentNo);
+        log.info("Order paid: orderNo={}, paymentNo={}", (orderNo + "").replace("\r", "_").replace("\n", "_"), (paymentNo + "").replace("\r", "_").replace("\n", "_"));
     }
 
     @Override
@@ -119,7 +119,7 @@ public class OrderCenterServiceImpl extends ServiceImpl<OcOrderMapper, OcOrder> 
         order.setUpdatedAt(LocalDateTime.now());
         updateById(order);
 
-        log.info("Order shipped: orderNo={}, logisticsNo={}", orderNo, logisticsNo);
+        log.info("Order shipped: orderNo={}, logisticsNo={}", (orderNo + "").replace("\r", "_").replace("\n", "_"), (logisticsNo + "").replace("\r", "_").replace("\n", "_"));
     }
 
     @Override
@@ -138,7 +138,7 @@ public class OrderCenterServiceImpl extends ServiceImpl<OcOrderMapper, OcOrder> 
         order.setUpdatedAt(LocalDateTime.now());
         updateById(order);
 
-        log.info("Order delivered: orderNo={}", orderNo);
+        log.info("Order delivered: orderNo={}", (orderNo + "").replace("\r", "_").replace("\n", "_"));
     }
 
     @Override
@@ -157,6 +157,6 @@ public class OrderCenterServiceImpl extends ServiceImpl<OcOrderMapper, OcOrder> 
         order.setUpdatedAt(LocalDateTime.now());
         updateById(order);
 
-        log.info("Order confirmed: orderNo={}", orderNo);
+        log.info("Order confirmed: orderNo={}", (orderNo + "").replace("\r", "_").replace("\n", "_"));
     }
 }

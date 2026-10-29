@@ -74,7 +74,7 @@ public class AnalyticsGovernanceController {
     @Operation(summary = "创建质量规则", description = "新增一条数据质量校验规则并返回创建结果。")
     @PostMapping("/quality/rules")
     public ApiResponse<DataQualityRule> createRule(@RequestBody DataQualityRule rule) {
-        log.info("[API] create quality rule: code={}", rule.getRuleCode());
+        log.info("[API] create quality rule: code={}", (rule.getRuleCode() + "").replace("\r", "_").replace("\n", "_"));
         return ApiResponse.success(dataQualityService.create(rule));
     }
 

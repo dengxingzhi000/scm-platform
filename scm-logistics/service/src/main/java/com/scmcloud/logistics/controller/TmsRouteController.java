@@ -65,7 +65,7 @@ public class TmsRouteController {
     @Operation(summary = "新增路线", description = "创建新的运输路线并返回保存后的路线信息。")
     @PostMapping
     public ApiResponse<TmsRoute> create(@RequestBody TmsRoute route) {
-        log.info("Create route: routeNo={}, courierId={}", route.getRouteNo(), route.getCourierId());
+        log.info("Create route: routeNo={}, courierId={}", (route.getRouteNo() + "").replace("\r", "_").replace("\n", "_"), (route.getCourierId() + "").replace("\r", "_").replace("\n", "_"));
         route.setId(UUID.randomUUID().toString());
         route.setCreateTime(LocalDateTime.now());
         route.setUpdateTime(LocalDateTime.now());
@@ -76,7 +76,7 @@ public class TmsRouteController {
     @Operation(summary = "更新路线", description = "根据主键 ID 更新运输路线信息并返回更新后的数据。")
     @PutMapping("/{id}")
     public ApiResponse<TmsRoute> update(@Parameter(description = "路线主键 ID") @PathVariable String id, @RequestBody TmsRoute route) {
-        log.info("Update route: id={}", id);
+        log.info("Update route: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         route.setId(id);
         route.setUpdateTime(LocalDateTime.now());
         routeService.updateById(route);
@@ -86,7 +86,7 @@ public class TmsRouteController {
     @Operation(summary = "删除路线", description = "根据主键 ID 删除指定运输路线。")
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@Parameter(description = "路线主键 ID") @PathVariable String id) {
-        log.info("Delete route: id={}", id);
+        log.info("Delete route: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         routeService.removeById(id);
         return ApiResponse.success();
     }

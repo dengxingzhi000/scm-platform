@@ -19,8 +19,9 @@ import java.util.UUID;
 @Service
 public class TenantServiceImpl extends ServiceImpl<TenantMapper, Tenant> implements ITenantService {
 
+    @Override
     public Tenant createTenant(Tenant entity) {
-        log.info("创建租户: tenantCode={}, tenantName={}", entity.getTenantCode(), entity.getTenantName());
+        log.info("创建租户: tenantCode={}, tenantName={}", (entity.getTenantCode() + "").replace("\r", "_").replace("\n", "_"), (entity.getTenantName() + "").replace("\r", "_").replace("\n", "_"));
         entity.setId(UUID.randomUUID().toString());
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
@@ -29,10 +30,11 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, Tenant> impleme
             entity.setStatus(0);
         }
         save(entity);
-        log.info("租户创建成功: id={}", entity.getId());
+        log.info("租户创建成功: id={}", (entity.getId() + "").replace("\r", "_").replace("\n", "_"));
         return entity;
     }
 
+    @Override
     public Tenant getById(String id) {
         return lambdaQuery()
                 .eq(Tenant::getId, id)
@@ -40,15 +42,17 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, Tenant> impleme
                 .one();
     }
 
+    @Override
     public Tenant updateTenant(Tenant entity) {
-        log.info("更新租户: id={}", entity.getId());
+        log.info("更新租户: id={}", (entity.getId() + "").replace("\r", "_").replace("\n", "_"));
         entity.setUpdateTime(LocalDateTime.now());
         updateById(entity);
         return entity;
     }
 
+    @Override
     public boolean deleteById(String id) {
-        log.info("删除租户: id={}", id);
+        log.info("删除租户: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         Tenant tenant = new Tenant();
         tenant.setId(id);
         tenant.setDeleted(true);
@@ -56,8 +60,9 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, Tenant> impleme
         return updateById(tenant);
     }
 
+    @Override
     public boolean enableTenant(String id) {
-        log.info("启用租户: id={}", id);
+        log.info("启用租户: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         Tenant tenant = new Tenant();
         tenant.setId(id);
         tenant.setStatus(1);
@@ -66,8 +71,9 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, Tenant> impleme
         return updateById(tenant);
     }
 
+    @Override
     public boolean disableTenant(String id) {
-        log.info("禁用租户: id={}", id);
+        log.info("禁用租户: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         Tenant tenant = new Tenant();
         tenant.setId(id);
         tenant.setStatus(2);
@@ -76,6 +82,7 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, Tenant> impleme
         return updateById(tenant);
     }
 
+    @Override
     public List<Tenant> listActive() {
         return lambdaQuery()
                 .eq(Tenant::getDeleted, false)
@@ -84,9 +91,10 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, Tenant> impleme
                 .list();
     }
 
+    @Override
     public Page<Tenant> pageQuery(int page, int size, String tenantName, Integer tenantType, Integer status) {
         log.debug("分页查询租户: page={}, size={}, tenantName={}, tenantType={}, status={}",
-                page, size, tenantName, tenantType, status);
+                (page + "").replace("\r", "_").replace("\n", "_"), (size + "").replace("\r", "_").replace("\n", "_"), (tenantName + "").replace("\r", "_").replace("\n", "_"), (tenantType + "").replace("\r", "_").replace("\n", "_"), (status + "").replace("\r", "_").replace("\n", "_"));
 
         LambdaQueryWrapper<Tenant> wrapper = Wrappers.lambdaQuery();
 

@@ -36,7 +36,7 @@ public class FreightRuleController {
         rule.setCreateTime(LocalDateTime.now());
         rule.setUpdateTime(LocalDateTime.now());
         freightRuleService.save(rule);
-        log.info("运费规则创建成功: id={}", rule.getId());
+        log.info("运费规则创建成功: id={}", (rule.getId() + "").replace("\r", "_").replace("\n", "_"));
         return ApiResponse.success(rule);
     }
 
@@ -46,7 +46,7 @@ public class FreightRuleController {
         rule.setId(id);
         rule.setUpdateTime(LocalDateTime.now());
         freightRuleService.updateById(rule);
-        log.info("运费规则更新成功: id={}", id);
+        log.info("运费规则更新成功: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         return ApiResponse.success(rule);
     }
 
@@ -58,7 +58,7 @@ public class FreightRuleController {
             rule.setDeleted(true);
             rule.setUpdateTime(LocalDateTime.now());
             freightRuleService.updateById(rule);
-            log.info("运费规则删除成功: id={}", id);
+            log.info("运费规则删除成功: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         }
         return ApiResponse.success();
     }

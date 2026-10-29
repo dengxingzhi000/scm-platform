@@ -27,10 +27,10 @@ public class WmsWarehouseController {
     @Operation(summary = "创建仓库", description = "新建仓库档案，仓库编码需保持唯一。")
     @PostMapping
     public ApiResponse<WmsWarehouse> create(@RequestBody WmsWarehouse warehouse) {
-        log.info("[API] 创建仓库: code={}, name={}", warehouse.getWarehouseCode(), warehouse.getWarehouseName());
+        log.info("[API] 创建仓库: code={}, name={}", (warehouse.getWarehouseCode() + "").replace("\r", "_").replace("\n", "_"), (warehouse.getWarehouseName() + "").replace("\r", "_").replace("\n", "_"));
         try {
             WmsWarehouse created = warehouseCommandService.create(warehouse);
-            log.info("[API] 仓库创建成功: id={}", created.getId());
+            log.info("[API] 仓库创建成功: id={}", (created.getId() + "").replace("\r", "_").replace("\n", "_"));
             return ApiResponse.success(created);
         } catch (IllegalStateException e) {
             return ApiResponse.fail(400, e.getMessage());
@@ -40,7 +40,7 @@ public class WmsWarehouseController {
     @Operation(summary = "更新仓库", description = "按主键更新仓库的基础信息与联系人信息。")
     @PutMapping("/{id}")
     public ApiResponse<WmsWarehouse> update(@Parameter(description = "仓库主键 ID") @PathVariable String id, @RequestBody WmsWarehouse warehouse) {
-        log.info("[API] 更新仓库: id={}", id);
+        log.info("[API] 更新仓库: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         warehouse.setId(id);
         boolean success = warehouseCommandService.update(warehouse);
         if (!success) {
@@ -52,7 +52,7 @@ public class WmsWarehouseController {
     @Operation(summary = "删除仓库", description = "按主键逻辑删除仓库，已删除的仓库不再参与出入库作业。")
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@Parameter(description = "仓库主键 ID") @PathVariable String id) {
-        log.info("[API] 删除仓库: id={}", id);
+        log.info("[API] 删除仓库: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         boolean success = warehouseCommandService.softDeleteById(id);
         return success ? ApiResponse.success() : ApiResponse.fail(404, "仓库不存在");
     }
@@ -87,7 +87,7 @@ public class WmsWarehouseController {
     @Operation(summary = "启用仓库", description = "将指定仓库置为启用状态，启用后可参与出入库作业。")
     @PutMapping("/{id}/enable")
     public ApiResponse<Void> enable(@Parameter(description = "仓库主键 ID") @PathVariable String id) {
-        log.info("[API] 启用仓库: id={}", id);
+        log.info("[API] 启用仓库: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         boolean success = warehouseCommandService.enable(id);
         return success ? ApiResponse.success() : ApiResponse.fail(400, "启用失败");
     }
@@ -95,7 +95,7 @@ public class WmsWarehouseController {
     @Operation(summary = "停用仓库", description = "将指定仓库置为停用状态，停用后不再接收新的出入库作业。")
     @PutMapping("/{id}/disable")
     public ApiResponse<Void> disable(@Parameter(description = "仓库主键 ID") @PathVariable String id) {
-        log.info("[API] 停用仓库: id={}", id);
+        log.info("[API] 停用仓库: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         boolean success = warehouseCommandService.disable(id);
         return success ? ApiResponse.success() : ApiResponse.fail(400, "停用失败");
     }

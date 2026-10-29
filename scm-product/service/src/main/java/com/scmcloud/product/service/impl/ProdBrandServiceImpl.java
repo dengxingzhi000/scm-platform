@@ -18,7 +18,7 @@ public class ProdBrandServiceImpl extends ServiceImpl<ProdBrandMapper, ProdBrand
 
     @Override
     public List<ProdBrand> searchByName(String name) {
-        log.debug("搜索品牌: name={}", name);
+        log.debug("搜索品牌: name={}", (name + "").replace("\r", "_").replace("\n", "_"));
         return lambdaQuery()
                 .like(StringUtils.hasText(name), ProdBrand::getBrandName, name)
                 .eq(ProdBrand::getDeleted, false)

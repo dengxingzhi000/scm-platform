@@ -49,7 +49,7 @@ public class ApprovalFlowService {
     @Transactional(rollbackFor = Exception.class)
     public String startProcess(String processKey, String businessKey, String businessType,
                                String applicantId, Map<String, Object> variables) {
-        log.info("发起审批流程: processKey={}, businessKey={}, applicantId={}", processKey, businessKey, applicantId);
+        log.info("发起审批流程: processKey={}, businessKey={}, applicantId={}", (processKey + "").replace("\r", "_").replace("\n", "_"), (businessKey + "").replace("\r", "_").replace("\n", "_"), (applicantId + "").replace("\r", "_").replace("\n", "_"));
 
         Map<String, Object> processVariables = new HashMap<>(variables != null ? variables : Map.of());
         processVariables.put("businessKey", businessKey);
@@ -58,7 +58,7 @@ public class ApprovalFlowService {
 
         ProcessInstance processInstance = runtimeService.startProcessInstanceByKey(processKey, businessKey, processVariables);
 
-        log.info("审批流程已启动: processInstanceId={}, businessKey={}", processInstance.getId(), businessKey);
+        log.info("审批流程已启动: processInstanceId={}, businessKey={}", (processInstance.getId() + "").replace("\r", "_").replace("\n", "_"), (businessKey + "").replace("\r", "_").replace("\n", "_"));
         return processInstance.getId();
     }
 
@@ -72,7 +72,7 @@ public class ApprovalFlowService {
      */
     @Transactional(rollbackFor = Exception.class)
     public void approve(String taskId, String approverId, String comment, Map<String, Object> variables) {
-        log.info("审批通过: taskId={}, approverId={}", taskId, approverId);
+        log.info("审批通过: taskId={}, approverId={}", (taskId + "").replace("\r", "_").replace("\n", "_"), (approverId + "").replace("\r", "_").replace("\n", "_"));
 
         Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
         if (task == null) {
@@ -92,7 +92,7 @@ public class ApprovalFlowService {
         taskVariables.put("approved", true);
         taskService.complete(taskId, taskVariables);
 
-        log.info("审批通过完成: taskId={}, processInstanceId={}", taskId, task.getProcessInstanceId());
+        log.info("审批通过完成: taskId={}, processInstanceId={}", (taskId + "").replace("\r", "_").replace("\n", "_"), (task.getProcessInstanceId() + "").replace("\r", "_").replace("\n", "_"));
     }
 
     /**
@@ -104,7 +104,7 @@ public class ApprovalFlowService {
      */
     @Transactional(rollbackFor = Exception.class)
     public void reject(String taskId, String approverId, String comment) {
-        log.info("审批驳回: taskId={}, approverId={}", taskId, approverId);
+        log.info("审批驳回: taskId={}, approverId={}", (taskId + "").replace("\r", "_").replace("\n", "_"), (approverId + "").replace("\r", "_").replace("\n", "_"));
 
         Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
         if (task == null) {
@@ -124,7 +124,7 @@ public class ApprovalFlowService {
         taskVariables.put("approved", false);
         taskService.complete(taskId, taskVariables);
 
-        log.info("审批驳回完成: taskId={}, processInstanceId={}", taskId, task.getProcessInstanceId());
+        log.info("审批驳回完成: taskId={}, processInstanceId={}", (taskId + "").replace("\r", "_").replace("\n", "_"), (task.getProcessInstanceId() + "").replace("\r", "_").replace("\n", "_"));
     }
 
     /**

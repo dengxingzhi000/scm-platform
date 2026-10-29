@@ -30,7 +30,7 @@ public class OrdPaymentCommandService {
     @Master(reason = "创建支付记录")
     @Transactional(rollbackFor = Exception.class)
     public OrdPayment createPayment(OrdPayment payment) {
-        log.info("创建支付记录: paymentNo={}, orderId={}", payment.getPaymentNo(), payment.getOrderId());
+        log.info("创建支付记录: paymentNo={}, orderId={}", (payment.getPaymentNo() + "").replace("\r", "_").replace("\n", "_"), (payment.getOrderId() + "").replace("\r", "_").replace("\n", "_"));
 
         payment.setStatusEnum(PaymentStatus.PENDING);
         payment.setInitiatedAt(LocalDateTime.now());
@@ -52,7 +52,8 @@ public class OrdPaymentCommandService {
     @Master(reason = "更新支付状态")
     @Transactional(rollbackFor = Exception.class)
     public boolean updatePaymentStatus(UUID paymentId, PaymentStatus target, String reason) {
-        log.info("更新支付状态: paymentId={}, target={}", paymentId, target);
+        log.info("更新支付状态: paymentId={}, target={}, reason={}", paymentId, target,
+                reason == null ? null : reason.replace("\r", "_").replace("\n", "_"));
 
         OrdPayment payment = ordPaymentMapper.selectById(paymentId);
         if (payment == null) {

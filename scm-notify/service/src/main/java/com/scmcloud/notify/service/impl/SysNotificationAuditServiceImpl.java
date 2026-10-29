@@ -20,8 +20,9 @@ import java.util.UUID;
 public class SysNotificationAuditServiceImpl extends ServiceImpl<SysNotificationAuditMapper, SysNotificationAudit>
         implements ISysNotificationAuditService {
 
+    @Override
     public SysNotificationAudit createAudit(SysNotificationAudit entity) {
-        log.info("鍒涘缓閫氱煡瀹¤: userId={}, channel={}, templateCode={}", entity.getUserId(), entity.getChannel(), entity.getTemplateCode());
+        log.info("鍒涘缓閫氱煡瀹¤: userId={}, channel={}, templateCode={}", (entity.getUserId() + "").replace("\r", "_").replace("\n", "_"), (entity.getChannel() + "").replace("\r", "_").replace("\n", "_"), (entity.getTemplateCode() + "").replace("\r", "_").replace("\n", "_"));
         entity.setId(UUID.randomUUID().toString());
         entity.setCreatedAt(LocalDateTime.now());
         if (entity.getStatus() == null) {
@@ -34,21 +35,24 @@ public class SysNotificationAuditServiceImpl extends ServiceImpl<SysNotification
             entity.setMaxRetries(3);
         }
         save(entity);
-        log.info("閫氱煡瀹¤鍒涘缓鎴愬姛: id={}", entity.getId());
+        log.info("閫氱煡瀹¤鍒涘缓鎴愬姛: id={}", (entity.getId() + "").replace("\r", "_").replace("\n", "_"));
         return entity;
     }
 
+    @Override
     public SysNotificationAudit getById(String id) {
         return lambdaQuery()
                 .eq(SysNotificationAudit::getId, id)
                 .one();
     }
 
+    @Override
     public boolean deleteById(String id) {
-        log.info("鍒犻櫎閫氱煡瀹¤: id={}", id);
+        log.info("鍒犻櫎閫氱煡瀹¤: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         return removeById(id);
     }
 
+    @Override
     public List<SysNotificationAudit> listByUserId(String userId) {
         return lambdaQuery()
                 .eq(SysNotificationAudit::getUserId, userId)
@@ -56,6 +60,7 @@ public class SysNotificationAuditServiceImpl extends ServiceImpl<SysNotification
                 .list();
     }
 
+    @Override
     public List<SysNotificationAudit> listByStatus(String status) {
         return lambdaQuery()
                 .eq(SysNotificationAudit::getStatus, status)
@@ -63,26 +68,28 @@ public class SysNotificationAuditServiceImpl extends ServiceImpl<SysNotification
                 .list();
     }
 
+    @Override
     public boolean sendNotification(String id) {
-        log.info("Send notification: id={}", id);
+        log.info("Send notification: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         SysNotificationAudit audit = getById(id);
         if (audit == null) {
-            log.warn("Notification audit not found: id={}", id);
+            log.warn("Notification audit not found: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
             return false;
         }
         audit.setStatus("SENT");
         audit.setSentAt(LocalDateTime.now());
         boolean success = updateById(audit);
         if (success) {
-            log.info("Notification sent successfully: id={}", id);
+            log.info("Notification sent successfully: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         }
         return success;
     }
 
+    @Override
     public Page<SysNotificationAudit> pageQuery(int page, int size, String userId,
                                                  String channel, String status) {
         log.debug("鍒嗛〉鏌ヨ閫氱煡瀹¤: page={}, size={}, userId={}, channel={}, status={}",
-                page, size, userId, channel, status);
+                (page + "").replace("\r", "_").replace("\n", "_"), (size + "").replace("\r", "_").replace("\n", "_"), (userId + "").replace("\r", "_").replace("\n", "_"), (channel + "").replace("\r", "_").replace("\n", "_"), (status + "").replace("\r", "_").replace("\n", "_"));
 
         LambdaQueryWrapper<SysNotificationAudit> wrapper = Wrappers.lambdaQuery();
 

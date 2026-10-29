@@ -24,49 +24,49 @@ public class SysNotificationTemplateController {
     @Operation(summary = "创建通知模板", description = "创建通知模板并指定模板编码与通知渠道。")
     @PostMapping
     public SysNotificationTemplate create(@RequestBody SysNotificationTemplate entity) {
-        log.info("[API] 创建通知模板: templateCode={}, channel={}", entity.getTemplateCode(), entity.getChannel());
+        log.info("[API] 创建通知模板: templateCode={}, channel={}", (entity.getTemplateCode() + "").replace("\r", "_").replace("\n", "_"), (entity.getChannel() + "").replace("\r", "_").replace("\n", "_"));
         return notificationTemplateService.createTemplate(entity);
     }
 
     @Operation(summary = "查询通知模板", description = "根据模板ID查询通知模板详情。")
     @GetMapping("/{id}")
     public SysNotificationTemplate getById(@Parameter(description = "模板ID") @PathVariable String id) {
-        log.info("[API] 查询通知模板: id={}", id);
+        log.info("[API] 查询通知模板: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         return notificationTemplateService.getById(id);
     }
 
     @Operation(summary = "更新通知模板", description = "更新通知模板的内容与渠道配置。")
     @PutMapping
     public SysNotificationTemplate update(@RequestBody SysNotificationTemplate entity) {
-        log.info("[API] 更新通知模板: id={}", entity.getId());
+        log.info("[API] 更新通知模板: id={}", (entity.getId() + "").replace("\r", "_").replace("\n", "_"));
         return notificationTemplateService.updateTemplate(entity);
     }
 
     @Operation(summary = "删除通知模板", description = "根据模板ID删除通知模板。")
     @DeleteMapping("/{id}")
     public boolean deleteById(@Parameter(description = "模板ID") @PathVariable String id) {
-        log.info("[API] 删除通知模板: id={}", id);
+        log.info("[API] 删除通知模板: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         return notificationTemplateService.deleteById(id);
     }
 
     @Operation(summary = "查询渠道通知模板", description = "按通知渠道查询可用的模板列表。")
     @GetMapping("/channel/{channel}")
     public List<SysNotificationTemplate> listByChannel(@Parameter(description = "通知渠道") @PathVariable String channel) {
-        log.info("[API] 查询渠道通知模板: channel={}", channel);
+        log.info("[API] 查询渠道通知模板: channel={}", (channel + "").replace("\r", "_").replace("\n", "_"));
         return notificationTemplateService.listByType(channel);
     }
 
     @Operation(summary = "启用通知模板", description = "将指定通知模板状态置为启用。")
     @PutMapping("/{id}/enable")
     public boolean enable(@Parameter(description = "模板ID") @PathVariable String id) {
-        log.info("[API] 启用通知模板: id={}", id);
+        log.info("[API] 启用通知模板: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         return notificationTemplateService.enableTemplate(id);
     }
 
     @Operation(summary = "禁用通知模板", description = "将指定通知模板状态置为禁用。")
     @PutMapping("/{id}/disable")
     public boolean disable(@Parameter(description = "模板ID") @PathVariable String id) {
-        log.info("[API] 禁用通知模板: id={}", id);
+        log.info("[API] 禁用通知模板: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         return notificationTemplateService.disableTemplate(id);
     }
 

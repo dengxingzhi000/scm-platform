@@ -30,9 +30,9 @@ public class JwtAccessDeniedHandler implements AccessDeniedHandler {
 
         // Spring Security quotes the principal and the missing authority in this message.
         log.warn("Access denied: {} for user: {} from IP: {}, reason: {}",
-                request.getRequestURI(),
-                request.getUserPrincipal() != null ? request.getUserPrincipal().getName() : "anonymous",
-                IpUtils.getClientIp(request), accessDeniedException.getMessage());
+                (request.getRequestURI() + "").replace("\r", "_").replace("\n", "_"),
+                ((request.getUserPrincipal() != null ? request.getUserPrincipal().getName() : "anonymous") + "").replace("\r", "_").replace("\n", "_"),
+                (IpUtils.getClientIp(request) + "").replace("\r", "_").replace("\n", "_"), (accessDeniedException.getMessage() + "").replace("\r", "_").replace("\n", "_"));
 
         SecurityErrorResponseWriter.write(request, response, HttpServletResponse.SC_FORBIDDEN,
                 "ACCESS_DENIED", "Insufficient permissions, access denied");

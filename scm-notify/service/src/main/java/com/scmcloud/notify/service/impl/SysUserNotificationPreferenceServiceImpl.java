@@ -21,9 +21,10 @@ public class SysUserNotificationPreferenceServiceImpl
         extends ServiceImpl<SysUserNotificationPreferenceMapper, SysUserNotificationPreference>
         implements ISysUserNotificationPreferenceService {
 
+    @Override
     public SysUserNotificationPreference createPreference(SysUserNotificationPreference entity) {
         log.info("创建用户通知偏好: userId={}, notificationType={}, channel={}",
-                entity.getUserId(), entity.getNotificationType(), entity.getChannel());
+                (entity.getUserId() + "").replace("\r", "_").replace("\n", "_"), (entity.getNotificationType() + "").replace("\r", "_").replace("\n", "_"), (entity.getChannel() + "").replace("\r", "_").replace("\n", "_"));
         entity.setId(UUID.randomUUID().toString());
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
@@ -31,38 +32,43 @@ public class SysUserNotificationPreferenceServiceImpl
             entity.setEnabled(true);
         }
         save(entity);
-        log.info("用户通知偏好创建成功: id={}", entity.getId());
+        log.info("用户通知偏好创建成功: id={}", (entity.getId() + "").replace("\r", "_").replace("\n", "_"));
         return entity;
     }
 
+    @Override
     public SysUserNotificationPreference getById(String id) {
         return lambdaQuery()
                 .eq(SysUserNotificationPreference::getId, id)
                 .one();
     }
 
+    @Override
     public SysUserNotificationPreference updatePreference(SysUserNotificationPreference entity) {
-        log.info("更新用户通知偏好: id={}", entity.getId());
+        log.info("更新用户通知偏好: id={}", (entity.getId() + "").replace("\r", "_").replace("\n", "_"));
         entity.setUpdateTime(LocalDateTime.now());
         updateById(entity);
         return entity;
     }
 
+    @Override
     public boolean deleteById(String id) {
-        log.info("删除用户通知偏好: id={}", id);
+        log.info("删除用户通知偏好: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         return removeById(id);
     }
 
+    @Override
     public List<SysUserNotificationPreference> getByUserId(String userId) {
         return lambdaQuery()
                 .eq(SysUserNotificationPreference::getUserId, userId)
                 .list();
     }
 
+    @Override
     public Page<SysUserNotificationPreference> pageQuery(int page, int size, String userId,
                                                           String notificationType, String channel) {
         log.debug("分页查询用户通知偏好: page={}, size={}, userId={}, notificationType={}, channel={}",
-                page, size, userId, notificationType, channel);
+                (page + "").replace("\r", "_").replace("\n", "_"), (size + "").replace("\r", "_").replace("\n", "_"), (userId + "").replace("\r", "_").replace("\n", "_"), (notificationType + "").replace("\r", "_").replace("\n", "_"), (channel + "").replace("\r", "_").replace("\n", "_"));
 
         LambdaQueryWrapper<SysUserNotificationPreference> wrapper = Wrappers.lambdaQuery();
 

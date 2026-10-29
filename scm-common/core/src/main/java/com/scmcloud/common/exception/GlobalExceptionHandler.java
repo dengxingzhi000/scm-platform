@@ -44,10 +44,10 @@ public class GlobalExceptionHandler {
         String traceId = resolveTraceId(request);
         HttpStatus status = e.getHttpStatus() != null ? e.getHttpStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
         if (status.is4xxClientError()) {
-            log.warn("Service exception {} at {}, traceId={}: {}", status.value(), request.getRequestURI(), traceId,
-                    e.getMessage());
+            log.warn("Service exception {} at {}, traceId={}: {}", (status.value() + "").replace("\r", "_").replace("\n", "_"), (request.getRequestURI() + "").replace("\r", "_").replace("\n", "_"), (traceId + "").replace("\r", "_").replace("\n", "_"),
+                    (e.getMessage() + "").replace("\r", "_").replace("\n", "_"));
         } else {
-            log.error("Service exception {} at {}, traceId={}", status.value(), request.getRequestURI(), traceId, e);
+            log.error("Service exception {} at {}, traceId={}", (status.value() + "").replace("\r", "_").replace("\n", "_"), (request.getRequestURI() + "").replace("\r", "_").replace("\n", "_"), (traceId + "").replace("\r", "_").replace("\n", "_"), e);
         }
         return ResponseEntity.status(status)
                 .header(REQUEST_ID_HEADER, traceId)
@@ -56,7 +56,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BadCredentialsException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
-    public ApiResponse<Void> handleBadCredentialsException(BadCredentialsException e) {
+    public ApiResponse<Void> handleBadCredentialsException() {
         log.warn("Bad credentials");
         return ApiResponse.fail(ResultCode.UNAUTHORIZED.getCode(), "Invalid username or password");
     }
@@ -65,7 +65,7 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
     public ApiResponse<Void> handleAuthenticationException(AuthenticationException e, HttpServletRequest request) {
         String traceId = resolveTraceId(request);
-        log.warn("Authentication failed: {}, URI: {}, traceId={}", e.getMessage(), request.getRequestURI(), traceId);
+        log.warn("Authentication failed: {}, URI: {}, traceId={}", (e.getMessage() + "").replace("\r", "_").replace("\n", "_"), (request.getRequestURI() + "").replace("\r", "_").replace("\n", "_"), (traceId + "").replace("\r", "_").replace("\n", "_"));
         return ApiResponse.fail(ResultCode.UNAUTHORIZED.getCode(), "Authentication failed (traceId=" + traceId + ")");
     }
 
@@ -73,27 +73,27 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.FORBIDDEN)
     public ApiResponse<Void> handleAccessDeniedException(AccessDeniedException e, HttpServletRequest request) {
         String traceId = resolveTraceId(request);
-        log.warn("Access denied: {}, URI: {}, traceId={}", e.getMessage(), request.getRequestURI(), traceId);
+        log.warn("Access denied: {}, URI: {}, traceId={}", (e.getMessage() + "").replace("\r", "_").replace("\n", "_"), (request.getRequestURI() + "").replace("\r", "_").replace("\n", "_"), (traceId + "").replace("\r", "_").replace("\n", "_"));
         return ApiResponse.fail(ResultCode.FORBIDDEN.getCode(), "Access denied (traceId=" + traceId + ")");
     }
 
     @ExceptionHandler(LockedException.class)
     @ResponseStatus(HttpStatus.LOCKED)
-    public ApiResponse<Void> handleLockedException(LockedException e) {
+    public ApiResponse<Void> handleLockedException() {
         log.warn("Account locked");
         return ApiResponse.fail(ResultCode.USER_LOCKED.getCode(), "Account locked");
     }
 
     @ExceptionHandler(RateLimitException.class)
     @ResponseStatus(HttpStatus.TOO_MANY_REQUESTS)
-    public ApiResponse<Void> handleRateLimitException(RateLimitException e) {
+    public ApiResponse<Void> handleRateLimitException() {
         log.warn("Rate limit exceeded");
         return ApiResponse.fail(ResultCode.TOO_MANY_REQUESTS.getCode(), "Too many requests");
     }
 
     @ExceptionHandler(UnauthorizedException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
-    public ApiResponse<Void> handleUnauthorizedException(UnauthorizedException e) {
+    public ApiResponse<Void> handleUnauthorizedException() {
         log.warn("Unauthorized");
         return ApiResponse.fail(ResultCode.UNAUTHORIZED.getCode(), "Unauthorized");
     }
@@ -150,8 +150,8 @@ public class GlobalExceptionHandler {
         HttpStatusCode status = resolveStatus(e);
 
         if (status.is4xxClientError()) {
-            log.warn("Client error {} at {}, traceId={}: {}", status.value(), request.getRequestURI(), traceId,
-                    e.getMessage());
+            log.warn("Client error {} at {}, traceId={}: {}", (status.value() + "").replace("\r", "_").replace("\n", "_"), (request.getRequestURI() + "").replace("\r", "_").replace("\n", "_"), (traceId + "").replace("\r", "_").replace("\n", "_"),
+                    (e.getMessage() + "").replace("\r", "_").replace("\n", "_"));
             return ResponseEntity.status(status)
                     .header(REQUEST_ID_HEADER, traceId)
                     .body(ApiResponse.fail(status.value(), clientMessage(e, status)));
@@ -159,7 +159,7 @@ public class GlobalExceptionHandler {
 
         // DispatcherServlet wraps anything a handler or the view layer throws into
         // "Handler dispatch failed: <class>: <message>", which would otherwise reach the client verbatim.
-        log.error("Unhandled exception at {}, traceId={}", request.getRequestURI(), traceId, e);
+        log.error("Unhandled exception at {}, traceId={}", (request.getRequestURI() + "").replace("\r", "_").replace("\n", "_"), (traceId + "").replace("\r", "_").replace("\n", "_"), e);
         return ResponseEntity.status(status)
                 .header(REQUEST_ID_HEADER, traceId)
                 .body(ApiResponse.fail(status.value(), "Internal server error (traceId=" + traceId + ")"));
@@ -191,10 +191,11 @@ public class GlobalExceptionHandler {
             ProblemDetail body = errorResponse.getBody();
             detail = body != null ? body.getDetail() : null;
         }
-        if (!StringUtils.hasText(detail)) {
-            detail = status.toString();
+        String text = StringUtils.hasText(detail) ? detail : status.toString();
+        if (text == null) {
+            text = "Error";
         }
-        return detail.length() > 300 ? detail.substring(0, 300) + "..." : detail;
+        return text.length() > 300 ? text.substring(0, 300) + "..." : text;
     }
 
     private String resolveTraceId(HttpServletRequest request) {

@@ -88,7 +88,7 @@ public class StatusDictCacheManager {
         // L1: Caffeine
         List<SysStatusDict> result = dictCache.getIfPresent(cacheKey);
         if (result != null) {
-            log.trace("Cache HIT L1: status:dict:{}", cacheKey);
+            log.trace("Cache HIT L1: status:dict:{}", (cacheKey + "").replace("\r", "_").replace("\n", "_"));
             return result;
         }
 
@@ -96,7 +96,7 @@ public class StatusDictCacheManager {
         result = loadDictFromRedis(tenantId, bizType);
         if (result != null) {
             dictCache.put(cacheKey, result);
-            log.trace("Cache HIT L2 (Redis): status:dict:{}", cacheKey);
+            log.trace("Cache HIT L2 (Redis): status:dict:{}", (cacheKey + "").replace("\r", "_").replace("\n", "_"));
             return result;
         }
 
@@ -104,7 +104,7 @@ public class StatusDictCacheManager {
         result = loadDictFromDb(tenantId, bizType);
         saveDictToRedis(tenantId, bizType, result);
         dictCache.put(cacheKey, result);
-        log.debug("Cache MISS → DB loaded: status:dict:{}, size={}", cacheKey, result.size());
+        log.debug("Cache MISS → DB loaded: status:dict:{}, size={}", (cacheKey + "").replace("\r", "_").replace("\n", "_"), (result.size() + "").replace("\r", "_").replace("\n", "_"));
         return result;
     }
 
@@ -130,7 +130,7 @@ public class StatusDictCacheManager {
         // L1: Caffeine
         List<SysStatusTransition> result = transitionCache.getIfPresent(cacheKey);
         if (result != null) {
-            log.trace("Cache HIT L1: status:transition:{}", cacheKey);
+            log.trace("Cache HIT L1: status:transition:{}", (cacheKey + "").replace("\r", "_").replace("\n", "_"));
             return result;
         }
 
@@ -138,7 +138,7 @@ public class StatusDictCacheManager {
         result = loadTransitionFromRedis(tenantId, bizType);
         if (result != null) {
             transitionCache.put(cacheKey, result);
-            log.trace("Cache HIT L2 (Redis): status:transition:{}", cacheKey);
+            log.trace("Cache HIT L2 (Redis): status:transition:{}", (cacheKey + "").replace("\r", "_").replace("\n", "_"));
             return result;
         }
 
@@ -146,7 +146,7 @@ public class StatusDictCacheManager {
         result = loadTransitionFromDb(tenantId, bizType);
         saveTransitionToRedis(tenantId, bizType, result);
         transitionCache.put(cacheKey, result);
-        log.debug("Cache MISS → DB loaded: status:transition:{}, size={}", cacheKey, result.size());
+        log.debug("Cache MISS → DB loaded: status:transition:{}, size={}", (cacheKey + "").replace("\r", "_").replace("\n", "_"), (result.size() + "").replace("\r", "_").replace("\n", "_"));
         return result;
     }
 
@@ -273,7 +273,7 @@ public class StatusDictCacheManager {
             if (json == null) return null;
             return objectMapper.readValue(json, new TypeReference<>() {});
         } catch (Exception e) {
-            log.warn("Redis read failed for status:dict:{}:{}", tenantId, bizType, e);
+            log.warn("Redis read failed for status:dict:{}:{}", (tenantId + "").replace("\r", "_").replace("\n", "_"), (bizType + "").replace("\r", "_").replace("\n", "_"), e);
             return null;
         }
     }
@@ -284,7 +284,7 @@ public class StatusDictCacheManager {
             String json = objectMapper.writeValueAsString(data);
             redisTemplate.opsForValue().set(key, json, REDIS_TTL);
         } catch (Exception e) {
-            log.warn("Redis write failed for status:dict:{}:{}", tenantId, bizType, e);
+            log.warn("Redis write failed for status:dict:{}:{}", (tenantId + "").replace("\r", "_").replace("\n", "_"), (bizType + "").replace("\r", "_").replace("\n", "_"), e);
         }
     }
 
@@ -295,7 +295,7 @@ public class StatusDictCacheManager {
             if (json == null) return null;
             return objectMapper.readValue(json, new TypeReference<>() {});
         } catch (Exception e) {
-            log.warn("Redis read failed for status:transition:{}:{}", tenantId, bizType, e);
+            log.warn("Redis read failed for status:transition:{}:{}", (tenantId + "").replace("\r", "_").replace("\n", "_"), (bizType + "").replace("\r", "_").replace("\n", "_"), e);
             return null;
         }
     }
@@ -306,7 +306,7 @@ public class StatusDictCacheManager {
             String json = objectMapper.writeValueAsString(data);
             redisTemplate.opsForValue().set(key, json, REDIS_TTL);
         } catch (Exception e) {
-            log.warn("Redis write failed for status:transition:{}:{}", tenantId, bizType, e);
+            log.warn("Redis write failed for status:transition:{}:{}", (tenantId + "").replace("\r", "_").replace("\n", "_"), (bizType + "").replace("\r", "_").replace("\n", "_"), e);
         }
     }
 

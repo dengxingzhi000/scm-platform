@@ -25,21 +25,21 @@ public class CouponController {
     @Operation(summary = "发放优惠券", description = "根据优惠券模板向指定用户发放一张优惠券。")
     @PostMapping("/issue")
     public Coupon issueCoupon(@RequestBody IssueCouponRequest request) {
-        log.info("[API] Issue coupon: userId={}, templateId={}", request.getUserId(), request.getTemplateId());
+        log.info("[API] Issue coupon: userId={}, templateId={}", (request.getUserId() + "").replace("\r", "_").replace("\n", "_"), (request.getTemplateId() + "").replace("\r", "_").replace("\n", "_"));
         return couponService.issueCoupon(request.getUserId(), request.getTemplateId());
     }
 
     @Operation(summary = "校验优惠券", description = "校验用户持有的优惠券对指定订单金额是否可用。")
     @PostMapping("/verify")
     public Coupon verifyCoupon(@RequestBody VerifyCouponRequest request) {
-        log.info("[API] Verify coupon: userId={}, couponCode={}", request.getUserId(), request.getCouponCode());
+        log.info("[API] Verify coupon: userId={}, couponCode={}", (request.getUserId() + "").replace("\r", "_").replace("\n", "_"), (request.getCouponCode() + "").replace("\r", "_").replace("\n", "_"));
         return couponService.verifyCoupon(request.getUserId(), request.getCouponCode(), request.getOrderAmount());
     }
 
     @Operation(summary = "核销优惠券", description = "将指定优惠券在对应订单上标记为已使用。")
     @PostMapping("/use")
     public boolean useCoupon(@RequestBody UseCouponRequest request) {
-        log.info("[API] Use coupon: couponCode={}, orderNo={}", request.getCouponCode(), request.getOrderNo());
+        log.info("[API] Use coupon: couponCode={}, orderNo={}", (request.getCouponCode() + "").replace("\r", "_").replace("\n", "_"), (request.getOrderNo() + "").replace("\r", "_").replace("\n", "_"));
         couponService.useCoupon(request.getCouponCode(), request.getOrderNo());
         return true;
     }
@@ -47,7 +47,7 @@ public class CouponController {
     @Operation(summary = "查询用户优惠券", description = "获取指定用户名下的全部优惠券。")
     @GetMapping("/user/{userId}")
     public List<Coupon> getByUserId(@Parameter(description = "用户标识") @PathVariable String userId) {
-        log.info("[API] Get user coupons: userId={}", userId);
+        log.info("[API] Get user coupons: userId={}", (userId + "").replace("\r", "_").replace("\n", "_"));
         return couponService.getByUserId(userId);
     }
 

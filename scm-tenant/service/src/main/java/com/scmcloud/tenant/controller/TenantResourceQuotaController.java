@@ -23,28 +23,28 @@ public class TenantResourceQuotaController {
     @Operation(summary = "创建资源配额", description = "为指定租户新增资源配额记录并返回创建结果。")
     @PostMapping
     public TenantResourceQuota create(@RequestBody TenantResourceQuota entity) {
-        log.info("[API] Create tenant resource quota: tenantId={}", entity.getTenantId());
+        log.info("[API] Create tenant resource quota: tenantId={}", (entity.getTenantId() + "").replace("\r", "_").replace("\n", "_"));
         return tenantResourceQuotaService.createQuota(entity);
     }
 
     @Operation(summary = "查询配额详情", description = "根据配额 ID 查询租户资源配额详情。")
     @GetMapping("/{id}")
     public TenantResourceQuota getById(@Parameter(description = "配额ID") @PathVariable String id) {
-        log.info("[API] Query tenant resource quota: id={}", id);
+        log.info("[API] Query tenant resource quota: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         return tenantResourceQuotaService.getById(id);
     }
 
     @Operation(summary = "更新资源配额", description = "根据配额 ID 更新租户各项资源的上限配置。")
     @PutMapping
     public TenantResourceQuota update(@RequestBody TenantResourceQuota entity) {
-        log.info("[API] Update tenant resource quota: id={}", entity.getId());
+        log.info("[API] Update tenant resource quota: id={}", (entity.getId() + "").replace("\r", "_").replace("\n", "_"));
         return tenantResourceQuotaService.updateQuota(entity);
     }
 
     @Operation(summary = "删除资源配额", description = "根据配额 ID 删除指定的租户资源配额。")
     @DeleteMapping("/{id}")
     public boolean deleteById(@Parameter(description = "配额ID") @PathVariable String id) {
-        log.info("[API] Delete tenant resource quota: id={}", id);
+        log.info("[API] Delete tenant resource quota: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         return tenantResourceQuotaService.deleteById(id);
     }
 
@@ -53,14 +53,14 @@ public class TenantResourceQuotaController {
     public boolean checkQuota(
             @Parameter(description = "租户ID") @RequestParam String tenantId,
             @Parameter(description = "资源类型") @RequestParam String resourceType) {
-        log.info("[API] Check tenant quota: tenantId={}, resourceType={}", tenantId, resourceType);
+        log.info("[API] Check tenant quota: tenantId={}, resourceType={}", (tenantId + "").replace("\r", "_").replace("\n", "_"), (resourceType + "").replace("\r", "_").replace("\n", "_"));
         return tenantResourceQuotaService.checkQuota(tenantId, resourceType);
     }
 
     @Operation(summary = "查询租户配额列表", description = "查询指定租户的全部资源配额记录。")
     @GetMapping("/tenant/{tenantId}")
     public List<TenantResourceQuota> listByTenantId(@Parameter(description = "租户ID") @PathVariable String tenantId) {
-        log.info("[API] Query tenant resource quotas: tenantId={}", tenantId);
+        log.info("[API] Query tenant resource quotas: tenantId={}", (tenantId + "").replace("\r", "_").replace("\n", "_"));
         return tenantResourceQuotaService.listByTenantId(tenantId);
     }
 

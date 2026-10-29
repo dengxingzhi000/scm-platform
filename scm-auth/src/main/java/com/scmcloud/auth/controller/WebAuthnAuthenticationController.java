@@ -55,10 +55,10 @@ public class WebAuthnAuthenticationController {
             HttpServletRequest request) {
 
         WebAuthnRequestContext ctx = WebAuthnRequestContext.of(user, request, httpServletRequestUtils);
-        log.info("User {} requesting authentication challenge from {}", ctx.userId(), ctx.ipAddress());
+        log.info("User {} requesting authentication challenge from {}", (ctx.userId() + "").replace("\r", "_").replace("\n", "_"), (ctx.ipAddress() + "").replace("\r", "_").replace("\n", "_"));
 
         WebAuthnChallengeResponse challenge = credentialService.generateAuthenticationChallenge(
-                ctx.userId(), ctx.username(), ctx.deviceId(), webAuthnConfig.getId());
+                ctx.userId(), ctx.deviceId(), webAuthnConfig.getId());
 
         return ApiResponse.success(challenge);
     }
@@ -72,7 +72,7 @@ public class WebAuthnAuthenticationController {
             HttpServletRequest httpRequest) {
 
         WebAuthnRequestContext ctx = WebAuthnRequestContext.of(user, httpRequest, httpServletRequestUtils);
-        log.info("User {} authenticating with WebAuthn from {}", ctx.userId(), ctx.ipAddress());
+        log.info("User {} authenticating with WebAuthn from {}", (ctx.userId() + "").replace("\r", "_").replace("\n", "_"), (ctx.ipAddress() + "").replace("\r", "_").replace("\n", "_"));
 
         try {
             TokenUpgradeResponse response = credentialService.authenticateAndUpgradeToken(

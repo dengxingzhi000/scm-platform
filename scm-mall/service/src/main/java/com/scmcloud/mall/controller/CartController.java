@@ -24,7 +24,7 @@ public class CartController {
     @Operation(summary = "查询购物车", description = "获取指定用户的购物车商品列表。")
     @GetMapping
     public List<Cart> getCart(@Parameter(description = "用户标识") @RequestParam String userId) {
-        log.info("[API] Get cart: userId={}", userId);
+        log.info("[API] Get cart: userId={}", (userId + "").replace("\r", "_").replace("\n", "_"));
         return cartService.getCart(userId);
     }
 
@@ -32,7 +32,7 @@ public class CartController {
     @PostMapping
     public boolean addToCart(@RequestBody AddToCartRequest request) {
         log.info("[API] Add to cart: userId={}, productId={}, skuId={}, quantity={}",
-                request.getUserId(), request.getProductId(), request.getSkuId(), request.getQuantity());
+                (request.getUserId() + "").replace("\r", "_").replace("\n", "_"), (request.getProductId() + "").replace("\r", "_").replace("\n", "_"), (request.getSkuId() + "").replace("\r", "_").replace("\n", "_"), (request.getQuantity() + "").replace("\r", "_").replace("\n", "_"));
         cartService.addToCart(request.getUserId(), request.getProductId(), request.getSkuId(), request.getQuantity());
         return true;
     }
@@ -48,7 +48,7 @@ public class CartController {
     @Operation(summary = "删除购物车商品", description = "从指定用户的购物车中移除某条商品记录。")
     @DeleteMapping("/{cartItemId}")
     public boolean removeFromCart(@Parameter(description = "购物车条目 ID") @PathVariable Long cartItemId, @Parameter(description = "用户标识") @RequestParam String userId) {
-        log.info("[API] Remove from cart: cartItemId={}, userId={}", cartItemId, userId);
+        log.info("[API] Remove from cart: cartItemId={}, userId={}", (cartItemId + "").replace("\r", "_").replace("\n", "_"), (userId + "").replace("\r", "_").replace("\n", "_"));
         cartService.removeFromCart(userId, cartItemId);
         return true;
     }
@@ -56,7 +56,7 @@ public class CartController {
     @Operation(summary = "清空购物车", description = "删除指定用户购物车中的全部商品。")
     @DeleteMapping("/clear")
     public boolean clearCart(@Parameter(description = "用户标识") @RequestParam String userId) {
-        log.info("[API] Clear cart: userId={}", userId);
+        log.info("[API] Clear cart: userId={}", (userId + "").replace("\r", "_").replace("\n", "_"));
         cartService.clearCart(userId);
         return true;
     }

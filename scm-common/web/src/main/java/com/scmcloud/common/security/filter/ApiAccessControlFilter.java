@@ -117,7 +117,7 @@ public class ApiAccessControlFilter extends OncePerRequestFilter {
 
             String traceId = request.getHeader("X-Request-ID");
             log.warn("Unauthorized API access: traceId={}, userId={}, user={}, uri={}, method={}, required={}",
-                    traceId, userId, username, requestUri, method, requiredPermissions);
+                    (traceId + "").replace("\r", "_").replace("\n", "_"), (userId + "").replace("\r", "_").replace("\n", "_"), (username + "").replace("\r", "_").replace("\n", "_"), (requestUri + "").replace("\r", "_").replace("\n", "_"), (method + "").replace("\r", "_").replace("\n", "_"), (requiredPermissions + "").replace("\r", "_").replace("\n", "_"));
 
             securityMetrics.increment("security.access.denied");
             SecurityErrorResponseWriter.write(request, response, HttpServletResponse.SC_FORBIDDEN, "ACCESS_DENIED",
@@ -163,8 +163,8 @@ public class ApiAccessControlFilter extends OncePerRequestFilter {
 
     private void logSensitiveOperation(UUID userId, String method, String uri) {
         String username = SecurityUtils.getCurrentUsername().orElse(null);
-        log.info("Sensitive operation: user={}, method={}, uri={}",
-                username, method, uri);
+        log.info("Sensitive operation: userId={}, user={}, method={}, uri={}",
+                (userId + "").replace("\r", "_").replace("\n", "_"), (username + "").replace("\r", "_").replace("\n", "_"), (method + "").replace("\r", "_").replace("\n", "_"), (uri + "").replace("\r", "_").replace("\n", "_"));
     }
 
     private void markBypass(HttpServletResponse response, String reason) {

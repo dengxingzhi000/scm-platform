@@ -31,7 +31,7 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
         // Spring Security puts the rejected principal and the reason into this message, so it stays in the
         // log and the client only ever receives a stable code.
         log.warn("Unauthorized access attempt: {} from IP: {}, reason: {}",
-                request.getRequestURI(), IpUtils.getClientIp(request), authException.getMessage());
+                (request.getRequestURI() + "").replace("\r", "_").replace("\n", "_"), (IpUtils.getClientIp(request) + "").replace("\r", "_").replace("\n", "_"), (authException.getMessage() + "").replace("\r", "_").replace("\n", "_"));
 
         SecurityErrorResponseWriter.write(request, response, HttpServletResponse.SC_UNAUTHORIZED,
                 "UNAUTHENTICATED", "未授权访问，请先登录");

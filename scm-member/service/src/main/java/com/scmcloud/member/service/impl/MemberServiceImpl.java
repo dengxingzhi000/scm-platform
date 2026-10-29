@@ -21,11 +21,11 @@ public class MemberServiceImpl extends ServiceImpl<MemberMapper, Member> impleme
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Member register(String userId, String nickname, String avatar) {
-        log.info("Registering member: userId={}", userId);
+        log.info("Registering member: userId={}", (userId + "").replace("\r", "_").replace("\n", "_"));
 
         Member existing = getByUserId(userId);
         if (existing != null) {
-            log.warn("Member already exists: userId={}", userId);
+            log.warn("Member already exists: userId={}", (userId + "").replace("\r", "_").replace("\n", "_"));
             return existing;
         }
 
@@ -43,7 +43,7 @@ public class MemberServiceImpl extends ServiceImpl<MemberMapper, Member> impleme
         member.setUpdatedAt(LocalDateTime.now());
 
         save(member);
-        log.info("Member registered: userId={}, memberNo={}", userId, member.getMemberNo());
+        log.info("Member registered: userId={}, memberNo={}", (userId + "").replace("\r", "_").replace("\n", "_"), (member.getMemberNo() + "").replace("\r", "_").replace("\n", "_"));
         return member;
     }
 
@@ -63,7 +63,7 @@ public class MemberServiceImpl extends ServiceImpl<MemberMapper, Member> impleme
         member.setMemberLevel(level);
         member.setUpdatedAt(LocalDateTime.now());
         updateById(member);
-        log.info("Member level updated: userId={}, level={}", userId, level);
+        log.info("Member level updated: userId={}, level={}", (userId + "").replace("\r", "_").replace("\n", "_"), (level + "").replace("\r", "_").replace("\n", "_"));
     }
 
     @Override

@@ -20,7 +20,7 @@ public class ReconciliationRecordServiceImpl extends ServiceImpl<ReconciliationR
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ReconciliationRecord createReconciliation(ReconciliationRecord record) {
-        log.info("鍒涘缓瀵硅处璁板綍: partyName={}, period={}", record.getPartyName(), record.getReconciliationPeriod());
+        log.info("鍒涘缓瀵硅处璁板綍: partyName={}, period={}", (record.getPartyName() + "").replace("\r", "_").replace("\n", "_"), (record.getReconciliationPeriod() + "").replace("\r", "_").replace("\n", "_"));
 
         record.setId(UUIDv7Util.generateString());
         record.setReconciliationNo(generateReconciliationNo());
@@ -49,7 +49,7 @@ public class ReconciliationRecordServiceImpl extends ServiceImpl<ReconciliationR
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ReconciliationRecord reconcile(String id, String reconcilerId, String reconcilerName) {
-        log.info("Execute reconciliation: id={}, reconciler={}", id, reconcilerName);
+        log.info("Execute reconciliation: id={}, reconciler={}", (id + "").replace("\r", "_").replace("\n", "_"), (reconcilerName + "").replace("\r", "_").replace("\n", "_"));
 
         ReconciliationRecord record = getById(id);
         if (record == null || Boolean.TRUE.equals(record.getDeleted())) {
@@ -67,18 +67,18 @@ public class ReconciliationRecordServiceImpl extends ServiceImpl<ReconciliationR
 
         if (Boolean.TRUE.equals(record.getHasDiff())) {
             record.setStatus(3);
-            log.warn("Reconciliation has differences: id={}, diffAmount={}", id, record.getDiffAmount());
+            log.warn("Reconciliation has differences: id={}, diffAmount={}", (id + "").replace("\r", "_").replace("\n", "_"), (record.getDiffAmount() + "").replace("\r", "_").replace("\n", "_"));
         }
 
         updateById(record);
-        log.info("Reconciliation completed: id={}, status={}", id, record.getStatus());
+        log.info("Reconciliation completed: id={}, status={}", (id + "").replace("\r", "_").replace("\n", "_"), (record.getStatus() + "").replace("\r", "_").replace("\n", "_"));
         return record;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ReconciliationRecord confirm(String id, String confirmerId, String confirmerName) {
-        log.info("Confirm reconciliation: id={}, confirmer={}", id, confirmerName);
+        log.info("Confirm reconciliation: id={}, confirmer={}", (id + "").replace("\r", "_").replace("\n", "_"), (confirmerName + "").replace("\r", "_").replace("\n", "_"));
 
         ReconciliationRecord record = getById(id);
         if (record == null || Boolean.TRUE.equals(record.getDeleted())) {
@@ -95,14 +95,14 @@ public class ReconciliationRecordServiceImpl extends ServiceImpl<ReconciliationR
         record.setUpdateTime(LocalDateTime.now());
 
         updateById(record);
-        log.info("Reconciliation confirmed successfully: id={}", id);
+        log.info("Reconciliation confirmed successfully: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         return record;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ReconciliationRecord markAsDiff(String id, String diffReason) {
-        log.info("Mark reconciliation difference: id={}, reason={}", id, diffReason);
+        log.info("Mark reconciliation difference: id={}, reason={}", (id + "").replace("\r", "_").replace("\n", "_"), (diffReason + "").replace("\r", "_").replace("\n", "_"));
 
         ReconciliationRecord record = getById(id);
         if (record == null || Boolean.TRUE.equals(record.getDeleted())) {

@@ -65,8 +65,8 @@ public class DatasetService {
             throw new BusinessException("Dataset code already exists: " + dto.getDatasetCode());
         }
         log.info("Created dataset: code={}, type={}, source={}, tenant={}",
-                entity.getDatasetCode(), entity.getDatasetType(),
-                entity.getSourceType(), tenantId);
+                (entity.getDatasetCode() + "").replace("\r", "_").replace("\n", "_"), (entity.getDatasetType() + "").replace("\r", "_").replace("\n", "_"),
+                (entity.getSourceType() + "").replace("\r", "_").replace("\n", "_"), (tenantId + "").replace("\r", "_").replace("\n", "_"));
         return entity;
     }
 

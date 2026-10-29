@@ -13,6 +13,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -77,7 +78,7 @@ public class InvReservationServiceImpl implements IInvReservationService {
 
       if (inventory == null) {
         log.error("❌库存不存在 skuId={}, warehouseId={}",
-            request.getSkuId(), request.getWarehouseId());
+            (request.getSkuId() + "").replace("\r", "_").replace("\n", "_"), (request.getWarehouseId() + "").replace("\r", "_").replace("\n", "_"));
         throw new IllegalArgumentException("商品不存在");
       }
 
@@ -120,12 +121,12 @@ public class InvReservationServiceImpl implements IInvReservationService {
           request.getTimeoutSeconds() : DEFAULT_TIMEOUT_SECONDS;
 
       redisTemplate.opsForHash().putAll(reservationKey, reservationData);
-      redisTemplate.expire(reservationKey, timeoutSeconds, TimeUnit.SECONDS);
+      redisTemplate.expire(reservationKey, Duration.ofSeconds(timeoutSeconds));
 
       // 7. 建立索引（sku:warehouse -> businessKey），方便按SKU查询预占
       String indexKey = buildIndexKey(request.getSkuId(), request.getWarehouseId());
       redisTemplate.opsForSet().add(indexKey, request.getBusinessKey());
-      redisTemplate.expire(indexKey, timeoutSeconds, TimeUnit.SECONDS);
+      redisTemplate.expire(indexKey, Duration.ofSeconds(timeoutSeconds));
 
       log.debug("✅库存预占成功: skuId={}, warehouseId={}, quantity={}, businessKey={}, timeout={}s",
           request.getSkuId(), request.getWarehouseId(),

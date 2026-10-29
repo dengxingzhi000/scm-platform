@@ -21,21 +21,21 @@ public class MemberController {
     @Operation(summary = "会员注册", description = "根据用户 ID、昵称与头像为用户注册会员账号。")
     @PostMapping("/register")
     public Member register(@RequestBody RegisterRequest request) {
-        log.info("[API] Register member: userId={}", request.getUserId());
+        log.info("[API] Register member: userId={}", (request.getUserId() + "").replace("\r", "_").replace("\n", "_"));
         return memberService.register(request.getUserId(), request.getNickname(), request.getAvatar());
     }
 
     @Operation(summary = "查询会员信息", description = "按用户 ID 查询会员档案信息。")
     @GetMapping("/{userId}")
     public Member getByUserId(@Parameter(description = "会员用户 ID") @PathVariable String userId) {
-        log.info("[API] Get member: userId={}", userId);
+        log.info("[API] Get member: userId={}", (userId + "").replace("\r", "_").replace("\n", "_"));
         return memberService.getByUserId(userId);
     }
 
     @Operation(summary = "更新会员信息", description = "按用户 ID 更新会员昵称、头像等基础资料。")
     @PutMapping("/{userId}")
     public boolean update(@Parameter(description = "会员用户 ID") @PathVariable String userId, @RequestBody Member member) {
-        log.info("[API] Update member: userId={}", userId);
+        log.info("[API] Update member: userId={}", (userId + "").replace("\r", "_").replace("\n", "_"));
         member.setUserId(userId);
         return memberService.updateById(member);
     }
@@ -43,7 +43,7 @@ public class MemberController {
     @Operation(summary = "更新会员等级", description = "调整指定会员的会员等级编号。")
     @PutMapping("/{userId}/level")
     public boolean updateLevel(@Parameter(description = "会员用户 ID") @PathVariable String userId, @Parameter(description = "目标会员等级编号") @RequestParam Integer level) {
-        log.info("[API] Update member level: userId={}, level={}", userId, level);
+        log.info("[API] Update member level: userId={}, level={}", (userId + "").replace("\r", "_").replace("\n", "_"), (level + "").replace("\r", "_").replace("\n", "_"));
         memberService.updateMemberLevel(userId, level);
         return true;
     }

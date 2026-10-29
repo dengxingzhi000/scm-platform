@@ -41,13 +41,13 @@ public class FeignPermissionAccess implements PermissionService {
             List<String> permissions = permissionServiceClient.findPermissionsByUrl(url, method);
             meterRegistry.counter("security.permissions.rest.lookup.success").increment();
             log.debug("Permission lookup success via RestClient: url={}, method={}, permissions={}",
-                     url, method, permissions);
+                     (url + "").replace("\r", "_").replace("\n", "_"), (method + "").replace("\r", "_").replace("\n", "_"), (permissions + "").replace("\r", "_").replace("\n", "_"));
             return permissions != null ? permissions : List.of();
 
         } catch (Exception ex) {
             meterRegistry.counter("security.permissions.rest.lookup.fail").increment();
             log.error("SECURITY: Permission lookup failed via RestClient - DENYING ACCESS. " +
-                     "url={}, method={}", url, method, ex);
+                     "url={}, method={}", (url + "").replace("\r", "_").replace("\n", "_"), (method + "").replace("\r", "_").replace("\n", "_"), ex);
             throw new PermissionServiceException(
                 "Permission service unavailable via RestClient - access denied as safety measure", ex);
         }

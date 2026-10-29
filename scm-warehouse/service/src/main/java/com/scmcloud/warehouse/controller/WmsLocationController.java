@@ -27,10 +27,10 @@ public class WmsLocationController {
     @Operation(summary = "创建库位", description = "在指定仓库下新建库位，库位编码需保持唯一。")
     @PostMapping
     public ApiResponse<WmsLocation> create(@RequestBody WmsLocation location) {
-        log.info("[API] 创建库位: warehouseId={}, code={}", location.getWarehouseId(), location.getLocationCode());
+        log.info("[API] 创建库位: warehouseId={}, code={}", (location.getWarehouseId() + "").replace("\r", "_").replace("\n", "_"), (location.getLocationCode() + "").replace("\r", "_").replace("\n", "_"));
         try {
             WmsLocation created = locationCommandService.create(location);
-            log.info("[API] 库位创建成功: id={}", created.getId());
+            log.info("[API] 库位创建成功: id={}", (created.getId() + "").replace("\r", "_").replace("\n", "_"));
             return ApiResponse.success(created);
         } catch (IllegalStateException e) {
             return ApiResponse.fail(400, e.getMessage());
@@ -40,7 +40,7 @@ public class WmsLocationController {
     @Operation(summary = "更新库位", description = "按主键更新库位的基础信息与状态。")
     @PutMapping("/{id}")
     public ApiResponse<WmsLocation> update(@Parameter(description = "库位主键 ID") @PathVariable String id, @RequestBody WmsLocation location) {
-        log.info("[API] 更新库位: id={}", id);
+        log.info("[API] 更新库位: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         location.setId(id);
         boolean success = locationCommandService.update(location);
         if (!success) {
@@ -52,7 +52,7 @@ public class WmsLocationController {
     @Operation(summary = "删除库位", description = "按主键逻辑删除库位，已删除的库位不再参与上架分配。")
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@Parameter(description = "库位主键 ID") @PathVariable String id) {
-        log.info("[API] 删除库位: id={}", id);
+        log.info("[API] 删除库位: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         boolean success = locationCommandService.softDeleteById(id);
         return success ? ApiResponse.success() : ApiResponse.fail(404, "库位不存在");
     }

@@ -69,7 +69,7 @@ public class MetricService {
             throw new BusinessException("Metric code already exists: " + dto.getMetricCode());
         }
         log.info("Created metric: code={}, type={}, tenant={}",
-                entity.getMetricCode(), entity.getMetricType(), tenantId);
+                (entity.getMetricCode() + "").replace("\r", "_").replace("\n", "_"), (entity.getMetricType() + "").replace("\r", "_").replace("\n", "_"), (tenantId + "").replace("\r", "_").replace("\n", "_"));
         return entity;
     }
 

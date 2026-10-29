@@ -23,28 +23,28 @@ public class TenantPackageController {
     @Operation(summary = "创建租户套餐", description = "新增一个租户套餐并返回创建后的套餐信息。")
     @PostMapping
     public TenantPackage create(@RequestBody TenantPackage entity) {
-        log.info("[API] 创建租户套餐: packageCode={}, packageName={}", entity.getPackageCode(), entity.getPackageName());
+        log.info("[API] 创建租户套餐: packageCode={}, packageName={}", (entity.getPackageCode() + "").replace("\r", "_").replace("\n", "_"), (entity.getPackageName() + "").replace("\r", "_").replace("\n", "_"));
         return tenantPackageService.createPackage(entity);
     }
 
     @Operation(summary = "查询套餐详情", description = "根据套餐 ID 查询租户套餐详情。")
     @GetMapping("/{id}")
     public TenantPackage getById(@Parameter(description = "套餐ID") @PathVariable String id) {
-        log.info("[API] 查询租户套餐: id={}", id);
+        log.info("[API] 查询租户套餐: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         return tenantPackageService.getById(id);
     }
 
     @Operation(summary = "更新租户套餐", description = "根据套餐 ID 更新套餐配置与资源上限。")
     @PutMapping
     public TenantPackage update(@RequestBody TenantPackage entity) {
-        log.info("[API] 更新租户套餐: id={}", entity.getId());
+        log.info("[API] 更新租户套餐: id={}", (entity.getId() + "").replace("\r", "_").replace("\n", "_"));
         return tenantPackageService.updatePackage(entity);
     }
 
     @Operation(summary = "删除租户套餐", description = "根据套餐 ID 删除指定租户套餐。")
     @DeleteMapping("/{id}")
     public boolean deleteById(@Parameter(description = "套餐ID") @PathVariable String id) {
-        log.info("[API] 删除租户套餐: id={}", id);
+        log.info("[API] 删除租户套餐: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         return tenantPackageService.deleteById(id);
     }
 

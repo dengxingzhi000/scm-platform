@@ -70,7 +70,7 @@ public class DataQualityService {
             throw new BusinessException("Quality rule code already exists: " + rule.getRuleCode());
         }
         log.info("Created quality rule: code={}, dataset={}, type={}",
-                entity.getRuleCode(), entity.getDatasetCode(), entity.getRuleType());
+                (entity.getRuleCode() + "").replace("\r", "_").replace("\n", "_"), (entity.getDatasetCode() + "").replace("\r", "_").replace("\n", "_"), (entity.getRuleType() + "").replace("\r", "_").replace("\n", "_"));
         return entity;
     }
 

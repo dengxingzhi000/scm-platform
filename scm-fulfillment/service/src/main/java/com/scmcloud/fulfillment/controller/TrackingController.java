@@ -29,7 +29,7 @@ public class TrackingController {
     @PostMapping("/tracking")
     public Tracking recordEvent(@RequestBody Tracking tracking) {
         log.info("[API] Record tracking event: fulfillmentNo={}, status={}",
-                tracking.getFulfillmentNo(), tracking.getStatus());
+                (tracking.getFulfillmentNo() + "").replace("\r", "_").replace("\n", "_"), (tracking.getStatus() + "").replace("\r", "_").replace("\n", "_"));
         return trackingService.recordEvent(tracking);
     }
 

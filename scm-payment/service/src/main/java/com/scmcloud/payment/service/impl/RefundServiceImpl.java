@@ -79,7 +79,7 @@ public class RefundServiceImpl extends ServiceImpl<RefundMapper, Refund> impleme
                 .setUpdatedAt(now);
         save(refund);
         log.info("Refund created: refundNo={}, paymentNo={}, amount={}",
-                refund.getRefundNo(), paymentNo, amount);
+                (refund.getRefundNo() + "").replace("\r", "_").replace("\n", "_"), (paymentNo + "").replace("\r", "_").replace("\n", "_"), (amount + "").replace("\r", "_").replace("\n", "_"));
         return refund;
     }
 
@@ -97,7 +97,7 @@ public class RefundServiceImpl extends ServiceImpl<RefundMapper, Refund> impleme
         refund.setRefundedAt(now);
         refund.setUpdatedAt(now);
         updateById(refund);
-        log.info("Refund approved: refundNo={}", refundNo);
+        log.info("Refund approved: refundNo={}", (refundNo + "").replace("\r", "_").replace("\n", "_"));
         return refund;
     }
 
@@ -110,7 +110,7 @@ public class RefundServiceImpl extends ServiceImpl<RefundMapper, Refund> impleme
                 : refund.getRefundReason() + " | rejected: " + reason);
         refund.setUpdatedAt(LocalDateTime.now());
         updateById(refund);
-        log.info("Refund rejected: refundNo={}, reason={}", refundNo, reason);
+        log.info("Refund rejected: refundNo={}, reason={}", (refundNo + "").replace("\r", "_").replace("\n", "_"), (reason + "").replace("\r", "_").replace("\n", "_"));
         return refund;
     }
 

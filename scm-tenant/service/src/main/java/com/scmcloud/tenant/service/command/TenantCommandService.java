@@ -22,7 +22,7 @@ public class TenantCommandService {
     @Master(reason = "创建租户")
     @Transactional(rollbackFor = Exception.class)
     public Tenant createTenant(Tenant entity) {
-        log.info("创建租户: tenantCode={}, tenantName={}", entity.getTenantCode(), entity.getTenantName());
+        log.info("创建租户: tenantCode={}, tenantName={}", (entity.getTenantCode() + "").replace("\r", "_").replace("\n", "_"), (entity.getTenantName() + "").replace("\r", "_").replace("\n", "_"));
         entity.setId(UUIDv7Util.generateString());
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
@@ -31,7 +31,7 @@ public class TenantCommandService {
             entity.setStatus(0);
         }
         if (tenantMapper.insert(entity) <= 0) {
-            log.warn("租户插入未生效: tenantCode={}", entity.getTenantCode());
+            log.warn("租户插入未生效: tenantCode={}", (entity.getTenantCode() + "").replace("\r", "_").replace("\n", "_"));
         } else {
             log.info("租户创建成功: id={}", entity.getId());
         }

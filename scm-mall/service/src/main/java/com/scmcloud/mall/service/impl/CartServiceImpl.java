@@ -18,6 +18,8 @@ import java.util.List;
 @Service
 public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements ICartService {
 
+    private static final long MAX_CART_QUANTITY = 1_000_000L;
+
     @Override
     public List<Cart> getCart(String userId) {
         return list(new LambdaQueryWrapper<Cart>()
@@ -28,7 +30,10 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements IC
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void addToCart(String userId, Long productId, Long skuId, Integer quantity) {
-        log.info("Adding to cart: userId={}, productId={}, skuId={}, quantity={}", userId, productId, skuId, quantity);
+        if (quantity == null || quantity <= 0) {
+            throw new IllegalArgumentException("Quantity must be positive");
+        }
+        log.info("Adding to cart: userId={}, productId={}, skuId={}, quantity={}", (userId + "").replace("\r", "_").replace("\n", "_"), (productId + "").replace("\r", "_").replace("\n", "_"), (skuId + "").replace("\r", "_").replace("\n", "_"), (quantity + "").replace("\r", "_").replace("\n", "_"));
 
         Cart existing = getOne(new LambdaQueryWrapper<Cart>()
                 .eq(Cart::getUserId, userId)
@@ -36,7 +41,11 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements IC
                 .eq(Cart::getSkuId, skuId));
 
         if (existing != null) {
-            existing.setQuantity(existing.getQuantity() + quantity);
+            long mergedQuantity = (long) existing.getQuantity() + quantity;
+            if (mergedQuantity > MAX_CART_QUANTITY) {
+                throw new IllegalArgumentException("Cart quantity exceeds the supported maximum: " + MAX_CART_QUANTITY);
+            }
+            existing.setQuantity((int) mergedQuantity);
             existing.setUpdatedAt(LocalDateTime.now());
             updateById(existing);
         } else {

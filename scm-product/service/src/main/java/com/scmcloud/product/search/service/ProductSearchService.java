@@ -48,8 +48,8 @@ public class ProductSearchService {
         long startTime = System.currentTimeMillis();
 
         log.debug("🔍 [商品搜索] 开始搜索 keyword={}, categoryId={}, brandId={}, priceRange=[{},{}], sortBy={}, sortOrder={}",
-                request.getKeyword(), request.getCategoryId(), request.getBrandId(),
-                request.getMinPrice(), request.getMaxPrice(), request.getSortBy(), request.getSortOrder());
+                (request.getKeyword() + "").replace("\r", "_").replace("\n", "_"), (request.getCategoryId() + "").replace("\r", "_").replace("\n", "_"), (request.getBrandId() + "").replace("\r", "_").replace("\n", "_"),
+                (request.getMinPrice() + "").replace("\r", "_").replace("\n", "_"), (request.getMaxPrice() + "").replace("\r", "_").replace("\n", "_"), (request.getSortBy() + "").replace("\r", "_").replace("\n", "_"), (request.getSortOrder() + "").replace("\r", "_").replace("\n", "_"));
 
         // 构建分页和排序
         PageRequest pageRequest = buildPageRequest(request);
@@ -86,7 +86,7 @@ public class ProductSearchService {
     public Page<ProductSearchResponse> getHotProducts(Integer page, Integer size) {
         log.debug("🔥 [热门商品] 查询热门商品: page={}, size={}", page, size);
 
-        PageRequest pageRequest = PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "totalSales"));
+        PageRequest pageRequest = toPageRequest(page, size, "totalSales");
         Page<ProductDocument> resultPage = productSearchRepository.findByStatusOrderByTotalSalesDesc(STATUS_ON_SALE, pageRequest);
 
         log.debug("✅[热门商品] 查询完成: 总数={}", resultPage.getTotalElements());
@@ -104,7 +104,7 @@ public class ProductSearchService {
     public Page<ProductSearchResponse> getLatestProducts(Integer page, Integer size) {
         log.debug("🆕 [最新商品] 查询最新商品 page={}, size={}", page, size);
 
-        PageRequest pageRequest = PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "publishedAt"));
+        PageRequest pageRequest = toPageRequest(page, size, "publishedAt");
         Page<ProductDocument> resultPage = productSearchRepository.findByStatusOrderByPublishedAtDesc(STATUS_ON_SALE, pageRequest);
 
         log.debug("✅[最新商品] 查询完成: 总数={}", resultPage.getTotalElements());
@@ -120,9 +120,9 @@ public class ProductSearchService {
      * @return 商品分页结果
      */
     public Page<ProductSearchResponse> findByCategory(String categoryId, Integer page, Integer size) {
-        log.debug("📁 [分类商品] 查询分类商品: categoryId={}, page={}, size={}", categoryId, page, size);
+        log.debug("📁 [分类商品] 查询分类商品: categoryId={}, page={}, size={}", (categoryId + "").replace("\r", "_").replace("\n", "_"), (page + "").replace("\r", "_").replace("\n", "_"), (size + "").replace("\r", "_").replace("\n", "_"));
 
-        PageRequest pageRequest = PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "totalSales"));
+        PageRequest pageRequest = toPageRequest(page, size, "totalSales");
         Page<ProductDocument> resultPage = productSearchRepository.findByCategoryIdAndStatus(categoryId, STATUS_ON_SALE, pageRequest);
 
         log.debug("✅[分类商品] 查询完成: 总数={}", resultPage.getTotalElements());
@@ -138,9 +138,9 @@ public class ProductSearchService {
      * @return 商品分页结果
      */
     public Page<ProductSearchResponse> findByBrand(String brandId, Integer page, Integer size) {
-        log.info("🏷[品牌商品] 查询品牌商品: brandId={}, page={}, size={}", brandId, page, size);
+        log.info("🏷[品牌商品] 查询品牌商品: brandId={}, page={}, size={}", (brandId + "").replace("\r", "_").replace("\n", "_"), (page + "").replace("\r", "_").replace("\n", "_"), (size + "").replace("\r", "_").replace("\n", "_"));
 
-        PageRequest pageRequest = PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "totalSales"));
+        PageRequest pageRequest = toPageRequest(page, size, "totalSales");
         Page<ProductDocument> resultPage = productSearchRepository.findByBrandIdAndStatus(brandId, STATUS_ON_SALE, pageRequest);
 
         log.debug("✅[品牌商品] 查询完成: 总数={}", resultPage.getTotalElements());
@@ -166,10 +166,18 @@ public class ProductSearchService {
     }
 
     /**
+     * 构建分页请求（页码从 1 开始，越界值收敛到合法区间）
+     */
+    private PageRequest toPageRequest(Integer page, Integer size, String sortField) {
+        int pageIndex = Math.max(1, page == null ? 1 : page) - 1;
+        int pageSize = Math.max(1, Math.min(size == null ? 20 : size, 100));
+        return PageRequest.of(pageIndex, pageSize, Sort.by(Sort.Direction.DESC, sortField));
+    }
+
+    /**
      * 构建分页请求
      */
-    private PageRequest buildPageRequest(ProductSearchRequest request) {
-        // 页码1 开始，转换为从 0 开
+    private PageRequest buildPageRequest(ProductSearchRequest request) {        // 页码1 开始，转换为从 0 开
         int page = Math.max(request.getPage() - 1, 0);
         // 每页数量限制：最1，最100
         int size = Math.max(1, Math.min(request.getSize(), 100));

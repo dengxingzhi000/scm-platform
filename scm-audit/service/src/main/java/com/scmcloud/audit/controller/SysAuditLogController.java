@@ -24,42 +24,42 @@ public class SysAuditLogController {
     @PostMapping
     public SysAuditLog create(@RequestBody SysAuditLog entity) {
         log.info("[API] 创建审计日志: userId={}, operationType={}, module={}",
-                entity.getUserId(), entity.getOperationType(), entity.getOperationModule());
+                (entity.getUserId() + "").replace("\r", "_").replace("\n", "_"), (entity.getOperationType() + "").replace("\r", "_").replace("\n", "_"), (entity.getOperationModule() + "").replace("\r", "_").replace("\n", "_"));
         return auditLogService.createLog(entity);
     }
 
     @Operation(summary = "查询审计日志", description = "根据日志 ID 查询审计日志详情。")
     @GetMapping("/{id}")
     public SysAuditLog getById(@Parameter(description = "审计日志 ID") @PathVariable String id) {
-        log.info("[API] 查询审计日志: id={}", id);
+        log.info("[API] 查询审计日志: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         return auditLogService.getById(id);
     }
 
     @Operation(summary = "删除审计日志", description = "根据日志 ID 删除审计日志记录。")
     @DeleteMapping("/{id}")
     public boolean deleteById(@Parameter(description = "审计日志 ID") @PathVariable String id) {
-        log.info("[API] 删除审计日志: id={}", id);
+        log.info("[API] 删除审计日志: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         return auditLogService.deleteById(id);
     }
 
     @Operation(summary = "按用户查询审计日志", description = "查询指定用户产生的全部审计日志。")
     @GetMapping("/user/{userId}")
     public List<SysAuditLog> listByUserId(@Parameter(description = "用户 ID") @PathVariable String userId) {
-        log.info("[API] 查询用户审计日志: userId={}", userId);
+        log.info("[API] 查询用户审计日志: userId={}", (userId + "").replace("\r", "_").replace("\n", "_"));
         return auditLogService.listByUserId(userId);
     }
 
     @Operation(summary = "按模块查询审计日志", description = "查询指定业务模块的审计日志。")
     @GetMapping("/module/{module}")
     public List<SysAuditLog> listByModule(@Parameter(description = "业务模块名称") @PathVariable String module) {
-        log.info("[API] 查询模块审计日志: module={}", module);
+        log.info("[API] 查询模块审计日志: module={}", (module + "").replace("\r", "_").replace("\n", "_"));
         return auditLogService.listByModule(module);
     }
 
     @Operation(summary = "按业务类型查询审计日志", description = "查询指定业务类型的审计日志。")
     @GetMapping("/business-type/{businessType}")
     public List<SysAuditLog> listByBusinessType(@Parameter(description = "业务类型") @PathVariable String businessType) {
-        log.info("[API] 查询业务类型审计日志: businessType={}", businessType);
+        log.info("[API] 查询业务类型审计日志: businessType={}", (businessType + "").replace("\r", "_").replace("\n", "_"));
         return auditLogService.listByBusinessType(businessType);
     }
 

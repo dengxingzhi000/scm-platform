@@ -22,7 +22,7 @@ public class PaymentOrderServiceImpl extends ServiceImpl<PaymentOrderMapper, Pay
     @Override
     @Transactional(rollbackFor = Exception.class)
     public PaymentOrder createPayment(String orderNo, String userId, BigDecimal amount, String paymentChannel) {
-        log.info("Creating payment: orderNo={}, userId={}, amount={}, channel={}", orderNo, userId, amount, paymentChannel);
+        log.info("Creating payment: orderNo={}, userId={}, amount={}, channel={}", (orderNo + "").replace("\r", "_").replace("\n", "_"), (userId + "").replace("\r", "_").replace("\n", "_"), (amount + "").replace("\r", "_").replace("\n", "_"), (paymentChannel + "").replace("\r", "_").replace("\n", "_"));
 
         PaymentOrder payment = new PaymentOrder();
         payment.setPaymentNo("PAY" + System.currentTimeMillis() + UUID.randomUUID().toString().substring(0, 8));
@@ -61,7 +61,7 @@ public class PaymentOrderServiceImpl extends ServiceImpl<PaymentOrderMapper, Pay
         payment.setStatus(4);
         payment.setUpdatedAt(LocalDateTime.now());
         updateById(payment);
-        log.info("Payment cancelled: paymentNo={}", paymentNo);
+        log.info("Payment cancelled: paymentNo={}", (paymentNo + "").replace("\r", "_").replace("\n", "_"));
     }
 
     @Override
@@ -76,6 +76,6 @@ public class PaymentOrderServiceImpl extends ServiceImpl<PaymentOrderMapper, Pay
         payment.setPaidAt(LocalDateTime.now());
         payment.setUpdatedAt(LocalDateTime.now());
         updateById(payment);
-        log.info("Payment callback handled: paymentNo={}, transactionId={}", paymentNo, transactionId);
+        log.info("Payment callback handled: paymentNo={}, transactionId={}", (paymentNo + "").replace("\r", "_").replace("\n", "_"), (transactionId + "").replace("\r", "_").replace("\n", "_"));
     }
 }

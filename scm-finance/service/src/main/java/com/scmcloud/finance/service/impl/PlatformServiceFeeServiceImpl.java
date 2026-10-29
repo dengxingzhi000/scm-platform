@@ -31,7 +31,7 @@ public class PlatformServiceFeeServiceImpl extends ServiceImpl<PlatformServiceFe
     @Override
     @Transactional(rollbackFor = Exception.class)
     public PlatformServiceFee recordPayment(String id, BigDecimal paidAmount) {
-        log.info("Record platform service fee payment: id={}, paidAmount={}", id, paidAmount);
+        log.info("Record platform service fee payment: id={}, paidAmount={}", (id + "").replace("\r", "_").replace("\n", "_"), (paidAmount + "").replace("\r", "_").replace("\n", "_"));
 
         if (paidAmount == null || paidAmount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Payment amount must be greater than 0");
@@ -57,7 +57,7 @@ public class PlatformServiceFeeServiceImpl extends ServiceImpl<PlatformServiceFe
         fee.setUpdateTime(LocalDateTime.now());
 
         updateById(fee);
-        log.info("Platform service fee payment successful: id={}", id);
+        log.info("Platform service fee payment successful: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         return fee;
     }
 }

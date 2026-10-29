@@ -18,9 +18,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
@@ -54,7 +54,7 @@ public class WebauthnCredentialServiceImpl extends ServiceImpl<WebauthnCredentia
         String key = WA_REG_CHALLENGE_PREFIX + userId + ":" + deviceId;
         long regChallengeExpiry = webAuthnConfig.getRegistrationChallengeExpirySeconds();
         try {
-            redisTemplate.opsForValue().set(key, challenge, regChallengeExpiry, TimeUnit.SECONDS);
+            redisTemplate.opsForValue().set(key, challenge, Duration.ofSeconds(regChallengeExpiry));
         } catch (Exception e) {
             log.error("Redis SET failed for key={}: {}", key, e.getMessage());
             throw new IllegalStateException("Failed to store registration challenge", e);
@@ -76,7 +76,7 @@ public class WebauthnCredentialServiceImpl extends ServiceImpl<WebauthnCredentia
     @Override
     @Transactional(rollbackFor = Exception.class)
     public WebauthnCredentialDTO registerCredential(UUID userId, WebauthnRegistrationRequest request) {
-        log.info("Registering WebAuthn credential for user={}, credentialId={}", userId, request.getCredentialId());
+        log.info("Registering WebAuthn credential for user={}, credentialId={}", (userId + "").replace("\r", "_").replace("\n", "_"), (request.getCredentialId() + "").replace("\r", "_").replace("\n", "_"));
 
         WebauthnCredential existing = credentialMapper.findByUserIdAndCredId(userId, request.getCredentialId());
         if (existing != null) {
@@ -88,7 +88,7 @@ public class WebauthnCredentialServiceImpl extends ServiceImpl<WebauthnCredentia
         try {
             expectedChallenge = redisTemplate.opsForValue().get(challengeKey);
         } catch (Exception e) {
-            log.error("Redis GET failed for key={}: {}", challengeKey, e.getMessage());
+            log.error("Redis GET failed for registration challenge of user={}: {}", (userId + "").replace("\r", "_").replace("\n", "_"), (e.getMessage() + "").replace("\r", "_").replace("\n", "_"));
             throw new IllegalStateException("Failed to retrieve registration challenge", e);
         }
         if (expectedChallenge == null) {
@@ -104,7 +104,7 @@ public class WebauthnCredentialServiceImpl extends ServiceImpl<WebauthnCredentia
         try {
             redisTemplate.delete(challengeKey);
         } catch (Exception e) {
-            log.warn("Redis DELETE failed for key={}: {}", challengeKey, e.getMessage());
+            log.warn("Redis DELETE failed for registration challenge of user={}: {}", (userId + "").replace("\r", "_").replace("\n", "_"), (e.getMessage() + "").replace("\r", "_").replace("\n", "_"));
         }
 
         WebauthnCredential credential = WebauthnCredential.builder()
@@ -154,14 +154,14 @@ public class WebauthnCredentialServiceImpl extends ServiceImpl<WebauthnCredentia
 
     @Override
     public WebAuthnChallengeResponse generateAuthenticationChallenge(
-            UUID userId, String username, String deviceId, String rpId) {
+            UUID userId, String deviceId, String rpId) {
         log.info("Generating authentication challenge for user={}, device={}", userId, deviceId);
 
         String challenge = base64Url(randomBytes());
         String key = WA_CHALLENGE_PREFIX + userId + ":" + deviceId;
         long challengeExpiry = webAuthnConfig.getChallengeExpirySeconds();
         try {
-            redisTemplate.opsForValue().set(key, challenge, challengeExpiry, TimeUnit.SECONDS);
+            redisTemplate.opsForValue().set(key, challenge, Duration.ofSeconds(challengeExpiry));
         } catch (Exception e) {
             log.error("Redis SET failed for key={}: {}", key, e.getMessage());
             throw new IllegalStateException("Failed to store authentication challenge", e);
@@ -194,7 +194,7 @@ public class WebauthnCredentialServiceImpl extends ServiceImpl<WebauthnCredentia
     public TokenUpgradeResponse authenticateAndUpgradeToken(
             UUID userId, String username, WebauthnAuthenticationRequest request,
             String deviceId, String ipAddress) {
-        log.info("Authenticating WebAuthn for user={}, credentialId={}", userId, request.getCredentialId());
+        log.info("Authenticating WebAuthn for user={}, credentialId={}", (userId + "").replace("\r", "_").replace("\n", "_"), (request.getCredentialId() + "").replace("\r", "_").replace("\n", "_"));
 
         String key = WA_CHALLENGE_PREFIX + userId + ":" + deviceId;
         Object expectedChallenge;
@@ -215,7 +215,7 @@ public class WebauthnCredentialServiceImpl extends ServiceImpl<WebauthnCredentia
 
         if (!credential.isCounterValid(request.getSignCount())) {
             log.warn("Invalid signature counter for user={}, credentialId={}, expected>{}, got={}",
-                    userId, request.getCredentialId(), credential.getSignCount(), request.getSignCount());
+                    (userId + "").replace("\r", "_").replace("\n", "_"), (request.getCredentialId() + "").replace("\r", "_").replace("\n", "_"), (credential.getSignCount() + "").replace("\r", "_").replace("\n", "_"), (request.getSignCount() + "").replace("\r", "_").replace("\n", "_"));
             throw new IllegalStateException("Signature counter invalid, possible clone attack");
         }
 
@@ -264,7 +264,7 @@ public class WebauthnCredentialServiceImpl extends ServiceImpl<WebauthnCredentia
     @Override
     @Transactional(rollbackFor = Exception.class)
     public WebauthnCredentialDTO updateDeviceName(UUID userId, String credentialId, String deviceName) {
-        log.info("Updating device name for user={}, credentialId={}", userId, credentialId);
+        log.info("Updating device name for user={}, credentialId={}", (userId + "").replace("\r", "_").replace("\n", "_"), (credentialId + "").replace("\r", "_").replace("\n", "_"));
 
         int updated = credentialMapper.updateDeviceName(userId, credentialId, deviceName);
         if (updated == 0) {
@@ -278,7 +278,7 @@ public class WebauthnCredentialServiceImpl extends ServiceImpl<WebauthnCredentia
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deactivateCredential(UUID userId, String credentialId) {
-        log.info("Deactivating credential for user={}, credentialId={}", userId, credentialId);
+        log.info("Deactivating credential for user={}, credentialId={}", (userId + "").replace("\r", "_").replace("\n", "_"), (credentialId + "").replace("\r", "_").replace("\n", "_"));
 
         int updated = credentialMapper.disableCredential(userId, credentialId);
         if (updated == 0) {
@@ -289,14 +289,14 @@ public class WebauthnCredentialServiceImpl extends ServiceImpl<WebauthnCredentia
         try {
             redisTemplate.delete(cacheKey);
         } catch (Exception e) {
-            log.warn("Redis DELETE failed for key={}: {}", cacheKey, e.getMessage());
+            log.warn("Redis DELETE failed for key={}: {}", (cacheKey + "").replace("\r", "_").replace("\n", "_"), (e.getMessage() + "").replace("\r", "_").replace("\n", "_"));
         }
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteCredential(UUID userId, String credentialId) {
-        log.info("Deleting credential for user={}, credentialId={}", userId, credentialId);
+        log.info("Deleting credential for user={}, credentialId={}", (userId + "").replace("\r", "_").replace("\n", "_"), (credentialId + "").replace("\r", "_").replace("\n", "_"));
 
         int deleted = credentialMapper.deleteByUserIdAndCredId(userId, credentialId);
         if (deleted == 0) {
@@ -307,7 +307,7 @@ public class WebauthnCredentialServiceImpl extends ServiceImpl<WebauthnCredentia
         try {
             redisTemplate.delete(cacheKey);
         } catch (Exception e) {
-            log.warn("Redis DELETE failed for key={}: {}", cacheKey, e.getMessage());
+            log.warn("Redis DELETE failed for key={}: {}", (cacheKey + "").replace("\r", "_").replace("\n", "_"), (e.getMessage() + "").replace("\r", "_").replace("\n", "_"));
         }
     }
 
@@ -351,14 +351,14 @@ public class WebauthnCredentialServiceImpl extends ServiceImpl<WebauthnCredentia
 
         try {
             redisTemplate.opsForHash().putAll(key, attempt);
-            redisTemplate.expire(key, webAuthnConfig.getAuthAttemptRetentionDays(), TimeUnit.DAYS);
+            redisTemplate.expire(key, Duration.ofDays(webAuthnConfig.getAuthAttemptRetentionDays()));
         } catch (Exception e) {
-            log.error("Redis HSET+EXPIRE failed for key={}: {}", key, e.getMessage());
+            log.error("Redis HSET+EXPIRE failed for key={}: {}", (key + "").replace("\r", "_").replace("\n", "_"), (e.getMessage() + "").replace("\r", "_").replace("\n", "_"));
         }
 
         if (!success) {
             log.warn("Failed WebAuthn authentication attempt for user={}, credentialId={}, ip={}",
-                    userId, credentialId, ipAddress);
+                    (userId + "").replace("\r", "_").replace("\n", "_"), (credentialId + "").replace("\r", "_").replace("\n", "_"), (ipAddress + "").replace("\r", "_").replace("\n", "_"));
         }
     }
 

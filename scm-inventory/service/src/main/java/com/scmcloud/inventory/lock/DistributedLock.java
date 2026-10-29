@@ -56,11 +56,11 @@ public class DistributedLock {
         );
 
         if (result != null && result == 1L) {
-            log.debug("获取分布式锁成功: key={}, clientId={}, expireTime={} {}", key, clientId, expireTime, timeUnit);
+            log.debug("获取分布式锁成功: key={}, clientId={}, expireTime={} {}", (key + "").replace("\r", "_").replace("\n", "_"), (clientId + "").replace("\r", "_").replace("\n", "_"), (expireTime + "").replace("\r", "_").replace("\n", "_"), (timeUnit + "").replace("\r", "_").replace("\n", "_"));
             return new LockHandle(lockKey, clientId, this);
         }
 
-        log.debug("获取分布式锁失败（锁已被占用） key={}", key);
+        log.debug("获取分布式锁失败（锁已被占用） key={}", (key + "").replace("\r", "_").replace("\n", "_"));
         return null;
     }
 
@@ -112,11 +112,11 @@ public class DistributedLock {
         );
 
         if (result != null && result == 1L) {
-            log.debug("释放分布式锁成功: key={}, clientId={}", lockKey, clientId);
+            log.debug("释放分布式锁成功: key={}, clientId={}", (lockKey + "").replace("\r", "_").replace("\n", "_"), (clientId + "").replace("\r", "_").replace("\n", "_"));
             return true;
         }
 
-        log.warn("释放分布式锁失败（锁不存在或已过期）: key={}, clientId={}", lockKey, clientId);
+        log.warn("释放分布式锁失败（锁不存在或已过期）: key={}, clientId={}", (lockKey + "").replace("\r", "_").replace("\n", "_"), (clientId + "").replace("\r", "_").replace("\n", "_"));
         return false;
     }
 

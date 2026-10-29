@@ -80,7 +80,7 @@ public class StepUpFilter extends OncePerRequestFilter {
             // Sentinel circuit is open or rate limited
             if (properties.getCircuitBreaker().isBypassOnOpen()) {
 
-                log.warn("Step-up evaluation BLOCKED by Sentinel, bypassing: uri={}", uri, ex);
+                log.warn("Step-up evaluation BLOCKED by Sentinel, bypassing: uri={}", (uri + "").replace("\r", "_").replace("\n", "_"), ex);
                 response.setHeader("X-StepUp-Bypass", "sentinel-circuit");
 
                 securityMetrics.increment("security.stepup.bypass.circuit");
@@ -88,7 +88,7 @@ public class StepUpFilter extends OncePerRequestFilter {
                 return;
             } else {
 
-                log.error("Step-up evaluation BLOCKED by Sentinel, denying access: uri={}", uri, ex);
+                log.error("Step-up evaluation BLOCKED by Sentinel, denying access: uri={}", (uri + "").replace("\r", "_").replace("\n", "_"), ex);
 
                 throw new ServletException("Step-up evaluation blocked by circuit breaker", ex);
             }
@@ -142,7 +142,7 @@ public class StepUpFilter extends OncePerRequestFilter {
             UUID userIdLog = user != null ? user.getUserId() : null;
 
             log.info("Step-up required: traceId={} userId={} method={} uri={} -> {}",
-                    request.getHeader("X-Request-ID"), userIdLog, request.getMethod(), request.getRequestURI(), require);
+                    (request.getHeader("X-Request-ID") + "").replace("\r", "_").replace("\n", "_"), (userIdLog + "").replace("\r", "_").replace("\n", "_"), (request.getMethod() + "").replace("\r", "_").replace("\n", "_"), (request.getRequestURI() + "").replace("\r", "_").replace("\n", "_"), (require + "").replace("\r", "_").replace("\n", "_"));
             return;
         }
 

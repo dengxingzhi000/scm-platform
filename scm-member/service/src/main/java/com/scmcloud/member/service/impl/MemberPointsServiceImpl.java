@@ -20,19 +20,28 @@ import java.util.List;
 @Service
 public class MemberPointsServiceImpl extends ServiceImpl<MemberPointsLogMapper, MemberPointsLog> implements IMemberPointsService {
 
+    private static final long MAX_POINTS = 1_000_000_000L;
+
     private final IMemberService memberService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void addPoints(String userId, Integer points, String source, String orderNo, String description) {
-        log.info("Adding points: userId={}, points={}, source={}", userId, points, source);
+        if (points == null || points <= 0) {
+            throw new IllegalArgumentException("Points to add must be positive");
+        }
+        log.info("Adding points: userId={}, points={}, source={}", (userId + "").replace("\r", "_").replace("\n", "_"), (points + "").replace("\r", "_").replace("\n", "_"), (source + "").replace("\r", "_").replace("\n", "_"));
 
         Member member = memberService.getByUserId(userId);
         if (member == null) {
             throw new IllegalArgumentException("Member not found: " + userId);
         }
 
-        member.setPoints(member.getPoints() + points);
+        long updatedPoints = (long) (member.getPoints() == null ? 0 : member.getPoints()) + points;
+        if (updatedPoints > MAX_POINTS) {
+            throw new IllegalArgumentException("Points balance exceeds the supported maximum: " + MAX_POINTS);
+        }
+        member.setPoints((int) updatedPoints);
         member.setUpdatedAt(LocalDateTime.now());
         memberService.updateById(member);
 
@@ -50,7 +59,7 @@ public class MemberPointsServiceImpl extends ServiceImpl<MemberPointsLogMapper, 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deductPoints(String userId, Integer points, String source, String orderNo, String description) {
-        log.info("Deducting points: userId={}, points={}, source={}", userId, points, source);
+        log.info("Deducting points: userId={}, points={}, source={}", (userId + "").replace("\r", "_").replace("\n", "_"), (points + "").replace("\r", "_").replace("\n", "_"), (source + "").replace("\r", "_").replace("\n", "_"));
 
         Member member = memberService.getByUserId(userId);
         if (member == null) {

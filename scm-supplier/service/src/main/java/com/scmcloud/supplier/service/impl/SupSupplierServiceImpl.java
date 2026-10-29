@@ -24,7 +24,7 @@ public class SupSupplierServiceImpl extends ServiceImpl<SupSupplierMapper, SupSu
     @Override
     public Page<SupSupplier> pageList(int page, int size, String keyword, Integer supplierType,
                                       Integer cooperationStatus, Boolean enabled) {
-        log.debug("分页查询供应商 page={}, size={}, keyword={}", page, size, keyword);
+        log.debug("分页查询供应商 page={}, size={}, keyword={}", (page + "").replace("\r", "_").replace("\n", "_"), (size + "").replace("\r", "_").replace("\n", "_"), (keyword + "").replace("\r", "_").replace("\n", "_"));
 
         LambdaQueryWrapper<SupSupplier> wrapper = Wrappers.lambdaQuery();
 
@@ -68,7 +68,7 @@ public class SupSupplierServiceImpl extends ServiceImpl<SupSupplierMapper, SupSu
         if (!StringUtils.hasText(name)) {
             return List.of();
         }
-        log.debug("按名称搜索供应商: name={}", name);
+        log.debug("按名称搜索供应商: name={}", (name + "").replace("\r", "_").replace("\n", "_"));
         return lambdaQuery()
                 .like(SupSupplier::getSupplierName, name)
                 .eq(SupSupplier::getDeleted, false)
@@ -79,10 +79,10 @@ public class SupSupplierServiceImpl extends ServiceImpl<SupSupplierMapper, SupSu
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean enableSupplier(String id) {
-        log.info("启用供应商 id={}", id);
+        log.info("启用供应商 id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         SupSupplier supplier = getById(id);
         if (supplier == null) {
-            log.warn("供应商不存在: id={}", id);
+            log.warn("供应商不存在: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
             return false;
         }
         supplier.setEnabled(true);
@@ -93,10 +93,10 @@ public class SupSupplierServiceImpl extends ServiceImpl<SupSupplierMapper, SupSu
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean disableSupplier(String id) {
-        log.info("停用供应商 id={}", id);
+        log.info("停用供应商 id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         SupSupplier supplier = getById(id);
         if (supplier == null) {
-            log.warn("供应商不存在: id={}", id);
+            log.warn("供应商不存在: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
             return false;
         }
         supplier.setEnabled(false);

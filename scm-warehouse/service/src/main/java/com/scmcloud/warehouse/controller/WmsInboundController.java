@@ -25,16 +25,16 @@ public class WmsInboundController {
     @Operation(summary = "创建入库单", description = "根据仓库与入库类型新建一张入库单并生成入库单号。")
     @PostMapping
     public ApiResponse<WmsInbound> create(@RequestBody WmsInbound inbound) {
-        log.info("[API] 创建入库单 warehouseId={}, type={}", inbound.getWarehouseId(), inbound.getInboundType());
+        log.info("[API] 创建入库单 warehouseId={}, type={}", (inbound.getWarehouseId() + "").replace("\r", "_").replace("\n", "_"), (inbound.getInboundType() + "").replace("\r", "_").replace("\n", "_"));
         WmsInbound created = inboundCommandService.create(inbound);
-        log.info("[API] 入库单创建成功 id={}, inboundNo={}", created.getId(), created.getInboundNo());
+        log.info("[API] 入库单创建成功 id={}, inboundNo={}", (created.getId() + "").replace("\r", "_").replace("\n", "_"), (created.getInboundNo() + "").replace("\r", "_").replace("\n", "_"));
         return ApiResponse.success(created);
     }
 
     @Operation(summary = "更新入库单", description = "按主键更新入库单信息，仅允许在未收货状态下修改。")
     @PutMapping("/{id}")
     public ApiResponse<WmsInbound> update(@Parameter(description = "入库单主键 ID") @PathVariable String id, @RequestBody WmsInbound inbound) {
-        log.info("[API] 更新入库单 id={}", id);
+        log.info("[API] 更新入库单 id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         inbound.setId(id);
         try {
             boolean success = inboundCommandService.update(inbound);
@@ -50,7 +50,7 @@ public class WmsInboundController {
     @Operation(summary = "删除入库单", description = "按主键逻辑删除入库单，已删除的单据不再对外可见。")
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@Parameter(description = "入库单主键 ID") @PathVariable String id) {
-        log.info("[API] 删除入库单 id={}", id);
+        log.info("[API] 删除入库单 id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         boolean success = inboundCommandService.softDeleteById(id);
         return success ? ApiResponse.success() : ApiResponse.fail(404, "入库单不存在");
     }
@@ -82,7 +82,7 @@ public class WmsInboundController {
             @Parameter(description = "入库单主键 ID") @PathVariable String id,
             @Parameter(description = "操作人用户 ID") @RequestParam String operatorId,
             @Parameter(description = "操作人姓名") @RequestParam String operatorName) {
-        log.info("[API] 入库收货: id={}, operator={}", id, operatorName);
+        log.info("[API] 入库收货: id={}, operator={}", (id + "").replace("\r", "_").replace("\n", "_"), (operatorName + "").replace("\r", "_").replace("\n", "_"));
         try {
             boolean success = inboundCommandService.receive(id, operatorId, operatorName);
             return success ? ApiResponse.success() : ApiResponse.fail(400, "收货失败");
@@ -97,7 +97,7 @@ public class WmsInboundController {
             @Parameter(description = "入库单主键 ID") @PathVariable String id,
             @Parameter(description = "操作人用户 ID") @RequestParam String operatorId,
             @Parameter(description = "操作人姓名") @RequestParam String operatorName) {
-        log.info("[API] 取消入库单 id={}, operator={}", id, operatorName);
+        log.info("[API] 取消入库单 id={}, operator={}", (id + "").replace("\r", "_").replace("\n", "_"), (operatorName + "").replace("\r", "_").replace("\n", "_"));
         try {
             boolean success = inboundCommandService.cancel(id, operatorId, operatorName);
             return success ? ApiResponse.success() : ApiResponse.fail(400, "取消失败");

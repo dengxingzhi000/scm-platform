@@ -37,7 +37,7 @@ public class ReviewServiceImpl extends ServiceImpl<ReviewMapper, Review> impleme
         review.setCreatedAt(LocalDateTime.now());
         save(review);
         log.info("Review created: reviewId={}, productId={}, userId={}, rating={}",
-                review.getId(), review.getProductId(), review.getUserId(), review.getRating());
+                (review.getId() + "").replace("\r", "_").replace("\n", "_"), (review.getProductId() + "").replace("\r", "_").replace("\n", "_"), (review.getUserId() + "").replace("\r", "_").replace("\n", "_"), (review.getRating() + "").replace("\r", "_").replace("\n", "_"));
         return review;
     }
 
@@ -61,6 +61,6 @@ public class ReviewServiceImpl extends ServiceImpl<ReviewMapper, Review> impleme
             throw new IllegalStateException("Cannot delete another user's review");
         }
         removeById(reviewId);
-        log.info("Review deleted: reviewId={}, userId={}", reviewId, userId);
+        log.info("Review deleted: reviewId={}, userId={}", (reviewId + "").replace("\r", "_").replace("\n", "_"), (userId + "").replace("\r", "_").replace("\n", "_"));
     }
 }

@@ -50,7 +50,7 @@ public class ProductSearchController {
     public ApiResponse<Page<ProductSearchResponse>> search(
             @RequestBody ProductSearchRequest request) {
 
-        log.debug("📥 [API] 收到商品搜索请求: {}", request);
+        log.debug("📥 [API] 收到商品搜索请求: {}", (request + "").replace("\r", "_").replace("\n", "_"));
 
         Page<ProductSearchResponse> result = productSearchService.search(request);
 
@@ -112,7 +112,7 @@ public class ProductSearchController {
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "20") Integer size) {
 
-        log.debug("📥 [API] 按分类查询商品 categoryId={}, page={}, size={}", categoryId, page, size);
+        log.debug("📥 [API] 按分类查询商品 categoryId={}, page={}, size={}", (categoryId + "").replace("\r", "_").replace("\n", "_"), (page + "").replace("\r", "_").replace("\n", "_"), (size + "").replace("\r", "_").replace("\n", "_"));
 
         Page<ProductSearchResponse> result = productSearchService.findByCategory(categoryId, page, size);
 
@@ -133,7 +133,7 @@ public class ProductSearchController {
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "20") Integer size) {
 
-        log.debug("📥 [API] 按品牌查询商品 brandId={}, page={}, size={}", brandId, page, size);
+        log.debug("📥 [API] 按品牌查询商品 brandId={}, page={}, size={}", (brandId + "").replace("\r", "_").replace("\n", "_"), (page + "").replace("\r", "_").replace("\n", "_"), (size + "").replace("\r", "_").replace("\n", "_"));
 
         Page<ProductSearchResponse> result = productSearchService.findByBrand(brandId, page, size);
 
@@ -160,7 +160,7 @@ public class ProductSearchController {
             @RequestParam(defaultValue = "desc") String sortOrder) {
 
         log.debug("📥 [API] 快速搜索 keyword={}, page={}, size={}, sortBy={}, sortOrder={}",
-                keyword, page, size, sortBy, sortOrder);
+                (keyword + "").replace("\r", "_").replace("\n", "_"), (page + "").replace("\r", "_").replace("\n", "_"), (size + "").replace("\r", "_").replace("\n", "_"), (sortBy + "").replace("\r", "_").replace("\n", "_"), (sortOrder + "").replace("\r", "_").replace("\n", "_"));
 
         ProductSearchRequest request = new ProductSearchRequest();
         request.setKeyword(keyword);

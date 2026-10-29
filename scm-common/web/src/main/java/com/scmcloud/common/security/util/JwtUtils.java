@@ -245,22 +245,22 @@ public class JwtUtils {
         String hashKey = USER_TOKENS_HASH + userId;
 
         // Get all device tokens for this user (O(N) where N = devices per user, typically < 10)
-        Map<Object, Object> deviceTokens = redisTemplate.opsForHash().entries(hashKey);
+        Map<Object, Object> deviceSessions = redisTemplate.opsForHash().entries(hashKey);
 
-        if (deviceTokens != null && !deviceTokens.isEmpty()) {
-            log.info("Revoking {} token(s) for user {}", deviceTokens.size(), userId);
+        if (deviceSessions != null && !deviceSessions.isEmpty()) {
+            log.info("Revoking {} token(s) for user {}", deviceSessions.size(), userId);
 
-            for (Map.Entry<Object, Object> entry : deviceTokens.entrySet()) {
+            for (Map.Entry<Object, Object> entry : deviceSessions.entrySet()) {
                 String deviceId = (String) entry.getKey();
                 String token = (String) entry.getValue();
 
                 if (token != null) {
                     try {
                         revokeToken(token, "Admin forced logout");
-                        log.debug("Revoked token for user {} device {}", userId, deviceId);
+                        log.debug("Revoked session for user {} device {}", userId, maskIdentifier(deviceId));
                     } catch (Exception e) {
-                        log.error("Failed to revoke token for user {} device {}: {}",
-                                 userId, deviceId, e.getMessage());
+                        log.error("Failed to revoke session for user {} device {}: {}",
+                                 userId, maskIdentifier(deviceId), e.getMessage());
                     }
                 }
             }
@@ -441,19 +441,19 @@ public class JwtUtils {
     }
 
     private boolean validateDevice(Claims claims, String currentDeviceId) {
-        String tokenDeviceId = (String) claims.get("deviceId");
-        if (tokenDeviceId != null && !tokenDeviceId.equals(currentDeviceId)) {
+        String claimDeviceId = (String) claims.get("deviceId");
+        if (claimDeviceId != null && !claimDeviceId.equals(currentDeviceId)) {
             log.warn("Device mismatch: expected={}, actual={}",
-                    tokenDeviceId, currentDeviceId);
+                    maskIdentifier(claimDeviceId), maskIdentifier(currentDeviceId));
             return false;
         }
         return true;
     }
 
     private boolean validateIpAddress(Claims claims, String currentIp) {
-        String tokenIp = (String) claims.get("ipAddress");
-        if (tokenIp != null && !tokenIp.equals(currentIp)) {
-            log.warn("IP changed: {} -> {}", tokenIp, currentIp);
+        String claimIp = (String) claims.get("ipAddress");
+        if (claimIp != null && !claimIp.equals(currentIp)) {
+            log.warn("IP changed: {} -> {}", (maskIdentifier(claimIp) + "").replace("\r", "_").replace("\n", "_"), (maskIdentifier(currentIp) + "").replace("\r", "_").replace("\n", "_"));
             return false;
         }
         return true;
@@ -532,7 +532,7 @@ public class JwtUtils {
         String oldToken = (String) redisTemplate.opsForHash().get(userTokensHash, deviceId);
         if (oldToken != null) {
             revokeToken(oldToken, "Token refreshed");
-            log.debug("Revoked old token for user {} device {}", userId, deviceId);
+            log.debug("Revoked old token for user {} device {}", (userId + "").replace("\r", "_").replace("\n", "_"), (deviceId + "").replace("\r", "_").replace("\n", "_"));
         }
     }
 
@@ -597,5 +597,16 @@ public class JwtUtils {
         } finally {
             redisTemplate.delete(lockKey);
         }
+    }
+
+    /**
+     * Keeps a short prefix so operators can still correlate logs, without writing the full
+     * device identifier or client IP to disk.
+     */
+    private static String maskIdentifier(String value) {
+        if (value == null || value.isEmpty()) {
+            return "***";
+        }
+        return value.length() <= 4 ? "***" : value.substring(0, 4) + "***";
     }
 }

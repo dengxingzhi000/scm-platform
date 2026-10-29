@@ -66,7 +66,7 @@ public class TmsDeliveryAreaController {
     @Operation(summary = "新增配送区域", description = "创建新的配送区域并返回保存后的区域信息。")
     @PostMapping
     public ApiResponse<TmsDeliveryArea> create(@RequestBody TmsDeliveryArea area) {
-        log.info("Create delivery area: areaCode={}, areaName={}", area.getAreaCode(), area.getAreaName());
+        log.info("Create delivery area: areaCode={}, areaName={}", (area.getAreaCode() + "").replace("\r", "_").replace("\n", "_"), (area.getAreaName() + "").replace("\r", "_").replace("\n", "_"));
         area.setId(UUID.randomUUID().toString());
         area.setDeleted(false);
         area.setCreateTime(LocalDateTime.now());
@@ -78,7 +78,7 @@ public class TmsDeliveryAreaController {
     @Operation(summary = "更新配送区域", description = "根据主键 ID 更新配送区域信息并返回更新后的数据。")
     @PutMapping("/{id}")
     public ApiResponse<TmsDeliveryArea> update(@Parameter(description = "配送区域主键 ID") @PathVariable String id, @RequestBody TmsDeliveryArea area) {
-        log.info("Update delivery area: id={}", id);
+        log.info("Update delivery area: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         area.setId(id);
         area.setUpdateTime(LocalDateTime.now());
         deliveryAreaService.updateById(area);
@@ -88,7 +88,7 @@ public class TmsDeliveryAreaController {
     @Operation(summary = "删除配送区域", description = "根据主键 ID 逻辑删除指定配送区域。")
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@Parameter(description = "配送区域主键 ID") @PathVariable String id) {
-        log.info("Delete delivery area: id={}", id);
+        log.info("Delete delivery area: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         TmsDeliveryArea area = new TmsDeliveryArea();
         area.setId(id);
         area.setDeleted(true);

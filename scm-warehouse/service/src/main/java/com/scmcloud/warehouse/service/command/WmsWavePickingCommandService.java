@@ -36,7 +36,7 @@ public class WmsWavePickingCommandService {
         wave.setCreateTime(LocalDateTime.now());
         wave.setUpdateTime(LocalDateTime.now());
         wavePickingMapper.insert(wave);
-        log.info("波次拣货单创建成功 id={}, waveNo={}", wave.getId(), wave.getWaveNo());
+        log.info("波次拣货单创建成功 id={}, waveNo={}", (wave.getId() + "").replace("\r", "_").replace("\n", "_"), (wave.getWaveNo() + "").replace("\r", "_").replace("\n", "_"));
         return wave;
     }
 
@@ -69,7 +69,7 @@ public class WmsWavePickingCommandService {
     public boolean start(String waveId, String pickerId, String pickerName) {
         WmsWavePicking wave = wavePickingMapper.selectById(waveId);
         if (wave == null) {
-            log.warn("[start] 波次拣货单不存在: id={}", waveId);
+            log.warn("[start] 波次拣货单不存在: id={}", (waveId + "").replace("\r", "_").replace("\n", "_"));
             return false;
         }
 
@@ -85,7 +85,7 @@ public class WmsWavePickingCommandService {
 
         boolean success = wavePickingMapper.updateById(wave) > 0;
         if (success) {
-            log.info("波次拣货已开始: id={}, waveNo={}, picker={}", waveId, wave.getWaveNo(), pickerName);
+            log.info("波次拣货已开始: id={}, waveNo={}, picker={}", (waveId + "").replace("\r", "_").replace("\n", "_"), (wave.getWaveNo() + "").replace("\r", "_").replace("\n", "_"), (pickerName + "").replace("\r", "_").replace("\n", "_"));
         }
         return success;
     }
@@ -95,7 +95,7 @@ public class WmsWavePickingCommandService {
     public boolean complete(String waveId, String operatorId) {
         WmsWavePicking wave = wavePickingMapper.selectById(waveId);
         if (wave == null) {
-            log.warn("[complete] 波次拣货单不存在: id={}", waveId);
+            log.warn("[complete] 波次拣货单不存在: id={}", (waveId + "").replace("\r", "_").replace("\n", "_"));
             return false;
         }
 
@@ -109,7 +109,7 @@ public class WmsWavePickingCommandService {
 
         boolean success = wavePickingMapper.updateById(wave) > 0;
         if (success) {
-            log.info("波次拣货已完成: id={}, waveNo={}", waveId, wave.getWaveNo());
+            log.info("波次拣货已完成: id={}, waveNo={}", (waveId + "").replace("\r", "_").replace("\n", "_"), (wave.getWaveNo() + "").replace("\r", "_").replace("\n", "_"));
         }
         return success;
     }
@@ -119,7 +119,7 @@ public class WmsWavePickingCommandService {
     public boolean cancel(String waveId, String operatorId) {
         WmsWavePicking wave = wavePickingMapper.selectById(waveId);
         if (wave == null) {
-            log.warn("[cancel] 波次拣货单不存在: id={}", waveId);
+            log.warn("[cancel] 波次拣货单不存在: id={}", (waveId + "").replace("\r", "_").replace("\n", "_"));
             return false;
         }
 
@@ -132,7 +132,7 @@ public class WmsWavePickingCommandService {
 
         boolean success = wavePickingMapper.updateById(wave) > 0;
         if (success) {
-            log.info("波次拣货已取消: id={}, waveNo={}", waveId, wave.getWaveNo());
+            log.info("波次拣货已取消: id={}, waveNo={}", (waveId + "").replace("\r", "_").replace("\n", "_"), (wave.getWaveNo() + "").replace("\r", "_").replace("\n", "_"));
         }
         return success;
     }

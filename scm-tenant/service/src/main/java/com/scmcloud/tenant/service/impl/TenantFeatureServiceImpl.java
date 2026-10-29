@@ -18,6 +18,7 @@ import java.util.UUID;
 @Service
 public class TenantFeatureServiceImpl extends ServiceImpl<TenantFeatureMapper, TenantFeature> implements ITenantFeatureService {
 
+    @Override
     public TenantFeature createFeature(TenantFeature entity) {
         log.info("Create tenant feature: tenantId={}, featureCode={}", entity.getTenantId(), entity.getFeatureCode());
         entity.setId(UUID.randomUUID().toString());
@@ -31,12 +32,14 @@ public class TenantFeatureServiceImpl extends ServiceImpl<TenantFeatureMapper, T
         return entity;
     }
 
+    @Override
     public TenantFeature getById(String id) {
         return lambdaQuery()
                 .eq(TenantFeature::getId, id)
                 .one();
     }
 
+    @Override
     public TenantFeature updateFeature(TenantFeature entity) {
         log.info("Update tenant feature: id={}", entity.getId());
         entity.setUpdateTime(LocalDateTime.now());
@@ -44,11 +47,13 @@ public class TenantFeatureServiceImpl extends ServiceImpl<TenantFeatureMapper, T
         return entity;
     }
 
+    @Override
     public boolean deleteById(String id) {
         log.info("Delete tenant feature: id={}", id);
         return removeById(id);
     }
 
+    @Override
     public boolean isFeatureEnabled(String tenantId, String featureCode) {
         log.debug("Check if feature is enabled: tenantId={}, featureCode={}", tenantId, featureCode);
 
@@ -58,7 +63,7 @@ public class TenantFeatureServiceImpl extends ServiceImpl<TenantFeatureMapper, T
                 .one();
 
         if (feature == null) {
-            log.debug("Feature not found: tenantId={}, featureCode={}", tenantId, featureCode);
+            log.debug("Feature not found: tenantId={}, featureCode={}", (tenantId + "").replace("\r", "_").replace("\n", "_"), (featureCode + "").replace("\r", "_").replace("\n", "_"));
             return false;
         }
 
@@ -67,6 +72,7 @@ public class TenantFeatureServiceImpl extends ServiceImpl<TenantFeatureMapper, T
         return enabled;
     }
 
+    @Override
     public List<TenantFeature> listByTenantId(String tenantId) {
         return lambdaQuery()
                 .eq(TenantFeature::getTenantId, tenantId)
@@ -74,6 +80,7 @@ public class TenantFeatureServiceImpl extends ServiceImpl<TenantFeatureMapper, T
                 .list();
     }
 
+    @Override
     public Page<TenantFeature> pageQuery(int page, int size, String tenantId, String featureCode, Boolean enabled) {
         log.debug("Page query tenant features: page={}, size={}, tenantId={}, featureCode={}, enabled={}",
                 page, size, tenantId, featureCode, enabled);

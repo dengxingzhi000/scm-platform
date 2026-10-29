@@ -38,7 +38,7 @@ public class PlatformServiceFeeController {
         fee.setCreateTime(LocalDateTime.now());
         fee.setUpdateTime(LocalDateTime.now());
         platformServiceFeeService.save(fee);
-        log.info("Platform service fee created successfully: id={}, feeType={}", fee.getId(), fee.getFeeType());
+        log.info("Platform service fee created successfully: id={}, feeType={}", (fee.getId() + "").replace("\r", "_").replace("\n", "_"), (fee.getFeeType() + "").replace("\r", "_").replace("\n", "_"));
         return ApiResponse.success(fee);
     }
 
@@ -48,7 +48,7 @@ public class PlatformServiceFeeController {
         fee.setId(id);
         fee.setUpdateTime(LocalDateTime.now());
         platformServiceFeeService.updateById(fee);
-        log.info("Platform service fee updated successfully: id={}", id);
+        log.info("Platform service fee updated successfully: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         return ApiResponse.success(fee);
     }
 
@@ -56,7 +56,7 @@ public class PlatformServiceFeeController {
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@Parameter(description = "平台服务费账单 ID") @PathVariable String id) {
         platformServiceFeeService.removeById(id);
-        log.info("Platform service fee deleted successfully: id={}", id);
+        log.info("Platform service fee deleted successfully: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         return ApiResponse.success();
     }
 

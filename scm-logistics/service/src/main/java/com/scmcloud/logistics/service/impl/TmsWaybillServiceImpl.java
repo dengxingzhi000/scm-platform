@@ -27,7 +27,7 @@ public class TmsWaybillServiceImpl extends ServiceImpl<TmsWaybillMapper, TmsWayb
 
     @Override
     public Page<TmsWaybill> pageList(int page, int size, String waybillNo, Integer status, String carrierId) {
-        log.debug("鏌ヨ杩愬崟鍒楄〃: page={}, size={}, waybillNo={}, status={}, carrierId={}", page, size, waybillNo, status, carrierId);
+        log.debug("鏌ヨ杩愬崟鍒楄〃: page={}, size={}, waybillNo={}, status={}, carrierId={}", (page + "").replace("\r", "_").replace("\n", "_"), (size + "").replace("\r", "_").replace("\n", "_"), (waybillNo + "").replace("\r", "_").replace("\n", "_"), (status + "").replace("\r", "_").replace("\n", "_"), (carrierId + "").replace("\r", "_").replace("\n", "_"));
 
         LambdaQueryWrapper<TmsWaybill> wrapper = Wrappers.lambdaQuery();
         if (StringUtils.hasText(waybillNo)) {
@@ -47,7 +47,7 @@ public class TmsWaybillServiceImpl extends ServiceImpl<TmsWaybillMapper, TmsWayb
 
     @Override
     public TmsWaybill getByWaybillNo(String waybillNo) {
-        log.debug("Query by waybill number: waybillNo={}", waybillNo);
+        log.debug("Query by waybill number: waybillNo={}", (waybillNo + "").replace("\r", "_").replace("\n", "_"));
         return lambdaQuery()
                 .eq(TmsWaybill::getWaybillNo, waybillNo)
                 .eq(TmsWaybill::getDeleted, false)
@@ -56,7 +56,7 @@ public class TmsWaybillServiceImpl extends ServiceImpl<TmsWaybillMapper, TmsWayb
 
     @Override
     public List<TmsWaybill> listByOrderId(String orderId) {
-        log.debug("Query waybills by order ID: orderId={}", orderId);
+        log.debug("Query waybills by order ID: orderId={}", (orderId + "").replace("\r", "_").replace("\n", "_"));
         return lambdaQuery()
                 .eq(TmsWaybill::getOrderId, orderId)
                 .eq(TmsWaybill::getDeleted, false)
@@ -66,7 +66,7 @@ public class TmsWaybillServiceImpl extends ServiceImpl<TmsWaybillMapper, TmsWayb
 
     @Override
     public List<TmsWaybill> listByOrderNo(String orderNo) {
-        log.debug("Query waybills by order number: orderNo={}", orderNo);
+        log.debug("Query waybills by order number: orderNo={}", (orderNo + "").replace("\r", "_").replace("\n", "_"));
         return lambdaQuery()
                 .eq(TmsWaybill::getOrderNo, orderNo)
                 .eq(TmsWaybill::getDeleted, false)
@@ -77,7 +77,7 @@ public class TmsWaybillServiceImpl extends ServiceImpl<TmsWaybillMapper, TmsWayb
     @Override
     @Transactional(rollbackFor = Exception.class)
     public TmsWaybill createWaybill(TmsWaybill waybill) {
-        log.info("鍒涘缓杩愬崟: orderNo={}, carrierId={}", waybill.getOrderNo(), waybill.getCarrierId());
+        log.info("鍒涘缓杩愬崟: orderNo={}, carrierId={}", (waybill.getOrderNo() + "").replace("\r", "_").replace("\n", "_"), (waybill.getCarrierId() + "").replace("\r", "_").replace("\n", "_"));
 
         if (waybill.getId() == null) {
             waybill.setId(UUID.randomUUID().toString());
@@ -95,18 +95,18 @@ public class TmsWaybillServiceImpl extends ServiceImpl<TmsWaybillMapper, TmsWayb
             throw new RuntimeException("鍒涘缓杩愬崟澶辫触");
         }
 
-        log.info("杩愬崟鍒涘缓鎴愬姛: id={}, waybillNo={}", waybill.getId(), waybill.getWaybillNo());
+        log.info("杩愬崟鍒涘缓鎴愬姛: id={}, waybillNo={}", (waybill.getId() + "").replace("\r", "_").replace("\n", "_"), (waybill.getWaybillNo() + "").replace("\r", "_").replace("\n", "_"));
         return waybill;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean updateStatus(String waybillId, Integer status, String operator) {
-        log.info("鏇存柊杩愬崟鐘讹拷 waybillId={}, status={}, operator={}", waybillId, status, operator);
+        log.info("鏇存柊杩愬崟鐘讹拷 waybillId={}, status={}, operator={}", (waybillId + "").replace("\r", "_").replace("\n", "_"), (status + "").replace("\r", "_").replace("\n", "_"), (operator + "").replace("\r", "_").replace("\n", "_"));
 
         TmsWaybill waybill = getById(waybillId);
         if (waybill == null) {
-            log.warn("Waybill not found: waybillId={}", waybillId);
+            log.warn("Waybill not found: waybillId={}", (waybillId + "").replace("\r", "_").replace("\n", "_"));
             return false;
         }
 
@@ -128,11 +128,11 @@ public class TmsWaybillServiceImpl extends ServiceImpl<TmsWaybillMapper, TmsWayb
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean cancelWaybill(String waybillId, String reason, String operator) {
-        log.info("鍙栨秷杩愬崟: waybillId={}, reason={}, operator={}", waybillId, reason, operator);
+        log.info("鍙栨秷杩愬崟: waybillId={}, reason={}, operator={}", (waybillId + "").replace("\r", "_").replace("\n", "_"), (reason + "").replace("\r", "_").replace("\n", "_"), (operator + "").replace("\r", "_").replace("\n", "_"));
 
         TmsWaybill waybill = getById(waybillId);
         if (waybill == null) {
-            log.warn("杩愬崟涓嶅瓨\u200b waybillId={}", waybillId);
+            log.warn("杩愬崟涓嶅瓨\u200b waybillId={}", (waybillId + "").replace("\r", "_").replace("\n", "_"));
             return false;
         }
 

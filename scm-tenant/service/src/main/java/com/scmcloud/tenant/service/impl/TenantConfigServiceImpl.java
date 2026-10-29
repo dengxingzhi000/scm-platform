@@ -18,45 +18,51 @@ import java.util.UUID;
 @Service
 public class TenantConfigServiceImpl extends ServiceImpl<TenantConfigMapper, TenantConfig> implements ITenantConfigService {
 
+    @Override
     public TenantConfig createConfig(TenantConfig entity) {
-        log.info("创建租户配置: tenantId={}, configKey={}", entity.getTenantId(), entity.getConfigKey());
+        log.info("创建租户配置: tenantId={}, configKey={}", (entity.getTenantId() + "").replace("\r", "_").replace("\n", "_"), (entity.getConfigKey() + "").replace("\r", "_").replace("\n", "_"));
         entity.setId(UUID.randomUUID().toString());
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         save(entity);
-        log.info("租户配置创建成功: id={}", entity.getId());
+        log.info("租户配置创建成功: id={}", (entity.getId() + "").replace("\r", "_").replace("\n", "_"));
         return entity;
     }
 
+    @Override
     public TenantConfig getById(String id) {
         return lambdaQuery()
                 .eq(TenantConfig::getId, id)
                 .one();
     }
 
+    @Override
     public TenantConfig updateConfig(TenantConfig entity) {
-        log.info("更新租户配置: id={}", entity.getId());
+        log.info("更新租户配置: id={}", (entity.getId() + "").replace("\r", "_").replace("\n", "_"));
         entity.setUpdateTime(LocalDateTime.now());
         updateById(entity);
         return entity;
     }
 
+    @Override
     public boolean deleteById(String id) {
-        log.info("删除租户配置: id={}", id);
+        log.info("删除租户配置: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         return removeById(id);
     }
 
+    @Override
     public TenantConfig getConfigByTenantAndKey(String tenantId, String configKey) {
-        log.debug("查询租户配置: tenantId={}, configKey={}", tenantId, configKey);
+        log.debug("查询租户配置: tenantId={}, configKey={}", (tenantId + "").replace("\r", "_").replace("\n", "_"), (configKey + "").replace("\r", "_").replace("\n", "_"));
         return lambdaQuery()
                 .eq(TenantConfig::getTenantId, tenantId)
                 .eq(TenantConfig::getConfigKey, configKey)
                 .one();
     }
 
+    @Override
     public Page<TenantConfig> pageQuery(int page, int size, String tenantId, String configCategory, String configKey) {
         log.debug("分页查询租户配置: page={}, size={}, tenantId={}, configCategory={}, configKey={}",
-                page, size, tenantId, configCategory, configKey);
+                (page + "").replace("\r", "_").replace("\n", "_"), (size + "").replace("\r", "_").replace("\n", "_"), (tenantId + "").replace("\r", "_").replace("\n", "_"), (configCategory + "").replace("\r", "_").replace("\n", "_"), (configKey + "").replace("\r", "_").replace("\n", "_"));
 
         LambdaQueryWrapper<TenantConfig> wrapper = Wrappers.lambdaQuery();
 

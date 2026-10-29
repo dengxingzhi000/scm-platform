@@ -21,7 +21,7 @@ public class TmsCarrierServiceImpl extends ServiceImpl<TmsCarrierMapper, TmsCarr
 
     @Override
     public Page<TmsCarrier> pageList(int page, int size, String carrierName, Integer carrierType, Boolean enabled) {
-        log.debug("Query carrier list: page={}, size={}, carrierName={}, carrierType={}, enabled={}", page, size, carrierName, carrierType, enabled);
+        log.debug("Query carrier list: page={}, size={}, carrierName={}, carrierType={}, enabled={}", (page + "").replace("\r", "_").replace("\n", "_"), (size + "").replace("\r", "_").replace("\n", "_"), (carrierName + "").replace("\r", "_").replace("\n", "_"), (carrierType + "").replace("\r", "_").replace("\n", "_"), (enabled + "").replace("\r", "_").replace("\n", "_"));
 
         LambdaQueryWrapper<TmsCarrier> wrapper = Wrappers.lambdaQuery();
         if (StringUtils.hasText(carrierName)) {
@@ -52,7 +52,7 @@ public class TmsCarrierServiceImpl extends ServiceImpl<TmsCarrierMapper, TmsCarr
 
     @Override
     public TmsCarrier getByCarrierCode(String carrierCode) {
-        log.debug("Query carrier by code: carrierCode={}", carrierCode);
+        log.debug("Query carrier by code: carrierCode={}", (carrierCode + "").replace("\r", "_").replace("\n", "_"));
         return lambdaQuery()
                 .eq(TmsCarrier::getCarrierCode, carrierCode)
                 .eq(TmsCarrier::getDeleted, false)

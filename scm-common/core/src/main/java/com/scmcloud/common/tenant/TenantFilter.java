@@ -47,13 +47,13 @@ public class TenantFilter extends OncePerRequestFilter {
             if (tenantId != null) {
                 TenantContextHolder.setTenantId(tenantId);
                 log.debug("Tenant filter set tenant ID: {} for {}",
-                        tenantId, request.getRequestURI());
+                        (tenantId + "").replace("\r", "_").replace("\n", "_"), (request.getRequestURI() + "").replace("\r", "_").replace("\n", "_"));
             } else if (properties.required()) {
                 throw new TenantParseException("Tenant ID is required but missing in request: "
                         + request.getRequestURI());
             } else {
                 log.debug("Tenant ID not present and not required: {}",
-                        request.getRequestURI());
+                        (request.getRequestURI() + "").replace("\r", "_").replace("\n", "_"));
             }
             chain.doFilter(request, response);
         } finally {

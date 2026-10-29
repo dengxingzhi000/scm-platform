@@ -19,8 +19,9 @@ import java.util.UUID;
 @Service
 public class TenantPackageServiceImpl extends ServiceImpl<TenantPackageMapper, TenantPackage> implements ITenantPackageService {
 
+    @Override
     public TenantPackage createPackage(TenantPackage entity) {
-        log.info("创建租户套餐: packageCode={}, packageName={}", entity.getPackageCode(), entity.getPackageName());
+        log.info("创建租户套餐: packageCode={}, packageName={}", (entity.getPackageCode() + "").replace("\r", "_").replace("\n", "_"), (entity.getPackageName() + "").replace("\r", "_").replace("\n", "_"));
         entity.setId(UUID.randomUUID().toString());
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
@@ -29,10 +30,11 @@ public class TenantPackageServiceImpl extends ServiceImpl<TenantPackageMapper, T
             entity.setEnabled(true);
         }
         save(entity);
-        log.info("租户套餐创建成功: id={}", entity.getId());
+        log.info("租户套餐创建成功: id={}", (entity.getId() + "").replace("\r", "_").replace("\n", "_"));
         return entity;
     }
 
+    @Override
     public TenantPackage getById(String id) {
         return lambdaQuery()
                 .eq(TenantPackage::getId, id)
@@ -40,15 +42,17 @@ public class TenantPackageServiceImpl extends ServiceImpl<TenantPackageMapper, T
                 .one();
     }
 
+    @Override
     public TenantPackage updatePackage(TenantPackage entity) {
-        log.info("更新租户套餐: id={}", entity.getId());
+        log.info("更新租户套餐: id={}", (entity.getId() + "").replace("\r", "_").replace("\n", "_"));
         entity.setUpdateTime(LocalDateTime.now());
         updateById(entity);
         return entity;
     }
 
+    @Override
     public boolean deleteById(String id) {
-        log.info("删除租户套餐: id={}", id);
+        log.info("删除租户套餐: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         TenantPackage pkg = new TenantPackage();
         pkg.setId(id);
         pkg.setDeleted(true);
@@ -56,6 +60,7 @@ public class TenantPackageServiceImpl extends ServiceImpl<TenantPackageMapper, T
         return updateById(pkg);
     }
 
+    @Override
     public List<TenantPackage> listActive() {
         return lambdaQuery()
                 .eq(TenantPackage::getDeleted, false)
@@ -64,9 +69,10 @@ public class TenantPackageServiceImpl extends ServiceImpl<TenantPackageMapper, T
                 .list();
     }
 
+    @Override
     public Page<TenantPackage> pageQuery(int page, int size, String packageName, Integer packageLevel, Boolean enabled) {
         log.debug("分页查询租户套餐: page={}, size={}, packageName={}, packageLevel={}, enabled={}",
-                page, size, packageName, packageLevel, enabled);
+                (page + "").replace("\r", "_").replace("\n", "_"), (size + "").replace("\r", "_").replace("\n", "_"), (packageName + "").replace("\r", "_").replace("\n", "_"), (packageLevel + "").replace("\r", "_").replace("\n", "_"), (enabled + "").replace("\r", "_").replace("\n", "_"));
 
         LambdaQueryWrapper<TenantPackage> wrapper = Wrappers.lambdaQuery();
 

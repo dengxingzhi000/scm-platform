@@ -39,9 +39,9 @@ public class OAuth2LogoutService {
                 authorizationService.findByToken(accessToken, OAuth2TokenType.ACCESS_TOKEN);
         if (authorization != null) {
             authorizationService.remove(authorization);
-            log.info("Revoked authorization for userId={} clientId={}", userId, clientId);
+            log.info("Revoked authorization for userId={} clientId={}", (userId + "").replace("\r", "_").replace("\n", "_"), (clientId + "").replace("\r", "_").replace("\n", "_"));
         } else {
-            log.warn("Authorization not found for userId={} clientId={}", userId, clientId);
+            log.warn("Authorization not found for userId={} clientId={}", (userId + "").replace("\r", "_").replace("\n", "_"), (clientId + "").replace("\r", "_").replace("\n", "_"));
         }
     }
 

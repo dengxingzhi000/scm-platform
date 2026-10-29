@@ -24,7 +24,7 @@ public class FulfillmentOrderServiceImpl extends ServiceImpl<FulfillmentOrderMap
     @Override
     @Transactional(rollbackFor = Exception.class)
     public FulfillmentOrder createFulfillment(String orderNo, String userId, String fulfillmentType) {
-        log.info("Creating fulfillment: orderNo={}, userId={}, type={}", orderNo, userId, fulfillmentType);
+        log.info("Creating fulfillment: orderNo={}, userId={}, type={}", (orderNo + "").replace("\r", "_").replace("\n", "_"), (userId + "").replace("\r", "_").replace("\n", "_"), (fulfillmentType + "").replace("\r", "_").replace("\n", "_"));
 
         FulfillmentOrder order = new FulfillmentOrder();
         order.setFulfillmentNo("FUL" + System.currentTimeMillis());
@@ -57,7 +57,7 @@ public class FulfillmentOrderServiceImpl extends ServiceImpl<FulfillmentOrderMap
         order.setStatus(6);
         order.setUpdatedAt(LocalDateTime.now());
         updateById(order);
-        log.info("Fulfillment cancelled: fulfillmentNo={}, reason={}", fulfillmentNo, reason);
+        log.info("Fulfillment cancelled: fulfillmentNo={}, reason={}", (fulfillmentNo + "").replace("\r", "_").replace("\n", "_"), (reason + "").replace("\r", "_").replace("\n", "_"));
     }
 
     @Override
@@ -71,7 +71,7 @@ public class FulfillmentOrderServiceImpl extends ServiceImpl<FulfillmentOrderMap
         order.setStatus(2);
         order.setUpdatedAt(LocalDateTime.now());
         updateById(order);
-        log.info("Fulfillment picking: fulfillmentNo={}", fulfillmentNo);
+        log.info("Fulfillment picking: fulfillmentNo={}", (fulfillmentNo + "").replace("\r", "_").replace("\n", "_"));
     }
 
     @Override
@@ -85,7 +85,7 @@ public class FulfillmentOrderServiceImpl extends ServiceImpl<FulfillmentOrderMap
         order.setStatus(3);
         order.setUpdatedAt(LocalDateTime.now());
         updateById(order);
-        log.info("Fulfillment packing: fulfillmentNo={}", fulfillmentNo);
+        log.info("Fulfillment packing: fulfillmentNo={}", (fulfillmentNo + "").replace("\r", "_").replace("\n", "_"));
     }
 
     @Override
@@ -106,7 +106,7 @@ public class FulfillmentOrderServiceImpl extends ServiceImpl<FulfillmentOrderMap
                 .setStatus("SHIPPED")
                 .setDescription("Shipment created")
                 .setEventTime(LocalDateTime.now()));
-        log.info("Fulfillment shipped: fulfillmentNo={}, trackingNo={}, carrier={}", fulfillmentNo, trackingNo, carrier);
+        log.info("Fulfillment shipped: fulfillmentNo={}, trackingNo={}, carrier={}", (fulfillmentNo + "").replace("\r", "_").replace("\n", "_"), (trackingNo + "").replace("\r", "_").replace("\n", "_"), (carrier + "").replace("\r", "_").replace("\n", "_"));
     }
 
     @Override
@@ -120,6 +120,6 @@ public class FulfillmentOrderServiceImpl extends ServiceImpl<FulfillmentOrderMap
         order.setStatus(5);
         order.setUpdatedAt(LocalDateTime.now());
         updateById(order);
-        log.info("Fulfillment delivered: fulfillmentNo={}", fulfillmentNo);
+        log.info("Fulfillment delivered: fulfillmentNo={}", (fulfillmentNo + "").replace("\r", "_").replace("\n", "_"));
     }
 }

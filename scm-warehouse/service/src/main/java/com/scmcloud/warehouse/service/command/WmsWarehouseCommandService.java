@@ -33,7 +33,7 @@ public class WmsWarehouseCommandService {
         warehouse.setCreateTime(LocalDateTime.now());
         warehouse.setUpdateTime(LocalDateTime.now());
         warehouseMapper.insert(warehouse);
-        log.info("仓库创建成功: id={}, code={}", warehouse.getId(), warehouse.getWarehouseCode());
+        log.info("仓库创建成功: id={}, code={}", (warehouse.getId() + "").replace("\r", "_").replace("\n", "_"), (warehouse.getWarehouseCode() + "").replace("\r", "_").replace("\n", "_"));
         return warehouse;
     }
 
@@ -65,14 +65,14 @@ public class WmsWarehouseCommandService {
     public boolean enable(String id) {
         WmsWarehouse warehouse = warehouseMapper.selectById(id);
         if (warehouse == null) {
-            log.warn("[enable] 仓库不存在: id={}", id);
+            log.warn("[enable] 仓库不存在: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
             return false;
         }
         warehouse.setEnabled(true);
         warehouse.setUpdateTime(LocalDateTime.now());
         boolean success = warehouseMapper.updateById(warehouse) > 0;
         if (success) {
-            log.info("仓库已启用: id={}, name={}", id, warehouse.getWarehouseName());
+            log.info("仓库已启用: id={}, name={}", (id + "").replace("\r", "_").replace("\n", "_"), (warehouse.getWarehouseName() + "").replace("\r", "_").replace("\n", "_"));
         }
         return success;
     }
@@ -82,14 +82,14 @@ public class WmsWarehouseCommandService {
     public boolean disable(String id) {
         WmsWarehouse warehouse = warehouseMapper.selectById(id);
         if (warehouse == null) {
-            log.warn("[disable] 仓库不存在: id={}", id);
+            log.warn("[disable] 仓库不存在: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
             return false;
         }
         warehouse.setEnabled(false);
         warehouse.setUpdateTime(LocalDateTime.now());
         boolean success = warehouseMapper.updateById(warehouse) > 0;
         if (success) {
-            log.info("仓库已停用: id={}, name={}", id, warehouse.getWarehouseName());
+            log.info("仓库已停用: id={}, name={}", (id + "").replace("\r", "_").replace("\n", "_"), (warehouse.getWarehouseName() + "").replace("\r", "_").replace("\n", "_"));
         }
         return success;
     }

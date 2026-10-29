@@ -27,7 +27,7 @@ public class WmsOutboundItemCommandService {
         item.setCreateTime(LocalDateTime.now());
         item.setUpdateTime(LocalDateTime.now());
         outboundItemMapper.insert(item);
-        log.info("出库明细创建成功: id={}", item.getId());
+        log.info("出库明细创建成功: id={}", (item.getId() + "").replace("\r", "_").replace("\n", "_"));
         return item;
     }
 

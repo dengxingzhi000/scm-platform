@@ -22,28 +22,28 @@ public class TenantConfigController {
     @Operation(summary = "创建租户配置", description = "新增一条租户配置项并返回创建后的配置内容。")
     @PostMapping
     public TenantConfig create(@RequestBody TenantConfig entity) {
-        log.info("[API] 创建租户配置: tenantId={}, configKey={}", entity.getTenantId(), entity.getConfigKey());
+        log.info("[API] 创建租户配置: tenantId={}, configKey={}", (entity.getTenantId() + "").replace("\r", "_").replace("\n", "_"), (entity.getConfigKey() + "").replace("\r", "_").replace("\n", "_"));
         return tenantConfigService.createConfig(entity);
     }
 
     @Operation(summary = "查询配置详情", description = "根据配置 ID 查询租户配置详情。")
     @GetMapping("/{id}")
     public TenantConfig getById(@Parameter(description = "配置ID") @PathVariable String id) {
-        log.info("[API] 查询租户配置: id={}", id);
+        log.info("[API] 查询租户配置: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         return tenantConfigService.getById(id);
     }
 
     @Operation(summary = "更新租户配置", description = "根据配置 ID 更新租户配置内容并返回更新结果。")
     @PutMapping
     public TenantConfig update(@RequestBody TenantConfig entity) {
-        log.info("[API] 更新租户配置: id={}", entity.getId());
+        log.info("[API] 更新租户配置: id={}", (entity.getId() + "").replace("\r", "_").replace("\n", "_"));
         return tenantConfigService.updateConfig(entity);
     }
 
     @Operation(summary = "删除租户配置", description = "根据配置 ID 删除指定租户配置。")
     @DeleteMapping("/{id}")
     public boolean deleteById(@Parameter(description = "配置ID") @PathVariable String id) {
-        log.info("[API] 删除租户配置: id={}", id);
+        log.info("[API] 删除租户配置: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         return tenantConfigService.deleteById(id);
     }
 
@@ -52,7 +52,7 @@ public class TenantConfigController {
     public TenantConfig getConfigByTenantAndKey(
             @Parameter(description = "租户ID") @PathVariable String tenantId,
             @Parameter(description = "配置键") @PathVariable String configKey) {
-        log.info("[API] 查询租户配置: tenantId={}, configKey={}", tenantId, configKey);
+        log.info("[API] 查询租户配置: tenantId={}, configKey={}", (tenantId + "").replace("\r", "_").replace("\n", "_"), (configKey + "").replace("\r", "_").replace("\n", "_"));
         return tenantConfigService.getConfigByTenantAndKey(tenantId, configKey);
     }
 

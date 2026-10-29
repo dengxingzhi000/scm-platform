@@ -30,7 +30,7 @@ public class ReviewController {
     @PostMapping("/reviews")
     public Review createReview(@RequestBody Review review) {
         log.info("[API] Create review: productId={}, userId={}",
-                review.getProductId(), review.getUserId());
+                (review.getProductId() + "").replace("\r", "_").replace("\n", "_"), (review.getUserId() + "").replace("\r", "_").replace("\n", "_"));
         return reviewService.createReview(review);
     }
 
@@ -45,7 +45,7 @@ public class ReviewController {
     @Operation(summary = "删除商品评价", description = "由发表评价的用户本人删除指定评价。")
     @DeleteMapping("/reviews/{reviewId}")
     public boolean deleteReview(@Parameter(description = "评价 ID") @PathVariable Long reviewId, @Parameter(description = "删除操作的用户标识") @RequestParam String userId) {
-        log.info("[API] Delete review: reviewId={}, userId={}", reviewId, userId);
+        log.info("[API] Delete review: reviewId={}, userId={}", (reviewId + "").replace("\r", "_").replace("\n", "_"), (userId + "").replace("\r", "_").replace("\n", "_"));
         reviewService.deleteReview(reviewId, userId);
         return true;
     }

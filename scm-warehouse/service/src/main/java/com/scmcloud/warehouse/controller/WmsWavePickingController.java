@@ -25,16 +25,16 @@ public class WmsWavePickingController {
     @Operation(summary = "创建波次拣货单", description = "按仓库与订单数量新建波次拣货单并生成波次号。")
     @PostMapping
     public ApiResponse<WmsWavePicking> create(@RequestBody WmsWavePicking wave) {
-        log.info("[API] 创建波次拣货单 warehouseId={}, orderCount={}", wave.getWarehouseId(), wave.getOrderCount());
+        log.info("[API] 创建波次拣货单 warehouseId={}, orderCount={}", (wave.getWarehouseId() + "").replace("\r", "_").replace("\n", "_"), (wave.getOrderCount() + "").replace("\r", "_").replace("\n", "_"));
         WmsWavePicking created = wavePickingCommandService.create(wave);
-        log.info("[API] 波次拣货单创建成功 id={}, waveNo={}", created.getId(), created.getWaveNo());
+        log.info("[API] 波次拣货单创建成功 id={}, waveNo={}", (created.getId() + "").replace("\r", "_").replace("\n", "_"), (created.getWaveNo() + "").replace("\r", "_").replace("\n", "_"));
         return ApiResponse.success(created);
     }
 
     @Operation(summary = "更新波次拣货单", description = "按主键更新波次拣货单信息，仅未开始拣货的波次允许修改。")
     @PutMapping("/{id}")
     public ApiResponse<WmsWavePicking> update(@Parameter(description = "波次拣货单主键 ID") @PathVariable String id, @RequestBody WmsWavePicking wave) {
-        log.info("[API] 更新波次拣货单 id={}", id);
+        log.info("[API] 更新波次拣货单 id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         wave.setId(id);
         try {
             boolean success = wavePickingCommandService.update(wave);
@@ -50,7 +50,7 @@ public class WmsWavePickingController {
     @Operation(summary = "删除波次拣货单", description = "按主键删除波次拣货单，删除后不再参与拣货作业。")
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@Parameter(description = "波次拣货单主键 ID") @PathVariable String id) {
-        log.info("[API] 删除波次拣货单 id={}", id);
+        log.info("[API] 删除波次拣货单 id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         boolean success = wavePickingCommandService.removeById(id);
         return success ? ApiResponse.success() : ApiResponse.fail(404, "波次拣货单不存在");
     }
@@ -81,7 +81,7 @@ public class WmsWavePickingController {
             @Parameter(description = "波次拣货单主键 ID") @PathVariable String id,
             @Parameter(description = "拣货员用户 ID") @RequestParam String pickerId,
             @Parameter(description = "拣货员姓名") @RequestParam String pickerName) {
-        log.info("[API] 开始拣货 id={}, picker={}", id, pickerName);
+        log.info("[API] 开始拣货 id={}, picker={}", (id + "").replace("\r", "_").replace("\n", "_"), (pickerName + "").replace("\r", "_").replace("\n", "_"));
         try {
             boolean success = wavePickingCommandService.start(id, pickerId, pickerName);
             return success ? ApiResponse.success() : ApiResponse.fail(400, "开始拣货失败");
@@ -95,7 +95,7 @@ public class WmsWavePickingController {
     public ApiResponse<Void> complete(
             @Parameter(description = "波次拣货单主键 ID") @PathVariable String id,
             @Parameter(description = "操作人用户 ID") @RequestParam String operatorId) {
-        log.info("[API] 完成拣货: id={}", id);
+        log.info("[API] 完成拣货: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         try {
             boolean success = wavePickingCommandService.complete(id, operatorId);
             return success ? ApiResponse.success() : ApiResponse.fail(400, "完成拣货失败");
@@ -109,7 +109,7 @@ public class WmsWavePickingController {
     public ApiResponse<Void> cancel(
             @Parameter(description = "波次拣货单主键 ID") @PathVariable String id,
             @Parameter(description = "操作人用户 ID") @RequestParam String operatorId) {
-        log.info("[API] 取消波次拣货单 id={}", id);
+        log.info("[API] 取消波次拣货单 id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         try {
             boolean success = wavePickingCommandService.cancel(id, operatorId);
             return success ? ApiResponse.success() : ApiResponse.fail(400, "取消失败");

@@ -20,7 +20,7 @@ public class TmsRouteServiceImpl extends ServiceImpl<TmsRouteMapper, TmsRoute> i
 
     @Override
     public Page<TmsRoute> pageList(int page, int size, String courierId, Integer status, LocalDate deliveryDate) {
-        log.debug("Query delivery route list: page={}, size={}, courierId={}, status={}, deliveryDate={}", page, size, courierId, status, deliveryDate);
+        log.debug("Query delivery route list: page={}, size={}, courierId={}, status={}, deliveryDate={}", (page + "").replace("\r", "_").replace("\n", "_"), (size + "").replace("\r", "_").replace("\n", "_"), (courierId + "").replace("\r", "_").replace("\n", "_"), (status + "").replace("\r", "_").replace("\n", "_"), (deliveryDate + "").replace("\r", "_").replace("\n", "_"));
 
         LambdaQueryWrapper<TmsRoute> wrapper = Wrappers.lambdaQuery();
         if (StringUtils.hasText(courierId)) {
@@ -39,7 +39,7 @@ public class TmsRouteServiceImpl extends ServiceImpl<TmsRouteMapper, TmsRoute> i
 
     @Override
     public List<TmsRoute> listByCourierId(String courierId) {
-        log.debug("Query route by courier: courierId={}", courierId);
+        log.debug("Query route by courier: courierId={}", (courierId + "").replace("\r", "_").replace("\n", "_"));
         return lambdaQuery()
                 .eq(TmsRoute::getCourierId, courierId)
                 .orderByDesc(TmsRoute::getDeliveryDate)
@@ -48,7 +48,7 @@ public class TmsRouteServiceImpl extends ServiceImpl<TmsRouteMapper, TmsRoute> i
 
     @Override
     public TmsRoute getByRouteNo(String routeNo) {
-        log.debug("Query route by number: routeNo={}", routeNo);
+        log.debug("Query route by number: routeNo={}", (routeNo + "").replace("\r", "_").replace("\n", "_"));
         return lambdaQuery()
                 .eq(TmsRoute::getRouteNo, routeNo)
                 .one();

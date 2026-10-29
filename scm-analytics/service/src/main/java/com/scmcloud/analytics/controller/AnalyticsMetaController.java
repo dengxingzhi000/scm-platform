@@ -57,7 +57,7 @@ public class AnalyticsMetaController {
     @Operation(summary = "创建指标", description = "新增一个指标定义，返回创建后的指标信息。")
     @PostMapping("/metrics")
     public ApiResponse<MetricDefinition> createMetric(@RequestBody MetricDTO dto) {
-        log.info("[API] create metric: code={}, type={}", dto.getMetricCode(), dto.getMetricType());
+        log.info("[API] create metric: code={}, type={}", (dto.getMetricCode() + "").replace("\r", "_").replace("\n", "_"), (dto.getMetricType() + "").replace("\r", "_").replace("\n", "_"));
         return ApiResponse.success(metricService.create(dto));
     }
 
@@ -65,7 +65,7 @@ public class AnalyticsMetaController {
     @PutMapping("/metrics/{id}")
     public ApiResponse<MetricDefinition> updateMetric(@Parameter(description = "指标 ID") @PathVariable UUID id,
                                                       @RequestBody MetricDTO dto) {
-        log.info("[API] update metric: id={}, code={}", id, dto.getMetricCode());
+        log.info("[API] update metric: id={}, code={}", (id + "").replace("\r", "_").replace("\n", "_"), (dto.getMetricCode() + "").replace("\r", "_").replace("\n", "_"));
         return ApiResponse.success(metricService.update(id, dto));
     }
 
@@ -103,7 +103,7 @@ public class AnalyticsMetaController {
     @Operation(summary = "创建维度", description = "新增一个维度定义，返回创建后的维度信息。")
     @PostMapping("/dimensions")
     public ApiResponse<DimensionDefinition> createDimension(@RequestBody DimensionDTO dto) {
-        log.info("[API] create dimension: code={}, type={}", dto.getDimCode(), dto.getDimType());
+        log.info("[API] create dimension: code={}, type={}", (dto.getDimCode() + "").replace("\r", "_").replace("\n", "_"), (dto.getDimType() + "").replace("\r", "_").replace("\n", "_"));
         return ApiResponse.success(dimensionService.create(dto));
     }
 
@@ -111,7 +111,7 @@ public class AnalyticsMetaController {
     @PutMapping("/dimensions/{id}")
     public ApiResponse<DimensionDefinition> updateDimension(@Parameter(description = "维度 ID") @PathVariable UUID id,
                                                             @RequestBody DimensionDTO dto) {
-        log.info("[API] update dimension: id={}, code={}", id, dto.getDimCode());
+        log.info("[API] update dimension: id={}, code={}", (id + "").replace("\r", "_").replace("\n", "_"), (dto.getDimCode() + "").replace("\r", "_").replace("\n", "_"));
         return ApiResponse.success(dimensionService.update(id, dto));
     }
 
@@ -149,7 +149,7 @@ public class AnalyticsMetaController {
     @Operation(summary = "创建数据集", description = "新增一个数据集定义，返回创建后的数据集信息。")
     @PostMapping("/datasets")
     public ApiResponse<DatasetDefinition> createDataset(@RequestBody DatasetDTO dto) {
-        log.info("[API] create dataset: code={}, type={}", dto.getDatasetCode(), dto.getDatasetType());
+        log.info("[API] create dataset: code={}, type={}", (dto.getDatasetCode() + "").replace("\r", "_").replace("\n", "_"), (dto.getDatasetType() + "").replace("\r", "_").replace("\n", "_"));
         return ApiResponse.success(datasetService.create(dto));
     }
 
@@ -157,7 +157,7 @@ public class AnalyticsMetaController {
     @PutMapping("/datasets/{id}")
     public ApiResponse<DatasetDefinition> updateDataset(@Parameter(description = "数据集 ID") @PathVariable UUID id,
                                                         @RequestBody DatasetDTO dto) {
-        log.info("[API] update dataset: id={}, code={}", id, dto.getDatasetCode());
+        log.info("[API] update dataset: id={}, code={}", (id + "").replace("\r", "_").replace("\n", "_"), (dto.getDatasetCode() + "").replace("\r", "_").replace("\n", "_"));
         return ApiResponse.success(datasetService.update(id, dto));
     }
 
@@ -196,14 +196,13 @@ public class AnalyticsMetaController {
     @PostMapping("/datasets/{datasetId}/fields")
     public ApiResponse<DatasetFieldDefinition> createField(@Parameter(description = "数据集 ID") @PathVariable UUID datasetId,
                                                             @RequestBody DatasetFieldDTO dto) {
-        log.info("[API] create dataset field: dataset={}, code={}", datasetId, dto.getFieldCode());
+        log.info("[API] create dataset field: dataset={}, code={}", (datasetId + "").replace("\r", "_").replace("\n", "_"), (dto.getFieldCode() + "").replace("\r", "_").replace("\n", "_"));
         return ApiResponse.success(datasetFieldService.create(dto));
     }
 
     @Operation(summary = "更新数据集字段", description = "根据字段 ID 更新指定数据集下的字段定义。")
     @PutMapping("/datasets/{datasetId}/fields/{id}")
-    public ApiResponse<DatasetFieldDefinition> updateField(@Parameter(description = "数据集 ID") @PathVariable UUID datasetId,
-                                                            @Parameter(description = "字段 ID") @PathVariable UUID id,
+    public ApiResponse<DatasetFieldDefinition> updateField(@Parameter(description = "字段 ID") @PathVariable UUID id,
                                                             @RequestBody DatasetFieldDTO dto) {
         log.info("[API] update dataset field: id={}, code={}", id, dto.getFieldCode());
         return ApiResponse.success(datasetFieldService.update(id, dto));
@@ -211,8 +210,7 @@ public class AnalyticsMetaController {
 
     @Operation(summary = "删除数据集字段", description = "根据字段 ID 删除指定数据集下的字段定义。")
     @DeleteMapping("/datasets/{datasetId}/fields/{id}")
-    public ApiResponse<Void> deleteField(@Parameter(description = "数据集 ID") @PathVariable UUID datasetId,
-                                          @Parameter(description = "字段 ID") @PathVariable UUID id) {
+    public ApiResponse<Void> deleteField(@Parameter(description = "字段 ID") @PathVariable UUID id) {
         log.info("[API] delete dataset field: id={}", id);
         datasetFieldService.delete(id);
         return ApiResponse.success();
@@ -220,8 +218,7 @@ public class AnalyticsMetaController {
 
     @Operation(summary = "查询数据集字段详情", description = "根据字段 ID 查询指定数据集下字段定义的详细信息。")
     @GetMapping("/datasets/{datasetId}/fields/{id}")
-    public ApiResponse<DatasetFieldDefinition> getField(@Parameter(description = "数据集 ID") @PathVariable UUID datasetId,
-                                                         @Parameter(description = "字段 ID") @PathVariable UUID id) {
+    public ApiResponse<DatasetFieldDefinition> getField(@Parameter(description = "字段 ID") @PathVariable UUID id) {
         return ApiResponse.success(datasetFieldService.getById(id));
     }
 

@@ -30,7 +30,7 @@ public class RefundController {
     @PostMapping
     public Refund createRefund(@RequestBody CreateRefundRequest request) {
         log.info("[API] Create refund: paymentNo={}, amount={}",
-                request.getPaymentNo(), request.getAmount());
+                (request.getPaymentNo() + "").replace("\r", "_").replace("\n", "_"), (request.getAmount() + "").replace("\r", "_").replace("\n", "_"));
         return refundService.createRefund(request.getPaymentNo(), request.getOrderNo(),
                 request.getUserId(), request.getAmount(), request.getReason());
     }
@@ -44,7 +44,7 @@ public class RefundController {
     @Operation(summary = "审批通过退款", description = "审批通过指定退款申请并执行退款。")
     @PostMapping("/{refundNo}/approve")
     public Refund approveRefund(@Parameter(description = "退款单号") @PathVariable String refundNo) {
-        log.info("[API] Approve refund: refundNo={}", refundNo);
+        log.info("[API] Approve refund: refundNo={}", (refundNo + "").replace("\r", "_").replace("\n", "_"));
         return refundService.approveRefund(refundNo);
     }
 
@@ -52,7 +52,7 @@ public class RefundController {
     @PostMapping("/{refundNo}/reject")
     public Refund rejectRefund(@Parameter(description = "退款单号") @PathVariable String refundNo,
                                @RequestBody(required = false) RejectRequest request) {
-        log.info("[API] Reject refund: refundNo={}", refundNo);
+        log.info("[API] Reject refund: refundNo={}", (refundNo + "").replace("\r", "_").replace("\n", "_"));
         return refundService.rejectRefund(refundNo, request == null ? null : request.getReason());
     }
 

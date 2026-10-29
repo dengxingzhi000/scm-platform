@@ -61,13 +61,13 @@ public class DubboPermissionServiceAdapter implements PermissionService {
             List<String> permissions = permissionDubboService.findPermissionsByUrl(url, method);
             meterRegistry.counter("security.permissions.dubbo.lookup.success").increment();
             log.debug("Permission lookup success via Dubbo: url={}, method={}, permissions={}",
-                     url, method, permissions);
+                     (url + "").replace("\r", "_").replace("\n", "_"), (method + "").replace("\r", "_").replace("\n", "_"), (permissions + "").replace("\r", "_").replace("\n", "_"));
             return permissions != null ? permissions : List.of();
 
         } catch (Exception ex) {
             meterRegistry.counter("security.permissions.dubbo.lookup.fail").increment();
             log.error("SECURITY: Permission lookup failed via Dubbo - DENYING ACCESS. " +
-                     "url={}, method={}", url, method, ex);
+                     "url={}, method={}", (url + "").replace("\r", "_").replace("\n", "_"), (method + "").replace("\r", "_").replace("\n", "_"), ex);
 
             // FAIL-CLOSED: Throw exception to deny access when permission check fails
             throw new PermissionServiceException(

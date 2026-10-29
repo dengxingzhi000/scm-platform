@@ -48,7 +48,7 @@ public class OrdRefundCommandService {
     }
 
     private OrdRefund doCreateRefund(OrdRefund refund) {
-        log.info("创建退款: refundNo={}, orderId={}", refund.getRefundNo(), refund.getOrderId());
+        log.info("创建退款: refundNo={}, orderId={}", (refund.getRefundNo() + "").replace("\r", "_").replace("\n", "_"), (refund.getOrderId() + "").replace("\r", "_").replace("\n", "_"));
 
         refund.setStatusEnum(RefundStatus.PENDING);
         LocalDateTime now = LocalDateTime.now();
@@ -75,7 +75,7 @@ public class OrdRefundCommandService {
     @Master(reason = "审核通过退款")
     @Transactional(rollbackFor = Exception.class)
     public boolean approveRefund(UUID refundId, String handlerId, String handlerName, String handlerRemark) {
-        log.info("审核通过退款: refundId={}, handler={}", refundId, handlerId);
+        log.info("审核通过退款: refundId={}, handler={}", (refundId + "").replace("\r", "_").replace("\n", "_"), (handlerId + "").replace("\r", "_").replace("\n", "_"));
         OrdRefund refund = selectOrThrow(refundId);
 
         if (!refund.getStatusEnum().isReviewable()) {
@@ -93,7 +93,7 @@ public class OrdRefundCommandService {
     @Master(reason = "拒绝退款")
     @Transactional(rollbackFor = Exception.class)
     public boolean rejectRefund(UUID refundId, String handlerId, String handlerName, String handlerRemark) {
-        log.info("拒绝退款: refundId={}, handler={}", refundId, handlerId);
+        log.info("拒绝退款: refundId={}, handler={}", (refundId + "").replace("\r", "_").replace("\n", "_"), (handlerId + "").replace("\r", "_").replace("\n", "_"));
         OrdRefund refund = selectOrThrow(refundId);
 
         if (!refund.getStatusEnum().isReviewable()) {

@@ -108,7 +108,6 @@ public class SysUserCommandServiceImpl implements ISysUserCommandService {
     @Transactional(rollbackFor = Exception.class)
     @CacheEvict(value = {"user", "userDetails", "userInfo"}, keyGenerator = KEY_GEN)
     public void updateUser(UserDTO userDTO) {
-        UUID operatorId = SecurityUtils.getCurrentUserUuid().orElse(null);
         SysUser user = commandTemplate.execute("UPDATE", "user:update", userDTO.getId(),
                 (loaded, op) -> {
                     SysUser update = new SysUser();
@@ -253,7 +252,7 @@ public class SysUserCommandServiceImpl implements ISysUserCommandService {
         TenantValidationUtil.logTenantOperation("GRANT_ROLES", "USER", userId);
 
         log.info("角色授予操作完成: user={}, roleIds={}, operator={}",
-                user.getUsername(), roleIds, SecurityUtils.getCurrentUsername());
+                (user.getUsername() + "").replace("\r", "_").replace("\n", "_"), (roleIds + "").replace("\r", "_").replace("\n", "_"), (SecurityUtils.getCurrentUsername() + "").replace("\r", "_").replace("\n", "_"));
     }
 
     @Override
@@ -289,10 +288,10 @@ public class SysUserCommandServiceImpl implements ISysUserCommandService {
     }
 
     @Override
-    public void updateLastLogin(UUID userId, String ipAddress) {
+    public void updateLastLogin(UUID userId, String ipAddress, LocalDateTime loginTime) {
         LambdaUpdateWrapper<SysUser> wrapper = new LambdaUpdateWrapper<>();
         wrapper.eq(SysUser::getId, userId)
-                .set(SysUser::getLastLoginTime, LocalDateTime.now())
+                .set(SysUser::getLastLoginTime, loginTime != null ? loginTime : LocalDateTime.now())
                 .set(SysUser::getLastLoginIp, ipAddress);
         userMapper.update(null, wrapper);
     }

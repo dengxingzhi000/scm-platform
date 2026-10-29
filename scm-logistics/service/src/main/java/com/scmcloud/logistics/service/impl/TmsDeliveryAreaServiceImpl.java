@@ -20,7 +20,7 @@ public class TmsDeliveryAreaServiceImpl extends ServiceImpl<TmsDeliveryAreaMappe
 
     @Override
     public Page<TmsDeliveryArea> pageList(int page, int size, String carrierId, String province, String city) {
-        log.debug("Query delivery area list: page={}, size={}, carrierId={}, province={}, city={}", page, size, carrierId, province, city);
+        log.debug("Query delivery area list: page={}, size={}, carrierId={}, province={}, city={}", (page + "").replace("\r", "_").replace("\n", "_"), (size + "").replace("\r", "_").replace("\n", "_"), (carrierId + "").replace("\r", "_").replace("\n", "_"), (province + "").replace("\r", "_").replace("\n", "_"), (city + "").replace("\r", "_").replace("\n", "_"));
 
         LambdaQueryWrapper<TmsDeliveryArea> wrapper = Wrappers.lambdaQuery();
         if (StringUtils.hasText(carrierId)) {
@@ -40,7 +40,7 @@ public class TmsDeliveryAreaServiceImpl extends ServiceImpl<TmsDeliveryAreaMappe
 
     @Override
     public List<TmsDeliveryArea> listByCarrier(String carrierId) {
-        log.debug("Query delivery area by carrier: carrierId={}", carrierId);
+        log.debug("Query delivery area by carrier: carrierId={}", (carrierId + "").replace("\r", "_").replace("\n", "_"));
         return lambdaQuery()
                 .eq(TmsDeliveryArea::getCarrierId, carrierId)
                 .eq(TmsDeliveryArea::getDeleted, false)
@@ -49,7 +49,7 @@ public class TmsDeliveryAreaServiceImpl extends ServiceImpl<TmsDeliveryAreaMappe
 
     @Override
     public boolean checkCoverage(String carrierId, String province, String city, String district) {
-        log.debug("Check area coverage: carrierId={}, province={}, city={}, district={}", carrierId, province, city, district);
+        log.debug("Check area coverage: carrierId={}, province={}, city={}, district={}", (carrierId + "").replace("\r", "_").replace("\n", "_"), (province + "").replace("\r", "_").replace("\n", "_"), (city + "").replace("\r", "_").replace("\n", "_"), (district + "").replace("\r", "_").replace("\n", "_"));
 
         LambdaQueryWrapper<TmsDeliveryArea> wrapper = Wrappers.lambdaQuery();
         wrapper.eq(TmsDeliveryArea::getCarrierId, carrierId);

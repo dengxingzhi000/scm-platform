@@ -68,7 +68,7 @@ public class DimensionService {
             throw new BusinessException("Dimension code already exists: " + dto.getDimCode());
         }
         log.info("Created dimension: code={}, type={}, tenant={}",
-                entity.getDimCode(), entity.getDimType(), tenantId);
+                (entity.getDimCode() + "").replace("\r", "_").replace("\n", "_"), (entity.getDimType() + "").replace("\r", "_").replace("\n", "_"), (tenantId + "").replace("\r", "_").replace("\n", "_"));
         return entity;
     }
 

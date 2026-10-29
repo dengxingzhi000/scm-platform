@@ -88,7 +88,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(authentication);
 
                     log.debug("User authenticated: traceId={}, userId={}, username={}",
-                            request.getHeader("X-Request-ID"), userId, username);
+                            (request.getHeader("X-Request-ID") + "").replace("\r", "_").replace("\n", "_"), (userId + "").replace("\r", "_").replace("\n", "_"), (username + "").replace("\r", "_").replace("\n", "_"));
                 } else {
                     securityMetrics.increment("security.jwt.invalid");
                     SecurityErrorResponseWriter.write(request, response, HttpServletResponse.SC_UNAUTHORIZED,
@@ -101,7 +101,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
         } catch (Exception e) {
             securityMetrics.increment("security.jwt.errors");
-            log.error("Cannot set user authentication traceId={}", request.getHeader("X-Request-ID"), e);
+            log.error("Cannot set user authentication traceId={}", (request.getHeader("X-Request-ID") + "").replace("\r", "_").replace("\n", "_"), e);
             SecurityErrorResponseWriter.write(request, response, HttpServletResponse.SC_UNAUTHORIZED, "AUTH_ERROR",
                     "Authentication error");
         } finally {

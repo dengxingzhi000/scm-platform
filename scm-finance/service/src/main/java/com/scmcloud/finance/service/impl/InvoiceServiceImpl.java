@@ -25,7 +25,7 @@ public class InvoiceServiceImpl extends ServiceImpl<InvoiceMapper, Invoice> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Invoice create(CreateInvoiceRequest request) {
-        log.info("Create invoice: invoiceNo={}", request.getInvoiceNo());
+        log.info("Create invoice: invoiceNo={}", (request.getInvoiceNo() + "").replace("\r", "_").replace("\n", "_"));
 
         Invoice invoice = new Invoice();
         invoice.setId(UUIDv7Util.generateString());
@@ -50,14 +50,14 @@ public class InvoiceServiceImpl extends ServiceImpl<InvoiceMapper, Invoice> impl
         invoice.setUpdateTime(LocalDateTime.now());
 
         save(invoice);
-        log.info("Invoice created: id={}, invoiceNo={}", invoice.getId(), invoice.getInvoiceNo());
+        log.info("Invoice created: id={}, invoiceNo={}", (invoice.getId() + "").replace("\r", "_").replace("\n", "_"), (invoice.getInvoiceNo() + "").replace("\r", "_").replace("\n", "_"));
         return invoice;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Invoice update(String id, UpdateInvoiceRequest request) {
-        log.info("Update invoice: id={}", id);
+        log.info("Update invoice: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
 
         Invoice invoice = getById(id);
         if (invoice == null || Boolean.TRUE.equals(invoice.getDeleted())) {
@@ -112,14 +112,14 @@ public class InvoiceServiceImpl extends ServiceImpl<InvoiceMapper, Invoice> impl
 
         invoice.setUpdateTime(LocalDateTime.now());
         updateById(invoice);
-        log.info("Invoice updated: id={}", id);
+        log.info("Invoice updated: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         return invoice;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void delete(String id) {
-        log.info("Delete invoice: id={}", id);
+        log.info("Delete invoice: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
 
         Invoice invoice = getById(id);
         if (invoice == null || Boolean.TRUE.equals(invoice.getDeleted())) {
@@ -129,12 +129,12 @@ public class InvoiceServiceImpl extends ServiceImpl<InvoiceMapper, Invoice> impl
         invoice.setDeleted(true);
         invoice.setUpdateTime(LocalDateTime.now());
         updateById(invoice);
-        log.info("Invoice deleted: id={}", id);
+        log.info("Invoice deleted: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
     }
 
     @Override
     public Page<Invoice> pageByPartyId(String partyId, int pageNum, int pageSize) {
-        log.debug("Page invoices by party: partyId={}, page={}, size={}", partyId, pageNum, pageSize);
+        log.debug("Page invoices by party: partyId={}, page={}, size={}", (partyId + "").replace("\r", "_").replace("\n", "_"), (pageNum + "").replace("\r", "_").replace("\n", "_"), (pageSize + "").replace("\r", "_").replace("\n", "_"));
 
         LambdaQueryWrapper<Invoice> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(StringUtils.hasText(partyId), Invoice::getPartyId, partyId)
@@ -146,7 +146,7 @@ public class InvoiceServiceImpl extends ServiceImpl<InvoiceMapper, Invoice> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Invoice issueInvoice(String id, String issuerName) {
-        log.info("Issue invoice: id={}, issuer={}", id, issuerName);
+        log.info("Issue invoice: id={}, issuer={}", (id + "").replace("\r", "_").replace("\n", "_"), (issuerName + "").replace("\r", "_").replace("\n", "_"));
 
         Invoice invoice = getById(id);
         if (invoice == null || Boolean.TRUE.equals(invoice.getDeleted())) {
@@ -162,14 +162,14 @@ public class InvoiceServiceImpl extends ServiceImpl<InvoiceMapper, Invoice> impl
         invoice.setUpdateTime(LocalDateTime.now());
 
         updateById(invoice);
-        log.info("Invoice issued: id={}, invoiceNo={}", id, invoice.getInvoiceNo());
+        log.info("Invoice issued: id={}, invoiceNo={}", (id + "").replace("\r", "_").replace("\n", "_"), (invoice.getInvoiceNo() + "").replace("\r", "_").replace("\n", "_"));
         return invoice;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Invoice voidInvoice(String id) {
-        log.info("Void invoice: id={}", id);
+        log.info("Void invoice: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
 
         Invoice invoice = getById(id);
         if (invoice == null || Boolean.TRUE.equals(invoice.getDeleted())) {
@@ -184,14 +184,14 @@ public class InvoiceServiceImpl extends ServiceImpl<InvoiceMapper, Invoice> impl
         invoice.setUpdateTime(LocalDateTime.now());
 
         updateById(invoice);
-        log.info("Invoice voided: id={}", id);
+        log.info("Invoice voided: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         return invoice;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Invoice redFlushInvoice(String id) {
-        log.info("Red-flush invoice: id={}", id);
+        log.info("Red-flush invoice: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
 
         Invoice invoice = getById(id);
         if (invoice == null || Boolean.TRUE.equals(invoice.getDeleted())) {
@@ -206,7 +206,7 @@ public class InvoiceServiceImpl extends ServiceImpl<InvoiceMapper, Invoice> impl
         invoice.setUpdateTime(LocalDateTime.now());
 
         updateById(invoice);
-        log.info("Invoice red-flushed: id={}", id);
+        log.info("Invoice red-flushed: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         return invoice;
     }
 }

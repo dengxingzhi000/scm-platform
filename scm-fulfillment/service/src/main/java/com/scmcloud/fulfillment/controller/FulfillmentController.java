@@ -22,21 +22,21 @@ public class FulfillmentController {
     @Operation(summary = "创建履约单", description = "根据订单号与履约类型创建一张新的履约单。")
     @PostMapping
     public FulfillmentOrder createFulfillment(@RequestBody CreateFulfillmentRequest request) {
-        log.info("[API] Create fulfillment: orderNo={}", request.getOrderNo());
+        log.info("[API] Create fulfillment: orderNo={}", (request.getOrderNo() + "").replace("\r", "_").replace("\n", "_"));
         return fulfillmentService.createFulfillment(request.getOrderNo(), request.getUserId(), request.getFulfillmentType());
     }
 
     @Operation(summary = "查询履约单", description = "根据履约单号查询履约单的明细与当前状态。")
     @GetMapping("/{fulfillmentNo}")
     public FulfillmentOrder getFulfillment(@Parameter(description = "履约单号") @PathVariable String fulfillmentNo) {
-        log.info("[API] Get fulfillment: fulfillmentNo={}", fulfillmentNo);
+        log.info("[API] Get fulfillment: fulfillmentNo={}", (fulfillmentNo + "").replace("\r", "_").replace("\n", "_"));
         return fulfillmentService.getFulfillment(fulfillmentNo);
     }
 
     @Operation(summary = "取消履约单", description = "根据履约单号取消履约单，并记录取消原因。")
     @PostMapping("/{fulfillmentNo}/cancel")
     public boolean cancelFulfillment(@Parameter(description = "履约单号") @PathVariable String fulfillmentNo, @RequestBody CancelRequest request) {
-        log.info("[API] Cancel fulfillment: fulfillmentNo={}, reason={}", fulfillmentNo, request.getReason());
+        log.info("[API] Cancel fulfillment: fulfillmentNo={}, reason={}", (fulfillmentNo + "").replace("\r", "_").replace("\n", "_"), (request.getReason() + "").replace("\r", "_").replace("\n", "_"));
         fulfillmentService.cancelFulfillment(fulfillmentNo, request.getReason());
         return true;
     }
@@ -44,7 +44,7 @@ public class FulfillmentController {
     @Operation(summary = "拣货", description = "对指定履约单执行拣货操作，将履约单推进至拣货完成状态。")
     @PostMapping("/{fulfillmentNo}/pick")
     public boolean pickItems(@Parameter(description = "履约单号") @PathVariable String fulfillmentNo) {
-        log.info("[API] Pick items: fulfillmentNo={}", fulfillmentNo);
+        log.info("[API] Pick items: fulfillmentNo={}", (fulfillmentNo + "").replace("\r", "_").replace("\n", "_"));
         fulfillmentService.pickItems(fulfillmentNo);
         return true;
     }
@@ -52,7 +52,7 @@ public class FulfillmentController {
     @Operation(summary = "打包", description = "对指定履约单执行打包操作，将履约单推进至打包完成状态。")
     @PostMapping("/{fulfillmentNo}/pack")
     public boolean packItems(@Parameter(description = "履约单号") @PathVariable String fulfillmentNo) {
-        log.info("[API] Pack items: fulfillmentNo={}", fulfillmentNo);
+        log.info("[API] Pack items: fulfillmentNo={}", (fulfillmentNo + "").replace("\r", "_").replace("\n", "_"));
         fulfillmentService.packItems(fulfillmentNo);
         return true;
     }
@@ -60,7 +60,7 @@ public class FulfillmentController {
     @Operation(summary = "发货", description = "登记物流单号与承运商，对指定履约单执行发货操作。")
     @PostMapping("/{fulfillmentNo}/ship")
     public boolean shipItems(@Parameter(description = "履约单号") @PathVariable String fulfillmentNo, @RequestBody ShipRequest request) {
-        log.info("[API] Ship items: fulfillmentNo={}, trackingNo={}, carrier={}", fulfillmentNo, request.getTrackingNo(), request.getCarrier());
+        log.info("[API] Ship items: fulfillmentNo={}, trackingNo={}, carrier={}", (fulfillmentNo + "").replace("\r", "_").replace("\n", "_"), (request.getTrackingNo() + "").replace("\r", "_").replace("\n", "_"), (request.getCarrier() + "").replace("\r", "_").replace("\n", "_"));
         fulfillmentService.shipItems(fulfillmentNo, request.getTrackingNo(), request.getCarrier());
         return true;
     }
@@ -68,7 +68,7 @@ public class FulfillmentController {
     @Operation(summary = "确认签收", description = "对指定履约单确认收货签收，将履约单推进至已完成状态。")
     @PostMapping("/{fulfillmentNo}/deliver")
     public boolean confirmDelivery(@Parameter(description = "履约单号") @PathVariable String fulfillmentNo) {
-        log.info("[API] Confirm delivery: fulfillmentNo={}", fulfillmentNo);
+        log.info("[API] Confirm delivery: fulfillmentNo={}", (fulfillmentNo + "").replace("\r", "_").replace("\n", "_"));
         fulfillmentService.confirmDelivery(fulfillmentNo);
         return true;
     }

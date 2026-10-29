@@ -34,7 +34,7 @@ public class WmsLocationCommandService {
         location.setCreateTime(LocalDateTime.now());
         location.setUpdateTime(LocalDateTime.now());
         locationMapper.insert(location);
-        log.info("库位创建成功: id={}, code={}", location.getId(), location.getLocationCode());
+        log.info("库位创建成功: id={}, code={}", (location.getId() + "").replace("\r", "_").replace("\n", "_"), (location.getLocationCode() + "").replace("\r", "_").replace("\n", "_"));
         return location;
     }
 

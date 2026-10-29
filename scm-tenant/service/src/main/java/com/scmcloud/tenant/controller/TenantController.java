@@ -24,42 +24,42 @@ public class TenantController {
     @Operation(summary = "创建租户", description = "新增一个租户并返回创建后的租户信息。")
     @PostMapping
     public Tenant create(@RequestBody Tenant entity) {
-        log.info("[API] 创建租户: tenantCode={}, tenantName={}", entity.getTenantCode(), entity.getTenantName());
+        log.info("[API] 创建租户: tenantCode={}, tenantName={}", (entity.getTenantCode() + "").replace("\r", "_").replace("\n", "_"), (entity.getTenantName() + "").replace("\r", "_").replace("\n", "_"));
         return tenantService.createTenant(entity);
     }
 
     @Operation(summary = "查询租户详情", description = "根据租户 ID 查询租户详细信息。")
     @GetMapping("/{id}")
     public Tenant getById(@Parameter(description = "租户ID") @PathVariable String id) {
-        log.info("[API] 查询租户: id={}", id);
+        log.info("[API] 查询租户: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         return tenantService.getById(id);
     }
 
     @Operation(summary = "更新租户", description = "根据租户 ID 更新租户信息并返回更新结果。")
     @PutMapping
     public Tenant update(@RequestBody Tenant entity) {
-        log.info("[API] 更新租户: id={}", entity.getId());
+        log.info("[API] 更新租户: id={}", (entity.getId() + "").replace("\r", "_").replace("\n", "_"));
         return tenantService.updateTenant(entity);
     }
 
     @Operation(summary = "删除租户", description = "根据租户 ID 删除指定租户。")
     @DeleteMapping("/{id}")
     public boolean deleteById(@Parameter(description = "租户ID") @PathVariable String id) {
-        log.info("[API] 删除租户: id={}", id);
+        log.info("[API] 删除租户: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         return tenantService.deleteById(id);
     }
 
     @Operation(summary = "启用租户", description = "将指定租户状态置为可用，允许其正常访问平台。")
     @PutMapping("/{id}/enable")
     public boolean enable(@Parameter(description = "租户ID") @PathVariable String id) {
-        log.info("[API] 启用租户: id={}", id);
+        log.info("[API] 启用租户: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         return tenantService.enableTenant(id);
     }
 
     @Operation(summary = "禁用租户", description = "将指定租户状态置为禁用，暂停其访问平台。")
     @PutMapping("/{id}/disable")
     public boolean disable(@Parameter(description = "租户ID") @PathVariable String id) {
-        log.info("[API] 禁用租户: id={}", id);
+        log.info("[API] 禁用租户: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         return tenantService.disableTenant(id);
     }
 

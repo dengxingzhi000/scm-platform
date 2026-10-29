@@ -48,7 +48,7 @@ public class IdempotentAspect {
                 .setIfAbsent(idempotentKey, "1", Duration.ofSeconds(idempotent.expireTime()));
 
         if (Boolean.FALSE.equals(acquired)) {
-            log.warn("Duplicate request detected: {}", idempotentKey);
+            log.warn("Duplicate request detected for {}", (point.getSignature().toShortString() + "").replace("\r", "_").replace("\n", "_"));
             throw new BusinessException(idempotent.message());
         }
 

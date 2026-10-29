@@ -68,8 +68,8 @@ public class LineageService {
         } catch (DuplicateKeyException ex) {
             throw new BusinessException("Lineage edge already exists");
         }
-        log.info("Recorded lineage edge: {} -> {} ({})", entity.getUpstreamNode(),
-                entity.getDownstreamNode(), entity.getEdgeType());
+        log.info("Recorded lineage edge: {} -> {} ({})", (entity.getUpstreamNode() + "").replace("\r", "_").replace("\n", "_"),
+                (entity.getDownstreamNode() + "").replace("\r", "_").replace("\n", "_"), (entity.getEdgeType() + "").replace("\r", "_").replace("\n", "_"));
         return entity;
     }
 

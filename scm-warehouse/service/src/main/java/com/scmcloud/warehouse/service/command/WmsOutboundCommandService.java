@@ -37,7 +37,7 @@ public class WmsOutboundCommandService {
         outbound.setCreateTime(LocalDateTime.now());
         outbound.setUpdateTime(LocalDateTime.now());
         outboundMapper.insert(outbound);
-        log.info("出库单创建成功 id={}, outboundNo={}", outbound.getId(), outbound.getOutboundNo());
+        log.info("出库单创建成功 id={}, outboundNo={}", (outbound.getId() + "").replace("\r", "_").replace("\n", "_"), (outbound.getOutboundNo() + "").replace("\r", "_").replace("\n", "_"));
         return outbound;
     }
 
@@ -72,7 +72,7 @@ public class WmsOutboundCommandService {
     public boolean ship(String outboundId, String operatorId, String operatorName) {
         WmsOutbound outbound = outboundMapper.selectById(outboundId);
         if (outbound == null) {
-            log.warn("[ship] 出库单不存在: id={}", outboundId);
+            log.warn("[ship] 出库单不存在: id={}", (outboundId + "").replace("\r", "_").replace("\n", "_"));
             return false;
         }
 
@@ -102,7 +102,7 @@ public class WmsOutboundCommandService {
 
         boolean success = outboundMapper.updateById(outbound) > 0;
         if (success) {
-            log.info("出库单已出库: id={}, outboundNo={}, pickedQty={}", outboundId, outbound.getOutboundNo(), totalPicked);
+            log.info("出库单已出库: id={}, outboundNo={}, pickedQty={}", (outboundId + "").replace("\r", "_").replace("\n", "_"), (outbound.getOutboundNo() + "").replace("\r", "_").replace("\n", "_"), (totalPicked + "").replace("\r", "_").replace("\n", "_"));
         }
         return success;
     }
@@ -112,7 +112,7 @@ public class WmsOutboundCommandService {
     public boolean cancel(String outboundId, String operatorId, String operatorName) {
         WmsOutbound outbound = outboundMapper.selectById(outboundId);
         if (outbound == null) {
-            log.warn("[cancel] 出库单不存在: id={}", outboundId);
+            log.warn("[cancel] 出库单不存在: id={}", (outboundId + "").replace("\r", "_").replace("\n", "_"));
             return false;
         }
 
@@ -127,7 +127,7 @@ public class WmsOutboundCommandService {
 
         boolean success = outboundMapper.updateById(outbound) > 0;
         if (success) {
-            log.info("出库单已取消: id={}, outboundNo={}", outboundId, outbound.getOutboundNo());
+            log.info("出库单已取消: id={}, outboundNo={}", (outboundId + "").replace("\r", "_").replace("\n", "_"), (outbound.getOutboundNo() + "").replace("\r", "_").replace("\n", "_"));
         }
         return success;
     }

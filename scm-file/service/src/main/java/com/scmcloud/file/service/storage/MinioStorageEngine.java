@@ -45,7 +45,7 @@ public class MinioStorageEngine implements StorageEngine {
 
             return metadata;
         } catch (Exception e) {
-            log.error("Failed to upload file to MinIO, fileName={}, tenantId={}", fileName, tenantId, e);
+            log.error("Failed to upload file to MinIO, fileName={}, tenantId={}", (fileName + "").replace("\r", "_").replace("\n", "_"), (tenantId + "").replace("\r", "_").replace("\n", "_"), e);
             throw new com.scmcloud.file.service.storage.StorageException("File upload failed", e);
         }
     }
@@ -86,7 +86,7 @@ public class MinioStorageEngine implements StorageEngine {
                     .object(fileKey)
                     .build());
         } catch (Exception e) {
-            log.error("Failed to delete file from MinIO, fileKey={}", fileKey, e);
+            log.error("Failed to delete file from MinIO, fileKey={}", (fileKey + "").replace("\r", "_").replace("\n", "_"), e);
             throw new StorageException("File deletion failed", e);
         }
     }

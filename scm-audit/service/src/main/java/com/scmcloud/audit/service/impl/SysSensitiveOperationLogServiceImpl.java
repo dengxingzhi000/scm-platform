@@ -21,26 +21,30 @@ public class SysSensitiveOperationLogServiceImpl
         extends ServiceImpl<SysSensitiveOperationLogMapper, SysSensitiveOperationLog>
         implements ISysSensitiveOperationLogService {
 
+    @Override
     public SysSensitiveOperationLog createLog(SysSensitiveOperationLog entity) {
-        log.info("创建敏感操作日志: userId={}, operationType={}", entity.getUserId(), entity.getOperationType());
+        log.info("创建敏感操作日志: userId={}, operationType={}", (entity.getUserId() + "").replace("\r", "_").replace("\n", "_"), (entity.getOperationType() + "").replace("\r", "_").replace("\n", "_"));
         entity.setId(UUID.randomUUID().toString());
         entity.setCreateTime(LocalDateTime.now());
         save(entity);
-        log.info("敏感操作日志创建成功: id={}", entity.getId());
+        log.info("敏感操作日志创建成功: id={}", (entity.getId() + "").replace("\r", "_").replace("\n", "_"));
         return entity;
     }
 
+    @Override
     public SysSensitiveOperationLog getById(String id) {
         return lambdaQuery()
                 .eq(SysSensitiveOperationLog::getId, id)
                 .one();
     }
 
+    @Override
     public boolean deleteById(String id) {
-        log.info("删除敏感操作日志: id={}", id);
+        log.info("删除敏感操作日志: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         return removeById(id);
     }
 
+    @Override
     public List<SysSensitiveOperationLog> listByUserId(String userId) {
         return lambdaQuery()
                 .eq(SysSensitiveOperationLog::getUserId, userId)
@@ -48,6 +52,7 @@ public class SysSensitiveOperationLogServiceImpl
                 .list();
     }
 
+    @Override
     public List<SysSensitiveOperationLog> listByRiskLevel(Integer riskScore) {
         return lambdaQuery()
                 .eq(SysSensitiveOperationLog::getRiskScore, riskScore)
@@ -55,10 +60,11 @@ public class SysSensitiveOperationLogServiceImpl
                 .list();
     }
 
+    @Override
     public Page<SysSensitiveOperationLog> pageQuery(int page, int size, String userId,
                                                      String operationType, Integer riskScore) {
         log.debug("分页查询敏感操作日志: page={}, size={}, userId={}, operationType={}, riskScore={}",
-                page, size, userId, operationType, riskScore);
+                (page + "").replace("\r", "_").replace("\n", "_"), (size + "").replace("\r", "_").replace("\n", "_"), (userId + "").replace("\r", "_").replace("\n", "_"), (operationType + "").replace("\r", "_").replace("\n", "_"), (riskScore + "").replace("\r", "_").replace("\n", "_"));
 
         LambdaQueryWrapper<SysSensitiveOperationLog> wrapper = Wrappers.lambdaQuery();
 

@@ -51,7 +51,7 @@ public class OrdOrderCommandService {
     @Master(reason = "创建订单")
     @Transactional(rollbackFor = Exception.class)
     public OrdOrder createOrder(OrdOrder order, List<OrdOrderItem> items) {
-        log.info("创建订单: orderNo={}, userId={}", order.getOrderNo(), order.getUserId());
+        log.info("创建订单: orderNo={}, userId={}", (order.getOrderNo() + "").replace("\r", "_").replace("\n", "_"), (order.getUserId() + "").replace("\r", "_").replace("\n", "_"));
 
         if (CollectionUtils.isEmpty(items)) {
             throw new IllegalArgumentException("订单明细不能为空");
@@ -124,7 +124,7 @@ public class OrdOrderCommandService {
                 orderCreatedEvent,
                 tenantId);
 
-        log.info("订单创建成功: id={}, orderNo={}", order.getId(), order.getOrderNo());
+        log.info("订单创建成功: id={}, orderNo={}", (order.getId() + "").replace("\r", "_").replace("\n", "_"), (order.getOrderNo() + "").replace("\r", "_").replace("\n", "_"));
         return order;
     }
 
@@ -209,7 +209,7 @@ public class OrdOrderCommandService {
     @Master(reason = "取消订单")
     @Transactional(rollbackFor = Exception.class)
     public boolean cancelOrder(UUID orderId, String reason) {
-        log.info("取消订单: orderId={}, reason={}", orderId, reason);
+        log.info("取消订单: orderId={}, reason={}", (orderId + "").replace("\r", "_").replace("\n", "_"), (reason + "").replace("\r", "_").replace("\n", "_"));
 
         OrdOrder existing = ordOrderMapper.selectById(orderId);
         if (existing == null) {

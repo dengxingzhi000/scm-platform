@@ -17,7 +17,7 @@ public class ProdSkuServiceImpl extends ServiceImpl<ProdSkuMapper, ProdSku> impl
 
     @Override
     public List<ProdSku> listBySpuId(String spuId) {
-        log.debug("查询SPU的SKU列表: spuId={}", spuId);
+        log.debug("查询SPU的SKU列表: spuId={}", (spuId + "").replace("\r", "_").replace("\n", "_"));
         return lambdaQuery()
                 .eq(ProdSku::getSpuId, spuId)
                 .eq(ProdSku::getDeleted, false)

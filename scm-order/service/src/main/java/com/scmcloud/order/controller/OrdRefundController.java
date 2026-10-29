@@ -96,7 +96,7 @@ public class OrdRefundController {
     @Operation(summary = "分页查询退款单", description = "按条件分页查询退款单，支持退款单号、订单、用户、状态及时间区间过滤。")
     @PostMapping("/query")
     public ApiResponse<Page<RefundResponse>> query(@RequestBody @Valid RefundQueryRequest request) {
-        log.info("[API] Query refunds: {}", request);
+        log.info("[API] Query refunds: {}", (request + "").replace("\r", "_").replace("\n", "_"));
 
         Page<OrdRefund> page = queryService.pageWithWrapper(
                 new Page<>(request.getPageNum(), request.getPageSize()),
@@ -117,7 +117,7 @@ public class OrdRefundController {
     @Operation(summary = "创建退款单", description = "创建退款单并同时写入退款明细。")
     @PostMapping
     public ApiResponse<RefundResponse> createRefund(@RequestBody @Valid RefundCreateRequest request) {
-        log.info("[API] Create refund: refundNo={}, orderId={}", request.getRefundNo(), request.getOrderId());
+        log.info("[API] Create refund: refundNo={}, orderId={}", (request.getRefundNo() + "").replace("\r", "_").replace("\n", "_"), (request.getOrderId() + "").replace("\r", "_").replace("\n", "_"));
 
         OrdRefund refund = OrderConverter.toRefundEntity(request);
         java.util.List<OrdRefundItem> items = new java.util.ArrayList<>();
@@ -138,7 +138,7 @@ public class OrdRefundController {
     public ApiResponse<RefundResponse> approve(
             @Parameter(description = "退款单 ID") @PathVariable UUID id,
             @RequestBody @Valid RefundApproveRequest request) {
-        log.info("[API] Approve refund: id={}, handler={}", id, request.getHandlerId());
+        log.info("[API] Approve refund: id={}, handler={}", (id + "").replace("\r", "_").replace("\n", "_"), (request.getHandlerId() + "").replace("\r", "_").replace("\n", "_"));
         commandService.approveRefund(id, request.getHandlerId(), request.getHandlerName(), request.getHandlerRemark());
         RefundResponse r = OrderConverter.toRefundResponse(queryService.getById(id));
         if (r != null) {
@@ -155,7 +155,7 @@ public class OrdRefundController {
     public ApiResponse<RefundResponse> reject(
             @Parameter(description = "退款单 ID") @PathVariable UUID id,
             @RequestBody @Valid RefundRejectRequest request) {
-        log.info("[API] Reject refund: id={}, handler={}", id, request.getHandlerId());
+        log.info("[API] Reject refund: id={}, handler={}", (id + "").replace("\r", "_").replace("\n", "_"), (request.getHandlerId() + "").replace("\r", "_").replace("\n", "_"));
         commandService.rejectRefund(id, request.getHandlerId(), request.getHandlerName(), request.getHandlerRemark());
         RefundResponse r = OrderConverter.toRefundResponse(queryService.getById(id));
         if (r != null) {

@@ -37,7 +37,7 @@ public class WmsInboundCommandService {
         inbound.setCreateTime(LocalDateTime.now());
         inbound.setUpdateTime(LocalDateTime.now());
         inboundMapper.insert(inbound);
-        log.info("入库单创建成功 id={}, inboundNo={}", inbound.getId(), inbound.getInboundNo());
+        log.info("入库单创建成功 id={}, inboundNo={}", (inbound.getId() + "").replace("\r", "_").replace("\n", "_"), (inbound.getInboundNo() + "").replace("\r", "_").replace("\n", "_"));
         return inbound;
     }
 
@@ -72,7 +72,7 @@ public class WmsInboundCommandService {
     public boolean receive(String inboundId, String operatorId, String operatorName) {
         WmsInbound inbound = inboundMapper.selectById(inboundId);
         if (inbound == null) {
-            log.warn("[receive] 入库单不存在: id={}", inboundId);
+            log.warn("[receive] 入库单不存在: id={}", (inboundId + "").replace("\r", "_").replace("\n", "_"));
             return false;
         }
 
@@ -111,7 +111,7 @@ public class WmsInboundCommandService {
         boolean success = inboundMapper.updateById(inbound) > 0;
         if (success) {
             log.info("入库单收货完成: id={}, inboundNo={}, status={}, receivedQty={}",
-                    inboundId, inbound.getInboundNo(), inbound.getStatus(), totalReceived);
+                    (inboundId + "").replace("\r", "_").replace("\n", "_"), (inbound.getInboundNo() + "").replace("\r", "_").replace("\n", "_"), (inbound.getStatus() + "").replace("\r", "_").replace("\n", "_"), (totalReceived + "").replace("\r", "_").replace("\n", "_"));
         }
         return success;
     }
@@ -121,7 +121,7 @@ public class WmsInboundCommandService {
     public boolean cancel(String inboundId, String operatorId, String operatorName) {
         WmsInbound inbound = inboundMapper.selectById(inboundId);
         if (inbound == null) {
-            log.warn("[cancel] 入库单不存在: id={}", inboundId);
+            log.warn("[cancel] 入库单不存在: id={}", (inboundId + "").replace("\r", "_").replace("\n", "_"));
             return false;
         }
 
@@ -136,7 +136,7 @@ public class WmsInboundCommandService {
 
         boolean success = inboundMapper.updateById(inbound) > 0;
         if (success) {
-            log.info("入库单已取消: id={}, inboundNo={}", inboundId, inbound.getInboundNo());
+            log.info("入库单已取消: id={}, inboundNo={}", (inboundId + "").replace("\r", "_").replace("\n", "_"), (inbound.getInboundNo() + "").replace("\r", "_").replace("\n", "_"));
         }
         return success;
     }

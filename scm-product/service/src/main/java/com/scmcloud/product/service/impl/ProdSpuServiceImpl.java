@@ -19,7 +19,7 @@ public class ProdSpuServiceImpl extends ServiceImpl<ProdSpuMapper, ProdSpu> impl
 
     @Override
     public List<ProdSpu> listByCategoryId(String categoryId) {
-        log.debug("查询分类SPU: categoryId={}", categoryId);
+        log.debug("查询分类SPU: categoryId={}", (categoryId + "").replace("\r", "_").replace("\n", "_"));
         return lambdaQuery()
                 .eq(ProdSpu::getCategoryId, categoryId)
                 .eq(ProdSpu::getDeleted, false)
@@ -30,7 +30,7 @@ public class ProdSpuServiceImpl extends ServiceImpl<ProdSpuMapper, ProdSpu> impl
 
     @Override
     public List<ProdSpu> listByBrandId(String brandId) {
-        log.debug("查询品牌SPU: brandId={}", brandId);
+        log.debug("查询品牌SPU: brandId={}", (brandId + "").replace("\r", "_").replace("\n", "_"));
         return lambdaQuery()
                 .eq(ProdSpu::getBrandId, brandId)
                 .eq(ProdSpu::getDeleted, false)
@@ -42,7 +42,7 @@ public class ProdSpuServiceImpl extends ServiceImpl<ProdSpuMapper, ProdSpu> impl
     @Override
     public Page<ProdSpu> search(String keyword, String categoryId, String brandId, Integer status,
                                 Integer page, Integer size) {
-        log.debug("搜索SPU: keyword={}, categoryId={}, brandId={}, status={}", keyword, categoryId, brandId, status);
+        log.debug("搜索SPU: keyword={}, categoryId={}, brandId={}, status={}", (keyword + "").replace("\r", "_").replace("\n", "_"), (categoryId + "").replace("\r", "_").replace("\n", "_"), (brandId + "").replace("\r", "_").replace("\n", "_"), (status + "").replace("\r", "_").replace("\n", "_"));
 
         LambdaQueryWrapper<ProdSpu> wrapper = Wrappers.lambdaQuery();
         wrapper.eq(ProdSpu::getDeleted, false);

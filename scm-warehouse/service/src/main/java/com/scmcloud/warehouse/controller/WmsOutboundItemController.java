@@ -26,16 +26,16 @@ public class WmsOutboundItemController {
     @Operation(summary = "创建出库明细", description = "为指定出库单新增一条商品明细行。")
     @PostMapping
     public ApiResponse<WmsOutboundItem> create(@RequestBody WmsOutboundItem item) {
-        log.info("[API] 创建出库明细: outboundId={}, skuId={}", item.getOutboundId(), item.getSkuId());
+        log.info("[API] 创建出库明细: outboundId={}, skuId={}", (item.getOutboundId() + "").replace("\r", "_").replace("\n", "_"), (item.getSkuId() + "").replace("\r", "_").replace("\n", "_"));
         WmsOutboundItem created = outboundItemCommandService.create(item);
-        log.info("[API] 出库明细创建成功: id={}", created.getId());
+        log.info("[API] 出库明细创建成功: id={}", (created.getId() + "").replace("\r", "_").replace("\n", "_"));
         return ApiResponse.success(created);
     }
 
     @Operation(summary = "更新出库明细", description = "按主键更新出库明细的数量、库位等信息。")
     @PutMapping("/{id}")
     public ApiResponse<WmsOutboundItem> update(@Parameter(description = "出库明细主键 ID") @PathVariable String id, @RequestBody WmsOutboundItem item) {
-        log.info("[API] 更新出库明细: id={}", id);
+        log.info("[API] 更新出库明细: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         item.setId(id);
         boolean success = outboundItemCommandService.update(item);
         if (!success) {
@@ -47,7 +47,7 @@ public class WmsOutboundItemController {
     @Operation(summary = "删除出库明细", description = "按主键逻辑删除出库明细行。")
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@Parameter(description = "出库明细主键 ID") @PathVariable String id) {
-        log.info("[API] 删除出库明细: id={}", id);
+        log.info("[API] 删除出库明细: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         boolean success = outboundItemCommandService.softDeleteById(id);
         return success ? ApiResponse.success() : ApiResponse.fail(404, "出库明细不存在");
     }

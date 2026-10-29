@@ -25,16 +25,16 @@ public class WmsOutboundController {
     @Operation(summary = "创建出库单", description = "根据仓库与出库类型新建一张出库单并生成出库单号。")
     @PostMapping
     public ApiResponse<WmsOutbound> create(@RequestBody WmsOutbound outbound) {
-        log.info("[API] 创建出库单 warehouseId={}, type={}", outbound.getWarehouseId(), outbound.getOutboundType());
+        log.info("[API] 创建出库单 warehouseId={}, type={}", (outbound.getWarehouseId() + "").replace("\r", "_").replace("\n", "_"), (outbound.getOutboundType() + "").replace("\r", "_").replace("\n", "_"));
         WmsOutbound created = outboundCommandService.create(outbound);
-        log.info("[API] 出库单创建成功 id={}, outboundNo={}", created.getId(), created.getOutboundNo());
+        log.info("[API] 出库单创建成功 id={}, outboundNo={}", (created.getId() + "").replace("\r", "_").replace("\n", "_"), (created.getOutboundNo() + "").replace("\r", "_").replace("\n", "_"));
         return ApiResponse.success(created);
     }
 
     @Operation(summary = "更新出库单", description = "按主键更新出库单信息，仅允许在未发货状态下修改。")
     @PutMapping("/{id}")
     public ApiResponse<WmsOutbound> update(@Parameter(description = "出库单主键 ID") @PathVariable String id, @RequestBody WmsOutbound outbound) {
-        log.info("[API] 更新出库单 id={}", id);
+        log.info("[API] 更新出库单 id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         outbound.setId(id);
         try {
             boolean success = outboundCommandService.update(outbound);
@@ -50,7 +50,7 @@ public class WmsOutboundController {
     @Operation(summary = "删除出库单", description = "按主键逻辑删除出库单，已删除的单据不再对外可见。")
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@Parameter(description = "出库单主键 ID") @PathVariable String id) {
-        log.info("[API] 删除出库单 id={}", id);
+        log.info("[API] 删除出库单 id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         boolean success = outboundCommandService.softDeleteById(id);
         return success ? ApiResponse.success() : ApiResponse.fail(404, "出库单不存在");
     }
@@ -82,7 +82,7 @@ public class WmsOutboundController {
             @Parameter(description = "出库单主键 ID") @PathVariable String id,
             @Parameter(description = "操作人用户 ID") @RequestParam String operatorId,
             @Parameter(description = "操作人姓名") @RequestParam String operatorName) {
-        log.info("[API] 出库确认: id={}, operator={}", id, operatorName);
+        log.info("[API] 出库确认: id={}, operator={}", (id + "").replace("\r", "_").replace("\n", "_"), (operatorName + "").replace("\r", "_").replace("\n", "_"));
         try {
             boolean success = outboundCommandService.ship(id, operatorId, operatorName);
             return success ? ApiResponse.success() : ApiResponse.fail(400, "出库失败");
@@ -97,7 +97,7 @@ public class WmsOutboundController {
             @Parameter(description = "出库单主键 ID") @PathVariable String id,
             @Parameter(description = "操作人用户 ID") @RequestParam String operatorId,
             @Parameter(description = "操作人姓名") @RequestParam String operatorName) {
-        log.info("[API] 取消出库单 id={}, operator={}", id, operatorName);
+        log.info("[API] 取消出库单 id={}, operator={}", (id + "").replace("\r", "_").replace("\n", "_"), (operatorName + "").replace("\r", "_").replace("\n", "_"));
         try {
             boolean success = outboundCommandService.cancel(id, operatorId, operatorName);
             return success ? ApiResponse.success() : ApiResponse.fail(400, "取消失败");

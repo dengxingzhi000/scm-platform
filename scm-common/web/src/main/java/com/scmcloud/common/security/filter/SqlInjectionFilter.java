@@ -48,8 +48,13 @@ public class SqlInjectionFilter implements Filter {
             Pattern.CASE_INSENSITIVE | Pattern.MULTILINE
     );
 
+    private static final int MAX_SCAN_LENGTH = 4096;
+
+    // Every repetition is bounded so a pathological payload (<script<script<script…) cannot
+    // drive the matcher into super-linear backtracking.
     private static final Pattern XSS_PATTERN = Pattern.compile(
-            "<script[^>]*?>.*?</script>|javascript:|<iframe.*?>|<img[^>]*?onerror\\s*=", Pattern.CASE_INSENSITIVE
+            "<script\\b[^>]{0,200}>|<iframe\\b[^>]{0,200}>|javascript\\s{0,16}:|\\bon[a-z]{3,16}\\s{0,16}=",
+            Pattern.CASE_INSENSITIVE
     );
 
     public SqlInjectionFilter(SecurityFilterProperties properties, SecurityMetrics securityMetrics) {
@@ -168,7 +173,8 @@ public class SqlInjectionFilter implements Filter {
                     return state;
                 }
 
-                if ((properties == null || properties.isXssEnabled()) && XSS_PATTERN.matcher(paramValue).find()) {
+                if ((properties == null || properties.isXssEnabled())
+                        && XSS_PATTERN.matcher(truncateForScan(paramValue)).find()) {
                     log.warn("XSS attack detected! mode={}, traceId={}, param={}, preview={}, ip={}, uri={}",
                             monitorOnly ? "ALERT" : "BLOCK",
                             request.getHeader("X-Request-ID"), paramName, preview,
@@ -228,12 +234,13 @@ public class SqlInjectionFilter implements Filter {
         if (SQL_INJECTION_PATTERN.matcher(value).find()) {
             String preview = generatePreview(value);
             log.warn("SQL injection detected in JSON! mode={}, traceId={}, field={}, preview={}, ip={}, uri={}",
-                    monitorOnly ? "ALERT" : "BLOCK",
-                    req.getHeader("X-Request-ID"), field, preview, IpUtils.getClientIp(req), uri);
+                    ((monitorOnly ? "ALERT" : "BLOCK") + "").replace("\r", "_").replace("\n", "_"),
+                    (req.getHeader("X-Request-ID") + "").replace("\r", "_").replace("\n", "_"), (field + "").replace("\r", "_").replace("\n", "_"), (preview + "").replace("\r", "_").replace("\n", "_"), (IpUtils.getClientIp(req) + "").replace("\r", "_").replace("\n", "_"), (uri + "").replace("\r", "_").replace("\n", "_"));
             return handleDetection(req, resp, "SQL_INJECTION", "妫€娴嬪埌鐤戜技 SQL 娉ㄥ叆", monitorOnly, true);
         }
 
-        if ((properties == null || properties.isXssEnabled()) && XSS_PATTERN.matcher(value).find()) {
+        if ((properties == null || properties.isXssEnabled())
+                && XSS_PATTERN.matcher(truncateForScan(value)).find()) {
             String preview = generatePreview(value);
             log.warn("XSS attack detected in JSON! mode={}, traceId={}, field={}, preview={}, ip={}, uri={}",
                     monitorOnly ? "ALERT" : "BLOCK",
@@ -256,6 +263,10 @@ public class SqlInjectionFilter implements Filter {
             response.setHeader(ALERT_HEADER, code);
         }
         return DetectionState.ALERTED;
+    }
+
+    private static String truncateForScan(String value) {
+        return value.length() > MAX_SCAN_LENGTH ? value.substring(0, MAX_SCAN_LENGTH) : value;
     }
 
     private String generatePreview(String value) {

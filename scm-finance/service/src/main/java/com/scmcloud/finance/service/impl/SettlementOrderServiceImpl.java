@@ -29,7 +29,7 @@ public class SettlementOrderServiceImpl extends ServiceImpl<SettlementOrderMappe
     @Override
     @Transactional(rollbackFor = Exception.class)
     public SettlementOrder createSettlement(SettlementOrder order) {
-        log.info("Create settlement order: partnerName={}, settlementType={}", order.getPartnerName(), order.getSettlementType());
+        log.info("Create settlement order: partnerName={}, settlementType={}", (order.getPartnerName() + "").replace("\r", "_").replace("\n", "_"), (order.getSettlementType() + "").replace("\r", "_").replace("\n", "_"));
 
         order.setId(UUIDv7Util.generateString());
         order.setSettlementNo(generateSettlementNo());
@@ -45,14 +45,14 @@ public class SettlementOrderServiceImpl extends ServiceImpl<SettlementOrderMappe
             throw new RuntimeException("Failed to create settlement order");
         }
 
-        log.info("Settlement order created successfully: id={}, settlementNo={}", order.getId(), order.getSettlementNo());
+        log.info("Settlement order created successfully: id={}, settlementNo={}", (order.getId() + "").replace("\r", "_").replace("\n", "_"), (order.getSettlementNo() + "").replace("\r", "_").replace("\n", "_"));
         return order;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public SettlementOrder confirmSettlement(String id, String approverId, String approverName) {
-        log.info("Confirm settlement: id={}, approver={}", id, approverName);
+        log.info("Confirm settlement: id={}, approver={}", (id + "").replace("\r", "_").replace("\n", "_"), (approverName + "").replace("\r", "_").replace("\n", "_"));
 
         SettlementOrder order = getById(id);
         if (order == null || Boolean.TRUE.equals(order.getDeleted())) {
@@ -67,14 +67,14 @@ public class SettlementOrderServiceImpl extends ServiceImpl<SettlementOrderMappe
         order.setUpdateTime(LocalDateTime.now());
 
         updateById(order);
-        log.info("Settlement order confirmed successfully: id={}", id);
+        log.info("Settlement order confirmed successfully: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         return order;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public SettlementOrder recordPayment(String id, BigDecimal amount) {
-        log.info("Record settlement payment: id={}, amount={}", id, amount);
+        log.info("Record settlement payment: id={}, amount={}", (id + "").replace("\r", "_").replace("\n", "_"), (amount + "").replace("\r", "_").replace("\n", "_"));
 
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Payment amount must be greater than 0");
@@ -100,10 +100,10 @@ public class SettlementOrderServiceImpl extends ServiceImpl<SettlementOrderMappe
 
         if (order.getUnpaidAmount().compareTo(BigDecimal.ZERO) == 0) {
             order.setStatus(4);
-            log.info("Settlement order fully paid: id={}", id);
+            log.info("Settlement order fully paid: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         } else {
             order.setStatus(3);
-            log.info("Settlement order partially paid: id={}, paid={}, unpaid={}", id, newPaidAmount, order.getUnpaidAmount());
+            log.info("Settlement order partially paid: id={}, paid={}, unpaid={}", (id + "").replace("\r", "_").replace("\n", "_"), (newPaidAmount + "").replace("\r", "_").replace("\n", "_"), (order.getUnpaidAmount() + "").replace("\r", "_").replace("\n", "_"));
         }
 
         updateById(order);

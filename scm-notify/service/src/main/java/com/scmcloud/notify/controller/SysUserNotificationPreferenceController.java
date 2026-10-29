@@ -25,35 +25,35 @@ public class SysUserNotificationPreferenceController {
     @PostMapping
     public SysUserNotificationPreference create(@RequestBody SysUserNotificationPreference entity) {
         log.info("[API] 创建用户通知偏好: userId={}, notificationType={}, channel={}",
-                entity.getUserId(), entity.getNotificationType(), entity.getChannel());
+                (entity.getUserId() + "").replace("\r", "_").replace("\n", "_"), (entity.getNotificationType() + "").replace("\r", "_").replace("\n", "_"), (entity.getChannel() + "").replace("\r", "_").replace("\n", "_"));
         return userNotificationPreferenceService.createPreference(entity);
     }
 
     @Operation(summary = "查询通知偏好", description = "根据偏好ID查询用户通知偏好详情。")
     @GetMapping("/{id}")
     public SysUserNotificationPreference getById(@Parameter(description = "偏好ID") @PathVariable String id) {
-        log.info("[API] 查询用户通知偏好: id={}", id);
+        log.info("[API] 查询用户通知偏好: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         return userNotificationPreferenceService.getById(id);
     }
 
     @Operation(summary = "更新通知偏好", description = "更新用户通知偏好配置。")
     @PutMapping
     public SysUserNotificationPreference update(@RequestBody SysUserNotificationPreference entity) {
-        log.info("[API] 更新用户通知偏好: id={}", entity.getId());
+        log.info("[API] 更新用户通知偏好: id={}", (entity.getId() + "").replace("\r", "_").replace("\n", "_"));
         return userNotificationPreferenceService.updatePreference(entity);
     }
 
     @Operation(summary = "删除通知偏好", description = "根据偏好ID删除用户通知偏好。")
     @DeleteMapping("/{id}")
     public boolean deleteById(@Parameter(description = "偏好ID") @PathVariable String id) {
-        log.info("[API] 删除用户通知偏好: id={}", id);
+        log.info("[API] 删除用户通知偏好: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         return userNotificationPreferenceService.deleteById(id);
     }
 
     @Operation(summary = "查询用户通知偏好", description = "查询指定用户的全部通知偏好。")
     @GetMapping("/user/{userId}")
     public List<SysUserNotificationPreference> getByUserId(@Parameter(description = "用户ID") @PathVariable String userId) {
-        log.info("[API] 查询用户通知偏好: userId={}", userId);
+        log.info("[API] 查询用户通知偏好: userId={}", (userId + "").replace("\r", "_").replace("\n", "_"));
         return userNotificationPreferenceService.getByUserId(userId);
     }
 

@@ -26,7 +26,7 @@ public class ProductSearchServiceImpl implements IProductSearchService {
 
     @Override
     public List<ProductDocument> searchProducts(String keyword, Long categoryId, Long brandId, int page, int size) {
-        log.info("Searching products: keyword={}, categoryId={}, brandId={}", keyword, categoryId, brandId);
+        log.info("Searching products: keyword={}, categoryId={}, brandId={}", (keyword + "").replace("\r", "_").replace("\n", "_"), (categoryId + "").replace("\r", "_").replace("\n", "_"), (brandId + "").replace("\r", "_").replace("\n", "_"));
 
         Criteria criteria = new Criteria("status").is("active");
 

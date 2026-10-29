@@ -31,21 +31,21 @@ public class PaymentController {
     @Operation(summary = "创建支付单", description = "根据订单号、用户、金额与支付渠道创建支付单。")
     @PostMapping("/create")
     public PaymentOrder createPayment(@RequestBody CreatePaymentRequest request) {
-        log.info("[API] Create payment: orderNo={}, amount={}", request.getOrderNo(), request.getAmount());
+        log.info("[API] Create payment: orderNo={}, amount={}", (request.getOrderNo() + "").replace("\r", "_").replace("\n", "_"), (request.getAmount() + "").replace("\r", "_").replace("\n", "_"));
         return paymentService.createPayment(request.getOrderNo(), request.getUserId(), request.getAmount(), request.getPaymentChannel());
     }
 
     @Operation(summary = "查询支付单", description = "根据支付单号查询支付单详情。")
     @GetMapping("/{paymentNo}")
     public PaymentOrder queryPayment(@Parameter(description = "支付单号") @PathVariable String paymentNo) {
-        log.info("[API] Query payment: paymentNo={}", paymentNo);
+        log.info("[API] Query payment: paymentNo={}", (paymentNo + "").replace("\r", "_").replace("\n", "_"));
         return paymentService.queryPayment(paymentNo);
     }
 
     @Operation(summary = "取消支付单", description = "根据支付单号取消尚未完成的支付。")
     @PostMapping("/{paymentNo}/cancel")
     public boolean cancelPayment(@Parameter(description = "支付单号") @PathVariable String paymentNo) {
-        log.info("[API] Cancel payment: paymentNo={}", paymentNo);
+        log.info("[API] Cancel payment: paymentNo={}", (paymentNo + "").replace("\r", "_").replace("\n", "_"));
         paymentService.cancelPayment(paymentNo);
         return true;
     }
@@ -83,14 +83,14 @@ public class PaymentController {
             return "failure";
         }
         if (!success) {
-            log.info("[API] {} callback ignored for {}: non-success status", channel, paymentNo);
+            log.info("[API] {} callback ignored for {}: non-success status", (channel + "").replace("\r", "_").replace("\n", "_"), (paymentNo + "").replace("\r", "_").replace("\n", "_"));
             return "success";
         }
         try {
             paymentService.handlePaymentCallback(paymentNo, transactionId);
             return "success";
         } catch (RuntimeException ex) {
-            log.error("[API] {} callback failed for {}", channel, paymentNo, ex);
+            log.error("[API] {} callback failed for {}", (channel + "").replace("\r", "_").replace("\n", "_"), (paymentNo + "").replace("\r", "_").replace("\n", "_"), ex);
             return "failure";
         }
     }
@@ -104,7 +104,7 @@ public class PaymentController {
         if (trimmed.startsWith("{")) {
             try {
                 JsonNode node = objectMapper.readTree(trimmed);
-                node.fields().forEachRemaining(entry -> {
+                node.properties().forEach(entry -> {
                     if (entry.getValue() != null && !entry.getValue().isNull()) {
                         values.put(entry.getKey(), entry.getValue().asText());
                     }

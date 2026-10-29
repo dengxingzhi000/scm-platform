@@ -29,7 +29,7 @@ public class SearchController {
             @Parameter(description = "品牌ID") @RequestParam(required = false) Long brandId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        log.info("[API] Search products: keyword={}, categoryId={}, brandId={}", keyword, categoryId, brandId);
+        log.info("[API] Search products: keyword={}, categoryId={}, brandId={}", (keyword + "").replace("\r", "_").replace("\n", "_"), (categoryId + "").replace("\r", "_").replace("\n", "_"), (brandId + "").replace("\r", "_").replace("\n", "_"));
         return searchService.searchProducts(keyword, categoryId, brandId, page, size);
     }
 

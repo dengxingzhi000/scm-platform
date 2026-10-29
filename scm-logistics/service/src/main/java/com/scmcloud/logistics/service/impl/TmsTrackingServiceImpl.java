@@ -22,7 +22,7 @@ public class TmsTrackingServiceImpl extends ServiceImpl<TmsTrackingMapper, TmsTr
 
     @Override
     public List<TmsTracking> listByWaybillId(String waybillId) {
-        log.debug("Query tracking by waybill ID: waybillId={}", waybillId);
+        log.debug("Query tracking by waybill ID: waybillId={}", (waybillId + "").replace("\r", "_").replace("\n", "_"));
         return lambdaQuery()
                 .eq(TmsTracking::getWaybillId, waybillId)
                 .orderByDesc(TmsTracking::getTrackTime)
@@ -31,7 +31,7 @@ public class TmsTrackingServiceImpl extends ServiceImpl<TmsTrackingMapper, TmsTr
 
     @Override
     public List<TmsTracking> listByWaybillNo(String waybillNo) {
-        log.debug("Query tracking by waybill number: waybillNo={}", waybillNo);
+        log.debug("Query tracking by waybill number: waybillNo={}", (waybillNo + "").replace("\r", "_").replace("\n", "_"));
         return lambdaQuery()
                 .eq(TmsTracking::getWaybillNo, waybillNo)
                 .orderByDesc(TmsTracking::getTrackTime)
@@ -40,7 +40,7 @@ public class TmsTrackingServiceImpl extends ServiceImpl<TmsTrackingMapper, TmsTr
 
     @Override
     public Page<TmsTracking> pageList(int page, int size, String waybillNo, String trackStatus) {
-        log.debug("Page query tracking: page={}, size={}, waybillNo={}, trackStatus={}", page, size, waybillNo, trackStatus);
+        log.debug("Page query tracking: page={}, size={}, waybillNo={}, trackStatus={}", (page + "").replace("\r", "_").replace("\n", "_"), (size + "").replace("\r", "_").replace("\n", "_"), (waybillNo + "").replace("\r", "_").replace("\n", "_"), (trackStatus + "").replace("\r", "_").replace("\n", "_"));
 
         LambdaQueryWrapper<TmsTracking> wrapper = Wrappers.lambdaQuery();
         if (StringUtils.hasText(waybillNo)) {
@@ -57,7 +57,7 @@ public class TmsTrackingServiceImpl extends ServiceImpl<TmsTrackingMapper, TmsTr
     @Override
     @Transactional(rollbackFor = Exception.class)
     public TmsTracking addTracking(TmsTracking tracking) {
-        log.info("娣诲姞鐗╂祦杞ㄨ抗: waybillNo={}, location={}, status={}", tracking.getWaybillNo(), tracking.getLocation(), tracking.getTrackStatus());
+        log.info("娣诲姞鐗╂祦杞ㄨ抗: waybillNo={}, location={}, status={}", (tracking.getWaybillNo() + "").replace("\r", "_").replace("\n", "_"), (tracking.getLocation() + "").replace("\r", "_").replace("\n", "_"), (tracking.getTrackStatus() + "").replace("\r", "_").replace("\n", "_"));
 
         if (tracking.getId() == null) {
             tracking.setId(UUID.randomUUID().toString());
@@ -74,7 +74,7 @@ public class TmsTrackingServiceImpl extends ServiceImpl<TmsTrackingMapper, TmsTr
             throw new RuntimeException("娣诲姞鐗╂祦杞ㄨ抗澶辫触");
         }
 
-        log.info("鐗╂祦杞ㄨ抗娣诲姞鎴愬姛: id={}, waybillNo={}", tracking.getId(), tracking.getWaybillNo());
+        log.info("鐗╂祦杞ㄨ抗娣诲姞鎴愬姛: id={}, waybillNo={}", (tracking.getId() + "").replace("\r", "_").replace("\n", "_"), (tracking.getWaybillNo() + "").replace("\r", "_").replace("\n", "_"));
         return tracking;
     }
 }

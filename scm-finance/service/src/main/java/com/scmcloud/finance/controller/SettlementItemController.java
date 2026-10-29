@@ -35,7 +35,7 @@ public class SettlementItemController {
         item.setId(UUIDv7Util.generateString());
         item.setCreateTime(LocalDateTime.now());
         settlementItemService.save(item);
-        log.info("结算明细创建成功: id={}, settlementId={}", item.getId(), item.getSettlementId());
+        log.info("结算明细创建成功: id={}, settlementId={}", (item.getId() + "").replace("\r", "_").replace("\n", "_"), (item.getSettlementId() + "").replace("\r", "_").replace("\n", "_"));
         return ApiResponse.success(item);
     }
 
@@ -44,7 +44,7 @@ public class SettlementItemController {
     public ApiResponse<SettlementItem> update(@Parameter(description = "结算明细 ID") @PathVariable String id, @RequestBody SettlementItem item) {
         item.setId(id);
         settlementItemService.updateById(item);
-        log.info("结算明细更新成功: id={}", id);
+        log.info("结算明细更新成功: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         return ApiResponse.success(item);
     }
 
@@ -52,7 +52,7 @@ public class SettlementItemController {
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@Parameter(description = "结算明细 ID") @PathVariable String id) {
         settlementItemService.removeById(id);
-        log.info("结算明细删除成功: id={}", id);
+        log.info("结算明细删除成功: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         return ApiResponse.success();
     }
 

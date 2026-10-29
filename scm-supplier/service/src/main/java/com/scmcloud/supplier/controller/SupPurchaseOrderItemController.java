@@ -38,7 +38,7 @@ public class SupPurchaseOrderItemController {
     @Operation(summary = "创建采购单明细", description = "新增采购订单明细，未填写小计时按单价与数量自动计算。")
     @PostMapping
     public ApiResponse<SupPurchaseOrderItem> create(@RequestBody SupPurchaseOrderItem item) {
-        log.info("[API] 创建采购单明细 purchaseId={}, skuId={}", item.getPurchaseId(), item.getSkuId());
+        log.info("[API] 创建采购单明细 purchaseId={}, skuId={}", (item.getPurchaseId() + "").replace("\r", "_").replace("\n", "_"), (item.getSkuId() + "").replace("\r", "_").replace("\n", "_"));
         item.setId(UUID.randomUUID());
         item.setCreateTime(LocalDateTime.now());
         if (item.getSubtotal() == null && item.getUnitPrice() != null && item.getQuantity() != null) {
@@ -81,7 +81,7 @@ public class SupPurchaseOrderItemController {
             @RequestParam(defaultValue = "10") int size,
             @Parameter(description = "采购单ID") @RequestParam(required = false) String purchaseId,
             @Parameter(description = "SKU ID") @RequestParam(required = false) String skuId) {
-        log.info("[API] 分页查询采购单明细 page={}, size={}, purchaseId={}", page, size, purchaseId);
+        log.info("[API] 分页查询采购单明细 page={}, size={}, purchaseId={}", (page + "").replace("\r", "_").replace("\n", "_"), (size + "").replace("\r", "_").replace("\n", "_"), (purchaseId + "").replace("\r", "_").replace("\n", "_"));
         Page<SupPurchaseOrderItem> result = purchaseOrderItemService.pageList(page, size, purchaseId, skuId);
         return ApiResponse.success(result);
     }
@@ -89,7 +89,7 @@ public class SupPurchaseOrderItemController {
     @Operation(summary = "查询采购单明细列表", description = "查询指定采购单下的全部明细。")
     @GetMapping("/purchase/{purchaseId}")
     public ApiResponse<List<SupPurchaseOrderItem>> listByPurchaseId(@Parameter(description = "采购单ID") @PathVariable String purchaseId) {
-        log.info("[API] 查询采购单明细列表 purchaseId={}", purchaseId);
+        log.info("[API] 查询采购单明细列表 purchaseId={}", (purchaseId + "").replace("\r", "_").replace("\n", "_"));
         return ApiResponse.success(purchaseOrderItemService.listByPurchaseId(purchaseId));
     }
 }

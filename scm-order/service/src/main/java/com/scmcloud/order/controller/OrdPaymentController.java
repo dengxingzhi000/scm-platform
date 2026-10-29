@@ -78,7 +78,7 @@ public class OrdPaymentController {
     @Operation(summary = "分页查询支付记录", description = "按条件分页查询支付记录，支持支付单号、订单、用户、状态及时间区间过滤。")
     @PostMapping("/query")
     public ApiResponse<Page<PaymentResponse>> query(@RequestBody @Valid PaymentQueryRequest request) {
-        log.info("[API] Query payments: {}", request);
+        log.info("[API] Query payments: {}", (request + "").replace("\r", "_").replace("\n", "_"));
 
         Page<OrdPayment> page = queryService.pageWithWrapper(
                 new Page<>(request.getPageNum(), request.getPageSize()),
@@ -99,7 +99,7 @@ public class OrdPaymentController {
     @Operation(summary = "创建支付记录", description = "创建新的支付记录。")
     @PostMapping
     public ApiResponse<PaymentResponse> createPayment(@RequestBody @Valid PaymentCreateRequest request) {
-        log.info("[API] Create payment: paymentNo={}, orderId={}", request.getPaymentNo(), request.getOrderId());
+        log.info("[API] Create payment: paymentNo={}, orderId={}", (request.getPaymentNo() + "").replace("\r", "_").replace("\n", "_"), (request.getOrderId() + "").replace("\r", "_").replace("\n", "_"));
 
         OrdPayment payment = OrderConverter.toPaymentEntity(request);
         OrdPayment created = commandService.createPayment(payment);

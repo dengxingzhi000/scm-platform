@@ -24,7 +24,7 @@ public class SupSupplierEvaluationServiceImpl
     @Override
     public Page<SupSupplierEvaluation> pageList(int page, int size, String supplierId,
                                                 String evaluationPeriod) {
-        log.debug("分页查询供应商评价 page={}, size={}, supplierId={}", page, size, supplierId);
+        log.debug("分页查询供应商评价 page={}, size={}, supplierId={}", (page + "").replace("\r", "_").replace("\n", "_"), (size + "").replace("\r", "_").replace("\n", "_"), (supplierId + "").replace("\r", "_").replace("\n", "_"));
 
         LambdaQueryWrapper<SupSupplierEvaluation> wrapper = Wrappers.lambdaQuery();
 
@@ -45,7 +45,7 @@ public class SupSupplierEvaluationServiceImpl
         if (!StringUtils.hasText(supplierId)) {
             return List.of();
         }
-        log.debug("查询供应商的所有评价 supplierId={}", supplierId);
+        log.debug("查询供应商的所有评价 supplierId={}", (supplierId + "").replace("\r", "_").replace("\n", "_"));
         return lambdaQuery()
                 .eq(SupSupplierEvaluation::getSupplierId, supplierId)
                 .orderByDesc(SupSupplierEvaluation::getEvaluatedAt)
@@ -57,7 +57,7 @@ public class SupSupplierEvaluationServiceImpl
         if (!StringUtils.hasText(supplierId)) {
             return BigDecimal.ZERO;
         }
-        log.debug("计算供应商平均评价 supplierId={}", supplierId);
+        log.debug("计算供应商平均评价 supplierId={}", (supplierId + "").replace("\r", "_").replace("\n", "_"));
 
         List<SupSupplierEvaluation> evaluations = lambdaQuery()
                 .eq(SupSupplierEvaluation::getSupplierId, supplierId)

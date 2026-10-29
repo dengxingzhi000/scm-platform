@@ -62,7 +62,7 @@ public class UserRoleCommandServiceImpl implements IUserRoleCommandService {
         }
 
         log.info("Temporary roles granted to user: {}, roles: {}, expireTime: {}, by: {}",
-                user.getUsername(), roleIds, expireTime, SecurityUtils.getCurrentUsername());
+                (user.getUsername() + "").replace("\r", "_").replace("\n", "_"), (roleIds + "").replace("\r", "_").replace("\n", "_"), (expireTime + "").replace("\r", "_").replace("\n", "_"), (SecurityUtils.getCurrentUsername() + "").replace("\r", "_").replace("\n", "_"));
     }
 
     @Override

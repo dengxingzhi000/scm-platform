@@ -69,9 +69,9 @@ public class SecurityRestExceptionHandler {
     private void logFailure(HttpStatus status, HttpServletRequest request, String detail) {
         String traceId = TraceIdUtil.resolveAndSanitizeTraceId(request);
         if (status.is4xxClientError()) {
-            log.warn("{} {} rejected, traceId={}: {}", status.value(), request.getRequestURI(), traceId, detail);
+            log.warn("{} {} rejected, traceId={}: {}", (status.value() + "").replace("\r", "_").replace("\n", "_"), (request.getRequestURI() + "").replace("\r", "_").replace("\n", "_"), (traceId + "").replace("\r", "_").replace("\n", "_"), (detail + "").replace("\r", "_").replace("\n", "_"));
         } else {
-            log.error("{} {} failed, traceId={}: {}", status.value(), request.getRequestURI(), traceId, detail);
+            log.error("{} {} failed, traceId={}: {}", (status.value() + "").replace("\r", "_").replace("\n", "_"), (request.getRequestURI() + "").replace("\r", "_").replace("\n", "_"), (traceId + "").replace("\r", "_").replace("\n", "_"), (detail + "").replace("\r", "_").replace("\n", "_"));
         }
     }
 

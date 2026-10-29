@@ -57,7 +57,7 @@ public class SysAuthController {
         String traceId = TraceIdUtil.resolveAndSanitizeTraceId(httpRequest);
 
         LoginResponse response = authService.login(request, ipAddress, deviceId);
-        log.info("login success traceId={} user={} ip={} device={}", traceId, request.getUsername(), ipAddress, deviceId);
+        log.info("login success traceId={} user={} ip={} device={}", (traceId + "").replace("\r", "_").replace("\n", "_"), (request.getUsername() + "").replace("\r", "_").replace("\n", "_"), (ipAddress + "").replace("\r", "_").replace("\n", "_"), (deviceId + "").replace("\r", "_").replace("\n", "_"));
 
         return ApiResponse.success(response);
     }
@@ -71,7 +71,7 @@ public class SysAuthController {
         String traceId = TraceIdUtil.resolveAndSanitizeTraceId(request);
 
         authService.logout(token, userId, "User initiated logout");
-        log.info("logout traceId={} userId={}", traceId, userId);
+        log.info("logout traceId={} userId={}", (traceId + "").replace("\r", "_").replace("\n", "_"), (userId + "").replace("\r", "_").replace("\n", "_"));
 
         return ApiResponse.success();
     }
@@ -114,7 +114,7 @@ public class SysAuthController {
             return ApiResponse.fail(404, ex.getMessage());
         } catch (Exception ex) {
             String traceId = TraceIdUtil.resolveAndSanitizeTraceId(request);
-            log.error("getUserInfo failed traceId={} userId={}", traceId, userId, ex);
+            log.error("getUserInfo failed traceId={} userId={}", (traceId + "").replace("\r", "_").replace("\n", "_"), (userId + "").replace("\r", "_").replace("\n", "_"), ex);
             return ApiResponse.fail(503, "User service unavailable");
         }
     }
@@ -132,7 +132,7 @@ public class SysAuthController {
             @Parameter(description = "强制下线原因") @RequestParam @NotBlank(message = "Logout reason cannot be empty") String reason) {
 
         authService.forceLogout(userId, reason);
-        log.info("force logout userId={} reason={}", userId, reason);
+        log.info("force logout userId={} reason={}", (userId + "").replace("\r", "_").replace("\n", "_"), (reason + "").replace("\r", "_").replace("\n", "_"));
 
         return ApiResponse.success();
     }

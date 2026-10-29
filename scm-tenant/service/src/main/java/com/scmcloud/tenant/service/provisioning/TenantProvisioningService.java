@@ -42,20 +42,20 @@ public class TenantProvisioningService {
      */
     @Transactional(rollbackFor = Exception.class)
     public TenantProvisioningResult provision(TenantCreateCommand command) {
-        log.info("Starting tenant provisioning: code={}, name={}", command.getTenantCode(), command.getTenantName());
+        log.info("Starting tenant provisioning: code={}, name={}", (command.getTenantCode() + "").replace("\r", "_").replace("\n", "_"), (command.getTenantName() + "").replace("\r", "_").replace("\n", "_"));
 
         try {
             // 1. Create tenant entity
             Tenant tenant = createTenant(command);
             UUID tenantId = UUID.fromString(tenant.getId());
-            log.info("Tenant created: id={}, code={}", tenantId, tenant.getTenantCode());
+            log.info("Tenant created: id={}, code={}", (tenantId + "").replace("\r", "_").replace("\n", "_"), (tenant.getTenantCode() + "").replace("\r", "_").replace("\n", "_"));
 
             // 2. Create default trial subscription
-            TenantSubscription subscription = createTrialSubscription(tenantId, command);
+            TenantSubscription subscription = createTrialSubscription(tenantId);
             log.info("Trial subscription created: tenantId={}, packageId={}", tenantId, subscription.getPackageId());
 
             // 3. Create default resource quotas
-            createDefaultQuotas(tenantId, command);
+            createDefaultQuotas(tenantId);
             log.info("Default resource quotas created: tenantId={}", tenantId);
 
             // 4. Create default tenant config
@@ -100,7 +100,7 @@ public class TenantProvisioningService {
         return tenant;
     }
 
-    private TenantSubscription createTrialSubscription(UUID tenantId, TenantCreateCommand command) {
+    private TenantSubscription createTrialSubscription(UUID tenantId) {
         // Find the basic trial package
         TenantPackage trialPackage = packageQueryService.findDefaultTrialPackage();
 
@@ -123,7 +123,7 @@ public class TenantProvisioningService {
         return subscription;
     }
 
-    private void createDefaultQuotas(UUID tenantId, TenantCreateCommand command) {
+    private void createDefaultQuotas(UUID tenantId) {
         // Create quotas from the package defaults
         TenantPackage trialPackage = packageQueryService.findDefaultTrialPackage();
 

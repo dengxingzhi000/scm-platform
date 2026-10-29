@@ -23,28 +23,28 @@ public class TenantFeatureController {
     @Operation(summary = "创建租户功能", description = "为指定租户新增一个功能开关记录并返回创建结果。")
     @PostMapping
     public TenantFeature create(@RequestBody TenantFeature entity) {
-        log.info("[API] Create tenant feature: tenantId={}, featureCode={}", entity.getTenantId(), entity.getFeatureCode());
+        log.info("[API] Create tenant feature: tenantId={}, featureCode={}", (entity.getTenantId() + "").replace("\r", "_").replace("\n", "_"), (entity.getFeatureCode() + "").replace("\r", "_").replace("\n", "_"));
         return tenantFeatureService.createFeature(entity);
     }
 
     @Operation(summary = "查询功能详情", description = "根据功能记录 ID 查询租户功能开关详情。")
     @GetMapping("/{id}")
     public TenantFeature getById(@Parameter(description = "功能记录ID") @PathVariable String id) {
-        log.info("[API] Query tenant feature: id={}", id);
+        log.info("[API] Query tenant feature: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         return tenantFeatureService.getById(id);
     }
 
     @Operation(summary = "更新租户功能", description = "根据功能记录 ID 更新租户功能开关配置。")
     @PutMapping
     public TenantFeature update(@RequestBody TenantFeature entity) {
-        log.info("[API] Update tenant feature: id={}", entity.getId());
+        log.info("[API] Update tenant feature: id={}", (entity.getId() + "").replace("\r", "_").replace("\n", "_"));
         return tenantFeatureService.updateFeature(entity);
     }
 
     @Operation(summary = "删除租户功能", description = "根据功能记录 ID 删除指定的租户功能开关。")
     @DeleteMapping("/{id}")
     public boolean deleteById(@Parameter(description = "功能记录ID") @PathVariable String id) {
-        log.info("[API] Delete tenant feature: id={}", id);
+        log.info("[API] Delete tenant feature: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         return tenantFeatureService.deleteById(id);
     }
 
@@ -53,14 +53,14 @@ public class TenantFeatureController {
     public boolean isFeatureEnabled(
             @Parameter(description = "租户ID") @RequestParam String tenantId,
             @Parameter(description = "功能编码") @RequestParam String featureCode) {
-        log.info("[API] Check if feature is enabled: tenantId={}, featureCode={}", tenantId, featureCode);
+        log.info("[API] Check if feature is enabled: tenantId={}, featureCode={}", (tenantId + "").replace("\r", "_").replace("\n", "_"), (featureCode + "").replace("\r", "_").replace("\n", "_"));
         return tenantFeatureService.isFeatureEnabled(tenantId, featureCode);
     }
 
     @Operation(summary = "查询租户功能列表", description = "查询指定租户下全部功能开关记录。")
     @GetMapping("/tenant/{tenantId}")
     public List<TenantFeature> listByTenantId(@Parameter(description = "租户ID") @PathVariable String tenantId) {
-        log.info("[API] Query tenant features list: tenantId={}", tenantId);
+        log.info("[API] Query tenant features list: tenantId={}", (tenantId + "").replace("\r", "_").replace("\n", "_"));
         return tenantFeatureService.listByTenantId(tenantId);
     }
 

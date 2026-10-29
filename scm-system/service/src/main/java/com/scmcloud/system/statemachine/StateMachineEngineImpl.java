@@ -84,7 +84,7 @@ public class StateMachineEngineImpl implements StateMachineEngine {
                     "No enabled transition with action '" + actionCode + "' from status " + fromStatus);
         }
 
-        log.info("State transition: {} {} -> {} (action={})", bizType, fromStatus, matched.getToStatus(), actionCode);
+        log.info("State transition: {} {} -> {} (action={})", (bizType + "").replace("\r", "_").replace("\n", "_"), (fromStatus + "").replace("\r", "_").replace("\n", "_"), (matched.getToStatus() + "").replace("\r", "_").replace("\n", "_"), (actionCode + "").replace("\r", "_").replace("\n", "_"));
         return TransitionResult.success(matched);
     }
 

@@ -72,8 +72,8 @@ public class DatasetFieldService {
             throw new BusinessException("Field code already exists for this dataset: " + dto.getFieldCode());
         }
         log.info("Created dataset field: dataset={}, code={}, type={}, tenant={}",
-                entity.getDatasetId(), entity.getFieldCode(),
-                entity.getFieldType(), tenantId);
+                (entity.getDatasetId() + "").replace("\r", "_").replace("\n", "_"), (entity.getFieldCode() + "").replace("\r", "_").replace("\n", "_"),
+                (entity.getFieldType() + "").replace("\r", "_").replace("\n", "_"), (tenantId + "").replace("\r", "_").replace("\n", "_"));
         return entity;
     }
 

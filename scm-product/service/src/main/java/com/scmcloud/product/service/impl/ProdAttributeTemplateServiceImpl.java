@@ -18,7 +18,7 @@ public class ProdAttributeTemplateServiceImpl extends ServiceImpl<ProdAttributeT
 
     @Override
     public List<ProdAttributeTemplate> listByCategoryId(String categoryId) {
-        log.debug("查询分类属性模板 categoryId={}", categoryId);
+        log.debug("查询分类属性模板 categoryId={}", (categoryId + "").replace("\r", "_").replace("\n", "_"));
         return lambdaQuery()
                 .eq(ProdAttributeTemplate::getCategoryId, categoryId)
                 .eq(ProdAttributeTemplate::getDeleted, false)

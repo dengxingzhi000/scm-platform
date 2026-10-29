@@ -53,17 +53,17 @@ public class InvReservationController {
       @RequestBody @Valid InventoryReservationRequest request) {
 
     log.info("🔵 [API] 预占库存: skuId={}, warehouseId={}, quantity={}, businessKey={}",
-        request.getSkuId(), request.getWarehouseId(),
-        request.getQuantity(), request.getBusinessKey());
+        (request.getSkuId() + "").replace("\r", "_").replace("\n", "_"), (request.getWarehouseId() + "").replace("\r", "_").replace("\n", "_"),
+        (request.getQuantity() + "").replace("\r", "_").replace("\n", "_"), (request.getBusinessKey() + "").replace("\r", "_").replace("\n", "_"));
 
     try {
       boolean success = reservationService.reserveInventory(request);
 
       if (success) {
         log.info("✅[API] 库存预占成功: businessKey={}, quantity={}",
-            request.getBusinessKey(), request.getQuantity());
+            (request.getBusinessKey() + "").replace("\r", "_").replace("\n", "_"), (request.getQuantity() + "").replace("\r", "_").replace("\n", "_"));
       } else {
-        log.warn("⚠️  [API] 库存预占失败: businessKey={}", request.getBusinessKey());
+        log.warn("⚠️  [API] 库存预占失败: businessKey={}", (request.getBusinessKey() + "").replace("\r", "_").replace("\n", "_"));
       }
 
       return success;
@@ -73,11 +73,11 @@ public class InvReservationController {
       throw e;
     } catch (RuntimeException e) {
       log.error("❌[API] 库存预占失败（业务异常）: businessKey={}, error={}",
-          request.getBusinessKey(), e.getMessage());
+          (request.getBusinessKey() + "").replace("\r", "_").replace("\n", "_"), (e.getMessage() + "").replace("\r", "_").replace("\n", "_"));
       throw e;
     } catch (Exception e) {
       log.error("❌[API] 库存预占异常: businessKey={}, error={}",
-          request.getBusinessKey(), e.getMessage(), e);
+          (request.getBusinessKey() + "").replace("\r", "_").replace("\n", "_"), (e.getMessage() + "").replace("\r", "_").replace("\n", "_"), e);
       throw new RuntimeException("库存预占失败: " + e.getMessage(), e);
     }
   }
@@ -90,22 +90,23 @@ public class InvReservationController {
   public boolean confirmReservation(
       @Parameter(description = "业务键，通常为订单号，用于定位预占记录") @PathVariable @NotBlank(message = "业务键不能为空") String businessKey) {
 
-    log.info("🟢 [API] 确认预占: businessKey={}", businessKey);
+    log.info("🟢 [API] 确认预占: businessKey={}", (businessKey + "").replace("\r", "_").replace("\n", "_"));
 
     try {
       boolean success = reservationService.confirmReservation(businessKey);
 
       if (success) {
-        log.info("🟢[API] 预占确认成功: businessKey={}", businessKey);
+        log.info("🟢[API] 预占确认成功: businessKey={}", (businessKey + "").replace("\r", "_").replace("\n", "_"));
       } else {
-        log.warn("⚠️  [API] 预占确认失败（预占不存在或已过期）", businessKey);
+        log.warn("⚠️  [API] 预占确认失败（预占不存在或已过期）: businessKey={}",
+            businessKey == null ? null : businessKey.replace("\r", "_").replace("\n", "_"));
       }
 
       return success;
 
     } catch (RuntimeException e) {
       log.error("❌[API] 预占确认失败: businessKey={}, error={}",
-          businessKey, e.getMessage());
+          (businessKey + "").replace("\r", "_").replace("\n", "_"), (e.getMessage() + "").replace("\r", "_").replace("\n", "_"));
       throw e;
     } catch (Exception e) {
       log.error("❌[API] 预占确认异常: businessKey={}, error={}",
@@ -130,7 +131,8 @@ public class InvReservationController {
       if (success) {
         log.info("🟢[API] 预占释放成功: businessKey={}", businessKey);
       } else {
-        log.warn("⚠️  [API] 预占释放失败（预占不存在）", businessKey);
+        log.warn("⚠️  [API] 预占释放失败（预占不存在）: businessKey={}",
+            businessKey == null ? null : businessKey.replace("\r", "_").replace("\n", "_"));
       }
 
       return success;
@@ -176,9 +178,10 @@ public class InvReservationController {
     Integer quantity = reservationService.getReservedQuantity(businessKey);
 
     if (quantity != null) {
-      log.debug("📦 [API] 预占数量: businessKey={}, quantity={}", businessKey, quantity);
+      log.debug("📦 [API] 预占数量: businessKey={}, quantity={}", (businessKey + "").replace("\r", "_").replace("\n", "_"), (quantity + "").replace("\r", "_").replace("\n", "_"));
     } else {
-      log.debug("⚠️  [API] 预占不存在", businessKey);
+      log.debug("⚠️  [API] 预占不存在: businessKey={}",
+          businessKey == null ? null : businessKey.replace("\r", "_").replace("\n", "_"));
     }
 
     return quantity;

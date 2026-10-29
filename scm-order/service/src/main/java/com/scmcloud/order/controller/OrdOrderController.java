@@ -86,7 +86,7 @@ public class OrdOrderController {
     @Operation(summary = "分页查询订单", description = "按条件分页查询订单，支持订单号、用户、状态、来源及时间区间过滤。")
     @PostMapping("/query")
     public ApiResponse<Page<OrderResponse>> query(@RequestBody @Valid OrderQueryRequest request) {
-        log.info("[API] 分页查询订单: {}", request);
+        log.info("[API] 分页查询订单: {}", (request + "").replace("\r", "_").replace("\n", "_"));
 
         Page<OrdOrder> result = queryService.query(request);
         Page<OrderResponse> mapped = new Page<>(result.getCurrent(), result.getSize(), result.getTotal());
@@ -115,7 +115,7 @@ public class OrdOrderController {
     @Operation(summary = "创建订单", description = "创建新订单并同时写入订单明细。")
     @PostMapping
     public ApiResponse<OrderResponse> createOrder(@RequestBody @Valid OrderCreateRequest request) {
-        log.info("[API] 创建订单: orderNo={}, userId={}", request.getOrderNo(), request.getUserId());
+        log.info("[API] 创建订单: orderNo={}, userId={}", (request.getOrderNo() + "").replace("\r", "_").replace("\n", "_"), (request.getUserId() + "").replace("\r", "_").replace("\n", "_"));
 
         OrderConverter.OrderDraft draft = OrderConverter.toOrderEntity(request);
         OrdOrder created = commandService.createOrder(draft.order(), draft.items());
@@ -154,7 +154,7 @@ public class OrdOrderController {
     @PutMapping("/{id}/cancel")
     public ApiResponse<OrderResponse> cancel(@Parameter(description = "订单 ID") @PathVariable UUID id,
                                              @RequestBody @Valid OrderCancelRequest request) {
-        log.info("[API] 取消订单: id={}, reason={}", id, request.getReason());
+        log.info("[API] 取消订单: id={}, reason={}", (id + "").replace("\r", "_").replace("\n", "_"), (request.getReason() + "").replace("\r", "_").replace("\n", "_"));
 
         boolean cancelled = commandService.cancelOrder(id, request.getReason());
         if (!cancelled) {

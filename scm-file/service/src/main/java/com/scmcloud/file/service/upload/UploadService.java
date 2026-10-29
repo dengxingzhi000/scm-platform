@@ -51,7 +51,7 @@ public class UploadService {
         } catch (StorageException | FileValidationException e) {
             throw e;
         } catch (Exception e) {
-            log.error("File upload failed, fileName={}, tenantId={}", fileName, tenantId, e);
+            log.error("File upload failed, fileName={}, tenantId={}", (fileName + "").replace("\r", "_").replace("\n", "_"), (tenantId + "").replace("\r", "_").replace("\n", "_"), e);
             throw new StorageException("File upload failed", e);
         } finally {
             deleteQuietly(tempFile);
@@ -88,9 +88,9 @@ public class UploadService {
             if (storageKey != null) {
                 try {
                     engine.delete(storageKey);
-                    log.warn("Rolled back orphan object {} after metadata save failure", storageKey);
+                    log.warn("Rolled back orphan object {} after metadata save failure", (storageKey + "").replace("\r", "_").replace("\n", "_"));
                 } catch (Exception deleteEx) {
-                    log.error("Failed to clean up orphan object {}", storageKey, deleteEx);
+                    log.error("Failed to clean up orphan object {}", (storageKey + "").replace("\r", "_").replace("\n", "_"), (deleteEx + "").replace("\r", "_").replace("\n", "_"));
                 }
             }
             throw new StorageException("Failed to persist file metadata", e);

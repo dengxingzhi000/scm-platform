@@ -93,7 +93,7 @@ public class SysAuthServiceImpl implements ISysAuthService {
         } catch (LockedException e) {
             throw e;
         } catch (Exception e) {
-            log.error("Redis CHECK_AND_LOCK failed for user={}: {}", username, e.getMessage());
+            log.error("Redis CHECK_AND_LOCK failed for user={}: {}", (username + "").replace("\r", "_").replace("\n", "_"), (e.getMessage() + "").replace("\r", "_").replace("\n", "_"));
             auditLogService.recordLoginFailure(username, ipAddress, "Security check unavailable: " + e.getMessage());
             throw new LockedException("Security service unavailable, please try later");
         }
@@ -164,7 +164,7 @@ public class SysAuthServiceImpl implements ISysAuthService {
             // 9. Metrics
             businessMetrics.recordLogin(true, deviceId);
 
-            log.info("User login success: {}, IP: {}, Device: {}", username, ipAddress, deviceId);
+            log.info("User login success: {}, IP: {}, Device: {}", (username + "").replace("\r", "_").replace("\n", "_"), (ipAddress + "").replace("\r", "_").replace("\n", "_"), (deviceId + "").replace("\r", "_").replace("\n", "_"));
 
             return LoginResponse.builder()
                     .accessToken(accessToken)
@@ -189,7 +189,7 @@ public class SysAuthServiceImpl implements ISysAuthService {
                 message += ", attempts remaining: " + remainingAttempts;
             }
 
-            log.warn("Login failed for user: {}, IP: {}, Reason: {}", username, ipAddress, e.getMessage());
+            log.warn("Login failed for user: {}, IP: {}, Reason: {}", (username + "").replace("\r", "_").replace("\n", "_"), (ipAddress + "").replace("\r", "_").replace("\n", "_"), (e.getMessage() + "").replace("\r", "_").replace("\n", "_"));
 
             businessMetrics.recordLogin(false, deviceId);
             throw new BadCredentialsException(message);
@@ -202,7 +202,7 @@ public class SysAuthServiceImpl implements ISysAuthService {
             Integer attempts = (Integer) redisTemplate.opsForValue().get(attemptKey);
             return attempts != null ? attempts : 0;
         } catch (Exception e) {
-            log.warn("Redis GET failed for key={}: {}", attemptKey, e.getMessage());
+            log.warn("Redis GET failed for key={}: {}", (attemptKey + "").replace("\r", "_").replace("\n", "_"), (e.getMessage() + "").replace("\r", "_").replace("\n", "_"));
             return 0;
         }
     }
@@ -215,7 +215,7 @@ public class SysAuthServiceImpl implements ISysAuthService {
                     Collections.singletonList(attemptKey),
                     String.valueOf(securityProperties.getLockDuration()));
         } catch (Exception e) {
-            log.error("Redis INCR+EXPIRE failed for key={}: {}", attemptKey, e.getMessage());
+            log.error("Redis INCR+EXPIRE failed for key={}: {}", (attemptKey + "").replace("\r", "_").replace("\n", "_"), (e.getMessage() + "").replace("\r", "_").replace("\n", "_"));
         }
     }
 
@@ -224,7 +224,7 @@ public class SysAuthServiceImpl implements ISysAuthService {
         try {
             redisTemplate.delete(attemptKey);
         } catch (Exception e) {
-            log.warn("Redis DELETE failed for key={}: {}", attemptKey, e.getMessage());
+            log.warn("Redis DELETE failed for key={}: {}", (attemptKey + "").replace("\r", "_").replace("\n", "_"), (e.getMessage() + "").replace("\r", "_").replace("\n", "_"));
         }
     }
 
@@ -244,7 +244,7 @@ public class SysAuthServiceImpl implements ISysAuthService {
                     .setIfAbsent(replayKey, System.currentTimeMillis(), Duration.ofSeconds(90));
             return Boolean.TRUE.equals(firstUse);
         } catch (Exception e) {
-            log.error("Redis SETNX failed for key={}: {}", replayKey, e.getMessage());
+            log.error("Redis SETNX failed for key={}: {}", (replayKey + "").replace("\r", "_").replace("\n", "_"), (e.getMessage() + "").replace("\r", "_").replace("\n", "_"));
             return false;
         }
     }
@@ -287,7 +287,7 @@ public class SysAuthServiceImpl implements ISysAuthService {
     public void forceLogout(UUID userId, String reason) {
         jwtUtils.revokeAllUserTokens(userId);
         auditLogService.recordLogout(userId, "Admin force logout: " + reason);
-        log.info("User force logout: UserId={}, Reason={}", userId, reason);
+        log.info("User force logout: UserId={}, Reason={}", (userId + "").replace("\r", "_").replace("\n", "_"), (reason + "").replace("\r", "_").replace("\n", "_"));
     }
 
     @Override

@@ -26,7 +26,7 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Coupon issueCoupon(String userId, Long templateId) {
-        log.info("Issuing coupon: userId={}, templateId={}", userId, templateId);
+        log.info("Issuing coupon: userId={}, templateId={}", (userId + "").replace("\r", "_").replace("\n", "_"), (templateId + "").replace("\r", "_").replace("\n", "_"));
 
         CouponTemplate template = couponTemplateMapper.selectById(templateId);
         if (template == null) {
@@ -91,7 +91,7 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
         coupon.setOrderNo(orderNo);
         updateById(coupon);
 
-        log.info("Coupon used: couponCode={}, orderNo={}", couponCode, orderNo);
+        log.info("Coupon used: couponCode={}, orderNo={}", (couponCode + "").replace("\r", "_").replace("\n", "_"), (orderNo + "").replace("\r", "_").replace("\n", "_"));
     }
 
     @Override
