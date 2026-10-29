@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { Table, Button, Tag, Space, message, Popconfirm, Modal, Form, Input } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
 import client from '@/lib/api/client'
@@ -16,7 +15,6 @@ interface Role {
 }
 
 export default function RoleListPage() {
-  const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [roles, setRoles] = useState<Role[]>([])
   const [modalVisible, setModalVisible] = useState(false)

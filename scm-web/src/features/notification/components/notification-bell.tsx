@@ -1,5 +1,5 @@
 'use client'
-import { Badge, Dropdown, List, Empty } from 'antd'
+import { Badge, Dropdown, Empty } from 'antd'
 import { BellOutlined } from '@ant-design/icons'
 import { useRouter } from 'next/navigation'
 import { useUnreadCount, useNotificationList, useMarkAsRead } from '../hooks'

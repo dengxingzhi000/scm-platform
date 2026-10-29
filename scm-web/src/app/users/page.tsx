@@ -21,7 +21,7 @@ export default function UserListPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [users, setUsers] = useState<User[]>([])
-  const [searchText, setSearchText] = useState('')
+  const [searchText] = useState('')
 
   const columns = [
     {

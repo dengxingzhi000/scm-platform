@@ -1,5 +1,5 @@
 'use client'
-import { Card, Timeline, Tag } from 'antd'
+import { Card, Timeline } from 'antd'
 import { useTrackingEvents } from '../hooks'
 
 interface Props { waybillId: string }
