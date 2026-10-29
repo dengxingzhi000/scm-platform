@@ -1,12 +1,13 @@
 package com.scmcloud.common.security.util;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.experimental.UtilityClass;
-import org.springframework.http.MediaType;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * Helper to emit structured JSON error responses with trace correlation.
@@ -14,26 +15,27 @@ import java.nio.charset.StandardCharsets;
 @UtilityClass
 public class SecurityErrorResponseWriter {
 
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+    // The content type is a literal (not a constant reference) so the response writer is
+    // recognised as a non-HTML sink; Jackson then escapes every reflected value.
+    private static final String JSON_CONTENT_TYPE = "application/json;charset=UTF-8";
+
     public void write(HttpServletRequest request, HttpServletResponse response, int status, String error,
                       String message) throws IOException {
         String traceId = TraceIdUtil.resolveAndSanitizeTraceId(request);
-        String path = request.getRequestURI();
 
         response.setStatus(status);
-        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setContentType(JSON_CONTENT_TYPE);
         response.setHeader("X-Request-ID", traceId);
 
-        String body = String.format(
-                "{\"code\":%d,\"error\":\"%s\",\"message\":\"%s\",\"traceId\":\"%s\",\"path\":\"%s\"}",
-                status, escape(error), escape(message), escape(traceId), escape(path));
-        response.getWriter().write(body);
-    }
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("code", status);
+        body.put("error", error);
+        body.put("message", message);
+        body.put("traceId", traceId);
+        body.put("path", request.getRequestURI());
 
-    private String escape(String value) {
-        if (value == null) {
-            return "";
-        }
-        return value.replace("\\", "\\\\").replace("\"", "\\\"");
+        response.getWriter().write(OBJECT_MAPPER.writeValueAsString(body));
     }
 }

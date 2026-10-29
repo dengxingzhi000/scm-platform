@@ -187,8 +187,6 @@ class ClickHouseSchemaTest {
         for (int i = 0; i < 6 && cur != null; i++) {
             Path tryPath = cur.resolve("deploy/clickhouse/init.sql");
             if (Files.exists(tryPath)) return tryPath;
-            Path try2 = cur.resolve("scm-analytics/service/src/main/resources/clickhouse/V1__ods_dwd_dws_ads.sql");
-            // fallback not needed
             cur = cur.getParent();
         }
         return null;

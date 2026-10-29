@@ -117,7 +117,7 @@ public final class OrderConverter {
             item.setSellingPrice(Money.of(req.getSellingPrice()));
         }
         if (req.getQuantity() != null) {
-            item.setQuantity(Quantity.of(req.getQuantity()));
+            item.setQuantity(Quantity.ofNullable(req.getQuantity()));
         }
         item.setWarehouseId(req.getWarehouseId());
         item.setRemark(req.getRemark());

@@ -343,7 +343,7 @@ public class SqlGenerator {
      * Resolves metric definitions into aggregate SQL, substituting referenced
      * metric codes for derived / composite metrics.
      */
-    private final class BaseMetricResolver {
+    private static final class BaseMetricResolver {
 
         private final Map<String, DatasetFieldDefinition> fieldsByCode;
         private final Map<UUID, MetricDefinition> metricsById;

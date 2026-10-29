@@ -31,7 +31,10 @@ public class RoleSyncExecutor {
     @Transactional(rollbackFor = Exception.class)
     public void syncToApprovalDb(UUID roleId, String roleName, String roleCode) {
         // 鏇存柊鍖呭惈璇ヨ鑹茬殑瀹℃壒璁板綍锟絩ole_names 鏁扮粍
-        log.debug("[RoleSync] Would update approval records for role: {}, name: {}", roleId, roleName);
+        log.debug("[RoleSync] Would update approval records for role: {}, name: {}, code: {}",
+                roleId,
+                roleName == null ? null : roleName.replace("\r", "_").replace("\n", "_"),
+                roleCode == null ? null : roleCode.replace("\r", "_").replace("\n", "_"));
     }
 
     /**

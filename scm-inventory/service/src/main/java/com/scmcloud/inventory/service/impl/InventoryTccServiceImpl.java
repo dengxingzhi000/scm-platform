@@ -131,8 +131,8 @@ public class InventoryTccServiceImpl implements InventoryTccService {
     @Transactional(rollbackFor = Exception.class)
     public boolean confirmReserve(BusinessActionContext context) {
         String businessKey = context.getActionContext("businessKey").toString();
-        Long skuId = Long.valueOf(context.getActionContext("skuId").toString());
-        Integer quantity = Integer.valueOf(context.getActionContext("quantity").toString());
+        Long skuId = requireLongActionContext(context, "skuId");
+        Integer quantity = requireIntActionContext(context, "quantity");
         String xid = context.getXid();
 
         log.debug("🟢 [TCC-Confirm] 开始确认预留 skuId={}, quantity={}, businessKey={}, XID={}",
@@ -192,8 +192,8 @@ public class InventoryTccServiceImpl implements InventoryTccService {
     @Transactional(rollbackFor = Exception.class)
     public boolean cancelReserve(BusinessActionContext context) {
         String businessKey = context.getActionContext("businessKey").toString();
-        Long skuId = Long.valueOf(context.getActionContext("skuId").toString());
-        Integer quantity = Integer.valueOf(context.getActionContext("quantity").toString());
+        Long skuId = requireLongActionContext(context, "skuId");
+        Integer quantity = requireIntActionContext(context, "quantity");
         String xid = context.getXid();
 
         log.debug("🔴 [TCC-Cancel] 开始取消预留 skuId={}, quantity={}, businessKey={}, XID={}",
@@ -250,5 +250,31 @@ public class InventoryTccServiceImpl implements InventoryTccService {
     log.debug("✅[TCC-Cancel] 预留取消成功: skuId={}, quantity={}, businessKey={}, XID={}",
                 skuId, quantity, businessKey, xid);
         return true;
+    }
+
+    private static Long requireLongActionContext(BusinessActionContext context, String name) {
+        Object value = requireActionContext(context, name);
+        try {
+            return Long.valueOf(value.toString());
+        } catch (NumberFormatException e) {
+            throw new IllegalStateException("TCC action context '" + name + "' is not a number: " + value, e);
+        }
+    }
+
+    private static Integer requireIntActionContext(BusinessActionContext context, String name) {
+        Object value = requireActionContext(context, name);
+        try {
+            return Integer.valueOf(value.toString());
+        } catch (NumberFormatException e) {
+            throw new IllegalStateException("TCC action context '" + name + "' is not a number: " + value, e);
+        }
+    }
+
+    private static Object requireActionContext(BusinessActionContext context, String name) {
+        Object value = context.getActionContext(name);
+        if (value == null) {
+            throw new IllegalStateException("Missing TCC action context: " + name);
+        }
+        return value;
     }
 }

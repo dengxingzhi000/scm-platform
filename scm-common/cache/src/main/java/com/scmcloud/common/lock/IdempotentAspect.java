@@ -11,6 +11,7 @@ import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.core.DefaultParameterNameDiscoverer;
 import org.springframework.core.ParameterNameDiscoverer;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.types.Expiration;
 import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
@@ -18,7 +19,6 @@ import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Method;
-import java.util.concurrent.TimeUnit;
 
 /**
  * AOP aspect for @Idempotent annotation.
@@ -50,7 +50,8 @@ public class IdempotentAspect {
         String redisKey = IDEMPOTENT_KEY_PREFIX + idempotentKey;
 
         // Check if this is a duplicate request
-        Boolean isNew = redisTemplate.opsForValue().setIfAbsent(redisKey, "1", annotation.ttl(), annotation.unit());
+        Boolean isNew = redisTemplate.opsForValue()
+                .setIfAbsent(redisKey, "1", Expiration.from(annotation.ttl(), annotation.unit()));
         if (Boolean.FALSE.equals(isNew)) {
             log.warn("Duplicate request detected: key={}, method={}", idempotentKey, method.getName());
             throw new BusinessException(ErrorCode.IDEMPOTENT_REPLAY, annotation.errorMessage());

@@ -22,7 +22,7 @@ class NearestNeighborOptimizerTest {
                 new Point("D", 15, 0)
         );
 
-        List<Point> result = optimizer.optimize(points, List.of(), (items, ctx) -> 0);
+        List<Point> result = optimizer.optimize(points, List.of());
 
         assertEquals("A", result.get(0).name());
         assertEquals("C", result.get(1).name());

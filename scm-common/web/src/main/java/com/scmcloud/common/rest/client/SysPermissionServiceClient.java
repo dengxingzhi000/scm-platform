@@ -57,6 +57,7 @@ public interface SysPermissionServiceClient {
     ApiResponse<List<PermissionDTO>> getPermissionTree();
 
     default ApiResponse<List<PermissionDTO>> getPermissionTreeFallback(Throwable ex) {
+        log.debug("Permission tree lookup failed, returning empty list", ex);
         return ApiResponse.success(new ArrayList<>());
     }
 
@@ -95,6 +96,7 @@ public interface SysPermissionServiceClient {
     ApiResponse<PermissionDTO> getPermissionById(@PathVariable UUID id);
 
     default ApiResponse<PermissionDTO> getPermissionByIdFallback(UUID id, Throwable ex) {
+        log.debug("Permission lookup via REST failed, id={}, returning 503", id, ex);
         return ApiResponse.fail(503, "权限服务暂时不可用");
     }
 
@@ -145,6 +147,7 @@ public interface SysPermissionServiceClient {
     List<ApiPermissionDTO> findApiPermissions();
 
     default List<ApiPermissionDTO> findApiPermissionsFallback(Throwable ex) {
+        log.debug("API permission lookup failed, returning empty list", ex);
         return Collections.emptyList();
     }
 }

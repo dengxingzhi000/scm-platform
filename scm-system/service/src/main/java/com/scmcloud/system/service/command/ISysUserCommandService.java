@@ -2,6 +2,7 @@ package com.scmcloud.system.service.command;
 
 import com.scmcloud.common.dto.user.UserDTO;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -27,5 +28,5 @@ public interface ISysUserCommandService {
 
     void lockUser(UUID id, Boolean lock);
 
-    void updateLastLogin(UUID userId, String ipAddress);
+    void updateLastLogin(UUID userId, String ipAddress, LocalDateTime loginTime);
 }

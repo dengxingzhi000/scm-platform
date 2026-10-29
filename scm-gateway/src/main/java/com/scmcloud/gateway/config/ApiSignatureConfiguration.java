@@ -47,9 +47,11 @@ public class ApiSignatureConfiguration {
 
         // Validate app secrets
         Map<String, String> appSecrets = properties.getAppSecrets();
+        int appSecretCount = 0;
         if (appSecrets == null || appSecrets.isEmpty()) {
             issues.add("No app secrets configured (security.signature.app-secrets)");
         } else {
+            appSecretCount = appSecrets.size();
             for (Map.Entry<String, String> entry : appSecrets.entrySet()) {
                 String appId = entry.getKey();
                 String secret = entry.getValue();
@@ -84,7 +86,7 @@ public class ApiSignatureConfiguration {
             }
         } else {
             log.info("[ApiSignatureConfiguration] API signature configuration validated ({} app(s) configured)",
-                     appSecrets.size());
+                     appSecretCount);
         }
     }
 

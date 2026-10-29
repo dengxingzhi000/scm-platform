@@ -20,8 +20,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * 订单 TCC 服务实现
@@ -78,7 +78,7 @@ public class OrderTccServiceImpl {
             order.setOrderNo(generateOrderNo());
             order.setUserId(String.valueOf(request.getUserId()));
             order.setSkuId(String.valueOf(request.getSkuId()));
-            order.setQuantity(request.getQuantity() != null ? Quantity.of(request.getQuantity()) : null);
+            order.setQuantity(request.getQuantity() != null ? Quantity.ofNullable(request.getQuantity()) : null);
             order.setTotalAmount(Money.of(request.getTotalAmount()));
             order.setStatus(0); // PENDING_PAYMENT
             order.setRemark("[TCC模式] " + request.getRemark());
@@ -132,7 +132,7 @@ public class OrderTccServiceImpl {
     private String generateOrderNo() {
         String timestamp = LocalDateTime.now()
                 .format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
-        int random = new Random().nextInt(10000);
+        int random = ThreadLocalRandom.current().nextInt(10000);
         return String.format("TCC%s%04d", timestamp, random);
     }
 }

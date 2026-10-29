@@ -117,7 +117,7 @@ public class PermissionQueryServiceImpl implements PermissionQueryService {
             }
             case "CUSTOM" -> {
                 UUID userDeptId = getUserDeptId(userId);
-                log.warn("CUSTOM data scope not implemented yet for userId: {}", userId);
+                log.warn("CUSTOM data scope not implemented yet for userId: {}, tenantId: {}", userId, tenantId);
                 yield userDeptId != null ? List.of(userDeptId) : Collections.emptyList();
             }
             default -> Collections.emptyList();
@@ -160,7 +160,9 @@ public class PermissionQueryServiceImpl implements PermissionQueryService {
         if (userId == null) {
             return Collections.emptyList();
         }
-        log.warn("getCustomDataPermissionRules not fully implemented for userId: {}", userId);
+        log.warn("getCustomDataPermissionRules not fully implemented for userId: {}, resourceType: {}",
+                userId,
+                resourceType == null ? null : resourceType.replace("\r", "_").replace("\n", "_"));
         return Collections.emptyList();
     }
 }

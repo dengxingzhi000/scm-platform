@@ -9,6 +9,7 @@ import io.micrometer.core.instrument.Timer;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.sql.DataSource;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -166,29 +167,32 @@ public class ConnectionPoolMetrics {
      */
     public Map<String, Object> getPoolSnapshot(String groupName, String dsName,
                                                 DataSource dataSource) {
+        Map<String, Object> snapshot = new LinkedHashMap<>();
+        snapshot.put("group", groupName);
+        snapshot.put("dataSource", dsName);
+
         if (!(dataSource instanceof HikariDataSource hikariDs)) {
-            return Map.of("error", "Not a HikariDataSource");
+            snapshot.put("error", "Not a HikariDataSource");
+            return snapshot;
         }
 
         HikariPoolMXBean poolMXBean = hikariDs.getHikariPoolMXBean();
         if (poolMXBean == null) {
-            return Map.of(
-                    "maxPoolSize", hikariDs.getMaximumPoolSize(),
-                    "minIdle", hikariDs.getMinimumIdle(),
-                    "status", "Pool not yet initialized"
-            );
+            snapshot.put("maxPoolSize", hikariDs.getMaximumPoolSize());
+            snapshot.put("minIdle", hikariDs.getMinimumIdle());
+            snapshot.put("status", "Pool not yet initialized");
+            return snapshot;
         }
 
-        return Map.of(
-                "activeConnections", poolMXBean.getActiveConnections(),
-                "idleConnections", poolMXBean.getIdleConnections(),
-                "totalConnections", poolMXBean.getTotalConnections(),
-                "threadsAwaitingConnection", poolMXBean.getThreadsAwaitingConnection(),
-                "maxPoolSize", hikariDs.getMaximumPoolSize(),
-                "minIdle", hikariDs.getMinimumIdle(),
-                "connectionTimeout", hikariDs.getConnectionTimeout(),
-                "idleTimeout", hikariDs.getIdleTimeout(),
-                "maxLifetime", hikariDs.getMaxLifetime()
-        );
+        snapshot.put("activeConnections", poolMXBean.getActiveConnections());
+        snapshot.put("idleConnections", poolMXBean.getIdleConnections());
+        snapshot.put("totalConnections", poolMXBean.getTotalConnections());
+        snapshot.put("threadsAwaitingConnection", poolMXBean.getThreadsAwaitingConnection());
+        snapshot.put("maxPoolSize", hikariDs.getMaximumPoolSize());
+        snapshot.put("minIdle", hikariDs.getMinimumIdle());
+        snapshot.put("connectionTimeout", hikariDs.getConnectionTimeout());
+        snapshot.put("idleTimeout", hikariDs.getIdleTimeout());
+        snapshot.put("maxLifetime", hikariDs.getMaxLifetime());
+        return snapshot;
     }
 }

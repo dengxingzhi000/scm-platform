@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component;
 import jakarta.xml.bind.JAXBElement;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -35,13 +36,27 @@ public class Docx4jTemplateEngine implements TemplateEngine {
     public byte[] render(byte[] templateBytes, Map<String, Object> data, List<TemplateVariable> variables) {
         try (ByteArrayInputStream in = new ByteArrayInputStream(templateBytes)) {
             WordprocessingMLPackage pkg = WordprocessingMLPackage.load(in);
-            replaceInContent(pkg.getMainDocumentPart().getContent(), data);
+            replaceInContent(pkg.getMainDocumentPart().getContent(), applyDefaults(data, variables));
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             pkg.save(out);
             return out.toByteArray();
         } catch (Exception e) {
             throw new RuntimeException("Docx4j render failed", e);
         }
+    }
+
+    /** 按 schema 默认值补齐未提供的变量，缺失值渲染为空白。 */
+    private Map<String, Object> applyDefaults(Map<String, Object> data, List<TemplateVariable> variables) {
+        if (variables == null || variables.isEmpty()) {
+            return data == null ? Map.of() : data;
+        }
+        Map<String, Object> merged = new HashMap<>(data == null ? Map.of() : data);
+        for (TemplateVariable variable : variables) {
+            if (variable.getDefaultValue() != null && !merged.containsKey(variable.getName())) {
+                merged.put(variable.getName(), variable.getDefaultValue());
+            }
+        }
+        return merged;
     }
 
     private void replaceInContent(List<Object> content, Map<String, Object> data) {

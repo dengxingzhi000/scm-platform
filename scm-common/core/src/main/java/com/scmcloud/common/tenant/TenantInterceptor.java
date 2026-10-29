@@ -131,13 +131,13 @@ public class TenantInterceptor implements Interceptor {
     }
 
     private void handleSelect(Select select, UUID tenantId) {
-        if (select.getSelectBody() instanceof SetOperationList setOp) {
+        if (select instanceof SetOperationList setOp) {
             for (Object body : setOp.getSelects()) {
                 if (body instanceof PlainSelect ps) {
                     injectIntoPlainSelect(ps, tenantId);
                 }
             }
-        } else if (select.getSelectBody() instanceof PlainSelect plainSelect) {
+        } else if (select instanceof PlainSelect plainSelect) {
             injectIntoPlainSelect(plainSelect, tenantId);
         }
     }

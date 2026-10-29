@@ -74,7 +74,7 @@ public class DataReconciliationTask {
             DataSyncHandler handler = entry.getValue();
 
             try {
-                ReconciliationResult result = reconcileAggregate(aggregateType, handler);
+                ReconciliationResult result = reconcileAggregate(handler);
                 totalChecked += result.checked;
                 totalFixed += result.fixed;
                 totalFailed += result.failed;
@@ -96,7 +96,7 @@ public class DataReconciliationTask {
     /**
      * 对账单个聚合类型
      */
-    private ReconciliationResult reconcileAggregate(String aggregateType, DataSyncHandler handler) {
+    private ReconciliationResult reconcileAggregate(DataSyncHandler handler) {
         ReconciliationResult result = new ReconciliationResult();
 
         // 这里需要实现具体的对账逻辑：

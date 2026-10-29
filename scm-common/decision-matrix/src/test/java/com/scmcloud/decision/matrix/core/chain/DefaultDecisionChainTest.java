@@ -114,6 +114,7 @@ class DefaultDecisionChainTest {
 
             @Override
             public DecisionResult execute(DecisionContext context) {
+                assertNotNull(context, "decision chain must pass the context to every node");
                 DecisionResult.DecisionStatus status = success ?
                         DecisionResult.DecisionStatus.SUCCESS : DecisionResult.DecisionStatus.FAILURE;
 
@@ -142,6 +143,8 @@ class DefaultDecisionChainTest {
 
             @Override
             public void rollback(DecisionContext context, DecisionResult result) {
+                assertNotNull(context, "rollback must receive the context");
+                assertNotNull(result, "rollback must receive the previous result");
             }
 
             @Override

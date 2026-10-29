@@ -46,6 +46,7 @@ public final class TenantId implements Comparable<TenantId>, Serializable {
     /**
      * For MyBatis-Plus / database mapping (String column).
      */
+    @Override
     public String toString() {
         return value.toString();
     }

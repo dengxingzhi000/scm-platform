@@ -294,7 +294,7 @@ public class SysUserController {
     @GetMapping("/{userId}/update-login")
     public ApiResponse<Void> updateLastLogin(@Parameter(description = "用户 ID") @PathVariable UUID userId,
                                              @Parameter(description = "登录 IP 地址") @RequestParam("ipAddress") String ipAddress) {
-        userCommandService.updateLastLogin(userId, ipAddress);
+        userCommandService.updateLastLogin(userId, ipAddress, LocalDateTime.now());
 
         return ApiResponse.success();
     }

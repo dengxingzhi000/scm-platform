@@ -33,7 +33,7 @@ public class ExperimentRouter {
 
     private int hashToBucket(String input) {
         try {
-            MessageDigest md = MessageDigest.getInstance("MD5");
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
             byte[] hash = md.digest(input.getBytes(StandardCharsets.UTF_8));
             return Math.abs((hash[0] & 0xFF) % 100);
         } catch (Exception e) {

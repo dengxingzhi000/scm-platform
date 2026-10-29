@@ -280,8 +280,7 @@ public class UserCrossDatabaseQueryService {
         if (deptId == null) {
             return 0;
         }
-        Integer count = userMapper.countUsersByDeptId(deptId);
-        return count != null ? count : 0;
+        return userMapper.countUsersByDeptId(deptId);
     }
 
     /**

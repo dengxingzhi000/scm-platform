@@ -7,8 +7,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.LockedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.FieldError;
@@ -47,7 +45,7 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void badCredentials_returns401() {
-        ApiResponse<Void> response = handler.handleBadCredentialsException(new BadCredentialsException("bad"));
+        ApiResponse<Void> response = handler.handleBadCredentialsException();
         assertThat(response.code()).isEqualTo(401);
     }
 
@@ -59,8 +57,7 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void rateLimit_returns429() {
-        ApiResponse<Void> response = handler.handleRateLimitException(
-                new com.scmcloud.common.exception.RateLimitException("slow down"));
+        ApiResponse<Void> response = handler.handleRateLimitException();
         assertThat(response.code()).isEqualTo(429);
     }
 

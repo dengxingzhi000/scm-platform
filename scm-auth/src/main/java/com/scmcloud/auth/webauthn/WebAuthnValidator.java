@@ -139,7 +139,7 @@ public class WebAuthnValidator {
      */
     public byte[] serializeCOSEKey(COSEKey coseKey) {
         Objects.requireNonNull(coseKey, "coseKey must not be null");
-        return objectConverter.getCborConverter().writeValueAsBytes(coseKey);
+        return objectConverter.getCborMapper().writeValueAsBytes(coseKey);
     }
 
     private RegistrationData parseAndValidateRegistration(
@@ -247,21 +247,24 @@ public class WebAuthnValidator {
     }
 
     private COSEKey deserializeStoredPublicKey(byte[] storedPublicKey) {
-        COSEKey coseKey = objectConverter.getCborConverter().readValue(storedPublicKey, COSEKey.class);
+        COSEKey coseKey = objectConverter.getCborMapper().readValue(storedPublicKey, COSEKey.class);
         if (coseKey == null) {
             throw new IllegalStateException("Failed to deserialize stored public key");
         }
         return coseKey;
     }
 
-    @SuppressWarnings("deprecation") // ServerProperty 鏋勯€犲櫒宸插簾寮冿紝浣嗘棤鏇夸唬 API
     private ServerProperty buildServerProperty(String expectedChallenge) {
         String rpOrigin = requireNonBlank(webAuthnConfig.getOrigin(), "webauthn.rp.origin");
         String rpId = requireNonBlank(webAuthnConfig.getId(), "webauthn.rp.id");
 
         Origin origin = new Origin(rpOrigin);
         Challenge challenge = new DefaultChallenge(base64UrlDecode(expectedChallenge, "expectedChallenge"));
-        return new ServerProperty(origin, rpId, challenge, null);
+        return ServerProperty.builder()
+                .origin(origin)
+                .rpId(rpId)
+                .challenge(challenge)
+                .build();
     }
 
     private static String requireNonBlank(String value, String name) {
@@ -292,7 +295,9 @@ public class WebAuthnValidator {
             AAGUID aaguid
     ) {
         public RegistrationResult {
-            credentialId = credentialId == null ? null : credentialId.clone();
+            if (credentialId != null) {
+                credentialId = credentialId.clone();
+            }
         }
 
         public byte[] credentialId() {

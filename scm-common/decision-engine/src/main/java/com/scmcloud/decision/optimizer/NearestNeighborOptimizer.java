@@ -20,8 +20,7 @@ public class NearestNeighborOptimizer<T> implements Optimizer<List<T>, List<T>> 
     }
 
     @Override
-    public List<T> optimize(List<T> items, List<Constraint<List<T>>> constraints,
-                            ScoringFunction<List<T>> scorer) {
+    public List<T> optimize(List<T> items, List<Constraint<List<T>>> constraints) {
         if (items.isEmpty()) return Collections.emptyList();
 
         List<T> remaining = new ArrayList<>(items);

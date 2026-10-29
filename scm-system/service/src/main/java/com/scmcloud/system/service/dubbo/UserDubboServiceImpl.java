@@ -53,7 +53,7 @@ public class UserDubboServiceImpl implements UserDubboService {
     @Override
     public void updateLastLogin(UUID userId, String ipAddress, LocalDateTime loginTime) {
         // 璋冪敤鐜版湁鏂规硶锛涘鏋滀笉闇€瑕侊紝鍒欏拷锟絣oginTime 鍙傛暟锟?
-        sysUserCommandService.updateLastLogin(userId, ipAddress);
+        sysUserCommandService.updateLastLogin(userId, ipAddress, loginTime);
     }
 
     @Override

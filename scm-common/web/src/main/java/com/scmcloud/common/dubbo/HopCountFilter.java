@@ -29,7 +29,7 @@ public class HopCountFilter implements Filter {
 
     private Result handleConsumer(Invoker<?> invoker, Invocation invocation) {
         String hopCountStr = RpcContext.getClientAttachment().getAttachment(HOP_COUNT_KEY);
-        int hopCount = hopCountStr != null ? Integer.parseInt(hopCountStr) : 0;
+        int hopCount = parseHopCount(hopCountStr);
         hopCount++;
         RpcContext.getClientAttachment().setAttachment(HOP_COUNT_KEY, String.valueOf(hopCount));
         return invoker.invoke(invocation);
@@ -38,7 +38,7 @@ public class HopCountFilter implements Filter {
     private Result handleProvider(Invoker<?> invoker, Invocation invocation) {
         String hopCountStr = RpcContext.getServiceContext().getAttachment(HOP_COUNT_KEY);
         if (hopCountStr != null) {
-            int hopCount = Integer.parseInt(hopCountStr);
+            int hopCount = parseHopCount(hopCountStr);
             if (hopCount > MAX_HOPS) {
                 log.warn("RPC hop count {} exceeds maximum of {}, rejecting request", hopCount, MAX_HOPS);
                 throw new RpcException(RpcException.LIMIT_EXCEEDED_EXCEPTION,
@@ -46,5 +46,21 @@ public class HopCountFilter implements Filter {
             }
         }
         return invoker.invoke(invocation);
+    }
+
+    /**
+     * A missing or malformed hop count is treated as already over the limit so it can never
+     * reset the guard by sending a non-numeric header.
+     */
+    private static int parseHopCount(String value) {
+        if (value == null || value.isBlank()) {
+            return 0;
+        }
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException e) {
+            log.warn("Malformed rpc-hop-count attachment ignored");
+            return MAX_HOPS + 1;
+        }
     }
 }

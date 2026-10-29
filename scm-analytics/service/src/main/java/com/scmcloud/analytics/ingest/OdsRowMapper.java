@@ -25,7 +25,7 @@ public final class OdsRowMapper {
      * @param kafkaOffset  the Kafka record offset
      * @param kafkaTsMillis the Kafka record timestamp (millis since epoch)
      */
-    public static OdsRow orderFromPayload(String topic, JsonNode innerPayload, long kafkaOffset, long kafkaTsMillis) {
+    public static OdsRow orderFromPayload(JsonNode innerPayload, long kafkaOffset, long kafkaTsMillis) {
         Map<String, Object> row = new HashMap<>();
         row.put("tenant_id", textOrNull(innerPayload, "tenantId"));
         row.put("order_no", textOrNull(innerPayload, "orderNo"));
@@ -53,7 +53,7 @@ public final class OdsRowMapper {
      * Map an {@link com.scmcloud.inventory.event.InventoryAdjustedEvent}-shaped
      * payload to the {@code ods_inventory} table schema.
      */
-    public static OdsRow inventoryFromPayload(String topic, JsonNode innerPayload, long kafkaOffset, long kafkaTsMillis) {
+    public static OdsRow inventoryFromPayload(JsonNode innerPayload, long kafkaOffset, long kafkaTsMillis) {
         Map<String, Object> row = new HashMap<>();
         row.put("tenant_id", textOrNull(innerPayload, "tenantId"));
         row.put("inventory_id", null);
@@ -87,7 +87,14 @@ public final class OdsRowMapper {
         if (node == null) return null;
         JsonNode v = node.get(field);
         if (v == null || v.isNull()) return null;
-        return v.isInt() ? v.intValue() : Integer.parseInt(v.asText());
+        if (v.isInt()) {
+            return v.intValue();
+        }
+        try {
+            return Integer.parseInt(v.asText());
+        } catch (NumberFormatException ex) {
+            return null;
+        }
     }
 
     private static java.math.BigDecimal decimalOrNull(JsonNode node, String field) {

@@ -32,7 +32,7 @@ public class WeightedFusionEngine implements FusionEngine {
             case WEIGHTED_AVERAGE -> fuseWeightedAverage(results, weights);
             case MAX_UTILITY -> fuseMaxUtility(results, weights);
             case PARETO_OPTIMAL -> fuseParetoOptimal(results, weights);
-            case PRIORITY_BASED -> fusePriorityBased(results, weights);
+            case PRIORITY_BASED -> fusePriorityBased(results);
         };
     }
 
@@ -161,7 +161,7 @@ public class WeightedFusionEngine implements FusionEngine {
                 .build();
     }
 
-    private DecisionResult fusePriorityBased(List<DecisionResult> results, Map<String, Double> weights) {
+    private DecisionResult fusePriorityBased(List<DecisionResult> results) {
         // Sort by score and select highest
         List<DecisionResult> sorted = results.stream()
                 .sorted(Comparator.comparingDouble(DecisionResult::getScore).reversed())

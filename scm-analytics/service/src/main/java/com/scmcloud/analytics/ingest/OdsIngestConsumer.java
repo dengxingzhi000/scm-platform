@@ -151,9 +151,9 @@ public class OdsIngestConsumer {
 
             OdsRow row = switch (record.topic()) {
                 case TOPIC_ORDER -> OdsRowMapper.orderFromPayload(
-                        record.topic(), innerPayload, record.offset(), record.timestamp());
+                        innerPayload, record.offset(), record.timestamp());
                 case TOPIC_INVENTORY -> OdsRowMapper.inventoryFromPayload(
-                        record.topic(), innerPayload, record.offset(), record.timestamp());
+                        innerPayload, record.offset(), record.timestamp());
                 default -> {
                     log.debug("Ignoring topic {} for envelope {}", record.topic(), envelopeId);
                     yield null;

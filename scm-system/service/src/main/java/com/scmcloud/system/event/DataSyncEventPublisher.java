@@ -10,7 +10,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
 
@@ -113,9 +115,14 @@ public class DataSyncEventPublisher {
     }
 
     private Map<String, Object> buildData(Object... keyValues) {
-        Map<String, Object> data = new HashMap<>();
-        for (int i = 0; i < keyValues.length; i += 2) {
-            data.put((String) keyValues[i], keyValues[i + 1]);
+        if (keyValues.length % 2 != 0) {
+            throw new IllegalArgumentException("buildData requires key/value pairs, got " + keyValues.length);
+        }
+        Map<String, Object> data = new HashMap<>(keyValues.length / 2);
+        Iterator<Object> values = Arrays.asList(keyValues).iterator();
+        while (values.hasNext()) {
+            String key = (String) values.next();
+            data.put(key, values.next());
         }
         return data;
     }

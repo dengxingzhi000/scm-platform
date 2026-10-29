@@ -71,7 +71,15 @@ public class QuotaEnforcer {
     public long getCurrentUsage(UUID tenantId) {
         String key = counterKey(tenantId);
         String value = redisTemplate.opsForValue().get(key);
-        return value == null ? 0 : Long.parseLong(value);
+        if (value == null) {
+            return 0;
+        }
+        try {
+            return Long.parseLong(value);
+        } catch (NumberFormatException e) {
+            log.warn("Malformed API usage counter for key={}, treating as zero", key);
+            return 0;
+        }
     }
 
     /**

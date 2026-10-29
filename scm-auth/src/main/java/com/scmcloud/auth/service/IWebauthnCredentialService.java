@@ -62,7 +62,7 @@ public interface IWebauthnCredentialService extends IService<WebauthnCredential>
      * @return 璁よ瘉鎸戞垬鍝嶅簲
      */
     WebAuthnChallengeResponse generateAuthenticationChallenge(
-            UUID userId, String username, String deviceId, String rpId);
+            UUID userId, String deviceId, String rpId);
 
     /**
      * 楠岃瘉璁よ瘉璇锋眰骞跺崌锟絋oken

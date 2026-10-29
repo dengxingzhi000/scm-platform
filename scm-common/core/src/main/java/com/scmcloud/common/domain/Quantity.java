@@ -36,11 +36,11 @@ public final class Quantity implements Comparable<Quantity>, Serializable {
         return new Quantity(value);
     }
 
-    public static Quantity of(Integer value) {
+    public static Quantity ofNullable(Integer value) {
         return value == null ? ZERO : new Quantity(value);
     }
 
-    public static Quantity of(BigDecimal value) {
+    public static Quantity ofDecimal(BigDecimal value) {
         if (value == null || value.signum() <= 0) return ZERO;
         return new Quantity(value.setScale(0, RoundingMode.CEILING).intValue());
     }

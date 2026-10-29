@@ -25,7 +25,7 @@ public class InventoryAllocationEngine implements AllocationEngine<AllocationInp
         List<AllocationOutput.Allocation> allocations = new ArrayList<>();
 
         for (AllocationInput.OrderItem item : input.getItems()) {
-            List<WarehouseCandidate> candidates = getCandidates(item, input);
+            List<WarehouseCandidate> candidates = getCandidates();
 
             ConstraintChain<WarehouseCandidate> chain = new ConstraintChain<>(constraints);
             List<WarehouseCandidate> eligible = candidates.stream()
@@ -60,7 +60,7 @@ public class InventoryAllocationEngine implements AllocationEngine<AllocationInp
         return output;
     }
 
-    private List<WarehouseCandidate> getCandidates(AllocationInput.OrderItem item, AllocationInput input) {
+    private List<WarehouseCandidate> getCandidates() {
         return List.of();
     }
 

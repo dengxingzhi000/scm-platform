@@ -94,6 +94,10 @@ public class LuaScriptRegistry {
         if (script == null) {
             throw new IllegalArgumentException("Lua script not found: " + name);
         }
+        Class<?> declaredType = script.getResultType();
+        if (declaredType != null && !declaredType.isAssignableFrom(resultType)) {
+            throw new IllegalArgumentException("Lua script " + name + " returns " + declaredType.getName());
+        }
         return (RedisScript<T>) script;
     }
 
@@ -274,7 +278,8 @@ public class LuaScriptRegistry {
     private String preloadScript(RedisScript<?> script) {
         try {
             byte[] source = script.getScriptAsString().getBytes(StandardCharsets.UTF_8);
-            return redisTemplate.execute((RedisCallback<String>) connection -> connection.scriptLoad(source));
+            return redisTemplate.execute((RedisCallback<String>)
+                    connection -> connection.scriptingCommands().scriptLoad(source));
         } catch (Exception e) {
             log.warn("Failed to preload Lua script SHA: {}", e.getMessage());
             return null;

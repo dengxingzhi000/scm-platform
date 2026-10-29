@@ -21,7 +21,7 @@ public class PickPathOptimizer {
         NearestNeighborOptimizer<Location> optimizer = new NearestNeighborOptimizer<>(
                 (a, b) -> distance(a, b)
         );
-        return optimizer.optimize(locations, List.of(), (items, ctx) -> 0);
+        return optimizer.optimize(locations, List.of());
     }
 
     private double distance(Location a, Location b) {

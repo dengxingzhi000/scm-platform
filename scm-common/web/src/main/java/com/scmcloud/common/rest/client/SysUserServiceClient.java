@@ -3,6 +3,8 @@ package com.scmcloud.common.rest.client;
 import com.alibaba.csp.sentinel.annotation.SentinelResource;
 import com.scmcloud.common.response.ApiResponse;
 import org.jspecify.annotations.NullMarked;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.service.annotation.GetExchange;
@@ -32,6 +34,8 @@ import java.util.UUID;
 @NullMarked
 @HttpExchange("/api/system/users")
 public interface SysUserServiceClient {
+
+    Logger log = LoggerFactory.getLogger(SysUserServiceClient.class);
 
     /**
      * 鏇存柊鏈€鍚庣櫥褰曚俊锟?
@@ -68,6 +72,7 @@ public interface SysUserServiceClient {
         UUID userId,
         String ipAddress,
         Throwable ex) {
+        log.debug("Last login update via REST failed, userId={}, ip={}", userId, ipAddress, ex);
         // 闄嶇骇杩斿洖鎴愬姛锛氱櫥褰曚俊鎭洿鏂板け璐ヤ笉搴斾腑鏂敤鎴风櫥褰曟祦锟?
         return ApiResponse.success();
     }

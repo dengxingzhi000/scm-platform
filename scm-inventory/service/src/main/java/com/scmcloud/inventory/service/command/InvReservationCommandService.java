@@ -15,6 +15,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -81,10 +82,10 @@ public class InvReservationCommandService {
             int timeoutSeconds = request.getTimeoutSeconds() != null ?
                     request.getTimeoutSeconds() : DEFAULT_TIMEOUT_SECONDS;
             redisTemplate.opsForHash().putAll(reservationKey, reservationData);
-            redisTemplate.expire(reservationKey, timeoutSeconds, TimeUnit.SECONDS);
+            redisTemplate.expire(reservationKey, Duration.ofSeconds(timeoutSeconds));
             String indexKey = buildIndexKey(request.getSkuId(), request.getWarehouseId());
             redisTemplate.opsForSet().add(indexKey, request.getBusinessKey());
-            redisTemplate.expire(indexKey, timeoutSeconds, TimeUnit.SECONDS);
+            redisTemplate.expire(indexKey, Duration.ofSeconds(timeoutSeconds));
             return true;
         } finally {
             lock.release();

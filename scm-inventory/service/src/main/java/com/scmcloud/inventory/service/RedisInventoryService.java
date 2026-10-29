@@ -10,8 +10,8 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.util.Collections;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Redis 库存服务
@@ -88,16 +88,14 @@ public class RedisInventoryService {
     redisTemplate.opsForValue().set(
         stockKey,
         inventory.getAvailableStock(),
-        INVENTORY_CACHE_TTL,
-        TimeUnit.SECONDS
+        Duration.ofSeconds(INVENTORY_CACHE_TTL)
     );
 
     // 缓存库存详情
     redisTemplate.opsForValue().set(
         detailKey,
         inventory,
-        INVENTORY_CACHE_TTL,
-        TimeUnit.SECONDS
+        Duration.ofSeconds(INVENTORY_CACHE_TTL)
     );
 
     log.debug("✅同步库存成功: skuId={}, warehouseId={}, availableStock={}",
@@ -156,7 +154,7 @@ public class RedisInventoryService {
     }
 
     // 刷新缓存过期时间
-    redisTemplate.expire(stockKey, INVENTORY_CACHE_TTL, TimeUnit.SECONDS);
+    redisTemplate.expire(stockKey, Duration.ofSeconds(INVENTORY_CACHE_TTL));
 
     log.debug("✅扣减库存成功: skuId={}, warehouseId={}, quantity={}",
         skuId, warehouseId, quantity);
@@ -197,7 +195,7 @@ public class RedisInventoryService {
     }
 
     // 刷新缓存过期时间
-    redisTemplate.expire(stockKey, INVENTORY_CACHE_TTL, TimeUnit.SECONDS);
+    redisTemplate.expire(stockKey, Duration.ofSeconds(INVENTORY_CACHE_TTL));
 
     log.debug("✅增加库存成功: skuId={}, warehouseId={}, quantity={}, afterStock={}",
         skuId, warehouseId, quantity, result);
@@ -221,7 +219,12 @@ public class RedisInventoryService {
       return null;
     }
 
-    return Integer.parseInt(stock.toString());
+    try {
+      return Integer.parseInt(stock.toString());
+    } catch (NumberFormatException e) {
+      log.warn("⚠️  库存缓存值不是数字，按未命中处理 skuId={}, warehouseId={}", skuId, warehouseId);
+      return null;
+    }
   }
 
   /**

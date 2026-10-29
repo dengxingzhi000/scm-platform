@@ -380,26 +380,26 @@ public class PerformanceTest {
     }
 
     private void printMetrics(String scenario, PerformanceMetrics metrics) {
-        log.info("\n");
-        log.info("+===============================================================+");
-        log.info("| Performance Test Results: {}                ", String.format("%-35s", scenario));
-        log.info("+===============================================================+");
-        log.info("| Total Requests:  {:>10}                                |", metrics.getTotalRequests());
-        log.info("| Success Count:   {:>10}                                |", metrics.getSuccessCount());
-        log.info("| Fail Count:      {:>10}                                |", metrics.getFailCount());
-        log.info("| Success Rate:    {:>9.2f}%                              |", metrics.getSuccessRate());
-        log.info("+---------------------------------------------------------------+");
-        log.info("| TPS:            {:>10.2f} req/s                        |", metrics.getTps());
-        log.info("| Total Time:     {:>10} ms                             |", metrics.getTotalTime());
-        log.info("+---------------------------------------------------------------+");
-        log.info("| Avg Resp Time:  {:>10.2f} ms                          |", metrics.getAvgResponseTime());
-        log.info("| Min Resp Time:  {:>10} ms                             |", metrics.getMinResponseTime());
-        log.info("| Max Resp Time:  {:>10} ms                             |", metrics.getMaxResponseTime());
-        log.info("| P50 Resp Time:  {:>10} ms                             |", metrics.getP50ResponseTime());
-        log.info("| P95 Resp Time:  {:>10} ms                             |", metrics.getP95ResponseTime());
-        log.info("| P99 Resp Time:  {:>10} ms                             |", metrics.getP99ResponseTime());
-        log.info("+===============================================================+");
-        log.info("\n");
+        String table = "\n"
+                + "+===============================================================+\n"
+                + String.format("| Performance Test Results: %-35s|%n", scenario)
+                + "+===============================================================+\n"
+                + String.format("| Total Requests:  %10d                                |%n", metrics.getTotalRequests())
+                + String.format("| Success Count:   %10d                                |%n", metrics.getSuccessCount())
+                + String.format("| Fail Count:      %10d                                |%n", metrics.getFailCount())
+                + String.format("| Success Rate:    %9.2f%%                              |%n", metrics.getSuccessRate())
+                + "+---------------------------------------------------------------+\n"
+                + String.format("| TPS:            %10.2f req/s                        |%n", metrics.getTps())
+                + String.format("| Total Time:     %10d ms                             |%n", metrics.getTotalTime())
+                + "+---------------------------------------------------------------+\n"
+                + String.format("| Avg Resp Time:  %10.2f ms                          |%n", metrics.getAvgResponseTime())
+                + String.format("| Min Resp Time:  %10d ms                             |%n", metrics.getMinResponseTime())
+                + String.format("| Max Resp Time:  %10d ms                             |%n", metrics.getMaxResponseTime())
+                + String.format("| P50 Resp Time:  %10d ms                             |%n", metrics.getP50ResponseTime())
+                + String.format("| P95 Resp Time:  %10d ms                             |%n", metrics.getP95ResponseTime())
+                + String.format("| P99 Resp Time:  %10d ms                             |%n", metrics.getP99ResponseTime())
+                + "+===============================================================+\n";
+        log.info("{}", table);
     }
 
     @Data

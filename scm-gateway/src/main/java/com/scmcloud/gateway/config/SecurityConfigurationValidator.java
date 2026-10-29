@@ -96,23 +96,23 @@ public class SecurityConfigurationValidator {
      * 楠岃瘉瀵嗙爜寮哄害鏄惁绗﹀悎瑕佹眰锟?
      */
     private void validateSecretStrength() {
-        List<String> weakSecrets = new ArrayList<>();
+        List<String> weaknessWarnings = new ArrayList<>();
 
         if (webAppSecret.length() < 32) {
-            weakSecrets.add("web-app secret is too short (minimum 32 characters)");
+            weaknessWarnings.add("web-app secret is too short (minimum 32 characters)");
         }
 
         if (internalServiceSecret.length() < 32) {
-            weakSecrets.add("internal-service secret is too short (minimum 32 characters)");
+            weaknessWarnings.add("internal-service secret is too short (minimum 32 characters)");
         }
 
         if (identitySignatureSecret.length() < 64) {
-            weakSecrets.add("identity signature secret is too short (minimum 64 characters for HMAC-SHA256)");
+            weaknessWarnings.add("identity signature secret is too short (minimum 64 characters for HMAC-SHA256)");
         }
 
-        if (!weakSecrets.isEmpty()) {
+        if (!weaknessWarnings.isEmpty()) {
             log.warn("SECURITY WARNING: Weak secrets detected:\n  - {}",
-                    String.join("\n  - ", weakSecrets));
+                    String.join("\n  - ", weaknessWarnings));
         }
     }
 

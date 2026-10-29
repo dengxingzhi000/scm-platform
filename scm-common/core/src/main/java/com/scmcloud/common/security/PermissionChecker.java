@@ -238,8 +238,12 @@ public class PermissionChecker {
      */
     public boolean canAssignRole(UUID operatorUserId, Integer operatorRoleLevel, Integer targetRoleLevel) {
         if (operatorRoleLevel == null || targetRoleLevel == null) {
+            log.warn("角色分配等级缺失: operatorUserId={}, operatorLevel={}, targetLevel={}",
+                    operatorUserId, operatorRoleLevel, targetRoleLevel);
             return false;
         }
+        log.debug("角色分配校验: operatorUserId={}, operatorLevel={}, targetLevel={}",
+                operatorUserId, operatorRoleLevel, targetRoleLevel);
         return operatorRoleLevel >= targetRoleLevel;
     }
 

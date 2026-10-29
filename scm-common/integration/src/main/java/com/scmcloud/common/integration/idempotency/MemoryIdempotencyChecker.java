@@ -25,6 +25,13 @@ public class MemoryIdempotencyChecker implements IdempotencyChecker {
         return seen.putIfAbsent(messageId, now + ttlMillis) == null;
     }
 
+    @Override
+    public void release(String messageId) {
+        if (messageId != null) {
+            seen.remove(messageId);
+        }
+    }
+
     private void purgeExpired(long now) {
         seen.entrySet().removeIf(e -> e.getValue() <= now);
     }

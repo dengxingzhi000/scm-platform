@@ -12,6 +12,7 @@ public class DecisionResult<O> {
     private String experimentId;
     private List<ConstraintResult> constraintResults;
     private Map<String, Object> metadata;
+    private String errorMessage;
 
     public static <O> DecisionResult<O> success(O output) {
         DecisionResult<O> result = new DecisionResult<>();
@@ -23,6 +24,7 @@ public class DecisionResult<O> {
     public static <O> DecisionResult<O> failure(String reason) {
         DecisionResult<O> result = new DecisionResult<>();
         result.setSuccess(false);
+        result.setErrorMessage(reason);
         return result;
     }
 }

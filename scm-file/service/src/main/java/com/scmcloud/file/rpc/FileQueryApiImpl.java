@@ -48,6 +48,8 @@ public class FileQueryApiImpl implements FileQueryApi {
 
     @Override
     public String generatePresignedUrl(String fileKey, String tenantId) {
+        log.debug("Generating presigned url for fileKey={}, tenantId={}",
+                fileKey == null ? null : fileKey.replace("\r", "_").replace("\n", "_"), tenantId);
         StorageEngine engine = storageFactory.getDefaultEngine();
         return engine.generatePresignedUrl(fileKey, java.time.Duration.ofMinutes(30));
     }

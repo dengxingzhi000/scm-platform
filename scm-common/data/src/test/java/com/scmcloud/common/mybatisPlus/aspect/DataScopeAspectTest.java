@@ -237,6 +237,7 @@ class DataScopeAspectTest {
         });
 
         Object result = aspect.around(joinPoint, dataScopeAnnotation);
+        assertThat(result).isEqualTo(expectedResult);
 
         DataScopeFilter filter = capturedFilter[0];
         assertThat(filter).isNotNull();

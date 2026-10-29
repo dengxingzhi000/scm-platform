@@ -11,9 +11,9 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -38,7 +38,11 @@ public class FlashSaleServiceImpl extends ServiceImpl<FlashSaleMapper, FlashSale
         String key = FLASH_STOCK_KEY + flashSaleId + ":" + skuId;
         Object stock = redisTemplate.opsForValue().get(key);
         if (stock != null) {
-            return Integer.parseInt(stock.toString()) > 0;
+            try {
+                return Integer.parseInt(stock.toString()) > 0;
+            } catch (NumberFormatException e) {
+                log.warn("Malformed flash sale stock cached for key={}, falling back to database", key);
+            }
         }
 
         FlashSale flashSale = getById(flashSaleId);
@@ -47,7 +51,7 @@ public class FlashSaleServiceImpl extends ServiceImpl<FlashSaleMapper, FlashSale
         }
 
         int remaining = flashSale.getFlashStock() - flashSale.getSoldCount();
-        redisTemplate.opsForValue().set(key, String.valueOf(remaining), 30, TimeUnit.SECONDS);
+        redisTemplate.opsForValue().set(key, String.valueOf(remaining), Duration.ofSeconds(30));
         return remaining > 0;
     }
 
