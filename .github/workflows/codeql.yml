@@ -1,6 +1,6 @@
 name: CodeQL Security Scan
 
-# Scans Java (backend) and JavaScript/TypeScript (scm-web frontend) on every
+# Scans Java, JavaScript/TypeScript and GitHub Actions on every
 # push to master/develop and on every PR. Results uploaded to the Security
 # tab. Schedule run on Mondays for ongoing coverage of new advisories.
 # https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/customizing-code-scanning
@@ -32,6 +32,8 @@ jobs:
             paths: '**/*.java'
           - language: javascript-typescript
             paths: 'scm-web/**'
+          - language: actions
+            paths: '.github/workflows/**'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
