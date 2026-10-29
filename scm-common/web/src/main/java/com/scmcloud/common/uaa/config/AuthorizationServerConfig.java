@@ -112,7 +112,7 @@ public class AuthorizationServerConfig {
     public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
         http
                 // keep this chain off the catch-all path: SecurityConfig owns that one
-                .securityMatcher("/login", "/error")
+                .securityMatcher("/login", "/error", "/logout")
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/login", "/error").permitAll()
                         .anyRequest().authenticated()

@@ -62,15 +62,14 @@ public class SecurityConfig {
         http
                 // 1锔忊儯 绂佺敤 CSRF锛堜娇锟絁WT锟?
                 .csrf(AbstractHttpConfigurer::disable)
+                .logout(AbstractHttpConfigurer::disable)
 
                 // 2锔忊儯 CORS 閰嶇疆
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
                 // 3锔忊儯 鏃犵姸锟絊ession 绠$悊
                 .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                        .maximumSessions(1)
-                        .maxSessionsPreventsLogin(true))
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 // 4锔忊儯 寮傚父澶勭悊锛堣璇佷笌鎺堟潈锟?
                 .exceptionHandling(exception -> exception
