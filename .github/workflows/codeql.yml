@@ -46,6 +46,8 @@ jobs:
           languages: ${{ matrix.language }}
           queries: security-extended,security-and-quality
           build-mode: ${{ matrix.language == 'java' && 'manual' || 'none' }}
+          # Excludes openapi-generator output (see the file for the rationale).
+          config-file: ./.github/codeql/codeql-config.yml
 
       # CodeQL needs compiled .class files for data-flow / taint analysis on
       # Java. Build the whole reactor against the real parent POM so every
