@@ -90,7 +90,7 @@ public class UploadService {
                     engine.delete(storageKey);
                     log.warn("Rolled back orphan object {} after metadata save failure", (storageKey + "").replace("\r", "_").replace("\n", "_"));
                 } catch (Exception deleteEx) {
-                    log.error("Failed to clean up orphan object {}", (storageKey + "").replace("\r", "_").replace("\n", "_"), (deleteEx + "").replace("\r", "_").replace("\n", "_"));
+                    log.error("Failed to clean up orphan object {}", (storageKey + "").replace("\r", "_").replace("\n", "_"), deleteEx);
                 }
             }
             throw new StorageException("Failed to persist file metadata", e);

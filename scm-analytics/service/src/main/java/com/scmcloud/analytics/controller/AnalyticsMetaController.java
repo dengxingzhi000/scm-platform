@@ -204,7 +204,7 @@ public class AnalyticsMetaController {
     @PutMapping("/datasets/{datasetId}/fields/{id}")
     public ApiResponse<DatasetFieldDefinition> updateField(@Parameter(description = "字段 ID") @PathVariable UUID id,
                                                             @RequestBody DatasetFieldDTO dto) {
-        log.info("[API] update dataset field: id={}, code={}", id, dto.getFieldCode());
+        log.info("[API] update dataset field: id={}, code={}", id, (dto.getFieldCode() + "").replace("\r", "_").replace("\n", "_"));
         return ApiResponse.success(datasetFieldService.update(id, dto));
     }
 

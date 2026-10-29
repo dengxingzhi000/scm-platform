@@ -46,14 +46,14 @@ public class InvReservationServiceImpl implements IInvReservationService {
   @Transactional(rollbackFor = Exception.class)
   public boolean reserveInventory(InventoryReservationRequest request) {
     log.debug("🔵 预占库存: skuId={}, warehouseId={}, quantity={}, businessKey={}",
-        request.getSkuId(), request.getWarehouseId(),
-        request.getQuantity(), request.getBusinessKey());
+        (request.getSkuId() + "").replace("\r", "_").replace("\n", "_"), (request.getWarehouseId() + "").replace("\r", "_").replace("\n", "_"),
+        request.getQuantity(), (request.getBusinessKey() + "").replace("\r", "_").replace("\n", "_"));
 
     String reservationKey = buildReservationKey(request.getBusinessKey());
 
     // 1. 幂等性检查：预占是否已存在
     if (Boolean.TRUE.equals(redisTemplate.hasKey(reservationKey))) {
-      log.warn("⚠️  预占已存在，幂等返回: businessKey={}", request.getBusinessKey());
+      log.warn("⚠️  预占已存在，幂等返回: businessKey={}", (request.getBusinessKey() + "").replace("\r", "_").replace("\n", "_"));
       return true;
     }
 
@@ -62,7 +62,7 @@ public class InvReservationServiceImpl implements IInvReservationService {
     DistributedLock.LockHandle lock = distributedLock.tryLock(lockKey, 10, TimeUnit.SECONDS);
 
     if (lock == null) {
-      log.error("❌获取分布式锁失败: lockKey={}", lockKey);
+      log.error("❌获取分布式锁失败: lockKey={}", (lockKey + "").replace("\r", "_").replace("\n", "_"));
       throw new RuntimeException("系统繁忙，请稍后重试");
     }
 
@@ -85,7 +85,7 @@ public class InvReservationServiceImpl implements IInvReservationService {
       // 4. 检查库存是否充足
       if (inventory.getAvailableStock() < request.getQuantity()) {
         log.error("❌库存不足: skuId={}, available={}, required={}",
-            request.getSkuId(), inventory.getAvailableStock(), request.getQuantity());
+            (request.getSkuId() + "").replace("\r", "_").replace("\n", "_"), inventory.getAvailableStock(), request.getQuantity());
         throw new RuntimeException(
             String.format("库存不足: 可用 %d, 需要%d",
                 inventory.getAvailableStock(), request.getQuantity())
@@ -102,7 +102,7 @@ public class InvReservationServiceImpl implements IInvReservationService {
       );
 
       if (updated == 0) {
-        log.error("❌库存锁定失败（并发冲突）: skuId={}", request.getSkuId());
+        log.error("❌库存锁定失败（并发冲突）: skuId={}", (request.getSkuId() + "").replace("\r", "_").replace("\n", "_"));
         throw new RuntimeException("库存锁定失败，请重试");
       }
 
@@ -129,8 +129,8 @@ public class InvReservationServiceImpl implements IInvReservationService {
       redisTemplate.expire(indexKey, Duration.ofSeconds(timeoutSeconds));
 
       log.debug("✅库存预占成功: skuId={}, warehouseId={}, quantity={}, businessKey={}, timeout={}s",
-          request.getSkuId(), request.getWarehouseId(),
-          request.getQuantity(), request.getBusinessKey(), timeoutSeconds);
+          (request.getSkuId() + "").replace("\r", "_").replace("\n", "_"), (request.getWarehouseId() + "").replace("\r", "_").replace("\n", "_"),
+          request.getQuantity(), (request.getBusinessKey() + "").replace("\r", "_").replace("\n", "_"), timeoutSeconds);
 
       return true;
 
@@ -142,7 +142,7 @@ public class InvReservationServiceImpl implements IInvReservationService {
   @Override
   @Transactional(rollbackFor = Exception.class)
   public boolean confirmReservation(String businessKey) {
-    log.debug("🟢 确认预占: businessKey={}", businessKey);
+    log.debug("🟢 确认预占: businessKey={}", (businessKey + "").replace("\r", "_").replace("\n", "_"));
 
     String reservationKey = buildReservationKey(businessKey);
 
@@ -150,7 +150,7 @@ public class InvReservationServiceImpl implements IInvReservationService {
     Map<Object, Object> reservationData = redisTemplate.opsForHash().entries(reservationKey);
 
     if (reservationData.isEmpty()) {
-      log.warn("⚠️  预占不存在或已过期 businessKey={}", businessKey);
+      log.warn("⚠️  预占不存在或已过期 businessKey={}", (businessKey + "").replace("\r", "_").replace("\n", "_"));
       return false;
     }
 
@@ -163,7 +163,7 @@ public class InvReservationServiceImpl implements IInvReservationService {
     DistributedLock.LockHandle lock = distributedLock.tryLock(lockKey, 10, TimeUnit.SECONDS);
 
     if (lock == null) {
-      log.error("❌获取分布式锁失败: lockKey={}", lockKey);
+      log.error("❌获取分布式锁失败: lockKey={}", (lockKey + "").replace("\r", "_").replace("\n", "_"));
       throw new RuntimeException("系统繁忙，请稍后重试");
     }
 
@@ -192,7 +192,7 @@ public class InvReservationServiceImpl implements IInvReservationService {
       redisTemplate.opsForSet().remove(indexKey, businessKey);
 
       log.debug("✅预占确认成功: skuId={}, warehouseId={}, quantity={}, businessKey={}",
-          skuId, warehouseId, quantity, businessKey);
+          (skuId + "").replace("\r", "_").replace("\n", "_"), (warehouseId + "").replace("\r", "_").replace("\n", "_"), quantity, (businessKey + "").replace("\r", "_").replace("\n", "_"));
 
       return true;
 
@@ -204,7 +204,7 @@ public class InvReservationServiceImpl implements IInvReservationService {
   @Override
   @Transactional(rollbackFor = Exception.class)
   public boolean releaseReservation(String businessKey) {
-    log.debug("🔴 释放预占: businessKey={}", businessKey);
+    log.debug("🔴 释放预占: businessKey={}", (businessKey + "").replace("\r", "_").replace("\n", "_"));
 
     String reservationKey = buildReservationKey(businessKey);
 
@@ -212,7 +212,7 @@ public class InvReservationServiceImpl implements IInvReservationService {
     Map<Object, Object> reservationData = redisTemplate.opsForHash().entries(reservationKey);
 
     if (reservationData.isEmpty()) {
-      log.warn("⚠️  预占不存在 businessKey={}", businessKey);
+      log.warn("⚠️  预占不存在 businessKey={}", (businessKey + "").replace("\r", "_").replace("\n", "_"));
       return false;
     }
 
@@ -225,7 +225,7 @@ public class InvReservationServiceImpl implements IInvReservationService {
     DistributedLock.LockHandle lock = distributedLock.tryLock(lockKey, 10, TimeUnit.SECONDS);
 
     if (lock == null) {
-      log.error("❌获取分布式锁失败: lockKey={}", lockKey);
+      log.error("❌获取分布式锁失败: lockKey={}", (lockKey + "").replace("\r", "_").replace("\n", "_"));
       throw new RuntimeException("系统繁忙，请稍后重试");
     }
 
@@ -254,7 +254,7 @@ public class InvReservationServiceImpl implements IInvReservationService {
       redisTemplate.opsForSet().remove(indexKey, businessKey);
 
       log.debug("✅预占释放成功: skuId={}, warehouseId={}, quantity={}, businessKey={}",
-          skuId, warehouseId, quantity, businessKey);
+          (skuId + "").replace("\r", "_").replace("\n", "_"), (warehouseId + "").replace("\r", "_").replace("\n", "_"), quantity, (businessKey + "").replace("\r", "_").replace("\n", "_"));
 
       return true;
 

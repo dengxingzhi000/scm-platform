@@ -1,5 +1,9 @@
 package com.scmcloud.file.service.upload;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
+import org.slf4j.LoggerFactory;
 import com.scmcloud.file.config.StorageConfig;
 import com.scmcloud.file.entity.FileMetadata;
 import com.scmcloud.file.mapper.UploadTaskMapper;
@@ -86,6 +90,37 @@ class UploadServiceTest {
         assertThrows(StorageException.class,
                 () -> uploadService.upload(file, "a.txt", "text/plain", null, null, "tenant-1"));
         verify(storageEngine).delete("key/abc.txt");
+    }
+
+    @Test
+    void shouldKeepCleanupStackTraceAndSanitizeStorageKey() {
+        when(instantUploadService.checkExist(anyString(), anyString())).thenReturn(Optional.empty());
+        when(storageFactory.getDefaultEngine()).thenReturn(storageEngine);
+        FileMetadata stored = new FileMetadata();
+        stored.setStorageKey("key\r\nforged-entry");
+        when(storageEngine.upload(any(InputStream.class), anyLong(), any(), any(), any())).thenReturn(stored);
+        doThrow(new RuntimeException("db down")).when(metadataService).saveMetadata(any(FileMetadata.class));
+        doThrow(new IllegalStateException("storage unavailable")).when(storageEngine).delete(stored.getStorageKey());
+
+        Logger logger = (Logger) LoggerFactory.getLogger(UploadService.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            MultipartFile file = new MockMultipartFile("file", "a.txt", "text/plain", "data".getBytes());
+            assertThrows(StorageException.class,
+                    () -> uploadService.upload(file, "a.txt", "text/plain", null, null, "tenant-1"));
+
+            ILoggingEvent event = appender.list.getLast();
+            assertEquals("Failed to clean up orphan object key__forged-entry", event.getFormattedMessage());
+            assertNotNull(event.getThrowableProxy());
+            assertEquals(IllegalStateException.class.getName(), event.getThrowableProxy().getClassName());
+            assertEquals("storage unavailable", event.getThrowableProxy().getMessage());
+            verify(storageEngine).delete(stored.getStorageKey());
+        } finally {
+            logger.detachAppender(appender);
+            appender.stop();
+        }
     }
 
     @Test

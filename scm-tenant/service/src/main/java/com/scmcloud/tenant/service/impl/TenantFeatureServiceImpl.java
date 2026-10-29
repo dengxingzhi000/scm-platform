@@ -20,7 +20,7 @@ public class TenantFeatureServiceImpl extends ServiceImpl<TenantFeatureMapper, T
 
     @Override
     public TenantFeature createFeature(TenantFeature entity) {
-        log.info("Create tenant feature: tenantId={}, featureCode={}", entity.getTenantId(), entity.getFeatureCode());
+        log.info("Create tenant feature: tenantId={}, featureCode={}", (entity.getTenantId() + "").replace("\r", "_").replace("\n", "_"), (entity.getFeatureCode() + "").replace("\r", "_").replace("\n", "_"));
         entity.setId(UUID.randomUUID().toString());
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
@@ -28,7 +28,7 @@ public class TenantFeatureServiceImpl extends ServiceImpl<TenantFeatureMapper, T
             entity.setEnabled(true);
         }
         save(entity);
-        log.info("Tenant feature created successfully: id={}", entity.getId());
+        log.info("Tenant feature created successfully: id={}", (entity.getId() + "").replace("\r", "_").replace("\n", "_"));
         return entity;
     }
 
@@ -41,7 +41,7 @@ public class TenantFeatureServiceImpl extends ServiceImpl<TenantFeatureMapper, T
 
     @Override
     public TenantFeature updateFeature(TenantFeature entity) {
-        log.info("Update tenant feature: id={}", entity.getId());
+        log.info("Update tenant feature: id={}", (entity.getId() + "").replace("\r", "_").replace("\n", "_"));
         entity.setUpdateTime(LocalDateTime.now());
         updateById(entity);
         return entity;
@@ -49,13 +49,13 @@ public class TenantFeatureServiceImpl extends ServiceImpl<TenantFeatureMapper, T
 
     @Override
     public boolean deleteById(String id) {
-        log.info("Delete tenant feature: id={}", id);
+        log.info("Delete tenant feature: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         return removeById(id);
     }
 
     @Override
     public boolean isFeatureEnabled(String tenantId, String featureCode) {
-        log.debug("Check if feature is enabled: tenantId={}, featureCode={}", tenantId, featureCode);
+        log.debug("Check if feature is enabled: tenantId={}, featureCode={}", (tenantId + "").replace("\r", "_").replace("\n", "_"), (featureCode + "").replace("\r", "_").replace("\n", "_"));
 
         TenantFeature feature = lambdaQuery()
                 .eq(TenantFeature::getTenantId, tenantId)
@@ -68,7 +68,7 @@ public class TenantFeatureServiceImpl extends ServiceImpl<TenantFeatureMapper, T
         }
 
         boolean enabled = Boolean.TRUE.equals(feature.getEnabled());
-        log.debug("Feature check result: tenantId={}, featureCode={}, enabled={}", tenantId, featureCode, enabled);
+        log.debug("Feature check result: tenantId={}, featureCode={}, enabled={}", (tenantId + "").replace("\r", "_").replace("\n", "_"), (featureCode + "").replace("\r", "_").replace("\n", "_"), enabled);
         return enabled;
     }
 
@@ -83,7 +83,7 @@ public class TenantFeatureServiceImpl extends ServiceImpl<TenantFeatureMapper, T
     @Override
     public Page<TenantFeature> pageQuery(int page, int size, String tenantId, String featureCode, Boolean enabled) {
         log.debug("Page query tenant features: page={}, size={}, tenantId={}, featureCode={}, enabled={}",
-                page, size, tenantId, featureCode, enabled);
+                page, size, (tenantId + "").replace("\r", "_").replace("\n", "_"), (featureCode + "").replace("\r", "_").replace("\n", "_"), enabled);
 
         LambdaQueryWrapper<TenantFeature> wrapper = Wrappers.lambdaQuery();
 

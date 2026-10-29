@@ -69,7 +69,7 @@ public class InvReservationController {
       return success;
 
     } catch (IllegalArgumentException e) {
-      log.error("❌[API] 库存预占失败（参数错误）: {}", e.getMessage());
+      log.error("❌[API] 库存预占失败（参数错误）: {}", (e.getMessage() + "").replace("\r", "_").replace("\n", "_"));
       throw e;
     } catch (RuntimeException e) {
       log.error("❌[API] 库存预占失败（业务异常）: businessKey={}, error={}",
@@ -110,7 +110,7 @@ public class InvReservationController {
       throw e;
     } catch (Exception e) {
       log.error("❌[API] 预占确认异常: businessKey={}, error={}",
-          businessKey, e.getMessage(), e);
+          (businessKey + "").replace("\r", "_").replace("\n", "_"), (e.getMessage() + "").replace("\r", "_").replace("\n", "_"), e);
       throw new RuntimeException("预占确认失败: " + e.getMessage(), e);
     }
   }
@@ -123,13 +123,13 @@ public class InvReservationController {
   public boolean releaseReservation(
       @Parameter(description = "业务键，通常为订单号，用于定位预占记录") @PathVariable @NotBlank(message = "业务键不能为空") String businessKey) {
 
-    log.info("🔴 [API] 释放预占: businessKey={}", businessKey);
+    log.info("🔴 [API] 释放预占: businessKey={}", (businessKey + "").replace("\r", "_").replace("\n", "_"));
 
     try {
       boolean success = reservationService.releaseReservation(businessKey);
 
       if (success) {
-        log.info("🟢[API] 预占释放成功: businessKey={}", businessKey);
+        log.info("🟢[API] 预占释放成功: businessKey={}", (businessKey + "").replace("\r", "_").replace("\n", "_"));
       } else {
         log.warn("⚠️  [API] 预占释放失败（预占不存在）: businessKey={}",
             businessKey == null ? null : businessKey.replace("\r", "_").replace("\n", "_"));
@@ -139,11 +139,11 @@ public class InvReservationController {
 
     } catch (RuntimeException e) {
       log.error("❌[API] 预占释放失败: businessKey={}, error={}",
-          businessKey, e.getMessage());
+          (businessKey + "").replace("\r", "_").replace("\n", "_"), (e.getMessage() + "").replace("\r", "_").replace("\n", "_"));
       throw e;
     } catch (Exception e) {
       log.error("❌[API] 预占释放异常: businessKey={}, error={}",
-          businessKey, e.getMessage(), e);
+          (businessKey + "").replace("\r", "_").replace("\n", "_"), (e.getMessage() + "").replace("\r", "_").replace("\n", "_"), e);
       throw new RuntimeException("预占释放失败: " + e.getMessage(), e);
     }
   }
@@ -156,11 +156,11 @@ public class InvReservationController {
   public boolean checkReservationExists(
       @Parameter(description = "业务键，通常为订单号，用于定位预占记录") @PathVariable @NotBlank(message = "业务键不能为空") String businessKey) {
 
-    log.debug("📦 [API] 检查预占 businessKey={}", businessKey);
+    log.debug("📦 [API] 检查预占 businessKey={}", (businessKey + "").replace("\r", "_").replace("\n", "_"));
 
     boolean exists = reservationService.checkReservationExists(businessKey);
 
-    log.debug("📦 [API] 预占检查结果 businessKey={}, exists={}", businessKey, exists);
+    log.debug("📦 [API] 预占检查结果 businessKey={}, exists={}", (businessKey + "").replace("\r", "_").replace("\n", "_"), exists);
 
     return exists;
   }
@@ -173,7 +173,7 @@ public class InvReservationController {
   public Integer getReservedQuantity(
       @Parameter(description = "业务键，通常为订单号，用于定位预占记录") @PathVariable @NotBlank(message = "业务键不能为空") String businessKey) {
 
-    log.debug("📦 [API] 查询预占数量: businessKey={}", businessKey);
+    log.debug("📦 [API] 查询预占数量: businessKey={}", (businessKey + "").replace("\r", "_").replace("\n", "_"));
 
     Integer quantity = reservationService.getReservedQuantity(businessKey);
 
