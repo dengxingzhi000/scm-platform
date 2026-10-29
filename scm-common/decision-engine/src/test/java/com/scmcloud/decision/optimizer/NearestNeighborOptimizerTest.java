@@ -22,11 +22,30 @@ class NearestNeighborOptimizerTest {
                 new Point("D", 15, 0)
         );
 
-        List<Point> result = optimizer.optimize(points, List.of());
+        List<Point> result = optimizer.optimize(points);
 
         assertEquals("A", result.get(0).name());
         assertEquals("C", result.get(1).name());
         assertEquals("B", result.get(2).name());
         assertEquals("D", result.get(3).name());
+        assertEquals("B", points.get(1).name());
+    }
+
+    @Test
+    void acceptsEmptyInput() {
+        NearestNeighborOptimizer<Point> optimizer = new NearestNeighborOptimizer<>(
+                (a, b) -> Math.hypot(a.x() - b.x(), a.y() - b.y()));
+
+        assertTrue(optimizer.optimize(List.of()).isEmpty());
+    }
+
+    @Test
+    void returnsSinglePointWithoutComputingDistance() {
+        NearestNeighborOptimizer<Point> optimizer = new NearestNeighborOptimizer<>((a, b) -> {
+            throw new AssertionError("Unexpected distance calculation between " + a + " and " + b);
+        });
+        Point point = new Point("A", 0, 0);
+
+        assertEquals(List.of(point), optimizer.optimize(List.of(point)));
     }
 }

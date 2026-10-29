@@ -3,6 +3,7 @@ package com.scmcloud.message.event;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.util.Date;
@@ -15,13 +16,16 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 public class PriceChangedEvent implements DomainEvent {
+    @Getter(onMethod_ = @Override)
     private String eventId;
     private String productId;
     private String skuId;
     private BigDecimal oldPrice;
     private BigDecimal newPrice;
     private String priceListId;
+    @Getter(onMethod_ = @Override)
     private Long tenantId;
+    @Getter(onMethod_ = @Override)
     private Date timestamp;
     
     @Override

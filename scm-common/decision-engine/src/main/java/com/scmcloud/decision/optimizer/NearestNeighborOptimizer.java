@@ -1,6 +1,5 @@
 package com.scmcloud.decision.optimizer;
 
-import com.scmcloud.decision.constraint.Constraint;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
@@ -20,7 +19,7 @@ public class NearestNeighborOptimizer<T> implements Optimizer<List<T>, List<T>> 
     }
 
     @Override
-    public List<T> optimize(List<T> items, List<Constraint<List<T>>> constraints) {
+    public List<T> optimize(List<T> items) {
         if (items.isEmpty()) return Collections.emptyList();
 
         List<T> remaining = new ArrayList<>(items);

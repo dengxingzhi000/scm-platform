@@ -3,6 +3,7 @@ package com.scmcloud.message.event;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import java.util.Date;
 import java.util.HashMap;
@@ -14,13 +15,16 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 public class InventoryChangedEvent implements DomainEvent {
+    @Getter(onMethod_ = @Override)
     private String eventId;
     private String skuId;
     private String warehouseId;
     private Integer quantityChange;
     private Integer newQuantity;
     private String changeType;
+    @Getter(onMethod_ = @Override)
     private Long tenantId;
+    @Getter(onMethod_ = @Override)
     private Date timestamp;
     
     @Override

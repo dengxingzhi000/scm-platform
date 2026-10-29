@@ -294,10 +294,11 @@ public class WebAuthnValidator {
             long signCount,
             AAGUID aaguid
     ) {
-        public RegistrationResult {
-            if (credentialId != null) {
-                credentialId = credentialId.clone();
-            }
+        public RegistrationResult(byte[] credentialId, COSEKey publicKey, long signCount, AAGUID aaguid) {
+            this.credentialId = credentialId == null ? null : credentialId.clone();
+            this.publicKey = publicKey;
+            this.signCount = signCount;
+            this.aaguid = aaguid;
         }
 
         public byte[] credentialId() {

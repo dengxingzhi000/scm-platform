@@ -3,6 +3,7 @@ package com.scmcloud.message.event;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import java.util.Date;
 import java.util.HashMap;
@@ -14,10 +15,13 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 public class OrderCreatedEvent implements DomainEvent {
+    @Getter(onMethod_ = @Override)
     private String eventId;
     private String orderId;
     private String orderNo;
+    @Getter(onMethod_ = @Override)
     private Long tenantId;
+    @Getter(onMethod_ = @Override)
     private Date timestamp;
     
     @Override

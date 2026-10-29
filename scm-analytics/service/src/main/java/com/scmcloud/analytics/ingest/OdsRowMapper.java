@@ -20,7 +20,6 @@ public final class OdsRowMapper {
      * Map an {@link OrderCreatedEvent}-shaped payload to the {@code ods_order}
      * table schema. Unknown / missing fields become {@code null}.
      *
-     * @param topic        Kafka topic the record came from
      * @param innerPayload parsed JSON of the envelope's {@code data} field
      * @param kafkaOffset  the Kafka record offset
      * @param kafkaTsMillis the Kafka record timestamp (millis since epoch)

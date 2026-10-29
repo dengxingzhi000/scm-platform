@@ -56,7 +56,6 @@ public interface IWebauthnCredentialService extends IService<WebauthnCredential>
      * 鍙傝€冿細WebAuthn Level 2 - navigator.credentials.get()
      *
      * @param userId   鐢ㄦ埛 ID
-     * @param username 鐢ㄦ埛锟?
      * @param deviceId 璁惧 ID
      * @param rpId     渚濊禆锟絀D
      * @return 璁よ瘉鎸戞垬鍝嶅簲
