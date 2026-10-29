@@ -13,6 +13,9 @@ import { afterEach } from "vitest";
  */
 if (!globalThis.ResizeObserver) {
   globalThis.ResizeObserver = class ResizeObserverStub {
+    // Mirrors the DOM signature so call sites pass the callback the same way
+    // they would against a real ResizeObserver.
+    constructor(_callback?: ResizeObserverCallback) {}
     observe() {}
     unobserve() {}
     disconnect() {}
