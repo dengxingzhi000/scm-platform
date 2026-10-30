@@ -360,9 +360,11 @@ it("masks a bank account but keeps the last four digits", () => {
 });
 
 it("counts the days until a certificate expires, negative once expired", () => {
-  expect(daysToExpiryOf("2026-11-30", new Date("2026-10-30T00:00:00Z"))).toBe(31);
-  expect(daysToExpiryOf("2026-10-20", new Date("2026-10-30T00:00:00Z"))).toBe(-10);
-  expect(daysToExpiryOf(null, new Date("2026-10-30T00:00:00Z"))).toBeNull();
+  // 参考日期用本地时间构造（new Date(2026, 9, 30)），不要用 `new Date("...Z")` ——
+  // 后者在 UTC 以西的时区会落到前一天，断言会随开发者时区漂移。
+  expect(daysToExpiryOf("2026-11-30", new Date(2026, 9, 30))).toBe(31);
+  expect(daysToExpiryOf("2026-10-20", new Date(2026, 9, 30))).toBe(-10);
+  expect(daysToExpiryOf(null, new Date(2026, 9, 30))).toBeNull();
 });
 
 it("labels a change log with no operator as the system", () => {
