@@ -592,7 +592,9 @@ git commit -m "feat(supplier): backend error message cleanup and operator identi
 - Consumes: Task 1 的 `SupplierUpsertPayload`
 - Produces:
   - `export interface SupplierFormValues` —— 表单值类型，全部字段为**字符串**（数字字段用字符串，提交时转数字）
-  - `export const supplierFormSchema: z.ZodType<SupplierFormValues>` —— Zod schema
+  - `export const supplierFormSchema: z.ZodType<SupplierFormValues, SupplierFormValues>` —— Zod schema
+    （**两个类型参数**：只写 `z.ZodType<SupplierFormValues>` 时 zod v4 的 Input 退回 `unknown`，
+    Task 11 的 `useForm<SupplierFormValues>({ resolver: zodResolver(supplierFormSchema) })` 编译不过）
   - `export const supplierFormDefaults: SupplierFormValues` —— 空表单的默认值
   - `export function toSupplierFormValues(dto: SupplierDTO): SupplierFormValues` —— DTO → 表单初值
   - `export function toSupplierPayload(values: SupplierFormValues): SupplierUpsertPayload` —— 表单值 → 请求体
@@ -686,8 +688,14 @@ Zod 规则（与后端 `SupSupplierServiceImpl.validateMasterData` 对齐，spec
 
 `toSupplierPayload(values)` 的规则（这是 PATCH 语义的核心）：
 
-- 只输出表单托管的 26 个字段
-- 空字符串**保留**为 `""`（这是"清空"的信号）
+- 只输出表单托管的 **25 个**字段（第 26 个候选 `cooperationStartDate` 由服务端托管，永不发送）
+- 空字符串**保留**为 `""`（这是"清空"的信号）—— **但 `creditRating` 是唯一的例外**：
+  `sup_supplier.credit_rating` 上有
+  `CHECK (credit_rating IS NULL OR credit_rating IN ('A+','A','B+','B','C','D'))`
+  （`scripts/db/microservices/015_db_supplier.sql:47`），空串会被数据库拒绝 → 500。
+  所以 **空的 `creditRating` 必须整个键不出现在 payload 里**（= 不改）。
+  副作用：**API 无法清空信用评级**（null 被 MyBatis-Plus 跳过，`""` 被 CHECK 拒绝）——
+  详情页的编辑表单不要暗示用户可以清空它。
 - 数字字段：空串 → 该键**不出现在 payload 里**（表示"不改"）；非空串 → `Number(v)`
 - `supplierName` 始终输出（后端 `@NotBlank`）
 - **绝不输出** `cooperationStartDate`、`supplierLevel`、`auditStatus`、`riskLevel`、`blacklisted`、`overallScore`
