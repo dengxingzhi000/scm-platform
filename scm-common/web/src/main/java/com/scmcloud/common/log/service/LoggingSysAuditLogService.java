@@ -14,6 +14,17 @@ import java.util.UUID;
 public class LoggingSysAuditLogService implements ISysAuditLogService {
 
     @Override
+    public void record(com.scmcloud.common.log.dto.AuditLogRecord record) {
+        log.info("audit operation type={} desc={} user={} id={} uri={} status={} risk={} timeMs={}",
+                (record.getOperationType() + "").replace("\r", "_").replace("\n", "_"),
+                (record.getOperationDesc() + "").replace("\r", "_").replace("\n", "_"),
+                (record.getUsername() + "").replace("\r", "_").replace("\n", "_"),
+                (record.getUserId() + "").replace("\r", "_").replace("\n", "_"),
+                (record.getRequestUri() + "").replace("\r", "_").replace("\n", "_"),
+                record.getStatus(), record.getRiskLevel(), record.getExecuteTime());
+    }
+
+    @Override
     public void recordLogin(UUID userId, String username, String ipAddress, boolean success, String remark) {
         log.info("audit login user={} id={} ip={} success={} remark={}", (username + "").replace("\r", "_").replace("\n", "_"), (userId + "").replace("\r", "_").replace("\n", "_"), (ipAddress + "").replace("\r", "_").replace("\n", "_"), (success + "").replace("\r", "_").replace("\n", "_"), (remark + "").replace("\r", "_").replace("\n", "_"));
     }

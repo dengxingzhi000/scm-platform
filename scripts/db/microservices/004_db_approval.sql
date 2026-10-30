@@ -21,8 +21,8 @@ CREATE TABLE IF NOT EXISTS sys_permission_approval (
     target_user_id UUID,                             -- 关联 db_user.sys_user.id
     role_ids UUID[],                                 -- 关联 db_permission.sys_role.id
     permission_ids UUID[],                           -- 关联 db_permission.sys_permission.id
-    effective_time TIMESTAMPTZ,
-    expire_time TIMESTAMPTZ,
+    effective_time TIMESTAMP,
+    expire_time TIMESTAMP,
     apply_reason TEXT,
     business_justification TEXT,
     approval_status SMALLINT NOT NULL DEFAULT 0
@@ -30,10 +30,10 @@ CREATE TABLE IF NOT EXISTS sys_permission_approval (
     current_approver_id UUID,                        -- 关联 db_user.sys_user.id
     approval_chain JSONB,
     approved_by UUID,                                -- 关联 db_user.sys_user.id
-    approved_time TIMESTAMPTZ,
+    approved_time TIMESTAMP,
     reject_reason TEXT,
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_pa_applicant ON sys_permission_approval(applicant_id);
@@ -89,7 +89,7 @@ RETURNS TABLE (
     applicant_id UUID,
     approval_type SMALLINT,
     apply_reason TEXT,
-    create_time TIMESTAMPTZ
+    create_time TIMESTAMP
 ) AS $$
 BEGIN
     RETURN QUERY

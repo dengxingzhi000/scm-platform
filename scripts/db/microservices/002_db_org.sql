@@ -28,9 +28,9 @@ CREATE TABLE IF NOT EXISTS sys_dept (
     sort_order INTEGER NOT NULL DEFAULT 0,
     status SMALLINT NOT NULL DEFAULT 1
         CONSTRAINT chk_dept_status CHECK (status IN (0, 1)),
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     update_by UUID,
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
 

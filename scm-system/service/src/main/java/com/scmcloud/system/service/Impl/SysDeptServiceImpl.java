@@ -13,6 +13,7 @@ import com.scmcloud.system.service.ISysDeptService;
 import com.scmcloud.system.service.command.DeptRoleCrossDatabaseCommandService;
 import com.scmcloud.system.service.query.DeptCrossDatabaseQueryService;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
+import com.baomidou.dynamic.datasource.annotation.DSTransactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -119,7 +120,7 @@ public class SysDeptServiceImpl extends ServiceImpl<SysDeptMapper, SysDept> impl
      * 新增部门
      */
     @Override
-    @Transactional(rollbackFor = Exception.class)
+    @DSTransactional
     @CacheEvict(value = {"deptTree", "deptChildren"}, allEntries = true)
     public void addDept(DeptDTO deptDTO) {
         // 1. 验证租户上下
@@ -169,7 +170,7 @@ public class SysDeptServiceImpl extends ServiceImpl<SysDeptMapper, SysDept> impl
      * 修改部门
      */
     @Override
-    @Transactional(rollbackFor = Exception.class)
+    @DSTransactional
     @CacheEvict(value = {"deptTree", "deptChildren"}, allEntries = true)
     public void updateDept(DeptDTO deptDTO) {
         // 1. 验证租户上下
@@ -238,7 +239,8 @@ public class SysDeptServiceImpl extends ServiceImpl<SysDeptMapper, SysDept> impl
      * </ul>
      */
     @Override
-    @Transactional(rollbackFor = Exception.class)
+    // 跨 db_org（部门）与 db_permission（角色部门关联），用 @DSTransactional 才能正确切换数据源。
+    @DSTransactional
     @CacheEvict(value = {"deptTree", "deptChildren"}, allEntries = true)
     public void deleteDept(UUID id) {
         // 1. 验证租户上下

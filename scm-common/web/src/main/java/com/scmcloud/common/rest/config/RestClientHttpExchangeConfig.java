@@ -1,22 +1,28 @@
 package com.scmcloud.common.rest.config;
 
 import com.scmcloud.common.rest.client.SysAuthServiceClient;
+import com.scmcloud.common.rest.client.SysAuditServiceClient;
 import com.scmcloud.common.rest.client.SysPermissionServiceClient;
 import com.scmcloud.common.rest.client.SysUserServiceClient;
 import com.scmcloud.common.rest.interceptor.RestClientRequestSignatureInterceptor;
+import com.scmcloud.common.security.util.AuthTokenContext;
+import com.scmcloud.common.tenant.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NullMarked;
 import org.springframework.cloud.client.ServiceInstance;
-import org.springframework.cloud.client.loadbalancer.LoadBalancerClient;
+import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.support.RestClientAdapter;
 import org.springframework.web.service.invoker.HttpServiceProxyFactory;
 
 import java.net.URI;
+import java.util.UUID;
 
 /**
  * RestClient + HttpExchange 鏍稿績閰嶇疆
@@ -38,9 +44,12 @@ import java.net.URI;
 @RequiredArgsConstructor
 @NullMarked
 public class RestClientHttpExchangeConfig {
+    /** Instance lists can still be empty while the discovery client warms up. */
+    private static final long SERVICE_RESOLUTION_TIMEOUT_MS = 15_000L;
+
     private final ClientHttpRequestFactory clientHttpRequestFactory;
     private final RestClientRequestSignatureInterceptor signatureInterceptor;
-    private final LoadBalancerClient loadBalancerClient;
+    private final DiscoveryClient discoveryClient;
 
     /**
      * 鍒涘缓鍩虹 RestClient Bean
@@ -50,13 +59,31 @@ public class RestClientHttpExchangeConfig {
     public RestClient.Builder restClientBuilder() {
         return RestClient.builder()
             .requestFactory(clientHttpRequestFactory)
-            .requestInterceptor(signatureInterceptor);
+            .requestInterceptor(signatureInterceptor)
+            .requestInterceptor((request, body, execution) -> {
+                // Tenant is forwarded even without a token: audit and other internal writes may
+                // happen before/after authentication but still need the header.
+                UUID tenantId = TenantContextHolder.getTenantId();
+                if (tenantId != null) {
+                    request.getHeaders().set("X-Tenant-Id", tenantId.toString());
+                }
+                String token = AuthTokenContext.getToken();
+                if (token != null && request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION) == null) {
+                    request.getHeaders().setBearerAuth(token);
+                    String deviceId = AuthTokenContext.getDeviceId();
+                    if (deviceId != null) {
+                        request.getHeaders().set("X-Device-ID", deviceId);
+                    }
+                }
+                return execution.execute(request, body);
+            });
     }
 
     /**
      * 鍒涘缓 SysUserServiceClient Bean
      */
     @Bean
+    @Lazy
     public SysUserServiceClient sysUserServiceClient(RestClient.Builder restClientBuilder) {
         // Users live in scm-system (db_user), which registers as "system-service"; the old
         // "user-service" name never resolved, so every lookup fell through to http://user-service.
@@ -78,6 +105,7 @@ public class RestClientHttpExchangeConfig {
      * 鍒涘缓 SysAuthServiceClient Bean
      */
     @Bean
+    @Lazy
     public SysAuthServiceClient sysAuthServiceClient(RestClient.Builder restClientBuilder) {
         String baseUrl = resolveServiceUrl("auth-service");
         log.info("Creating SysAuthServiceClient with baseUrl: {}", baseUrl);
@@ -97,6 +125,7 @@ public class RestClientHttpExchangeConfig {
      * 鍒涘缓 SysPermissionServiceClient Bean
      */
     @Bean
+    @Lazy
     public SysPermissionServiceClient sysPermissionServiceClient(RestClient.Builder restClientBuilder) {
         // /api/system/permissions/** is served by scm-system ("system-service"), not a standalone
         // permission service; ApiAccessControlFilter fails closed, so a wrong name denied every API.
@@ -112,6 +141,26 @@ public class RestClientHttpExchangeConfig {
             .build();
 
         return factory.createClient(SysPermissionServiceClient.class);
+    }
+
+    /**
+     * Client for scm-audit's record endpoint ({@code POST /sys-audit-log}).
+     */
+    @Bean
+    @Lazy
+    public SysAuditServiceClient sysAuditServiceClient(RestClient.Builder restClientBuilder) {
+        String baseUrl = resolveServiceUrl("scm-audit");
+        log.info("Creating SysAuditServiceClient with baseUrl: {}", baseUrl);
+
+        RestClient restClient = restClientBuilder
+            .baseUrl(baseUrl)
+            .build();
+
+        HttpServiceProxyFactory factory = HttpServiceProxyFactory
+            .builderFor(RestClientAdapter.create(restClient))
+            .build();
+
+        return factory.createClient(SysAuditServiceClient.class);
     }
 
     /**
@@ -132,25 +181,40 @@ public class RestClientHttpExchangeConfig {
      * @return 鏈嶅姟鍩虹 URL锛堝 {@code https://192.168.1.100:8081}锟?
      */
     private String resolveServiceUrl(String serviceName) {
-        try {
-            // 浣跨敤 LoadBalancerClient 閫夋嫨瀹炰緥锛堣嚜鍔ㄨ礋杞藉潎琛★級
-            // Note: 铏界劧褰撳墠鐗堟湰涓嶈繑锟絥ull锛屼絾淇濈暀妫€鏌ヤ綔涓洪槻寰℃€х紪锟?
-            ServiceInstance instance = loadBalancerClient.choose(serviceName);
+        long deadline = System.currentTimeMillis() + SERVICE_RESOLUTION_TIMEOUT_MS;
+        while (true) {
+            try {
+                ServiceInstance instance = discoveryClient.getInstances(serviceName).stream()
+                        // Dubbo registers the same application name on its own port, so the
+                        // instance list mixes HTTP and RPC endpoints.
+                        .filter(candidate -> candidate.getMetadata().get("dubbo.endpoints") == null)
+                        .findFirst()
+                        .orElse(null);
 
-            if (instance == null) {
-                log.warn("No available instances for service '{}', using default URL", serviceName);
+                if (instance != null) {
+                    URI uri = instance.getUri();
+                    log.debug("Resolved service '{}' to URL: {} (host: {}, metadata: {})",
+                             serviceName, uri, instance.getHost(), instance.getMetadata());
+                    return uri.toString();
+                }
+            } catch (Exception e) {
+                log.error("Failed to resolve service '{}' via discovery: {}, using default URL",
+                          serviceName, e.getMessage());
                 return "http://" + serviceName;
             }
 
-            URI uri = instance.getUri();
-            log.debug("Resolved service '{}' to URL: {} (host: {}, metadata: {})",
-                     serviceName, uri, instance.getHost(), instance.getMetadata());
-            return uri.toString();
+            if (System.currentTimeMillis() >= deadline) {
+                log.warn("No available instances for service '{}' after {} ms, using default URL",
+                         serviceName, SERVICE_RESOLUTION_TIMEOUT_MS);
+                return "http://" + serviceName;
+            }
 
-        } catch (Exception e) {
-            log.error("Failed to resolve service '{}' via LoadBalancer: {}, using default URL",
-                      serviceName, e.getMessage());
-            return "http://" + serviceName;
+            try {
+                Thread.sleep(500L);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return "http://" + serviceName;
+            }
         }
     }
 }

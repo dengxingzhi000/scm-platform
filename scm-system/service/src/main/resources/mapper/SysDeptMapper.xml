@@ -5,7 +5,7 @@
     <select id="existsByDeptCode" resultType="boolean">
         SELECT COUNT(*) > 0 FROM sys_dept
         WHERE dept_code = #{deptCode}
-        AND deleted = 0
+        AND deleted = false
         <if test="excludeId != null">
             AND id != #{excludeId}
         </if>

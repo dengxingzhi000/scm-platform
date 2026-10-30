@@ -66,9 +66,9 @@ CREATE TABLE IF NOT EXISTS freight_rule (
     enabled BOOLEAN NOT NULL DEFAULT TRUE,
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     update_by UUID,
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
     remark TEXT,
@@ -130,7 +130,7 @@ CREATE TABLE IF NOT EXISTS freight_calc_record (
     calc_detail JSONB,                              -- 计算过程详情
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    create_time TIMESTAMP NOT NULL DEFAULT NOW()
 ) PARTITION BY RANGE (create_time);
 
 -- 创建分区（按月分区）
@@ -191,15 +191,15 @@ CREATE TABLE IF NOT EXISTS settlement_order (
     -- 审批
     approver_id UUID,
     approver_name VARCHAR(128),
-    approved_at TIMESTAMPTZ,
+    approved_at TIMESTAMP,
 
     -- 附件
     attachments JSONB DEFAULT '[]',                 -- 附件URL数组
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     update_by UUID,
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
     remark TEXT,
@@ -242,7 +242,7 @@ CREATE TABLE IF NOT EXISTS settlement_item (
     is_settled BOOLEAN DEFAULT FALSE,
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     remark TEXT,
 
     CONSTRAINT fk_settlement_item FOREIGN KEY (settlement_id) REFERENCES settlement_order(id)
@@ -306,9 +306,9 @@ CREATE TABLE IF NOT EXISTS invoice (
     invoice_pdf_url VARCHAR(512),                   -- PDF版本
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     update_by UUID,
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
     remark TEXT,
@@ -375,20 +375,20 @@ CREATE TABLE IF NOT EXISTS payment_record (
 
     -- 时间
     payment_date DATE NOT NULL,
-    completed_at TIMESTAMPTZ,
+    completed_at TIMESTAMP,
 
     -- 审批
     approver_id UUID,
     approver_name VARCHAR(128),
-    approved_at TIMESTAMPTZ,
+    approved_at TIMESTAMP,
 
     -- 凭证
     voucher_url VARCHAR(512),
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     update_by UUID,
     remark TEXT
 ) PARTITION BY RANGE (create_time);
@@ -455,20 +455,20 @@ CREATE TABLE IF NOT EXISTS reconciliation_record (
     -- 对账人
     reconciler_id UUID,
     reconciler_name VARCHAR(128),
-    reconciled_at TIMESTAMPTZ,
+    reconciled_at TIMESTAMP,
 
     -- 确认人
     confirmer_id UUID,
     confirmer_name VARCHAR(128),
-    confirmed_at TIMESTAMPTZ,
+    confirmed_at TIMESTAMP,
 
     -- 附件
     attachments JSONB DEFAULT '[]',
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     update_by UUID,
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
     remark TEXT,
@@ -536,15 +536,15 @@ CREATE TABLE IF NOT EXISTS platform_service_fee (
     -- 付款
     paid_amount DECIMAL(12, 2) DEFAULT 0
         CONSTRAINT chk_platform_paid CHECK (paid_amount >= 0),
-    paid_at TIMESTAMPTZ,
+    paid_at TIMESTAMP,
 
     -- 发票
     invoice_id UUID,
     invoice_no VARCHAR(128),
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     remark TEXT,
 
     CONSTRAINT uk_tenant_platform_fee_period UNIQUE (tenant_id, billing_period, fee_type)

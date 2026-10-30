@@ -9,7 +9,7 @@
 --   * NOT VALID 外键 —— 大表添加外键不阻塞读写
 --   * UNIQUE 约束 —— 数据库层业务不变量防御
 --   * COMMENT ON 覆盖表/列/约束 —— 自文档化,导出到 pg_dump
---   * TIMESTAMPTZ —— 始终带时区,避免 UTC/本地时间混用
+--   * TIMESTAMP —— 始终带时区,避免 UTC/本地时间混用
 --   * DECIMAL 而非 FLOAT —— 金额精确小数,无浮点误差
 --
 -- 执行时机: 项目尚未上线,数据可重建;在 init-all-databases.sh 跑完后
@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS ord_refund_item (
     refund_amount   DECIMAL(12, 2) NOT NULL,
 
     remark          TEXT,
-    create_time     TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    create_time     TIMESTAMP  NOT NULL DEFAULT NOW(),
 
     -- ─── 约束 ────────────────────────────────────────────────
     -- 业务约束
@@ -112,7 +112,7 @@ COMMENT ON COLUMN ord_refund_item.sku_name      IS 'SKU 名称(冗余,列表展�
 COMMENT ON COLUMN ord_refund_item.quantity      IS '退款件数(必须 > 0)';
 COMMENT ON COLUMN ord_refund_item.refund_amount IS '退款金额(元,DECIMAL(12,2) 保证精确小数)';
 COMMENT ON COLUMN ord_refund_item.remark        IS '备注';
-COMMENT ON COLUMN ord_refund_item.create_time   IS '创建时间(TIMESTAMPTZ 始终带时区)';
+COMMENT ON COLUMN ord_refund_item.create_time   IS '创建时间(TIMESTAMP 始终带时区)';
 
 COMMENT ON CONSTRAINT chk_refund_item_quantity         ON ord_refund_item IS '退款件数必须为正';
 COMMENT ON CONSTRAINT chk_refund_item_amount          ON ord_refund_item IS '退款金额不可为负';

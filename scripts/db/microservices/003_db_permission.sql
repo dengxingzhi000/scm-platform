@@ -31,9 +31,9 @@ CREATE TABLE IF NOT EXISTS sys_role (
     status SMALLINT NOT NULL DEFAULT 1
         CONSTRAINT chk_role_status CHECK (status IN (0, 1)),
     sort_order INTEGER NOT NULL DEFAULT 0,
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     update_by UUID,
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
 
@@ -81,9 +81,9 @@ CREATE TABLE IF NOT EXISTS sys_permission (
     visible BOOLEAN NOT NULL DEFAULT TRUE,
     status SMALLINT NOT NULL DEFAULT 1
         CONSTRAINT chk_perm_status CHECK (status IN (0, 1)),
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     update_by UUID,
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
 
@@ -108,13 +108,13 @@ CREATE TABLE IF NOT EXISTS sys_user_role (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL,                           -- 关联 db_user.sys_user.id
     role_id UUID NOT NULL,
-    effective_time TIMESTAMPTZ,
-    expire_time TIMESTAMPTZ,
+    effective_time TIMESTAMP,
+    expire_time TIMESTAMP,
     approval_status SMALLINT NOT NULL DEFAULT 2
         CONSTRAINT chk_ur_approval_status CHECK (approval_status IN (0, 1, 2, 3)),
     approved_by UUID,
-    approved_time TIMESTAMPTZ,
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    approved_time TIMESTAMP,
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
 
     CONSTRAINT uk_user_role UNIQUE (user_id, role_id),
@@ -144,7 +144,7 @@ CREATE TABLE IF NOT EXISTS sys_role_permission (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     role_id UUID NOT NULL,
     permission_id UUID NOT NULL,
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
 
     CONSTRAINT uk_role_perm UNIQUE (role_id, permission_id),
@@ -167,7 +167,7 @@ CREATE TABLE IF NOT EXISTS sys_role_dept (
     role_id UUID NOT NULL,
     dept_id UUID NOT NULL,                           -- 关联 db_org.sys_dept.id
     include_children BOOLEAN NOT NULL DEFAULT FALSE,
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
 
     CONSTRAINT uk_role_dept UNIQUE (role_id, dept_id),
@@ -200,9 +200,9 @@ CREATE TABLE IF NOT EXISTS sys_data_permission_rule (
     priority INTEGER NOT NULL DEFAULT 0,
     status SMALLINT NOT NULL DEFAULT 1
         CONSTRAINT chk_rule_status CHECK (status IN (0, 1)),
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     update_by UUID,
     deleted BOOLEAN NOT NULL DEFAULT FALSE
 );
@@ -222,7 +222,7 @@ CREATE TABLE IF NOT EXISTS sys_role_data_rule (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     role_id UUID NOT NULL,
     rule_id UUID NOT NULL,
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
 
     CONSTRAINT uk_role_rule UNIQUE (role_id, rule_id),
@@ -245,11 +245,11 @@ CREATE TABLE IF NOT EXISTS sys_temp_permission (
     user_id UUID NOT NULL,                           -- 关联 db_user.sys_user.id
     permission_id UUID NOT NULL,
     approval_id UUID,                                -- 关联 db_approval.sys_permission_approval.id
-    effective_time TIMESTAMPTZ NOT NULL,
-    expire_time TIMESTAMPTZ NOT NULL,
+    effective_time TIMESTAMP NOT NULL,
+    expire_time TIMESTAMP NOT NULL,
     status SMALLINT NOT NULL DEFAULT 1
         CONSTRAINT chk_temp_status CHECK (status IN (0, 1)),
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
 
     CONSTRAINT fk_tp_perm FOREIGN KEY (permission_id)

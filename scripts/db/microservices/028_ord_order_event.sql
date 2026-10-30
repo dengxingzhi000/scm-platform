@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS ord_order_event (
     order_no    VARCHAR(128),
     event_type  VARCHAR(64)  NOT NULL,
     event_data  TEXT         NOT NULL,
-    create_time TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP  NOT NULL DEFAULT NOW(),
     CONSTRAINT uk_ord_order_event_event_id UNIQUE (event_id)
 );
 

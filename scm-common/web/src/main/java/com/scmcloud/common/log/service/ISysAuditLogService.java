@@ -1,5 +1,7 @@
 package com.scmcloud.common.log.service;
 
+import com.scmcloud.common.log.dto.AuditLogRecord;
+
 import java.util.UUID;
 
 /**
@@ -10,6 +12,13 @@ import java.util.UUID;
  * @since 2025-10-14
  */
 public interface ISysAuditLogService {
+
+    /**
+     * 写入一条 {@code @AuditLog} 注解产生的操作审计记录。
+     *
+     * <p>实现必须是尽力而为的：审计失败不能影响业务调用。
+     */
+    void record(AuditLogRecord record);
 
     /**
      * 璁板綍鐢ㄦ埛鐧诲綍鎿嶄綔鏃ュ織

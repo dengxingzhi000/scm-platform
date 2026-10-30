@@ -50,19 +50,19 @@ CREATE TABLE IF NOT EXISTS purchase_request (
     current_approver_name VARCHAR(128),
 
     -- 审批结果
-    approved_at TIMESTAMPTZ,
-    rejected_at TIMESTAMPTZ,
+    approved_at TIMESTAMP,
+    rejected_at TIMESTAMP,
     reject_reason TEXT,
 
     -- 采购单生成
     purchase_order_id UUID,                         -- 关联生成的采购单
     purchase_order_no VARCHAR(128),
-    converted_at TIMESTAMPTZ,
+    converted_at TIMESTAMP,
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     update_by UUID,
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
     remark TEXT,
@@ -118,7 +118,7 @@ CREATE TABLE IF NOT EXISTS purchase_request_item (
     quality_requirement TEXT,
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     remark TEXT,
 
     CONSTRAINT fk_request_item FOREIGN KEY (request_id) REFERENCES purchase_request(id)
@@ -152,7 +152,7 @@ CREATE TABLE IF NOT EXISTS purchase_request_approval (
         CONSTRAINT chk_approval_action CHECK (approval_action IN (1, 2, 3, 4)),
 
     -- 审批时间
-    approval_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    approval_time TIMESTAMP NOT NULL DEFAULT NOW(),
 
     -- 审批意见
     approval_comment TEXT,
@@ -164,7 +164,7 @@ CREATE TABLE IF NOT EXISTS purchase_request_approval (
     signature VARCHAR(512),                         -- 电子签名图片URL
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     remark TEXT,
 
     CONSTRAINT fk_approval_request FOREIGN KEY (request_id) REFERENCES purchase_request(id)
@@ -211,9 +211,9 @@ CREATE TABLE IF NOT EXISTS purchase_approval_config (
     sort_order INT DEFAULT 0,
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     update_by UUID,
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
     remark TEXT
@@ -249,21 +249,21 @@ CREATE TABLE IF NOT EXISTS purchase_approval_task (
         CONSTRAINT chk_task_status CHECK (task_status IN (0, 1, 2, 3)),
 
     -- 超时控制
-    deadline TIMESTAMPTZ,
+    deadline TIMESTAMP,
     is_overdue BOOLEAN DEFAULT FALSE,
 
     -- 提醒
     reminder_count INT DEFAULT 0,
-    last_reminder_at TIMESTAMPTZ,
+    last_reminder_at TIMESTAMP,
 
     -- 完成信息
-    completed_at TIMESTAMPTZ,
+    completed_at TIMESTAMP,
     approval_action SMALLINT
         CONSTRAINT chk_task_approval_action CHECK (approval_action IS NULL OR approval_action IN (1, 2, 3, 4)),
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
 
     CONSTRAINT fk_task_request FOREIGN KEY (request_id) REFERENCES purchase_request(id)
 );

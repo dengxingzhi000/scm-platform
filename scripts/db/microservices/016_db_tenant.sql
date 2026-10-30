@@ -52,8 +52,8 @@ CREATE TABLE IF NOT EXISTS tenant (
     trial_end_date DATE,
     contract_start_date DATE,
     contract_end_date DATE,
-    activated_at TIMESTAMPTZ,
-    suspended_at TIMESTAMPTZ,
+    activated_at TIMESTAMP,
+    suspended_at TIMESTAMP,
 
     -- 品牌定制
     logo_url VARCHAR(512),
@@ -61,9 +61,9 @@ CREATE TABLE IF NOT EXISTS tenant (
     theme_config JSONB DEFAULT '{}',             -- 主题配置
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     update_by UUID,
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
     remark TEXT
@@ -124,9 +124,9 @@ CREATE TABLE IF NOT EXISTS tenant_package (
     sort_order INT DEFAULT 0,
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     update_by UUID,
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
     remark TEXT
@@ -170,13 +170,13 @@ CREATE TABLE IF NOT EXISTS tenant_subscription (
     -- 支付
     payment_status SMALLINT DEFAULT 0
         CONSTRAINT chk_subscription_payment CHECK (payment_status IN (0, 1, 2)),
-    paid_at TIMESTAMPTZ,
+    paid_at TIMESTAMP,
     payment_no VARCHAR(128),
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     update_by UUID,
     remark TEXT,
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
@@ -243,8 +243,8 @@ CREATE TABLE IF NOT EXISTS tenant_resource_quota (
     custom_quotas JSONB DEFAULT '{}',
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
 
     CONSTRAINT fk_quota_tenant FOREIGN KEY (tenant_id) REFERENCES tenant(id),
     CONSTRAINT uk_quota_tenant UNIQUE (tenant_id)
@@ -278,9 +278,9 @@ CREATE TABLE IF NOT EXISTS tenant_config (
     is_public BOOLEAN DEFAULT FALSE,              -- 是否可被前端访问
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     update_by UUID,
 
     CONSTRAINT fk_config_tenant FOREIGN KEY (tenant_id) REFERENCES tenant(id),
@@ -310,12 +310,12 @@ CREATE TABLE IF NOT EXISTS tenant_feature (
     -- 限制
     usage_limit INT,                              -- 使用次数限制
     current_usage INT DEFAULT 0,
-    expire_at TIMESTAMPTZ,                        -- 功能过期时间
+    expire_at TIMESTAMP,                        -- 功能过期时间
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     update_by UUID,
 
     CONSTRAINT fk_feature_tenant FOREIGN KEY (tenant_id) REFERENCES tenant(id),
@@ -357,7 +357,7 @@ CREATE TABLE IF NOT EXISTS tenant_operation_log (
     execution_time INT,                           -- 毫秒
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    create_time TIMESTAMP NOT NULL DEFAULT NOW()
 ) PARTITION BY RANGE (create_time);
 
 -- 创建分区（按月分区）

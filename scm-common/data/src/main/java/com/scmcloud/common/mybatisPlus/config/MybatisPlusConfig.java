@@ -12,11 +12,13 @@ import com.scmcloud.common.domain.TenantId;
 import com.scmcloud.common.mybatisPlus.handler.MoneyTypeHandler;
 import com.scmcloud.common.mybatisPlus.handler.QuantityTypeHandler;
 import com.scmcloud.common.mybatisPlus.handler.TenantIdTypeHandler;
+import com.scmcloud.common.mybatisPlus.handler.TimestampLocalDateTimeTypeHandler;
 import com.scmcloud.common.mybatisPlus.handler.UUIDTypeHandler;
 import com.scmcloud.common.mybatisPlus.properties.MybatisPlusProperties;
 import org.apache.ibatis.type.TypeHandlerRegistry;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 
 import java.util.UUID;
 
@@ -31,9 +33,13 @@ import java.util.UUID;
 public class MybatisPlusConfig {
 
     /**
-     * 娣诲姞鍒嗛〉鎻掍欢
+     * 添加分页插件
+     *
+     * <p>显式排序：MyBatis 按注册顺序层层包装插件，后注册者在外层先执行。租户改写必须在
+     * 分页插件之前发生，分页 COUNT 语句才会带上 tenant_id。
      */
     @Bean
+    @Order(0)
     public MybatisPlusInterceptor mybatisPlusInterceptor(MybatisPlusProperties properties) {
         MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
 
@@ -65,6 +71,7 @@ public class MybatisPlusConfig {
             typeHandlerRegistry.register(Money.class, MoneyTypeHandler.class);
             typeHandlerRegistry.register(Quantity.class, QuantityTypeHandler.class);
             typeHandlerRegistry.register(TenantId.class, TenantIdTypeHandler.class);
+            typeHandlerRegistry.register(java.time.LocalDateTime.class, TimestampLocalDateTimeTypeHandler.class);
         };
     }
 

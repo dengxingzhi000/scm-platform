@@ -29,9 +29,9 @@ CREATE TABLE IF NOT EXISTS sys_notification_audit (
     error_message TEXT,
     retry_count INTEGER DEFAULT 0,
     max_retries INTEGER DEFAULT 3,
-    next_retry_time TIMESTAMPTZ,
-    sent_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    next_retry_time TIMESTAMP,
+    sent_at TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_notify_ref ON sys_notification_audit(reference_id)
@@ -65,9 +65,9 @@ CREATE TABLE IF NOT EXISTS sys_notification_template (
     variables_schema JSONB,
     status SMALLINT NOT NULL DEFAULT 1
         CONSTRAINT chk_template_status CHECK (status IN (0, 1)),
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     update_by UUID,
     deleted BOOLEAN NOT NULL DEFAULT FALSE
 );
@@ -90,8 +90,8 @@ CREATE TABLE IF NOT EXISTS sys_user_notification_preference (
     enabled BOOLEAN NOT NULL DEFAULT TRUE,
     quiet_hours_start TIME,
     quiet_hours_end TIME,
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
 
     CONSTRAINT uk_user_type_channel UNIQUE (user_id, notification_type, channel)
 );
@@ -104,6 +104,36 @@ COMMENT ON COLUMN sys_user_notification_preference.user_id IS '用户ID(跨库�
 COMMENT ON COLUMN sys_user_notification_preference.notification_type IS '通知类型:APPROVAL,SECURITY,SYSTEM,MARKETING';
 COMMENT ON COLUMN sys_user_notification_preference.quiet_hours_start IS '免打扰开始时间';
 COMMENT ON COLUMN sys_user_notification_preference.quiet_hours_end IS '免打扰结束时间';
+
+-- ======================================================================
+-- 4. 用户站内通知表 (sys_user_notification)
+-- ======================================================================
+CREATE TABLE IF NOT EXISTS sys_user_notification (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL,
+    user_id UUID,
+    title VARCHAR(256) NOT NULL,
+    content TEXT,
+    type VARCHAR(32) NOT NULL
+        CONSTRAINT chk_user_notification_type
+        CHECK (type IN ('SYSTEM', 'ORDER', 'INVENTORY', 'APPROVAL', 'SECURITY')),
+    is_read BOOLEAN NOT NULL DEFAULT FALSE,
+    link VARCHAR(512),
+    read_at TIMESTAMP,
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
+    deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    remark TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_notification_tenant
+    ON sys_user_notification(tenant_id, is_read, create_time DESC) WHERE NOT deleted;
+CREATE INDEX IF NOT EXISTS idx_user_notification_user
+    ON sys_user_notification(user_id, is_read, create_time DESC) WHERE NOT deleted;
+
+COMMENT ON TABLE sys_user_notification IS '用户站内通知表';
+COMMENT ON COLUMN sys_user_notification.type IS '通知类型:SYSTEM,ORDER,INVENTORY,APPROVAL,SECURITY';
+COMMENT ON COLUMN sys_user_notification.is_read IS '是否已读';
 
 -- ======================================================================
 -- 注意：update_time 字段由 MyBatis-Plus MetaObjectHandler 自动填充

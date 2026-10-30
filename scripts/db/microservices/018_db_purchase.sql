@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS pur_request (
     requester_phone VARCHAR(32),
 
     -- 期望交付时间
-    expected_delivery TIMESTAMPTZ NOT NULL,
+    expected_delivery TIMESTAMP NOT NULL,
 
     -- 用途说明
     purpose TEXT NOT NULL,
@@ -53,9 +53,9 @@ CREATE TABLE IF NOT EXISTS pur_request (
     current_approver_name VARCHAR(128),
 
     -- 审批时间
-    submitted_at TIMESTAMPTZ,
-    approved_at TIMESTAMPTZ,
-    rejected_at TIMESTAMPTZ,
+    submitted_at TIMESTAMP,
+    approved_at TIMESTAMP,
+    rejected_at TIMESTAMP,
     reject_reason TEXT,
 
     -- 转化为采购单
@@ -67,9 +67,9 @@ CREATE TABLE IF NOT EXISTS pur_request (
     attachments JSONB DEFAULT '[]',
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     update_by UUID,
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
     remark TEXT
@@ -120,7 +120,7 @@ CREATE TABLE IF NOT EXISTS pur_request_item (
     suggested_supplier_name VARCHAR(256),
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     remark TEXT
 );
 
@@ -159,16 +159,16 @@ CREATE TABLE IF NOT EXISTS pur_plan (
     -- 审批
     approved_by UUID,
     approved_by_name VARCHAR(128),
-    approved_at TIMESTAMPTZ,
+    approved_at TIMESTAMP,
 
     -- 执行情况
     execution_rate DECIMAL(5, 2)
         CONSTRAINT chk_plan_execution CHECK (execution_rate IS NULL OR (execution_rate >= 0 AND execution_rate <= 100)),
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     update_by UUID,
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
     remark TEXT
@@ -214,7 +214,7 @@ CREATE TABLE IF NOT EXISTS pur_plan_item (
     expected_delivery DATE,
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     remark TEXT
 );
 
@@ -246,7 +246,7 @@ CREATE TABLE IF NOT EXISTS pur_rfq (
         CONSTRAINT chk_inquiry_method CHECK (inquiry_method IN (1, 2, 3)),
 
     -- 截止时间
-    deadline TIMESTAMPTZ NOT NULL,
+    deadline TIMESTAMP NOT NULL,
 
     -- 报价要求
     quotation_requirement TEXT,
@@ -262,9 +262,9 @@ CREATE TABLE IF NOT EXISTS pur_rfq (
     initiator_name VARCHAR(128),
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     update_by UUID,
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
     remark TEXT
@@ -308,7 +308,7 @@ CREATE TABLE IF NOT EXISTS pur_rfq_item (
     delivery_requirement TEXT,
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     remark TEXT
 );
 
@@ -367,15 +367,15 @@ CREATE TABLE IF NOT EXISTS pur_quotation (
     is_selected BOOLEAN DEFAULT FALSE,
     selected_by UUID,
     selected_by_name VARCHAR(128),
-    selected_at TIMESTAMPTZ,
+    selected_at TIMESTAMP,
 
     -- 附件
     attachments JSONB DEFAULT '[]',
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     update_by UUID,
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
     remark TEXT
@@ -428,7 +428,7 @@ CREATE TABLE IF NOT EXISTS pur_quotation_item (
     origin VARCHAR(128),
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     remark TEXT
 );
 
@@ -466,16 +466,16 @@ CREATE TABLE IF NOT EXISTS pur_price_comparison (
     -- 审批
     approved_by UUID,
     approved_by_name VARCHAR(128),
-    approved_at TIMESTAMPTZ,
+    approved_at TIMESTAMP,
 
     -- 分析人
     analyst_id UUID,
     analyst_name VARCHAR(128),
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     update_by UUID,
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
     remark TEXT
@@ -515,7 +515,7 @@ CREATE TABLE IF NOT EXISTS pur_price_comparison_item (
     disadvantages TEXT,
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     remark TEXT
 );
 
@@ -570,7 +570,7 @@ CREATE TABLE IF NOT EXISTS pur_contract (
     -- 签署信息
     signed_by UUID,
     signed_by_name VARCHAR(128),
-    signed_at TIMESTAMPTZ,
+    signed_at TIMESTAMP,
 
     -- 甲方代表
     party_a_representative VARCHAR(128),
@@ -584,9 +584,9 @@ CREATE TABLE IF NOT EXISTS pur_contract (
     contract_files JSONB DEFAULT '[]',
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     update_by UUID,
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
     remark TEXT
@@ -649,10 +649,10 @@ CREATE TABLE IF NOT EXISTS pur_order (
 
     -- 时间
     order_date DATE NOT NULL DEFAULT CURRENT_DATE,
-    expected_delivery TIMESTAMPTZ NOT NULL,
-    actual_delivery TIMESTAMPTZ,
-    completed_at TIMESTAMPTZ,
-    cancelled_at TIMESTAMPTZ,
+    expected_delivery TIMESTAMP NOT NULL,
+    actual_delivery TIMESTAMP,
+    completed_at TIMESTAMP,
+    cancelled_at TIMESTAMP,
     cancel_reason TEXT,
 
     -- 采购员
@@ -664,7 +664,7 @@ CREATE TABLE IF NOT EXISTS pur_order (
     approval_flow_id UUID,
     approved_by UUID,
     approved_by_name VARCHAR(128),
-    approved_at TIMESTAMPTZ,
+    approved_at TIMESTAMP,
 
     -- 付款
     payment_status SMALLINT DEFAULT 0
@@ -693,9 +693,9 @@ CREATE TABLE IF NOT EXISTS pur_order (
     attachments JSONB DEFAULT '[]',
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     update_by UUID,
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
     remark TEXT,
@@ -811,7 +811,7 @@ CREATE TABLE IF NOT EXISTS pur_order_item (
     item_remark TEXT,
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    create_time TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_order_item_order ON pur_order_item(order_id);
@@ -853,12 +853,12 @@ CREATE TABLE IF NOT EXISTS pur_receipt (
     -- 收货人
     receiver_id UUID NOT NULL,
     receiver_name VARCHAR(128),
-    received_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    received_at TIMESTAMP NOT NULL DEFAULT NOW(),
 
     -- 质检
     quality_inspector_id UUID,
     quality_inspector_name VARCHAR(128),
-    quality_inspected_at TIMESTAMPTZ,
+    quality_inspected_at TIMESTAMP,
     quality_result SMALLINT
         CONSTRAINT chk_receipt_quality CHECK (quality_result IS NULL OR quality_result IN (1, 2, 3)),
     quality_remark TEXT,
@@ -867,15 +867,15 @@ CREATE TABLE IF NOT EXISTS pur_receipt (
     shelved BOOLEAN DEFAULT FALSE,
     shelved_by UUID,
     shelved_by_name VARCHAR(128),
-    shelved_at TIMESTAMPTZ,
+    shelved_at TIMESTAMP,
 
     -- 附件（送货单、质检报告等）
     attachments JSONB DEFAULT '[]',
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     update_by UUID,
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
     remark TEXT
@@ -941,7 +941,7 @@ CREATE TABLE IF NOT EXISTS pur_receipt_item (
     location_code VARCHAR(128),
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     remark TEXT
 );
 

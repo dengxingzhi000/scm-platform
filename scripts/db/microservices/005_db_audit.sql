@@ -15,6 +15,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- ======================================================================
 CREATE TABLE IF NOT EXISTS sys_audit_log (
     id UUID NOT NULL DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL,                         -- filled from TenantContext on insert
     user_id UUID,                                    -- 关联 db_user.sys_user.id
     username VARCHAR(64),
     real_name VARCHAR(64),
@@ -40,7 +41,7 @@ CREATE TABLE IF NOT EXISTS sys_audit_log (
         CONSTRAINT chk_log_status CHECK (status IN (0, 1)),
     error_msg TEXT,
     execute_time INTEGER,
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
 
     PRIMARY KEY (id, create_time)
 ) PARTITION BY RANGE (create_time);
@@ -93,6 +94,8 @@ CREATE INDEX idx_log_business ON sys_audit_log(business_type, business_id)
 CREATE INDEX idx_log_risk ON sys_audit_log(risk_level) WHERE risk_level >= 3;
 CREATE INDEX idx_log_request_params ON sys_audit_log USING GIN (request_params)
     WHERE request_params IS NOT NULL;
+-- Same name 028_add_tenant_id_columns.sql would pick, so both tracks converge.
+CREATE INDEX idx_audit_log_tenant ON sys_audit_log(tenant_id);
 
 COMMENT ON TABLE sys_audit_log IS '操作审计日志表(按月分区)';
 COMMENT ON COLUMN sys_audit_log.user_id IS '用户ID(跨库关联db_user.sys_user)';
@@ -105,6 +108,7 @@ COMMENT ON COLUMN sys_audit_log.risk_level IS '风险等级:1-低,2-中,3-高,4-
 -- ======================================================================
 CREATE TABLE IF NOT EXISTS sys_sensitive_operation_log (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL,                         -- filled from TenantContext on insert
     user_id UUID NOT NULL,                           -- 关联 db_user.sys_user.id
     username VARCHAR(64),
     operation_type VARCHAR(50) NOT NULL,
@@ -123,10 +127,12 @@ CREATE TABLE IF NOT EXISTS sys_sensitive_operation_log (
     user_agent TEXT,
     device_fingerprint VARCHAR(128),
     location VARCHAR(128),
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    create_time TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_sol_user ON sys_sensitive_operation_log(user_id);
+-- Same name 028_add_tenant_id_columns.sql would pick, so both tracks converge.
+CREATE INDEX idx_sensitive_operation_log_tenant ON sys_sensitive_operation_log(tenant_id);
 CREATE INDEX idx_sol_type ON sys_sensitive_operation_log(operation_type);
 CREATE INDEX idx_sol_data_type ON sys_sensitive_operation_log(sensitive_data_type);
 CREATE INDEX idx_sol_time ON sys_sensitive_operation_log(create_time DESC);

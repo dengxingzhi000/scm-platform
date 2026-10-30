@@ -27,13 +27,13 @@ CREATE TABLE IF NOT EXISTS inv_tcc_reservation (
     status VARCHAR(20) NOT NULL DEFAULT 'TRYING',
 
     -- 时间信息
-    try_time TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    confirm_time TIMESTAMPTZ,
-    cancel_time TIMESTAMPTZ,
+    try_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    confirm_time TIMESTAMP,
+    cancel_time TIMESTAMP,
 
     -- 创建和更新时间
-    create_time TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    update_time TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 索引

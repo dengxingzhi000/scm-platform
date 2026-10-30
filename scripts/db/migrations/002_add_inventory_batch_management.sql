@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS inv_batch (
         CONSTRAINT chk_batch_quality CHECK (quality_status IN (1, 2, 3, 4)),
     quality_inspector_id UUID,
     quality_inspector_name VARCHAR(128),
-    quality_inspected_at TIMESTAMPTZ,
+    quality_inspected_at TIMESTAMP,
     quality_report JSONB,                          -- 质检报告
 
     -- 库存数量
@@ -64,9 +64,9 @@ CREATE TABLE IF NOT EXISTS inv_batch (
     expiry_alert_date DATE,                        -- 告警日期（提前N天）
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     update_by UUID,
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
     remark TEXT,
@@ -104,7 +104,7 @@ CREATE TABLE IF NOT EXISTS inv_lot (
     production_shift VARCHAR(64),                   -- 生产班次
     production_worker VARCHAR(128),                 -- 生产人员
     production_equipment VARCHAR(128),              -- 生产设备
-    production_datetime TIMESTAMPTZ,                -- 生产时间
+    production_datetime TIMESTAMP,                -- 生产时间
 
     -- 原料批号（用于向上追溯）
     raw_material_lots JSONB DEFAULT '[]',           -- 原料批号数组 [{skuId, lotNumber, quantity}]
@@ -130,9 +130,9 @@ CREATE TABLE IF NOT EXISTS inv_lot (
         CONSTRAINT chk_lot_status CHECK (status IN (0, 1, 2)),
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     update_by UUID,
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
     remark TEXT,
@@ -177,22 +177,22 @@ CREATE TABLE IF NOT EXISTS inv_serial (
     -- 销售信息
     sold_to_order_id UUID,
     sold_to_customer_id UUID,
-    sold_at TIMESTAMPTZ,
+    sold_at TIMESTAMP,
 
     -- 维修记录
     repair_count INT DEFAULT 0,
-    last_repair_at TIMESTAMPTZ,
+    last_repair_at TIMESTAMP,
     warranty_expire_date DATE,
 
     -- 召回信息
     is_recalled BOOLEAN DEFAULT FALSE,
     recall_reason TEXT,
-    recalled_at TIMESTAMPTZ,
+    recalled_at TIMESTAMP,
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     update_by UUID,
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
     remark TEXT
@@ -243,7 +243,7 @@ CREATE TABLE IF NOT EXISTS inv_batch_flow (
     operator_name VARCHAR(128),
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     remark TEXT
 ) PARTITION BY RANGE (create_time);
 
@@ -290,7 +290,7 @@ CREATE TABLE IF NOT EXISTS inv_serial_trace (
     operator_name VARCHAR(128),
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     remark TEXT
 );
 
