@@ -98,15 +98,9 @@ describe("supplier mappers", () => {
   });
 
   it("counts the days until a certificate expires, negative once expired", () => {
-    expect(
-      daysToExpiryOf("2026-11-30", new Date("2026-10-30T00:00:00Z"))
-    ).toBe(31);
-    expect(
-      daysToExpiryOf("2026-10-20", new Date("2026-10-30T00:00:00Z"))
-    ).toBe(-10);
-    expect(
-      daysToExpiryOf(null, new Date("2026-10-30T00:00:00Z"))
-    ).toBeNull();
+    expect(daysToExpiryOf("2026-11-30", new Date(2026, 9, 30))).toBe(31);
+    expect(daysToExpiryOf("2026-10-20", new Date(2026, 9, 30))).toBe(-10);
+    expect(daysToExpiryOf(null, new Date(2026, 9, 30))).toBeNull();
   });
 
   it("labels a change log with no operator as the system", () => {
