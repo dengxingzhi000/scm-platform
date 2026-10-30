@@ -5,6 +5,76 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 2026-10-30
+
+Fixes that make the running stack usable end to end: business APIs are
+authorized again, the databases match the entities, notifications are produced
+from order events, and audit records finally reach `db_audit`.
+
+### Added
+
+- **Audit delivery** — `@AuditLog` is now handled by a shared aspect in
+  `scm-common/web` and reported to scm-audit over HTTP (`POST /sys-audit-log`),
+  so `scm-system` and `scm-auth` records are persisted. `scm-audit` keeps the
+  local persistence implementation; delivery failures only log a warning.
+- **Event-driven notifications** — scm-notify consumes `scm.ordorder` events
+  (outbox → Kafka), maps status changes to in-app notifications and deduplicates
+  by the stable outbox id (`business_key` + unique index, Flyway V2).
+  `OrderStatusChangedEvent` now carries the buyer id.
+- **Product list SKU counts** — the list loads the SKU catalog and groups counts
+  per SPU instead of always rendering 0.
+- **Seed suite** — `scripts/db/seed/` ships idempotent, fixed-UUID data for every
+  screen (tenant, RBAC, product, inventory, orders, suppliers, warehouses,
+  logistics, finance, purchase, notifications), including admin notifications.
+
+### Fixed
+
+- **Business APIs returned 401** — the load-balancer strategy beans were created
+  once in the application context under the name "default", so service discovery
+  never resolved `system-service`; they are now a per-client configuration and
+  Dubbo registrations are filtered out of the instance list. Internal RestClient
+  calls now forward the caller's JWT, tenant and device headers.
+- **5xx masked as 401** — `/error` is permitted; error dispatches are anonymous
+  because the JWT filter skips ERROR dispatch.
+- **Tokens rejected by some services** — every service used a different Redis
+  database, so the JWT fingerprint written by scm-auth was never found. All
+  services now use database 0.
+- **`uuid = character varying` failures** — String parameters are bound as
+  unspecified types (`stringtype=unspecified`) on every datasource, fixing
+  logistics ID lookups, supplier and order writes, and jsonb inserts.
+- **`TIMESTAMPTZ` read into `LocalDateTime`** — added a type handler that reads
+  both column types; the legacy schema scripts now define `TIMESTAMP` like the
+  Flyway-created databases.
+- **Soft delete mismatch** — `logic-delete-value`/`logic-not-delete-value` are
+  now `true`/`false` (the columns are BOOLEAN), and `SysDeptMapper.xml` no
+  longer hardcodes `deleted = 0`.
+- **`@DS("org")` ignored** — dept writes ran in a plain Spring transaction that
+  had already bound the primary connection; they now use `@DSTransactional`.
+- **Outbox never published** — `OutboxPoller` was a component-scanned
+  `@ConditionalOnBean`, which evaluates before auto-configuration and was always
+  false; it is registered by `OutboxAutoConfiguration` instead.
+- **Audit rows silently missing** — the only aspect lived inside scm-audit and
+  was never scanned by the audited services; login/security-event writes left
+  the primary key null (`save()` without `createLog()`), which also failed.
+- **Supplier columns** — `sup_supplier.website` and the eleven audit/risk
+  columns the entity expects are added to the schema and seed.
+
+### Changed
+
+- `docker-compose.yml` and every service datasource URL carry
+  `stringtype=unspecified`; `scm-system` overrides its six named `@DS`
+  datasources explicitly because they are defined in `application.yaml`.
+- Notifications API no longer accepts `userId`; recipients come from the session.
+
+### Known issues
+
+- Service addresses are resolved once at startup, so restarting `scm-system`
+  requires restarting the services that call it.
+- `scm-product` health stays 503 without Elasticsearch and `scm-notify` without
+  a real SMTP host; neither blocks the API.
+- Audit entries produced before authentication exists (e.g. failed logins) fall
+  back to the application log because the record endpoint requires a token.
+
 ## [1.5.0] - 2026-10-26
 
 Minor release that completes the e-commerce service layer and the analytics BI
