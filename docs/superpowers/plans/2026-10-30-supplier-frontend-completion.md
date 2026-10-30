@@ -131,7 +131,7 @@
   - `supplierApiService.certificates.list/create/update/remove` + `.verify(supplierId, id, params: { approved: boolean; operatorId?: string; operatorName?: string; remark?: string }): Promise<void>`
   - `supplierApiService.certificateExpiry.expiring(query: { page: number; size: number; days: number }): Promise<MpPage<SupplierCertificateDTO>>`
   - `supplierApiService.categories.list(query?: { keyword?: string; enabled?: boolean }): Promise<SupplierCategoryDTO[]>` / `.create(data): Promise<SupplierCategoryDTO>` / `.update(id, data): Promise<SupplierCategoryDTO>` / `.remove(id): Promise<void>`
-  - `supplierApiService.evaluations.page(query: { page: number; size: number; supplierId?: string; evaluationPeriod?: string }): Promise<MpPage<SupplierEvaluationDTO>>` / `.create(data): Promise<SupplierEvaluationDTO>` / `.update(id, data): Promise<SupplierEvaluationDTO>` / `.remove(id): Promise<void>` / `.bySupplier(supplierId): Promise<SupplierEvaluationDTO[]>` / `.averageScore(supplierId): Promise<number>`
+  - `supplierApiService.evaluations.page(query: { page: number; size: number; supplierId?: string; evaluationPeriod?: string }): Promise<MpPage<SupplierEvaluationDTO>>` / `.getById(id: string): Promise<SupplierEvaluationDTO>` / `.create(data): Promise<SupplierEvaluationDTO>` / `.update(id, data): Promise<SupplierEvaluationDTO>` / `.remove(id): Promise<void>` / `.bySupplier(supplierId): Promise<SupplierEvaluationDTO[]>` / `.averageScore(supplierId): Promise<number>`
 
 - [ ] **Step 1: 写失败的测试 —— 断言每个端点的 URL / method / 参数位置**
 
@@ -1470,7 +1470,7 @@ mock 里 `useSupplierEvaluations` 返回一条四维度都有分的记录，`use
   两列并排（`总评` 用后端值，`加权总分（预估）` 用前端值）。
 - 「新增评价」Dialog：评价周期（`YYYY-MM`）、起止日期、四维打分（0–100 的 number input）、
   采购次数、总金额、准时交付率、质量合格率、评价人、改进建议
-- **编辑**动作：先调 `GET /supplier-evaluations/{id}` 拿到完整记录再打开 Dialog
+- **编辑**动作：先调 `supplierApiService.evaluations.getById(id)` 拿到完整记录再打开 Dialog
   （列表行不保证带全部字段）—— 这也是该端点在界面上的调用点
 - 分页：用 `useSupplierEvaluations(supplierId, page, size)` + `TablePagination`
 

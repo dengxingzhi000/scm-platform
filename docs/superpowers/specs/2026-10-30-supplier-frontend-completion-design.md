@@ -327,10 +327,10 @@ DTO → UI 模型的转换集中在 feature 层的 `lib/mappers.ts`。
 
 ```ts
 export const supplierApiService = {
-  // —— 已有，保持兼容 ——
+  // —— 已有，保持兼容（list 的 query 类型放宽为 SupplierPageQuery，是 SupplierQuery 的超集）——
   list, getById,
   // —— 新增 ——
-  page, stats, profile, performance, changeLogs, active, search,
+  stats, profile, performance, changeLogs, active, search,
   create, update, remove,
   enable, disable, submitAudit, audit, blacklist, unblacklist,
   changeRiskLevel, changeCooperationStatus,
@@ -340,9 +340,14 @@ export const supplierApiService = {
   certificates: { list, create, update, verify, remove },
   certificateExpiry: { expiring },
   categories:   { list, create, update, remove },
-  evaluations:  { list, page, create, update, remove, bySupplier, averageScore },
+  evaluations:  { getById, page, create, update, remove, bySupplier, averageScore },
 }
 ```
+
+> **命名对齐（2026-10-30 实施后修正）**：`evaluations.getById` 对应
+> `GET /api/v1/supplier-evaluations/{id}`（与 `supplierApiService.getById` 同一命名惯例）；
+> `evaluations.page` 对应 `GET /api/v1/supplier-evaluations`（分页）。
+> 顶层**没有** `page` 方法 —— 分页列表就是 `list`。
 
 参数形状严格按 §4.1 写：query-param 的用 `params: {...}`，body 的用 `data: {...}`。
 `assignCategories` 的 body 是**裸数组**。
