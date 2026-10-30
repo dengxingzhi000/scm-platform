@@ -19,7 +19,7 @@ import type {
 
 export const productService = {
   list: async (params?: ProductSearchParams): Promise<PageResult<Product>> => {
-    const [page, categories, brands] = await Promise.all([
+    const [page, categories, brands, skus] = await Promise.all([
       productApiService.querySpus({
         page: params?.current ?? 1,
         size: params?.pageSize ?? 20,
@@ -30,11 +30,14 @@ export const productService = {
       }),
       productApiService.listCategories(),
       productApiService.listBrands(),
+      // SPU rows carry no SKUs, and the list shows a per-SPU count.
+      productApiService.sku.list({ page: 1, size: 1000 }),
     ]);
 
     return toProductPage(page, {
       categories: categories.records,
       brands: brands.records,
+      skus: skus.records,
     });
   },
 
