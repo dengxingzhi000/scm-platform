@@ -1,5 +1,6 @@
 package com.scmcloud.notify;
 
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
@@ -12,8 +13,9 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
  *
  * @author SCM Platform Team
  */
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = {"com.scmcloud.notify", "com.scmcloud.common"})
 @EnableDiscoveryClient
+@MapperScan("com.scmcloud.notify.mapper")
 public class NotifyServiceApplication {
 
     public static void main(String[] args) {

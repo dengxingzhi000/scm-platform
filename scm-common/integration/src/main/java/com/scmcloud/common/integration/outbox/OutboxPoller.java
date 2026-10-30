@@ -5,9 +5,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.scmcloud.common.integration.messaging.KafkaMessagePublisher;
 import com.scmcloud.common.integration.model.MessageEnvelope;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -16,10 +14,12 @@ import java.util.concurrent.TimeUnit;
  * Polls the outbox table for unpublished events and publishes to Kafka.
  * Runs on a fixed schedule. Uses SELECT ... FOR UPDATE SKIP LOCKED
  * to support multiple instances without duplicate publishing.
+ *
+ * <p>Registered by {@link com.scmcloud.common.integration.config.OutboxAutoConfiguration}: the
+ * previous {@code @Component + @ConditionalOnBean} form evaluated the condition during component
+ * scanning, i.e. before the auto-configured publisher existed, so the poller was never created.
  */
 @Slf4j
-@Component
-@ConditionalOnBean(KafkaMessagePublisher.class)
 public class OutboxPoller {
 
     private final OutboxService outboxService;
