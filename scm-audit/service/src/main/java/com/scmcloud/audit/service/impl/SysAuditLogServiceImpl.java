@@ -115,7 +115,7 @@ public class SysAuditLogServiceImpl
                 .operationDesc(remark)
                 .createTime(LocalDateTime.now())
                 .build();
-        save(log);
+        createLog(log);
     }
 
     @Async
@@ -129,7 +129,7 @@ public class SysAuditLogServiceImpl
                 .errorMsg(reason)
                 .createTime(LocalDateTime.now())
                 .build();
-        save(log);
+        createLog(log);
     }
 
     @Async
@@ -142,7 +142,7 @@ public class SysAuditLogServiceImpl
                 .operationDesc(remark)
                 .createTime(LocalDateTime.now())
                 .build();
-        save(log);
+        createLog(log);
     }
 
     @Async
@@ -161,7 +161,7 @@ public class SysAuditLogServiceImpl
                     .status(success ? 1 : 0)
                     .createTime(LocalDateTime.now())
                     .build();
-            save(auditLog);
+            createLog(auditLog);
 
             if (riskLevel != null && riskLevel >= 4) {
                 log.warn("Security Alert: {}, User: {}, IP: {}",
@@ -170,5 +170,36 @@ public class SysAuditLogServiceImpl
         } catch (Exception e) {
             log.error("Failed to record security event", e);
         }
+    }
+
+    @Override
+    public void record(com.scmcloud.common.log.dto.AuditLogRecord record) {
+        SysAuditLog entity = SysAuditLog.builder()
+                .userId(record.getUserId())
+                .username(record.getUsername())
+                .realName(record.getRealName())
+                .deptId(record.getDeptId())
+                .operationType(record.getOperationType())
+                .operationModule(record.getOperationModule())
+                .operationDesc(record.getOperationDesc())
+                .requestUri(record.getRequestUri())
+                .requestMethod(record.getRequestMethod())
+                .requestParams(record.getRequestParams())
+                .responseData(record.getResponseData())
+                .responseStatus(record.getResponseStatus())
+                .ipAddress(record.getIpAddress())
+                .location(record.getLocation())
+                .userAgent(record.getUserAgent())
+                .businessType(record.getBusinessType())
+                .businessId(record.getBusinessId())
+                .oldValue(record.getOldValue())
+                .newValue(record.getNewValue())
+                .riskLevel(record.getRiskLevel())
+                .status(record.getStatus())
+                .errorMsg(record.getErrorMsg())
+                .executeTime(record.getExecuteTime())
+                .createTime(record.getCreateTime())
+                .build();
+        createLog(entity);
     }
 }
