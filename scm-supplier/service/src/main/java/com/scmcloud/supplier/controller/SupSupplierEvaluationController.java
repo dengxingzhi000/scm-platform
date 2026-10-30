@@ -12,9 +12,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -36,50 +34,27 @@ public class SupSupplierEvaluationController {
         return ApiResponse.success(evaluation);
     }
 
-    @Operation(summary = "创建供应商评价", description = "新增供应商评价，未填写总分时按质量、交付、服务与价格得分汇总。")
+    @Operation(summary = "创建供应商评价", description = "新增供应商评价，按质量/交付/服务/价格加权计算总分并回写供应商绩效。")
     @PostMapping
     public ApiResponse<SupSupplierEvaluation> create(@RequestBody SupSupplierEvaluation evaluation) {
-        log.info("[API] 创建供应商评价 supplierId={}", (evaluation.getSupplierId() + "").replace("\r", "_").replace("\n", "_"));
-        evaluation.setId(UUID.randomUUID().toString());
-        if (evaluation.getEvaluatedAt() == null) {
-            evaluation.setEvaluatedAt(LocalDateTime.now());
-        }
-        evaluation.setCreateTime(LocalDateTime.now());
-        evaluation.setUpdateTime(LocalDateTime.now());
-
-        if (evaluation.getTotalScore() == null) {
-            evaluation.setTotalScore(calculateTotalScore(evaluation));
-        }
-
-        evaluationService.save(evaluation);
-        log.info("[API] 评价创建成功: id={}", (evaluation.getId() + "").replace("\r", "_").replace("\n", "_"));
-        return ApiResponse.success(evaluation);
+        log.info("[API] 创建供应商评价 supplierId={}", evaluation.getSupplierId());
+        return ApiResponse.success(evaluationService.createEvaluation(evaluation));
     }
 
-    @Operation(summary = "更新评价", description = "根据评价ID更新供应商评价并重新计算总分。")
+    @Operation(summary = "更新评价", description = "根据评价ID更新供应商评价并重新计算总分、回写供应商绩效。")
     @PutMapping("/{id}")
     public ApiResponse<SupSupplierEvaluation> update(@Parameter(description = "评价ID") @PathVariable String id,
                                                      @RequestBody SupSupplierEvaluation evaluation) {
-        log.info("[API] 更新评价: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
-        SupSupplierEvaluation existing = evaluationService.getById(id);
-        if (existing == null) {
-            return ApiResponse.fail(404, "评价不存在");
-        }
-        evaluation.setId(id);
-        evaluation.setUpdateTime(LocalDateTime.now());
-        if (evaluation.getTotalScore() == null) {
-            evaluation.setTotalScore(calculateTotalScore(evaluation));
-        }
-        evaluationService.updateById(evaluation);
-        return ApiResponse.success(evaluationService.getById(id));
+        log.info("[API] 更新评价: id={}", id);
+        return ApiResponse.success(evaluationService.updateEvaluation(id, evaluation));
     }
 
-    @Operation(summary = "删除评价", description = "根据评价ID删除供应商评价。")
+    @Operation(summary = "删除评价", description = "根据评价ID删除供应商评价并重新回写供应商绩效。")
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@Parameter(description = "评价ID") @PathVariable String id) {
-        log.info("[API] 删除评价: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
-        boolean success = evaluationService.removeById(id);
-        return success ? ApiResponse.success() : ApiResponse.fail(400, "删除失败");
+        log.info("[API] 删除评价: id={}", id);
+        boolean success = evaluationService.deleteEvaluation(id);
+        return success ? ApiResponse.success() : ApiResponse.fail(404, "评价不存在");
     }
 
     @Operation(summary = "分页查询评价", description = "按供应商与评价周期分页查询供应商评价列表。")
@@ -108,11 +83,4 @@ public class SupSupplierEvaluationController {
         return ApiResponse.success(evaluationService.calculateAverageScore(supplierId));
     }
 
-    private BigDecimal calculateTotalScore(SupSupplierEvaluation evaluation) {
-        BigDecimal quality = evaluation.getQualityScore() != null ? evaluation.getQualityScore() : BigDecimal.ZERO;
-        BigDecimal delivery = evaluation.getDeliveryScore() != null ? evaluation.getDeliveryScore() : BigDecimal.ZERO;
-        BigDecimal service = evaluation.getServiceScore() != null ? evaluation.getServiceScore() : BigDecimal.ZERO;
-        BigDecimal price = evaluation.getPriceScore() != null ? evaluation.getPriceScore() : BigDecimal.ZERO;
-        return quality.add(delivery).add(service).add(price);
-    }
 }

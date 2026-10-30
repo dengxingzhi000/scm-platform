@@ -114,6 +114,42 @@ public class SupSupplier {
     @TableField("certificates")
     private String certificates;
 
+    @TableField("website")
+    private String website;
+
+    @TableField("supplier_level")
+    private Integer supplierLevel;
+
+    @TableField("audit_status")
+    private Integer auditStatus;
+
+    @TableField("audit_remark")
+    private String auditRemark;
+
+    @TableField("audited_by")
+    private String auditedBy;
+
+    @TableField("audited_at")
+    private LocalDateTime auditedAt;
+
+    @TableField("risk_level")
+    private Integer riskLevel;
+
+    @TableField("blacklisted")
+    private Boolean blacklisted;
+
+    @TableField("blacklist_reason")
+    private String blacklistReason;
+
+    @TableField("blacklisted_at")
+    private LocalDateTime blacklistedAt;
+
+    @TableField("overall_score")
+    private BigDecimal overallScore;
+
+    @TableField("last_evaluation_at")
+    private LocalDateTime lastEvaluationAt;
+
     @TableField("enabled")
     private Boolean enabled;
 

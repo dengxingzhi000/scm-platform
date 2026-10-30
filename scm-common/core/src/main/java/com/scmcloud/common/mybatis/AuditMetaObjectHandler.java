@@ -46,11 +46,15 @@ public class AuditMetaObjectHandler implements MetaObjectHandler {
 
         UUID tenantId = TenantContextHolder.getTenantId();
         if (tenantId != null) {
-            Class<?> fieldType = metaObject.getGetterType("tenantId");
-            if (TenantId.class.isAssignableFrom(fieldType)) {
-                this.strictInsertFill(metaObject, "tenantId", TenantId.class, TenantId.from(tenantId));
-            } else {
-                this.strictInsertFill(metaObject, "tenantId", String.class, tenantId.toString());
+            if (metaObject.hasGetter("tenantId")) {
+                Class<?> fieldType = metaObject.getGetterType("tenantId");
+                if (TenantId.class.isAssignableFrom(fieldType)) {
+                    this.strictInsertFill(metaObject, "tenantId", TenantId.class, TenantId.from(tenantId));
+                } else if (String.class.equals(fieldType)) {
+                    this.strictInsertFill(metaObject, "tenantId", String.class, tenantId.toString());
+                } else if (UUID.class.equals(fieldType)) {
+                    this.strictInsertFill(metaObject, "tenantId", UUID.class, tenantId);
+                }
             }
         } else {
             log.warn("Tenant ID is null when inserting, entity: {}", metaObject.getOriginalObject().getClass().getName());
@@ -84,6 +88,8 @@ public class AuditMetaObjectHandler implements MetaObjectHandler {
      * 时间字段的实际 Java 类型：analytics 的实体用 OffsetDateTime，其余业务实体用 LocalDateTime。
      */
     private void fillInsertTime(MetaObject metaObject, String fieldName, OffsetDateTime now) {
+        if (!metaObject.hasGetter(fieldName)) return;
+
         if (isOffsetDateTime(metaObject, fieldName)) {
             this.strictInsertFill(metaObject, fieldName, OffsetDateTime.class, now);
         } else {
@@ -93,6 +99,8 @@ public class AuditMetaObjectHandler implements MetaObjectHandler {
     }
 
     private void fillUpdateTime(MetaObject metaObject, String fieldName, OffsetDateTime now) {
+        if (!metaObject.hasGetter(fieldName)) return;
+
         if (isOffsetDateTime(metaObject, fieldName)) {
             this.strictUpdateFill(metaObject, fieldName, OffsetDateTime.class, now);
         } else {
