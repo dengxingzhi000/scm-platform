@@ -102,9 +102,11 @@
 **Interfaces:**
 - Consumes: 无（起点）
 - Produces:
-  - `supplierApiService.list(query: SupplierQuery): Promise<SupplierPage>` —— **签名必须保持不变**，`features/dashboard/services/dashboard.service.ts` 与 `features/warehouse/services/warehouse.service.ts` 依赖它
+  - `supplierApiService.list(query: SupplierPageQuery): Promise<SupplierPage>` —— **签名必须保持向后兼容**，
+    `features/dashboard/services/dashboard.service.ts` 与 `features/warehouse/services/warehouse.service.ts`
+    依赖它。`SupplierPageQuery` 是 `SupplierQuery` 的超集（只多可选字段），
+    所以老调用方传 `{ page, size, keyword?, enabled? }` 依然合法
   - `supplierApiService.getById(id: string): Promise<SupplierDTO>` —— 同上，签名不变
-  - `supplierApiService.page(query: SupplierPageQuery): Promise<SupplierPage>`
   - `supplierApiService.stats(): Promise<SupplierStatsDTO>`
   - `supplierApiService.profile(id: string): Promise<SupplierProfileDTO>`
   - `supplierApiService.performance(id: string): Promise<SupplierPerformanceDTO>`
@@ -158,7 +160,7 @@ import { supplierApiService } from "./supplier";
 
 必须覆盖的断言（每条一个 `it`）：
 
-- `it("sends the supplier filters as query params")` —— 调 `supplierApiService.page({ page: 2, size: 10, keyword: "华强", supplierType: 1, cooperationStatus: 1, enabled: true, auditStatus: 2, supplierLevel: 1, riskLevel: 2, blacklisted: false, categoryId: "c-1" })`，断言 `h.get` 收到 `"/scm-supplier/api/v1/suppliers"` 与 `{ params: { page: 2, size: 10, keyword: "华强", supplierType: 1, cooperationStatus: 1, enabled: true, auditStatus: 2, supplierLevel: 1, riskLevel: 2, blacklisted: false, categoryId: "c-1" } }`
+- `it("sends the supplier filters as query params")` —— 调 `supplierApiService.list({ page: 2, size: 10, keyword: "华强", supplierType: 1, cooperationStatus: 1, enabled: true, auditStatus: 2, supplierLevel: 1, riskLevel: 2, blacklisted: false, categoryId: "c-1" })`，断言 `h.get` 收到 `"/scm-supplier/api/v1/suppliers"` 与 `{ params: { page: 2, size: 10, keyword: "华强", supplierType: 1, cooperationStatus: 1, enabled: true, auditStatus: 2, supplierLevel: 1, riskLevel: 2, blacklisted: false, categoryId: "c-1" } }`
 - `it("puts the blacklist reason in a query param, not a body")` —— `supplierApiService.blacklist("s-1", "资质过期", { operatorId: "u-1", operatorName: "张三" })`，断言 `h.put` 的第一个参数是 `"/scm-supplier/api/v1/suppliers/s-1/blacklist"`、第二个参数是 `undefined`（没有 body）、第三个参数 `params` 里含 `reason: "资质过期"`、`operatorId: "u-1"`、`operatorName: "张三"`
 - `it("puts the risk level and its reason in query params")` —— `changeRiskLevel("s-1", 3, "交付延迟", { operatorId: "u-1" })` → URL 结尾 `/risk-level`，`params` 含 `level: 3`、`reason: "交付延迟"`、`operatorId: "u-1"`
 - `it("puts the cooperation status in a query param")` —— `changeCooperationStatus("s-1", 1, { operatorId: "u-1" })` → URL 结尾 `/cooperation-status`，`params.status === 1`
@@ -204,6 +206,8 @@ enabled, sortOrder, createTime, updateTime, remark
 - `SupplierStatsDTO`：`total, enabled, cooperating, pendingAudit, blacklisted, expiringCertificates: number; byCooperationStatus: Record<number, number>; byAuditStatus: Record<number, number>`
 - `SupplierPerformanceDTO`：`supplierId, supplierName, supplierLevel, overallScore, qualityScore, deliveryScore, serviceScore, priceScore, evaluationCount, latestPeriod, latestTotalScore, latestEvaluatedAt, suggestedLevel, recentEvaluations: SupplierEvaluationDTO[]`
 - `SupplierPageQuery`：`page: number; size: number; keyword?: string; supplierType?: number; cooperationStatus?: number; enabled?: boolean; auditStatus?: number; supplierLevel?: number; riskLevel?: number; blacklisted?: boolean; categoryId?: string`
+- `SupplierQuery` —— **保留为 `SupplierPageQuery` 的别名**（`export type SupplierQuery = SupplierPageQuery;`），
+  既有引用 `SupplierQuery` 的代码不用改
 - `OperatorParams`：`operatorId?: string; operatorName?: string`
 - `SupplierAuditPayload`：`action: "APPROVE" | "REJECT"; operatorId?: string; operatorName?: string; remark?: string`
 - `SupplierUpsertPayload`：`supplierCode?: string; supplierName: string; supplierNameEn?: string; supplierType?: number; businessType?: string; legalPerson?: string; registeredCapital?: number; registrationNo?: string; taxNo?: string; establishmentDate?: string; contactName?: string; contactPhone?: string; contactEmail?: string; contactAddress?: string; bankName?: string; bankAccount?: string; bankAccountName?: string; creditRating?: string; cooperationStartDate?: string; paymentTerms?: string; paymentMethod?: string; businessLicense?: string; certificates?: string; website?: string; sortOrder?: number; remark?: string`
@@ -229,7 +233,17 @@ const clean = <T extends Record<string, unknown>>(input: T): T =>
 
 每个端点严格按 spec §4.1 的对照表选择参数位置：
 - body 的：`create` / `update` / `audit` / `assignCategories` / `contacts.create` / `contacts.update` / `bankAccounts.create` / `bankAccounts.update` / `certificates.create` / `certificates.update` / `categories.create` / `categories.update` / `evaluations.create` / `evaluations.update`
-- query param 的：`page` / `stats` / `profile` / `performance` / `changeLogs` / `active` / `search` / `remove` / `enable` / `disable` / `submitAudit` / `blacklist` / `unblacklist` / `changeRiskLevel` / `changeCooperationStatus` / `getCategories` / `contacts.list` / `contacts.remove` / `contacts.setPrimary` / `bankAccounts.list` / `bankAccounts.remove` / `bankAccounts.setDefault` / `certificates.list` / `certificates.verify` / `certificates.remove` / `certificateExpiry.expiring` / `categories.list` / `categories.remove` / `evaluations.page` / `evaluations.remove` / `evaluations.bySupplier` / `evaluations.averageScore`
+- query param 的：`list` / `stats` / `profile` / `performance` / `changeLogs` / `active` / `search` / `remove` / `enable` / `disable` / `submitAudit` / `blacklist` / `unblacklist` / `changeRiskLevel` / `changeCooperationStatus` / `getCategories` / `contacts.list` / `contacts.remove` / `contacts.setPrimary` / `bankAccounts.list` / `bankAccounts.remove` / `bankAccounts.setDefault` / `certificates.list` / `certificates.verify` / `certificates.remove` / `certificateExpiry.expiring` / `categories.list` / `categories.remove` / `evaluations.page` / `evaluations.remove` / `evaluations.bySupplier` / `evaluations.averageScore`
+
+**query-param 端点的 axios 调用形状固定如下**（body 位置传 `undefined`）：
+
+```ts
+apiClient.put(url, undefined, { params: clean({ ... }) })   // PUT
+apiClient.delete(url, { params: clean({ ... }) })             // DELETE
+apiClient.get(url, { params: clean({ ... }) })                // GET
+```
+
+（`apiClient.put(url, { params })` 会把 params 塞进 body，是错的。）
 
 `unwrap` 的用法沿用现有风格：`unwrap<T>(apiClient.get(url, { params }))`。Void 端点声明 `Promise<void>` 并忽略返回值（`unwrap` 对没有 `data` 键的 `ApiResponse` 返回 `undefined`）。
 
@@ -420,16 +434,18 @@ export const variantOf = <T extends { value: number | string; variant: BadgeVari
   ```
 - 新增 `maskBankAccount` 与 `daysToExpiryOf`：
   ```ts
+  // 掩掉除后 4 位以外的所有数字，每 4 位一组用 "****" 表示。
+  // "6222021234567890"（16 位）→ 掩掉 12 位 → 3 组 → "**** **** **** 7890"
   export const maskBankAccount = (account?: string | null): string => {
     if (!account) return "-";
     if (account.length <= 4) return "****";
-    const tail = account.slice(-4);
-    const stars = Math.ceil((account.length - 4) / 4);
-    return `${"*".repeat(stars).replace(/(.{4})(?=.)/g, "$1 ")} ${tail}`;
+    const maskedLength = account.length - 4;
+    const groups = Math.ceil(maskedLength / 4);
+    const mask = Array.from({ length: groups }, () => "****").join(" ");
+    return `${mask} ${account.slice(-4)}`;
   };
   ```
-  （`"6222021234567890"` 长 16 → stars = 3 → `"*** ***" + " " + "7890"`——**测试期望的是 `**** **** **** 7890`，所以 stars 的算法必须改成 `Math.ceil((len - 4) / 4)` 后每 4 个星加空格、末尾再补 4 位掩码**：实现为 `const mask = "**** **** **** " + tail`，不足 12 位时按实际长度裁剪。）
-  `daysToExpiryOf(validTo, today)` 用 `dayjs(validTo).startOf("day").diff(dayjs(today).startOf("day"), "day")`。
+  `daysToExpiryOf(validTo, today)` 用 `dayjs(validTo).startOf("day").diff(dayjs(today).startOf("day"), "day")`；
 - 新增各子实体的 `toXxx` 单参映射函数；`toSupplierChangeLog` 的 `operatorName` 为空时给 `"系统"`。
 - `toSupplierStats` / `toSupplierPerformance` / `toSupplierProfile` 按字段直译。
 
@@ -742,6 +758,7 @@ export const supplierCertificateExpiryKeys = {
 
 ```ts
 export function useSupplierList(params?: SupplierSearchParams)
+export function useSupplierSearch(name: string)  // typeahead 候选，enabled: name.trim().length > 0
 export function useSupplierDetail(id: string)
 export function useSupplierProfile(id: string)
 export function useSupplierPerformance(id: string)
@@ -759,7 +776,13 @@ export function useUnblacklistSupplier()     // mutation, 变量 { id: string }
 export function useChangeSupplierRiskLevel() // mutation, 变量 { id: string; level: number; reason?: string }
 export function useChangeCooperationStatus() // mutation, 变量 { id: string; status: number }
 export function useAssignSupplierCategories()// mutation, 变量 { id: string; categoryIds: string[] }
+export function useSupplierAssignedCategories(supplierId: string) // 该供应商**已关联**的分类（GET /suppliers/{id}/categories）
 ```
+
+`useSupplierCategories`（分类字典，来自 `GET /supplier-categories`）在
+`hooks/use-supplier-category.ts` 里；`useSupplierAssignedCategories`（某供应商已关联的分类，
+来自 `GET /suppliers/{id}/categories`）放在 `hooks/use-supplier.ts` 里 ——
+两个 hook 名字相近但语义不同，**不要合并**。
 
 `hooks/use-supplier-contact.ts`：
 
@@ -806,6 +829,7 @@ export function useUpdateSupplierCategory()  // { id, data }
 
 ```ts
 export function useSupplierEvaluations(supplierId: string, page: number, size?: number)
+export function useSupplierEvaluationDetail(id: string)      // GET /supplier-evaluations/{id}
 export function useSupplierAverageScore(supplierId: string)
 export function useCreateSupplierEvaluation()  // { data }
 export function useUpdateSupplierEvaluation()  // { id, data }
@@ -961,16 +985,22 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const h = vi.hoisted(() => ({
   push: vi.fn(),
+  replace: vi.fn(),
+  searchParams: new URLSearchParams() as URLSearchParams,
   listParams: undefined as Record<string, unknown> | undefined,
   rows: [] as unknown[],
   stats: { total: 128, enabled: 96, cooperating: 74, pendingAudit: 9, blacklisted: 3, expiringCertificates: 5, byCooperationStatus: {}, byAuditStatus: {} },
 }));
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: h.push }) }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: h.push, replace: h.replace }),
+  useSearchParams: () => h.searchParams,
+}));
 vi.mock("../hooks", () => ({
   useSupplierList: (params: Record<string, unknown>) => { h.listParams = params; return { data: { records: h.rows, total: 1, current: 1, pageSize: 20 }, isLoading: false }; },
   useSupplierStats: () => ({ data: h.stats }),
   useSupplierCategories: () => ({ data: [] }),
+  useSupplierSearch: () => ({ data: [] }),
   useAuditSupplier: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useBlacklistSupplier: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useEnableSupplier: () => ({ mutateAsync: vi.fn(), isPending: false }),
@@ -1055,6 +1085,14 @@ value 用 `__all__` 表示"全部"（与现有代码的 `ALL` 常量同款）。
 分类下拉的选项来自 `categories` prop（`SupplierCategory[]`），按 `sortOrder` 升序，
 子分类用全角空格缩进（`　`）。
 
+**URL 同步**：`SupplierList`（不是 `SupplierFilters`）负责读写 URL ——
+用 `useSearchParams()` 取初始筛选值、用 `router.replace`（**不是 `push`**，避免污染历史栈）
+把筛选写回 query。筛选键名：`keyword` / `status` / `supplierType` / `cooperationStatus` /
+`auditStatus` / `supplierLevel` / `riskLevel` / `blacklisted` / `categoryId` / `page`。
+
+> 这就是 Task 14 要加 `<Suspense>` 边界的原因：`useSearchParams` 在客户端组件里
+> 没有 Suspense 边界会让 `next build` 失败。
+
 - [ ] **Step 5: 实现 `components/supplier-actions.tsx`**
 
 `DropdownMenu` + `DropdownMenuTrigger`（`aria-label="更多操作"`）+ `DropdownMenuContent`。
@@ -1091,6 +1129,10 @@ value 用 `__all__` 表示"全部"（与现有代码的 `ALL` 常量同款）。
 结构：`PageHeader`（eyebrow "供应链协同" / title "供应商管理" / description "供应商主数据、准入状态、风险等级、证照与绩效的一体化管理台"，
 actions 放一个"新建供应商" `Button`，`router.push("/supplier/new")`）
 → `SupplierStats` → `TablePanel`（`TableToolbar` 里放 `SupplierFilters`；表格；`TablePagination`）。
+
+筛选状态来自 `useSearchParams()`（初值），任何筛选变更都同时
+`setState` 并 `router.replace` 写回 query（键名见 Step 4）。
+筛选变更时页码重置为 1。
 
 表格列（`columnHelper` + `tableFeatures({})`，与现有写法一致）：
 供应商（名称 + 编码，左侧 3px 色条按合作状态着色）/ 分级 / 准入状态 / 风险等级 /
@@ -1195,9 +1237,14 @@ Run: `npx vitest run src/features/supplier/components/supplier-detail.test.tsx` 
    付款条件 / 付款方式 / 合作起始日期 / 官网 / 排序 / 备注。
    数字与金额用 `font-mono`；`registeredCapital` 显示为 `¥ 5,000,000`（`toLocaleString("zh-CN")`）。
    缺失值显示 `"-"`。
-2. **绩效评分卡** —— 顶部一行 5 格（综合得分 / 质量 / 交付 / 服务 / 价格），
-   下面 4 条横向进度条（宽度 = 分数百分比，条高 5px，用 `var(--color-primary)`），
+2. **绩效评分卡** —— 顶部一行 5 格，**格子标题必须带权重后缀**：
+   「综合得分」「质量 (30%)」「交付 (30%)」「服务 (20%)」「价格 (20%)」，
+   下面 4 条横向进度条（条的标签用**不带权重**的「质量」「交付」「服务」「价格」，
+   宽度 = 分数百分比，条高 5px，用 `var(--color-primary)`），
    底部一行小字显示评价次数与最近周期。
+
+   > 标题带权重、进度条标签不带权重 —— 两处文字必须不同，否则测试里的
+   > `getByText("质量")` 会命中两个元素而报错。
 
 - [ ] **Step 4: 重写 `components/supplier-detail.tsx`**
 
@@ -1237,7 +1284,7 @@ git commit -m "feat(supplier): 360-degree profile shell with the overview sectio
 **Interfaces:**
 - Consumes: Task 5 的 `useAssignSupplierCategories` / 联系人 hooks、Task 2 的 `SupplierCategory` / `SupplierContact`
 - Produces:
-  - `components/supplier-category-panel.tsx` 导出 `default function SupplierCategoryPanel({ supplierId, categories }: { supplierId: string; categories: SupplierCategory[] })`
+  - `components/supplier-category-panel.tsx` 导出 `default function SupplierCategoryPanel({ supplierId }: { supplierId: string })`
   - `components/supplier-contact-panel.tsx` 导出 `default function SupplierContactPanel({ supplierId }: { supplierId: string })`
 
 - [ ] **Step 1: 写失败的测试**
@@ -1253,6 +1300,7 @@ const h = vi.hoisted(() => ({ assign: vi.fn(), setPrimary: vi.fn(), remove: vi.f
 
 vi.mock("../hooks", () => ({
   useSupplierCategories: () => ({ data: [{ id: "c-1", categoryCode: "RAW", categoryName: "原材料", level: 1, enabled: true, sortOrder: 10, createTime: null, remark: null }] }),
+  useSupplierAssignedCategories: () => ({ data: [{ id: "c-1", categoryCode: "RAW", categoryName: "原材料", level: 1, enabled: true, sortOrder: 10, createTime: null, remark: null }] }),
   useAssignSupplierCategories: () => ({ mutateAsync: h.assign, isPending: false }),
   useSupplierContacts: () => ({ data: [{ id: "ct-1", supplierId: "s-1", contactName: "张伟", contactTitle: "销售经理", contactRole: "SALES", contactPhone: "13800002210", contactEmail: "z@example.com", contactAddress: null, isPrimary: true, enabled: true, sortOrder: 0, createTime: "2026-01-01", remark: null }] }),
   useSetPrimarySupplierContact: () => ({ mutateAsync: h.setPrimary, isPending: false }),
@@ -1266,7 +1314,7 @@ describe("supplier detail panels", () => {
   beforeEach(() => { h.assign.mockReset().mockResolvedValue(undefined); h.setPrimary.mockReset().mockResolvedValue(undefined); h.remove.mockReset().mockResolvedValue(undefined); });
 
   it("sends the selected category ids as an array when the assignment is saved", async () => {
-    render(<SupplierCategoryPanel supplierId="s-1" categories={[]} />);
+    render(<SupplierCategoryPanel supplierId="s-1" />);
     await userEvent.click(screen.getByRole("button", { name: "设置分类" }));
     await userEvent.click(await screen.findByRole("checkbox", { name: "原材料" }));
     await userEvent.click(screen.getByRole("button", { name: "保存" }));
@@ -1287,9 +1335,10 @@ Run: `npx vitest run src/features/supplier/components/supplier-panels.test.tsx` 
 
 - [ ] **Step 3: 实现 `components/supplier-category-panel.tsx`**
 
-- 列出当前已关联的分类（`useSupplierCategories` 之外，已关联的来自 `profile.categories`，作为 prop 传入）
-- 「设置分类」按钮打开 `Dialog`：里面是 `useSupplierCategories()` 返回的分类构成的 `Checkbox` 列表
-  （子分类缩进），每个 checkbox 的 `aria-label` 是分类名
+- 列出当前已关联的分类：用 `useSupplierAssignedCategories(supplierId)`（`GET /suppliers/{id}/categories`）
+- 「设置分类」按钮打开 `Dialog`：里面是 `useSupplierCategories()`（分类字典）构成的 `Checkbox` 列表
+  （子分类缩进），每个 checkbox 的 `aria-label` 是分类名；
+  勾选初值 = 已关联分类的 id 集合
 - 「保存」→ `assign.mutateAsync({ id: supplierId, categoryIds: selected })`
 - 失败时行内显示 `errorMessage(error)`
 
@@ -1421,6 +1470,8 @@ mock 里 `useSupplierEvaluations` 返回一条四维度都有分的记录，`use
   两列并排（`总评` 用后端值，`加权总分（预估）` 用前端值）。
 - 「新增评价」Dialog：评价周期（`YYYY-MM`）、起止日期、四维打分（0–100 的 number input）、
   采购次数、总金额、准时交付率、质量合格率、评价人、改进建议
+- **编辑**动作：先调 `GET /supplier-evaluations/{id}` 拿到完整记录再打开 Dialog
+  （列表行不保证带全部字段）—— 这也是该端点在界面上的调用点
 - 分页：用 `useSupplierEvaluations(supplierId, page, size)` + `TablePagination`
 
 - [ ] **Step 4: 实现 `components/supplier-change-log-panel.tsx`**
@@ -1904,11 +1955,14 @@ git commit -m "feat(supplier): wire routes, suspense boundary and the supplier m
  * | GET  /suppliers | features/supplier/hooks/use-supplier.ts → useSupplierList（列表页 / 审核队列 / 分类筛选） |
  * | GET  /suppliers/{id} | useSupplierDetail（编辑页初值） |
  * ...
- * | GET  /suppliers/active | 仅暴露契约与服务层，供跨模块的供应商选择器取用，本模块无界面调用点 |
+ * | GET  /suppliers/active | 仅暴露契约与服务层，供跨模块的供应商选择器取用，本模块无界面调用点（设计例外 1/2） |
+ * | DELETE /supplier-categories/{id} | 仅暴露契约与服务层；分类字典页不暴露删除按钮（设计例外 2/2） |
  */
 ```
 
-必须覆盖到全部 48 个（`active` 除外，理由写在表里）。
+必须覆盖到全部 48 个。其中 **46 个有界面调用点**，2 个是**已记录的设计例外**
+（`GET /suppliers/active`、`DELETE /supplier-categories/{id}`）——
+理由要写在表里，不能静默漏掉。
 
 - [ ] **Step 2: 跑全量单测**
 
