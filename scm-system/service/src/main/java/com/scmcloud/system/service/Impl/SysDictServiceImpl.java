@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -43,6 +44,7 @@ public class SysDictServiceImpl implements ISysDictService {
 
     @Override
     public void createDictType(SysDictType entity) {
+        entity.setId(UUID.randomUUID().toString());
         dictTypeMapper.insert(entity);
     }
 
@@ -72,6 +74,7 @@ public class SysDictServiceImpl implements ISysDictService {
 
     @Override
     public void createDictItem(SysDictItem entity) {
+        entity.setId(UUID.randomUUID().toString());
         dictItemMapper.insert(entity);
     }
 

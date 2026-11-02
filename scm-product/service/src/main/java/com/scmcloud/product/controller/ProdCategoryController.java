@@ -12,9 +12,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 
 @Slf4j
 @RestController
@@ -32,12 +30,7 @@ public class ProdCategoryController {
             @Parameter(description = "分类名称关键字，可选，支持模糊匹配")
             @RequestParam(required = false) String name) {
 
-        Page<ProdCategory> result = categoryService.lambdaQuery()
-                .like(name != null, ProdCategory::getCategoryName, name)
-                .eq(ProdCategory::getDeleted, false)
-                .orderByAsc(ProdCategory::getSortOrder)
-                .page(new Page<>(page, size));
-
+        Page<ProdCategory> result = categoryService.pageByName(name, page, size);
         return ApiResponse.success(PageResult.of(result));
     }
 
@@ -74,31 +67,21 @@ public class ProdCategoryController {
     @Operation(summary = "创建分类", description = "新增商品分类，自动生成ID并初始化创建与更新时间。")
     @PostMapping
     public ApiResponse<Void> create(@RequestBody ProdCategory category) {
-        category.setId(UUID.randomUUID().toString());
-        category.setCreateTime(LocalDateTime.now());
-        category.setUpdateTime(LocalDateTime.now());
-        category.setDeleted(false);
-        categoryService.save(category);
+        categoryService.createCategory(category);
         return ApiResponse.success();
     }
 
     @Operation(summary = "更新分类", description = "根据分类ID更新商品分类信息并刷新更新时间。")
     @PutMapping("/{id}")
     public ApiResponse<Void> update(@Parameter(description = "分类ID") @PathVariable String id, @RequestBody ProdCategory category) {
-        category.setId(id);
-        category.setUpdateTime(LocalDateTime.now());
-        categoryService.updateById(category);
+        categoryService.updateCategory(id, category);
         return ApiResponse.success();
     }
 
     @Operation(summary = "删除分类", description = "根据分类ID逻辑删除商品分类。")
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@Parameter(description = "分类ID") @PathVariable String id) {
-        categoryService.lambdaUpdate()
-                .eq(ProdCategory::getId, id)
-                .set(ProdCategory::getDeleted, true)
-                .set(ProdCategory::getUpdateTime, LocalDateTime.now())
-                .update();
+        categoryService.deleteCategory(id);
         return ApiResponse.success();
     }
 }

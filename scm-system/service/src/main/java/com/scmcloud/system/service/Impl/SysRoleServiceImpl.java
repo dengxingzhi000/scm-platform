@@ -9,6 +9,7 @@ import com.scmcloud.common.dto.role.RoleDTO;
 import com.scmcloud.common.response.ResultCode;
 import com.scmcloud.common.tenant.TenantValidationUtil;
 import com.scmcloud.common.web.util.SecurityUtils;
+import com.scmcloud.system.cache.UserAuthorizationCacheEvictor;
 import com.scmcloud.system.domain.entity.SysRole;
 import com.scmcloud.system.event.DataSyncEventPublisher;
 import com.scmcloud.system.mapper.*;
@@ -16,7 +17,6 @@ import com.scmcloud.system.service.ISysRoleService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,6 +41,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
     private final SysRoleDeptMapper roleDeptMapper;
     private final SysRoleDataRuleMapper roleDataRuleMapper;
     private final com.scmcloud.common.security.PermissionChecker permissionChecker;
+    private final UserAuthorizationCacheEvictor cacheEvictor;
 
     private static final String SUPER_ADMIN_ROLE_CODE = "ROLE_SUPER_ADMIN";
 
@@ -130,7 +131,6 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(value = {"role", "roles", "userRoles"}, allEntries = true)
     public void addRole(RoleDTO roleDTO) {
         UUID operatorId = SecurityUtils.getCurrentUserUuid().orElse(null);
         permissionChecker.requirePermission(operatorId, "role:add");
@@ -152,6 +152,8 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
                     operatorId, tenantId);
         }
 
+        cacheEvictor.evictRoleList();
+
         dataSyncEventPublisher.publishRoleCreated(role);
         logTenantOperation("CREATE", role.getId(), tenantId);
 
@@ -164,8 +166,8 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(value = {"role", "roles", "userRoles", "userPermissions"}, allEntries = true)
-    public void updateRole(RoleDTO roleDTO) {
+    public void updateRole(UUID id, RoleDTO roleDTO) {
+        roleDTO.setId(id);
         UUID operatorId = SecurityUtils.getCurrentUserUuid().orElse(null);
         permissionChecker.requirePermission(operatorId, "role:update");
 
@@ -183,6 +185,9 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
         role.setRoleType(existRole.getRoleType());
 
         getBaseMapper().updateById(role);
+
+        cacheEvictor.evictRoleDefinition(id);
+        cacheEvictor.evictAllUserAuthorization();
 
         SysRole updatedRole = getBaseMapper().selectById(role.getId());
         dataSyncEventPublisher.publishRoleUpdated(updatedRole);
@@ -204,7 +209,6 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(value = {"role", "roles", "userRoles", "userPermissions"}, allEntries = true)
     public void deleteRole(UUID id) {
         UUID operatorId = SecurityUtils.getCurrentUserUuid().orElse(null);
         permissionChecker.requirePermission(operatorId, "role:delete");
@@ -228,6 +232,8 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
 
         getBaseMapper().deleteById(id);
 
+        cacheEvictor.evictRoleDefinition(id);
+
         dataSyncEventPublisher.publishRoleDeleted(id);
         logTenantOperation("DELETE", id, role.getTenantId());
 
@@ -240,7 +246,6 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(value = {"role", "userRoles", "userPermissions", "userInfo"}, allEntries = true)
     public void grantPermissions(UUID roleId, List<UUID> permissionIds) {
         UUID operatorId = SecurityUtils.getCurrentUserUuid().orElse(null);
         permissionChecker.requirePermission(operatorId, "role:grant-permission");
@@ -258,6 +263,8 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
             rolePermissionMapper.batchInsertRolePermissions(roleId, permissionIds,
                     operatorId, TenantValidationUtil.getRequiredTenantId());
         }
+
+        cacheEvictor.evictRolePermissionGrant(roleId);
 
         logTenantOperation("GRANT_PERMISSIONS", roleId, role.getTenantId());
 

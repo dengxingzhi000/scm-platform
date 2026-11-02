@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.scmcloud.common.data.rw.annotation.Slave;
 import com.scmcloud.inventory.domain.entity.InvAlert;
 import com.scmcloud.inventory.dto.InvAlertQueryRequest;
+import com.scmcloud.inventory.dto.InvAlertResponse;
 import com.scmcloud.inventory.dto.InvAlertStatsResponse;
 import com.scmcloud.inventory.mapper.InvAlertMapper;
 import lombok.RequiredArgsConstructor;
@@ -35,15 +36,21 @@ public class InvAlertQueryService {
         return alertMapper.selectPage(new Page<>(page, size), Wrappers.emptyWrapper());
     }
 
+    /**
+     * 分页查询告警并转换为接口响应，避免 Controller 承担实体到 DTO 的字段编排。
+     */
     @Slave
-    public Page<InvAlert> query(InvAlertQueryRequest request) {
+    public Page<InvAlertResponse> query(InvAlertQueryRequest request) {
         LambdaQueryWrapper<InvAlert> wrapper = Wrappers.lambdaQuery();
         wrapper.eq(StringUtils.hasText(request.getSkuId()), InvAlert::getSkuId, request.getSkuId())
                 .eq(StringUtils.hasText(request.getWarehouseId()), InvAlert::getWarehouseId, request.getWarehouseId())
                 .eq(request.getAlertType() != null, InvAlert::getAlertType, request.getAlertType())
                 .eq(request.getIsResolved() != null, InvAlert::getIsResolved, request.getIsResolved())
                 .orderByDesc(InvAlert::getCreateTime);
-        return alertMapper.selectPage(new Page<>(request.getPage(), request.getSize()), wrapper);
+        Page<InvAlert> page = alertMapper.selectPage(new Page<>(request.getPage(), request.getSize()), wrapper);
+        Page<InvAlertResponse> responsePage = new Page<>(page.getCurrent(), page.getSize(), page.getTotal());
+        responsePage.setRecords(page.getRecords().stream().map(InvAlertResponse::from).toList());
+        return responsePage;
     }
 
     @Slave

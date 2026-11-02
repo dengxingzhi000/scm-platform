@@ -1,6 +1,7 @@
 package com.scmcloud.file.service.management;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.scmcloud.common.tenant.TenantContextHolder;
 import com.scmcloud.file.entity.FileMetadata;
 import com.scmcloud.file.service.FileNotFoundException;
 import com.scmcloud.file.service.metadata.FileMetadataService;
@@ -25,6 +26,13 @@ public class FileManagementService {
     private final StorageFactory storageFactory;
 
     /**
+     * Web 入口：更新当前租户的文件元数据。
+     */
+    public FileMetadata update(String id, String originalName, String bizType, String bizId) {
+        return update(id, currentTenantId(), originalName, bizType, bizId);
+    }
+
+    /**
      * 更新文件元数据。bizType / bizId 传空表示解除业务关联。
      */
     public FileMetadata update(String id, String tenantId, String originalName,
@@ -46,6 +54,13 @@ public class FileManagementService {
     }
 
     /**
+     * Web 入口：删除当前租户的单个文件。
+     */
+    public void delete(String id) {
+        delete(id, currentTenantId());
+    }
+
+    /**
      * 删除单个文件。存储对象删除失败只记录日志，元数据仍会移除，避免用户无法清理记录。
      */
     public void delete(String id, String tenantId) {
@@ -53,6 +68,13 @@ public class FileManagementService {
                 .orElseThrow(() -> new FileNotFoundException(id));
         deleteStorageObject(metadata);
         metadataService.removeById(metadata.getId());
+    }
+
+    /**
+     * Web 入口：批量删除当前租户下的文件。
+     */
+    public int deleteBatch(List<String> ids) {
+        return deleteBatch(ids, currentTenantId());
     }
 
     /**
@@ -96,5 +118,9 @@ public class FileManagementService {
             return null;
         }
         return value.trim();
+    }
+
+    private String currentTenantId() {
+        return TenantContextHolder.getRequiredTenantId().toString();
     }
 }

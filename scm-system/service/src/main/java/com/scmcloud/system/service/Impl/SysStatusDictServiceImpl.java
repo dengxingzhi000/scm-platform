@@ -37,6 +37,7 @@ public class SysStatusDictServiceImpl implements ISysStatusDictService {
 
     @Override
     public void createStatusDict(SysStatusDict entity) {
+        entity.setId(UUID.randomUUID().toString());
         statusDictMapper.insert(entity);
         eventPublisher.publishChange(resolveTenantId(entity.getTenantId()), entity.getBizType());
     }
@@ -88,6 +89,7 @@ public class SysStatusDictServiceImpl implements ISysStatusDictService {
 
     @Override
     public void createTransition(SysStatusTransition entity) {
+        entity.setId(UUID.randomUUID().toString());
         transitionMapper.insert(entity);
         eventPublisher.publishChange(resolveTenantId(entity.getTenantId()), entity.getBizType());
     }

@@ -6,7 +6,10 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.scmcloud.common.data.rw.annotation.Slave;
 import com.scmcloud.order.domain.entity.OrdOrder;
 import com.scmcloud.order.domain.entity.OrdOrderItem;
+import com.scmcloud.order.dto.OrderConverter;
+import com.scmcloud.order.dto.OrderItemResponse;
 import com.scmcloud.order.dto.OrderQueryRequest;
+import com.scmcloud.order.dto.OrderResponse;
 import com.scmcloud.order.mapper.OrdOrderItemMapper;
 import com.scmcloud.order.mapper.OrdOrderMapper;
 import com.scmcloud.order.util.SqlTime;
@@ -109,6 +112,24 @@ public class OrdOrderQueryService {
         LambdaQueryWrapper<OrdOrderItem> wrapper = Wrappers.lambdaQuery();
         wrapper.eq(OrdOrderItem::getOrderId, orderId);
         return ordOrderItemMapper.selectList(wrapper);
+    }
+
+    @Slave
+    public OrderResponse getResponseById(String id) {
+        return OrderConverter.toResponse(getById(id));
+    }
+
+    @Slave
+    public Page<OrderResponse> queryPage(OrderQueryRequest request) {
+        Page<OrdOrder> page = query(request);
+        Page<OrderResponse> mapped = new Page<>(page.getCurrent(), page.getSize(), page.getTotal());
+        mapped.setRecords(OrderConverter.toResponseList(page.getRecords()));
+        return mapped;
+    }
+
+    @Slave
+    public List<OrderItemResponse> listItemResponses(UUID orderId) {
+        return OrderConverter.toItemResponseList(listItemsByOrderId(orderId));
     }
 }
 

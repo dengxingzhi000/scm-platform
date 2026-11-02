@@ -11,7 +11,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @RequiredArgsConstructor
@@ -32,34 +31,21 @@ public class FreightRuleController {
     @Operation(summary = "新增运费规则", description = "创建一条运费规则，记录创建时间与更新时间后保存。")
     @PostMapping
     public ApiResponse<FreightRule> create(@RequestBody FreightRule rule) {
-        rule.setDeleted(false);
-        rule.setCreateTime(LocalDateTime.now());
-        rule.setUpdateTime(LocalDateTime.now());
-        freightRuleService.save(rule);
-        log.info("运费规则创建成功: id={}", (rule.getId() + "").replace("\r", "_").replace("\n", "_"));
-        return ApiResponse.success(rule);
+        FreightRule created = freightRuleService.createRule(rule);
+        return ApiResponse.success(created);
     }
 
     @Operation(summary = "更新运费规则", description = "按规则 ID 覆盖更新运费规则的配置内容并刷新更新时间。")
     @PutMapping("/{id}")
     public ApiResponse<FreightRule> update(@Parameter(description = "运费规则 ID") @PathVariable String id, @RequestBody FreightRule rule) {
-        rule.setId(id);
-        rule.setUpdateTime(LocalDateTime.now());
-        freightRuleService.updateById(rule);
-        log.info("运费规则更新成功: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
-        return ApiResponse.success(rule);
+        FreightRule updated = freightRuleService.updateRule(id, rule);
+        return ApiResponse.success(updated);
     }
 
     @Operation(summary = "删除运费规则", description = "按规则 ID 对运费规则执行逻辑删除。")
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@Parameter(description = "运费规则 ID") @PathVariable String id) {
-        FreightRule rule = freightRuleService.getById(id);
-        if (rule != null) {
-            rule.setDeleted(true);
-            rule.setUpdateTime(LocalDateTime.now());
-            freightRuleService.updateById(rule);
-            log.info("运费规则删除成功: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
-        }
+        freightRuleService.deleteRule(id);
         return ApiResponse.success();
     }
 

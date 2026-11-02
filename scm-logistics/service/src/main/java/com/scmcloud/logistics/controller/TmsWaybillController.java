@@ -99,11 +99,7 @@ public class TmsWaybillController {
     @Operation(summary = "删除运单", description = "根据主键 ID 逻辑删除指定运单。")
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@Parameter(description = "运单主键 ID") @PathVariable String id) {
-        log.info("Delete waybill: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
-        TmsWaybill waybill = new TmsWaybill();
-        waybill.setId(id);
-        waybill.setDeleted(true);
-        waybillService.updateById(waybill);
+        waybillService.deleteWaybill(id);
         return ApiResponse.success();
     }
 }

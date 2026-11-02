@@ -12,4 +12,8 @@ public interface IReconciliationRecordService extends IService<ReconciliationRec
     ReconciliationRecord confirm(String id, String confirmerId, String confirmerName);
 
     ReconciliationRecord markAsDiff(String id, String diffReason);
+
+    ReconciliationRecord updateReconciliation(String id, ReconciliationRecord record);
+
+    void deleteReconciliation(String id);
 }

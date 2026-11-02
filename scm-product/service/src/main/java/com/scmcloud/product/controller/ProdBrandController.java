@@ -12,9 +12,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 
 @Slf4j
 @RestController
@@ -32,12 +30,7 @@ public class ProdBrandController {
             @Parameter(description = "品牌名称关键字，可选，支持模糊匹配")
             @RequestParam(required = false) String name) {
 
-        Page<ProdBrand> result = brandService.lambdaQuery()
-                .like(name != null, ProdBrand::getBrandName, name)
-                .eq(ProdBrand::getDeleted, false)
-                .orderByAsc(ProdBrand::getSortOrder)
-                .page(new Page<>(page, size));
-
+        Page<ProdBrand> result = brandService.pageByName(name, page, size);
         return ApiResponse.success(PageResult.of(result));
     }
 
@@ -67,31 +60,21 @@ public class ProdBrandController {
     @Operation(summary = "创建品牌", description = "新增品牌，自动生成ID并初始化创建与更新时间。")
     @PostMapping
     public ApiResponse<Void> create(@RequestBody ProdBrand brand) {
-        brand.setId(UUID.randomUUID().toString());
-        brand.setCreateTime(LocalDateTime.now());
-        brand.setUpdateTime(LocalDateTime.now());
-        brand.setDeleted(false);
-        brandService.save(brand);
+        brandService.createBrand(brand);
         return ApiResponse.success();
     }
 
     @Operation(summary = "更新品牌", description = "根据品牌ID更新品牌信息并刷新更新时间。")
     @PutMapping("/{id}")
     public ApiResponse<Void> update(@Parameter(description = "品牌ID") @PathVariable String id, @RequestBody ProdBrand brand) {
-        brand.setId(id);
-        brand.setUpdateTime(LocalDateTime.now());
-        brandService.updateById(brand);
+        brandService.updateBrand(id, brand);
         return ApiResponse.success();
     }
 
     @Operation(summary = "删除品牌", description = "根据品牌ID逻辑删除品牌。")
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@Parameter(description = "品牌ID") @PathVariable String id) {
-        brandService.lambdaUpdate()
-                .eq(ProdBrand::getId, id)
-                .set(ProdBrand::getDeleted, true)
-                .set(ProdBrand::getUpdateTime, LocalDateTime.now())
-                .update();
+        brandService.deleteBrand(id);
         return ApiResponse.success();
     }
 }

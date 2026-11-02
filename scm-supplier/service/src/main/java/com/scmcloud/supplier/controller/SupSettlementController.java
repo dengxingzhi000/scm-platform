@@ -2,7 +2,6 @@ package com.scmcloud.supplier.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.scmcloud.common.response.ApiResponse;
-import com.scmcloud.common.status.StatusValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -12,9 +11,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -24,7 +21,6 @@ import java.util.UUID;
 public class SupSettlementController {
 
     private final ISupSettlementService settlementService;
-    private final StatusValidator statusValidator;
 
     @Operation(summary = "查询对账单详情", description = "根据对账单ID查询未删除的对账单详情。")
     @GetMapping("/{id}")
@@ -40,44 +36,25 @@ public class SupSettlementController {
     @Operation(summary = "创建对账单", description = "新建供应商对账单并初始化为草稿状态。")
     @PostMapping
     public ApiResponse<SupSettlement> create(@RequestBody SupSettlement settlement) {
-        log.info("[API] 创建对账单 supplierId={}", (settlement.getSupplierId() + "").replace("\r", "_").replace("\n", "_"));
-        settlement.setId(UUID.randomUUID());
-        settlement.setStatus(0);
-        settlement.setDeleted(false);
-        settlement.setCreateTime(LocalDateTime.now());
-        settlement.setUpdateTime(LocalDateTime.now());
-        settlementService.save(settlement);
-        log.info("[API] 对账单创建成功 id={}", settlement.getId());
-        return ApiResponse.success(settlement);
+        SupSettlement created = settlementService.createSettlement(settlement);
+        return ApiResponse.success(created);
     }
 
     @Operation(summary = "更新对账单", description = "根据对账单ID更新对账单信息并校验状态变更是否合法。")
     @PutMapping("/{id}")
     public ApiResponse<SupSettlement> update(@Parameter(description = "对账单ID") @PathVariable String id, @RequestBody SupSettlement settlement) {
-        log.info("[API] 更新对账单 id={}", (id + "").replace("\r", "_").replace("\n", "_"));
-        SupSettlement existing = settlementService.getById(id);
-        if (existing == null || Boolean.TRUE.equals(existing.getDeleted())) {
+        SupSettlement updated = settlementService.updateSettlement(id, settlement);
+        if (updated == null) {
             return ApiResponse.fail(404, "对账单不存在");
         }
-        statusValidator.validateTransition("SUPPLIER_SETTLEMENT", "DRAFT", "CONFIRMED");
-        settlement.setId(UUID.fromString(id));
-        settlement.setUpdateTime(LocalDateTime.now());
-        settlementService.updateById(settlement);
-        return ApiResponse.success(settlementService.getById(id));
+        return ApiResponse.success(updated);
     }
 
     @Operation(summary = "删除对账单", description = "对指定对账单执行逻辑删除。")
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@Parameter(description = "对账单ID") @PathVariable String id) {
-        log.info("[API] 删除对账单 id={}", (id + "").replace("\r", "_").replace("\n", "_"));
-        SupSettlement existing = settlementService.getById(id);
-        if (existing == null || Boolean.TRUE.equals(existing.getDeleted())) {
-            return ApiResponse.fail(404, "对账单不存在");
-        }
-        existing.setDeleted(true);
-        existing.setUpdateTime(LocalDateTime.now());
-        settlementService.updateById(existing);
-        return ApiResponse.success();
+        boolean success = settlementService.deleteSettlement(id);
+        return success ? ApiResponse.success() : ApiResponse.fail(404, "对账单不存在");
     }
 
     @Operation(summary = "分页查询对账单", description = "按供应商、状态与结算周期分页查询对账单列表。")

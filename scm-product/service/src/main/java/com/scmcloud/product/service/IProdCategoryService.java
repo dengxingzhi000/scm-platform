@@ -1,5 +1,6 @@
 package com.scmcloud.product.service;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.IService;
 import com.scmcloud.product.domain.entity.ProdCategory;
 
@@ -12,4 +13,12 @@ public interface IProdCategoryService extends IService<ProdCategory> {
     List<ProdCategory> getCategoryTree();
 
     List<ProdCategory> searchByName(String name);
+
+    Page<ProdCategory> pageByName(String name, Integer page, Integer size);
+
+    ProdCategory createCategory(ProdCategory category);
+
+    void updateCategory(String id, ProdCategory category);
+
+    void deleteCategory(String id);
 }

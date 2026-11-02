@@ -16,7 +16,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/system/status")
@@ -45,7 +44,6 @@ public class SysStatusDictController {
     @PostMapping("/dict")
     @PreAuthorize("hasAuthority('system:status:add')")
     public ApiResponse<Void> createStatusDict(@RequestBody SysStatusDict entity) {
-        entity.setId(UUID.randomUUID().toString());
         statusDictService.createStatusDict(entity);
         return ApiResponse.success(null);
     }
@@ -77,7 +75,6 @@ public class SysStatusDictController {
     @PostMapping("/transitions")
     @PreAuthorize("hasAuthority('system:status:add')")
     public ApiResponse<Void> createTransition(@RequestBody SysStatusTransition entity) {
-        entity.setId(UUID.randomUUID().toString());
         statusDictService.createTransition(entity);
         return ApiResponse.success(null);
     }

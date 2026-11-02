@@ -10,6 +10,7 @@ import javax.imageio.ImageIO;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +39,17 @@ public class OcrService {
     private String language;
 
     /**
+     * Web 入口：识别上传图片中的文字。
+     */
+    public String recognizeText(MultipartFile file) {
+        try (InputStream inputStream = file.getInputStream()) {
+            return recognizeText(inputStream);
+        } catch (IOException e) {
+            throw new RuntimeException("OCR识别失败: " + e.getMessage(), e);
+        }
+    }
+
+    /**
      * 识别图片流中的文字。
      *
      * @param inputStream 图片输入流
@@ -64,6 +76,14 @@ public class OcrService {
      * @param inputStream 发票图片流
      * @return 发票信息
      */
+    public InvoiceInfo extractInvoiceInfo(MultipartFile file) {
+        try (InputStream inputStream = file.getInputStream()) {
+            return extractInvoiceInfo(inputStream);
+        } catch (IOException e) {
+            throw new RuntimeException("OCR识别失败: " + e.getMessage(), e);
+        }
+    }
+
     public InvoiceInfo extractInvoiceInfo(InputStream inputStream) {
         String text = recognizeText(inputStream);
         return parseInvoiceText(text);
@@ -75,6 +95,14 @@ public class OcrService {
      * @param inputStream 合同图片流
      * @return 合同信息
      */
+    public ContractInfo extractContractInfo(MultipartFile file) {
+        try (InputStream inputStream = file.getInputStream()) {
+            return extractContractInfo(inputStream);
+        } catch (IOException e) {
+            throw new RuntimeException("OCR识别失败: " + e.getMessage(), e);
+        }
+    }
+
     public ContractInfo extractContractInfo(InputStream inputStream) {
         String text = recognizeText(inputStream);
         return parseContractText(text);

@@ -2,7 +2,6 @@ package com.scmcloud.product.service.query;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.scmcloud.common.data.rw.annotation.Slave;
 import com.scmcloud.product.domain.entity.ProdCategory;
 import com.scmcloud.product.mapper.ProdCategoryMapper;

@@ -16,30 +16,16 @@ import java.util.List;
 @Slf4j
 @RestController
 @RequestMapping("/sys-sensitive-operation-log")
-@Tag(name = "敏感操作日志", description = "敏感操作日志的创建、查询、删除与分页检索接口。")
+@Tag(name = "敏感操作日志", description = "敏感操作日志的只读查询与分页检索接口；写入由审计链路内部完成。")
 public class SysSensitiveOperationLogController {
 
     private final ISysSensitiveOperationLogService sensitiveOperationLogService;
-
-    @Operation(summary = "创建敏感操作日志", description = "写入一条敏感操作日志记录。")
-    @PostMapping
-    public SysSensitiveOperationLog create(@RequestBody SysSensitiveOperationLog entity) {
-        log.info("[API] 创建敏感操作日志: userId={}, operationType={}", (entity.getUserId() + "").replace("\r", "_").replace("\n", "_"), (entity.getOperationType() + "").replace("\r", "_").replace("\n", "_"));
-        return sensitiveOperationLogService.createLog(entity);
-    }
 
     @Operation(summary = "查询敏感操作日志", description = "根据日志 ID 查询敏感操作日志详情。")
     @GetMapping("/{id}")
     public SysSensitiveOperationLog getById(@Parameter(description = "敏感操作日志 ID") @PathVariable String id) {
         log.info("[API] 查询敏感操作日志: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         return sensitiveOperationLogService.getById(id);
-    }
-
-    @Operation(summary = "删除敏感操作日志", description = "根据日志 ID 删除敏感操作日志记录。")
-    @DeleteMapping("/{id}")
-    public boolean deleteById(@Parameter(description = "敏感操作日志 ID") @PathVariable String id) {
-        log.info("[API] 删除敏感操作日志: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
-        return sensitiveOperationLogService.deleteById(id);
     }
 
     @Operation(summary = "按用户查询敏感操作日志", description = "查询指定用户产生的全部敏感操作日志。")

@@ -1,7 +1,6 @@
 package com.scmcloud.product.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -14,6 +13,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -52,6 +52,41 @@ public class ProdCategoryServiceImpl extends ServiceImpl<ProdCategoryMapper, Pro
                 .eq(ProdCategory::getDeleted, false)
                 .orderByAsc(ProdCategory::getSortOrder)
                 .list();
+    }
+
+    @Override
+    public Page<ProdCategory> pageByName(String name, Integer page, Integer size) {
+        return lambdaQuery()
+                .like(name != null, ProdCategory::getCategoryName, name)
+                .eq(ProdCategory::getDeleted, false)
+                .orderByAsc(ProdCategory::getSortOrder)
+                .page(new Page<>(page, size));
+    }
+
+    @Override
+    public ProdCategory createCategory(ProdCategory category) {
+        category.setId(UUID.randomUUID().toString());
+        category.setCreateTime(LocalDateTime.now());
+        category.setUpdateTime(LocalDateTime.now());
+        category.setDeleted(false);
+        save(category);
+        return category;
+    }
+
+    @Override
+    public void updateCategory(String id, ProdCategory category) {
+        category.setId(id);
+        category.setUpdateTime(LocalDateTime.now());
+        updateById(category);
+    }
+
+    @Override
+    public void deleteCategory(String id) {
+        lambdaUpdate()
+                .eq(ProdCategory::getId, id)
+                .set(ProdCategory::getDeleted, true)
+                .set(ProdCategory::getUpdateTime, LocalDateTime.now())
+                .update();
     }
 
     private List<ProdCategory> buildTree(List<ProdCategory> allCategories, String parentId) {

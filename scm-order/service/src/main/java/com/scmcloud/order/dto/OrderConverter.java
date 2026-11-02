@@ -9,8 +9,6 @@ import com.scmcloud.order.domain.entity.OrdPayment;
 import com.scmcloud.order.domain.entity.OrdRefund;
 import com.scmcloud.order.domain.entity.OrdRefundItem;
 import com.scmcloud.order.domain.entity.OrdStatusHistory;
-import com.scmcloud.order.domain.entity.PaymentStatus;
-import com.scmcloud.order.domain.entity.RefundStatus;
 import org.springframework.beans.BeanUtils;
 
 import java.math.BigDecimal;
@@ -90,6 +88,13 @@ public final class OrderConverter {
             r.setRefundQuantity(item.getRefundQuantity().getValue());
         }
         return r;
+    }
+
+    public static List<OrderItemResponse> toItemResponseList(List<OrdOrderItem> items) {
+        if (items == null || items.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return items.stream().map(OrderConverter::toItemResponse).collect(Collectors.toList());
     }
 
     private static BigDecimal moneyToBigDecimal(Money money) {

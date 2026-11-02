@@ -4,14 +4,17 @@ import com.scmcloud.common.data.rw.annotation.Master;
 import com.scmcloud.order.domain.entity.OrdRefund;
 import com.scmcloud.order.domain.entity.OrdRefundItem;
 import com.scmcloud.order.domain.entity.RefundStatus;
+import com.scmcloud.order.dto.OrderConverter;
+import com.scmcloud.order.dto.RefundCreateRequest;
+import com.scmcloud.order.dto.RefundResponse;
 import com.scmcloud.order.mapper.OrdRefundMapper;
-import com.scmcloud.order.service.IOrdRefundService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -45,6 +48,18 @@ public class OrdRefundCommandService {
     @Transactional(rollbackFor = Exception.class)
     public OrdRefund createRefund(OrdRefund refund) {
         return doCreateRefund(refund);
+    }
+
+    @Master(reason = "创建退款")
+    @Transactional(rollbackFor = Exception.class)
+    public RefundResponse createRefund(RefundCreateRequest request) {
+        OrdRefund refund = OrderConverter.toRefundEntity(request);
+        List<OrdRefundItem> items = new ArrayList<>();
+        for (var ri : request.getItems()) {
+            items.add(OrderConverter.toRefundItemEntity(ri));
+        }
+        refund.setItems(items);
+        return OrderConverter.toRefundResponse(doCreateRefund(refund));
     }
 
     private OrdRefund doCreateRefund(OrdRefund refund) {

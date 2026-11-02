@@ -37,10 +37,12 @@ public class DocumentController {
                 page == null ? 1 : page, size == null ? 20 : size, keyword, businessType, status));
     }
 
-    @Operation(summary = "查询文档", description = "根据文档 ID 查询文档详情。")
+    @Operation(summary = "查询文档", description = "根据文档 ID 查询当前租户的文档详情。")
     @GetMapping("/{id}")
     public ApiResponse<DocDocument> getById(@Parameter(description = "文档 ID") @PathVariable String id) {
-        return ApiResponse.success(documentService.getById(id));
+        return documentService.findCurrentTenant(id)
+                .<ApiResponse<DocDocument>>map(ApiResponse::success)
+                .orElseGet(ApiResponse::success);
     }
 
     @Operation(summary = "创建文档", description = "手工登记一份文档，初始状态为已生成。")

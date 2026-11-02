@@ -12,4 +12,10 @@ public interface IFreightRuleService extends IService<FreightRule> {
 
     BigDecimal calculateFreight(String ruleId, BigDecimal weight, Integer quantity,
                                 BigDecimal volume, BigDecimal orderAmount);
+
+    FreightRule createRule(FreightRule rule);
+
+    FreightRule updateRule(String id, FreightRule rule);
+
+    void deleteRule(String id);
 }

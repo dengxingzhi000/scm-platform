@@ -38,23 +38,14 @@ public class SettlementOrderController {
     @Operation(summary = "更新结算单", description = "按结算单 ID 更新结算单信息并刷新更新时间。")
     @PutMapping("/{id}")
     public ApiResponse<SettlementOrder> update(@Parameter(description = "结算单 ID") @PathVariable String id, @RequestBody SettlementOrder order) {
-        order.setId(id);
-        order.setUpdateTime(java.time.LocalDateTime.now());
-        settlementOrderService.updateById(order);
-        log.info("Settlement order updated successfully: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
-        return ApiResponse.success(order);
+        SettlementOrder updated = settlementOrderService.updateSettlement(id, order);
+        return ApiResponse.success(updated);
     }
 
     @Operation(summary = "删除结算单", description = "按结算单 ID 对结算单执行逻辑删除。")
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@Parameter(description = "结算单 ID") @PathVariable String id) {
-        SettlementOrder order = settlementOrderService.getById(id);
-        if (order != null) {
-            order.setDeleted(true);
-            order.setUpdateTime(java.time.LocalDateTime.now());
-            settlementOrderService.updateById(order);
-            log.info("Settlement order deleted successfully: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
-        }
+        settlementOrderService.deleteSettlement(id);
         return ApiResponse.success();
     }
 

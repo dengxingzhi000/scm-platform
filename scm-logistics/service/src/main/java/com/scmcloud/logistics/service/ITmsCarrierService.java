@@ -13,4 +13,12 @@ public interface ITmsCarrierService extends IService<TmsCarrier> {
     List<TmsCarrier> listEnabled();
 
     TmsCarrier getByCarrierCode(String carrierCode);
+
+    TmsCarrier createCarrier(TmsCarrier carrier);
+
+    TmsCarrier updateCarrier(String id, TmsCarrier carrier);
+
+    void deleteCarrier(String id);
+
+    void toggleEnabled(String id, boolean enabled);
 }

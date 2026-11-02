@@ -1,14 +1,12 @@
 package com.scmcloud.system.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.scmcloud.common.rest.client.SysAuthServiceClient;
 import com.scmcloud.common.log.annotation.AuditLog;
 import com.scmcloud.common.domain.PageResult;
 import com.scmcloud.common.response.ApiResponse;
 import com.scmcloud.common.dto.user.ChangePasswordRequest;
 import com.scmcloud.common.dto.role.TemporaryRoleGrantDTO;
 import com.scmcloud.common.dto.user.UserDTO;
-import com.scmcloud.common.web.util.SecurityUtils;
 import com.scmcloud.system.service.command.ISysUserCommandService;
 import com.scmcloud.system.service.command.IUserRoleCommandService;
 import com.scmcloud.system.service.query.ISysUserQueryService;
@@ -41,7 +39,6 @@ public class SysUserController {
     private final ISysUserQueryService userQueryService;
     private final ISysUserCommandService userCommandService;
     private final IUserRoleCommandService userRoleCommandService;
-    private final SysAuthServiceClient authServiceClient;
 
     /**
      * 查询用户列表
@@ -97,8 +94,7 @@ public class SysUserController {
             businessType = "USER"
     )
     public ApiResponse<Void> update(@Parameter(description = "用户 ID") @PathVariable UUID id, @Validated @RequestBody UserDTO userDTO) {
-        userDTO.setId(id);
-        userCommandService.updateUser(userDTO);
+        userCommandService.updateUser(id, userDTO);
 
         return ApiResponse.success();
     }
@@ -126,8 +122,7 @@ public class SysUserController {
     @Operation(summary = "修改密码", description = "当前登录用户修改自己的登录密码。")
     @PostMapping("/change-password")
     public ApiResponse<Void> changePassword(@Validated @RequestBody ChangePasswordRequest request) {
-        UUID userId = SecurityUtils.getCurrentUserUuid().orElse(null);
-        userCommandService.changePassword(userId, request.getOldPassword(), request.getNewPassword());
+        userCommandService.changePassword(request.getOldPassword(), request.getNewPassword());
 
         return ApiResponse.success();
     }
@@ -197,7 +192,7 @@ public class SysUserController {
     )
     public ApiResponse<Void> forceLogout(@Parameter(description = "用户 ID") @PathVariable UUID id,
                                          @Parameter(description = "强制下线原因") @RequestParam String reason) {
-        authServiceClient.forceLogout(id, reason);
+        userCommandService.forceLogout(id, reason);
 
         return ApiResponse.success();
     }
@@ -294,7 +289,7 @@ public class SysUserController {
     @GetMapping("/{userId}/update-login")
     public ApiResponse<Void> updateLastLogin(@Parameter(description = "用户 ID") @PathVariable UUID userId,
                                              @Parameter(description = "登录 IP 地址") @RequestParam("ipAddress") String ipAddress) {
-        userCommandService.updateLastLogin(userId, ipAddress, LocalDateTime.now());
+        userCommandService.updateLastLogin(userId, ipAddress);
 
         return ApiResponse.success();
     }

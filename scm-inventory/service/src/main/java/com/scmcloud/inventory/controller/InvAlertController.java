@@ -53,10 +53,7 @@ public class InvAlertController {
   @PostMapping("/query")
   public ApiResponse<Page<InvAlertResponse>> query(
       @RequestBody @Valid InvAlertQueryRequest request) {
-    Page<InvAlert> page = queryService.query(request);
-    Page<InvAlertResponse> responsePage = new Page<>(page.getCurrent(), page.getSize(), page.getTotal());
-    responsePage.setRecords(page.getRecords().stream().map(InvAlertResponse::from).toList());
-    return ApiResponse.success(responsePage);
+    return ApiResponse.success(queryService.query(request));
   }
 
   /**

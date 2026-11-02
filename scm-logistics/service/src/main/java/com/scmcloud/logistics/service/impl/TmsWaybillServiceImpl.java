@@ -161,6 +161,15 @@ public class TmsWaybillServiceImpl extends ServiceImpl<TmsWaybillMapper, TmsWayb
         return success;
     }
 
+    @Override
+    public void deleteWaybill(String id) {
+        log.info("Delete waybill: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
+        TmsWaybill waybill = new TmsWaybill();
+        waybill.setId(id);
+        waybill.setDeleted(true);
+        updateById(waybill);
+    }
+
     private String generateWaybillNo() {
         return "WB" + System.currentTimeMillis() + String.format("%04d", (int) (Math.random() * 10000));
     }

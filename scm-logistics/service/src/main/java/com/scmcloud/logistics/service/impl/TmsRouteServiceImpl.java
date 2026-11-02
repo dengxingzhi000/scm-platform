@@ -12,7 +12,9 @@ import com.scmcloud.logistics.mapper.TmsRouteMapper;
 import com.scmcloud.logistics.service.ITmsRouteService;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -52,5 +54,24 @@ public class TmsRouteServiceImpl extends ServiceImpl<TmsRouteMapper, TmsRoute> i
         return lambdaQuery()
                 .eq(TmsRoute::getRouteNo, routeNo)
                 .one();
+    }
+
+    @Override
+    public TmsRoute createRoute(TmsRoute route) {
+        log.info("Create route: routeNo={}, courierId={}", (route.getRouteNo() + "").replace("\r", "_").replace("\n", "_"), (route.getCourierId() + "").replace("\r", "_").replace("\n", "_"));
+        route.setId(UUID.randomUUID().toString());
+        route.setCreateTime(LocalDateTime.now());
+        route.setUpdateTime(LocalDateTime.now());
+        save(route);
+        return route;
+    }
+
+    @Override
+    public TmsRoute updateRoute(String id, TmsRoute route) {
+        log.info("Update route: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
+        route.setId(id);
+        route.setUpdateTime(LocalDateTime.now());
+        updateById(route);
+        return route;
     }
 }

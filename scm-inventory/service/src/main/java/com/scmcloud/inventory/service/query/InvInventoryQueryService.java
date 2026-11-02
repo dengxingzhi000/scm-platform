@@ -90,11 +90,11 @@ public class InvInventoryQueryService {
         List<Inventory> allInventories = inventoryMapper.selectList(wrapper);
 
         InventoryStatsResponse stats = new InventoryStatsResponse();
-        stats.setTotalSkuCount((long) allInventories.stream()
+        stats.setTotalSkuCount(allInventories.stream()
                 .map(Inventory::getSkuId)
                 .distinct()
                 .count());
-        stats.setTotalWarehouseCount((long) allInventories.stream()
+        stats.setTotalWarehouseCount(allInventories.stream()
                 .map(Inventory::getWarehouseId)
                 .distinct()
                 .count());

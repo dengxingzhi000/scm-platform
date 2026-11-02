@@ -4,11 +4,13 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.scmcloud.common.dto.user.UserDTO;
 import com.scmcloud.common.exception.BusinessException;
 import com.scmcloud.common.response.ResultCode;
+import com.scmcloud.common.rest.client.SysAuthServiceClient;
 import com.scmcloud.common.security.PermissionChecker;
 import com.scmcloud.common.status.StatusValidator;
 import com.scmcloud.common.tenant.TenantValidationUtil;
 import com.scmcloud.common.util.UUIDv7Util;
 import com.scmcloud.common.web.util.SecurityUtils;
+import com.scmcloud.system.cache.UserAuthorizationCacheEvictor;
 import com.scmcloud.system.domain.entity.SysUser;
 import com.scmcloud.system.domain.enums.UserStatus;
 import com.scmcloud.system.event.DataSyncEventPublisher;
@@ -19,7 +21,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,7 +45,6 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class SysUserCommandServiceImpl implements ISysUserCommandService {
 
-    private static final String KEY_GEN = "tenantAwareCacheKeyGenerator";
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final String PASSWORD_CHARS =
             "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%";
@@ -58,6 +58,8 @@ public class SysUserCommandServiceImpl implements ISysUserCommandService {
     private final PermissionChecker permissionChecker;
     private final StatusValidator statusValidator;
     private final UserCommandTemplate commandTemplate;
+    private final SysAuthServiceClient authServiceClient;
+    private final UserAuthorizationCacheEvictor cacheEvictor;
 
     @Value("${app.security.admin-user-id:019a0aee-3b74-7bfc-b34f-48b5428d4875}")
     private String adminUserId;
@@ -69,7 +71,6 @@ public class SysUserCommandServiceImpl implements ISysUserCommandService {
     // 跨 db_user（用户）与 db_permission（用户角色）：必须用 @DSTransactional，
     // 普通 @Transactional 会锁定主库连接，导致 @DS("permission") 路由失效。
     @DSTransactional
-    @CacheEvict(value = {"user", "userDetails", "userInfo"}, allEntries = true)
     public void addUser(UserDTO userDTO) {
         UUID tenantId = TenantValidationUtil.getRequiredTenantId();
         UUID operatorId = SecurityUtils.getCurrentUserUuid().orElse(null);
@@ -101,6 +102,9 @@ public class SysUserCommandServiceImpl implements ISysUserCommandService {
             log.debug("创建用户时分配角色: user={}, roleCount={}", user.getUsername(), inserted);
         }
 
+        // 新用户没有既有精确键，但 username 可能存在 null 的 userDetails 缓存，按精确键清理。
+        cacheEvictor.evictUserProfile(user.getId(), user.getUsername());
+
         dataSyncEventPublisher.publishUserCreated(user);
         TenantValidationUtil.logTenantOperation("CREATE", "USER", user.getId());
 
@@ -110,8 +114,8 @@ public class SysUserCommandServiceImpl implements ISysUserCommandService {
 
     @Override
     @DSTransactional
-    @CacheEvict(value = {"user", "userDetails", "userInfo"}, keyGenerator = KEY_GEN)
-    public void updateUser(UserDTO userDTO) {
+    public void updateUser(UUID id, UserDTO userDTO) {
+        userDTO.setId(id);
         SysUser user = commandTemplate.execute("UPDATE", "user:update", userDTO.getId(),
                 (loaded, op) -> {
                     validateRoleAssignment(op, userDTO.getRoleIds());
@@ -134,6 +138,20 @@ public class SysUserCommandServiceImpl implements ISysUserCommandService {
                     }
                 });
 
+        // 角色变更时需清理全部授权缓存；仅资料变更时清理资料缓存。
+        if (userDTO.getRoleIds() != null) {
+            cacheEvictor.evictUserAuthorization(user.getId(), user.getUsername());
+        } else {
+            cacheEvictor.evictUserProfile(user.getId(), user.getUsername());
+        }
+        if (userDTO.getUsername() != null && !userDTO.getUsername().equals(user.getUsername())) {
+            // 用户名被修改时，新 username 可能也存在缓存项（getUserByUsername 会缓存 null），一并失效。
+            cacheEvictor.evictUserDetails(userDTO.getUsername());
+        }
+        if (userDTO.getDeptId() != null && !userDTO.getDeptId().equals(user.getDeptId())) {
+            cacheEvictor.evictUserDept(user.getId());
+        }
+
         SysUser updated = userMapper.selectById(user.getId());
         dataSyncEventPublisher.publishUserUpdated(updated);
 
@@ -143,7 +161,6 @@ public class SysUserCommandServiceImpl implements ISysUserCommandService {
 
     @Override
     @DSTransactional
-    @CacheEvict(value = {"user", "userDetails", "userInfo"}, keyGenerator = KEY_GEN)
     public void deleteUser(UUID id) {
         SysUser user = commandTemplate.execute("DELETE", "user:delete", id,
                 (loaded, op) -> {
@@ -164,13 +181,15 @@ public class SysUserCommandServiceImpl implements ISysUserCommandService {
                     dataSyncEventPublisher.publishUserDeleted(loaded.getId());
                 });
 
+        cacheEvictor.evictUserAuthorization(user.getId(), user.getUsername());
+        cacheEvictor.evictUserDept(user.getId());
+
         log.info("用户删除成功: username={}, operator={}", user.getUsername(),
                 SecurityUtils.getCurrentUsername());
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(value = {"user", "userDetails"}, keyGenerator = KEY_GEN)
     public String resetPassword(UUID id) {
         SysUser user = userMapper.selectById(id);
         if (user == null) {
@@ -184,6 +203,8 @@ public class SysUserCommandServiceImpl implements ISysUserCommandService {
         user.setForceChangePassword(true);
         userMapper.updateById(user);
 
+        cacheEvictor.evictUserCredentials(user.getId(), user.getUsername());
+
         log.info("Password reset for user: {}, by: {}",
                 user.getUsername(), SecurityUtils.getCurrentUsername());
         return newPassword;
@@ -191,8 +212,11 @@ public class SysUserCommandServiceImpl implements ISysUserCommandService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(value = {"user", "userDetails"}, keyGenerator = KEY_GEN)
-    public void changePassword(UUID userId, String oldPassword, String newPassword) {
+    public void changePassword(String oldPassword, String newPassword) {
+        doChangePassword(SecurityUtils.getCurrentUserUuid().orElse(null), oldPassword, newPassword);
+    }
+
+    private void doChangePassword(UUID userId, String oldPassword, String newPassword) {
         SysUser user = userMapper.selectById(userId);
         if (user == null) {
             throw new BusinessException(ResultCode.USER_NOT_FOUND.getCode(),
@@ -215,12 +239,13 @@ public class SysUserCommandServiceImpl implements ISysUserCommandService {
         user.setPasswordExpireTime(LocalDateTime.now().plusDays(90));
         userMapper.updateById(user);
 
+        cacheEvictor.evictUserCredentials(user.getId(), user.getUsername());
+
         log.info("Password changed for user: {}", user.getUsername());
     }
 
     @Override
     @DSTransactional
-    @CacheEvict(value = {"user", "userDetails", "userInfo"}, keyGenerator = KEY_GEN)
     public void grantRoles(UUID userId, List<UUID> roleIds) {
         // Preserves the original behaviour: data-scope check is NOT applied for role grants,
         // only tenant ownership and role-level checks. Don't use UserCommandTemplate here.
@@ -247,6 +272,8 @@ public class SysUserCommandServiceImpl implements ISysUserCommandService {
                     user.getUsername(), inserted);
         }
 
+        cacheEvictor.evictUserAuthorization(user.getId(), user.getUsername());
+
         TenantValidationUtil.logTenantOperation("GRANT_ROLES", "USER", userId);
 
         log.info("角色授予操作完成: user={}, roleIds={}, operator={}",
@@ -255,7 +282,6 @@ public class SysUserCommandServiceImpl implements ISysUserCommandService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(value = {"user", "userDetails"}, keyGenerator = KEY_GEN)
     public void lockUser(UUID id, Boolean lock) {
         SysUser user = userMapper.selectById(id);
         if (user == null) {
@@ -280,9 +306,22 @@ public class SysUserCommandServiceImpl implements ISysUserCommandService {
         }
         userMapper.updateById(user);
 
+        cacheEvictor.evictUserCredentials(user.getId(), user.getUsername());
+
         log.info("User {} {}, by: {}",
                 user.getUsername(), lock ? "locked" : "unlocked",
                 SecurityUtils.getCurrentUsername());
+    }
+
+    @Override
+    public void forceLogout(UUID id, String reason) {
+        log.info("强制用户下线: userId={}, operator={}", id, SecurityUtils.getCurrentUsername());
+        authServiceClient.forceLogout(id, reason);
+    }
+
+    @Override
+    public void updateLastLogin(UUID userId, String ipAddress) {
+        updateLastLogin(userId, ipAddress, LocalDateTime.now());
     }
 
     @Override

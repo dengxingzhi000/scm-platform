@@ -13,9 +13,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -65,22 +63,15 @@ public class TmsRouteController {
     @Operation(summary = "新增路线", description = "创建新的运输路线并返回保存后的路线信息。")
     @PostMapping
     public ApiResponse<TmsRoute> create(@RequestBody TmsRoute route) {
-        log.info("Create route: routeNo={}, courierId={}", (route.getRouteNo() + "").replace("\r", "_").replace("\n", "_"), (route.getCourierId() + "").replace("\r", "_").replace("\n", "_"));
-        route.setId(UUID.randomUUID().toString());
-        route.setCreateTime(LocalDateTime.now());
-        route.setUpdateTime(LocalDateTime.now());
-        routeService.save(route);
-        return ApiResponse.success(route);
+        TmsRoute created = routeService.createRoute(route);
+        return ApiResponse.success(created);
     }
 
     @Operation(summary = "更新路线", description = "根据主键 ID 更新运输路线信息并返回更新后的数据。")
     @PutMapping("/{id}")
     public ApiResponse<TmsRoute> update(@Parameter(description = "路线主键 ID") @PathVariable String id, @RequestBody TmsRoute route) {
-        log.info("Update route: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
-        route.setId(id);
-        route.setUpdateTime(LocalDateTime.now());
-        routeService.updateById(route);
-        return ApiResponse.success(route);
+        TmsRoute updated = routeService.updateRoute(id, route);
+        return ApiResponse.success(updated);
     }
 
     @Operation(summary = "删除路线", description = "根据主键 ID 删除指定运输路线。")

@@ -11,7 +11,9 @@ import com.scmcloud.product.domain.entity.ProdSpu;
 import com.scmcloud.product.mapper.ProdSpuMapper;
 import com.scmcloud.product.service.IProdSpuService;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -69,5 +71,35 @@ public class ProdSpuServiceImpl extends ServiceImpl<ProdSpuMapper, ProdSpu> impl
         wrapper.orderByDesc(ProdSpu::getCreateTime);
 
         return page(new Page<>(page, size), wrapper);
+    }
+
+    @Override
+    public ProdSpu createSpu(ProdSpu spu) {
+        spu.setId(UUID.randomUUID().toString());
+        spu.setCreateTime(LocalDateTime.now());
+        spu.setUpdateTime(LocalDateTime.now());
+        spu.setDeleted(false);
+        if (spu.getStatus() == null) {
+            spu.setStatus(0);
+        }
+        save(spu);
+        return spu;
+    }
+
+    @Override
+    public void updateSpu(String id, ProdSpu spu) {
+        spu.setId(id);
+        spu.setUpdateTime(LocalDateTime.now());
+        updateById(spu);
+    }
+
+    @Override
+    public void deleteSpu(String id) {
+        lambdaUpdate()
+                .eq(ProdSpu::getId, id)
+                .set(ProdSpu::getDeleted, true)
+                .set(ProdSpu::getStatus, 3)
+                .set(ProdSpu::getUpdateTime, LocalDateTime.now())
+                .update();
     }
 }

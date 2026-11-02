@@ -8,4 +8,8 @@ import java.util.List;
 public interface ISettlementItemService extends IService<SettlementItem> {
 
     List<SettlementItem> listBySettlementId(String settlementId);
+
+    SettlementItem createItem(SettlementItem item);
+
+    SettlementItem updateItem(String id, SettlementItem item);
 }

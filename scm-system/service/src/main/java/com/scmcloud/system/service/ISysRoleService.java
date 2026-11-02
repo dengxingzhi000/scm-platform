@@ -55,7 +55,7 @@ public interface ISysRoleService extends IService<SysRole> {
      *
      * @param roleDTO 瑙掕壊淇℃伅
      */
-    void updateRole(RoleDTO roleDTO);
+    void updateRole(UUID id, RoleDTO roleDTO);
 
     /**
      * 鍒犻櫎瑙掕壊锟?

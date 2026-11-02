@@ -51,8 +51,15 @@ public class PermissionQueryServiceImpl implements PermissionQueryService {
     /**
      * 获取用户的数据权限范围（带缓存）
      * <p>
-     * 取用户所有角色中权限范围最大的（数值最小的）
-     * 1=ALL, 2=DEPT, 3=DEPT_AND_SUB, 4=SELF, 5=CUSTOM
+     * 取用户所有角色中权限范围最大的（数值最小的）。数值与 {@code sys_role.data_scope}
+     * 的 DDL 约定一致（{@code 003_db_permission.sql}）：
+     * 1=ALL, 2=CUSTOM, 3=DEPT, 4=DEPT_AND_SUB, 5=SELF。
+     * 该映射必须与 {@link com.scmcloud.system.service.query.DeptCrossDatabaseQueryService}
+     * 和 {@code DataScopeAspect} 保持同一套语义。
+     * <p>
+     * 缓存键是裸 {@code <userId>}（String 枚举值）。数值码值由
+     * {@link com.scmcloud.system.service.query.UserCrossDatabaseQueryService#getUserDataScope(UUID)}
+     * 使用 {@code scope:<userId>} 键缓存，两者刻意不复用同一键，避免“同键不同型”。
      */
     @Override
     @Cacheable(value = "userDataScope", key = "#userId")
@@ -62,13 +69,16 @@ public class PermissionQueryServiceImpl implements PermissionQueryService {
         }
 
         Integer dataScopeValue = userRoleMapper.getUserDataScope(userId);
+        if (dataScopeValue == null) {
+            return "SELF";
+        }
 
         return switch (dataScopeValue) {
             case 1 -> "ALL";
-            case 2 -> "DEPT";
-            case 3 -> "DEPT_AND_SUB";
-            case 4 -> "SELF";
-            case 5 -> "CUSTOM";
+            case 2 -> "CUSTOM";
+            case 3 -> "DEPT";
+            case 4 -> "DEPT_AND_SUB";
+            case 5 -> "SELF";
             default -> "SELF";
         };
     }
