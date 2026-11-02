@@ -16,6 +16,15 @@ vi.mock("../hooks", () => ({
     data: h.performance,
     isLoading: h.performanceLoading,
   }),
+  // 分类 / 联系人分区各自的 hook —— 详情页切到这两个分区时会用到。
+  useSupplierAssignedCategories: () => ({ data: [] }),
+  useSupplierCategories: () => ({ data: [] }),
+  useAssignSupplierCategories: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useSupplierContacts: () => ({ data: [] }),
+  useCreateSupplierContact: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useUpdateSupplierContact: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useSetPrimarySupplierContact: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useDeleteSupplierContact: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 
 import SupplierDetail from "./supplier-detail";
@@ -57,8 +66,20 @@ describe("SupplierDetail", () => {
 
   it("switches to the placeholder of a section that is not built yet", async () => {
     render(<SupplierDetail id="s-1" />);
+    await userEvent.click(screen.getByText("银行账户"));
+    expect(screen.getByText("银行账户分区正在建设中。")).toBeInTheDocument();
+  });
+
+  it("shows the category and the contact panel instead of their placeholders", async () => {
+    render(<SupplierDetail id="s-1" />);
+
+    await userEvent.click(screen.getByText("分类"));
+    expect(screen.getByText("供应商分类")).toBeInTheDocument();
+    expect(screen.queryByText("分类分区正在建设中。")).not.toBeInTheDocument();
+
     await userEvent.click(screen.getByText("联系人"));
-    expect(screen.getByText("联系人分区正在建设中。")).toBeInTheDocument();
+    expect(screen.getByText("供应商联系人")).toBeInTheDocument();
+    expect(screen.queryByText("联系人分区正在建设中。")).not.toBeInTheDocument();
   });
 
   it("marks a truncated change-log count as at-least instead of a total", () => {

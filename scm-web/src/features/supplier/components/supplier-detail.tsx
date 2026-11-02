@@ -19,6 +19,8 @@ import {
   variantOf,
 } from "../lib/constants";
 import type { BadgeVariant } from "../lib/constants";
+import SupplierCategoryPanel from "./supplier-category-panel";
+import SupplierContactPanel from "./supplier-contact-panel";
 import SupplierOverviewPanel from "./supplier-overview-panel";
 
 interface SupplierDetailProps {
@@ -214,6 +216,10 @@ export default function SupplierDetail({ id }: SupplierDetailProps) {
               performance={performance}
               performanceLoading={performanceLoading}
             />
+          ) : section === "categories" ? (
+            <SupplierCategoryPanel supplierId={id} />
+          ) : section === "contacts" ? (
+            <SupplierContactPanel supplierId={id} />
           ) : (
             <p className="text-muted-foreground text-xs">
               {`${activeSection?.label ?? ""}分区正在建设中。`}
