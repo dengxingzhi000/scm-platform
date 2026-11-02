@@ -25,6 +25,13 @@ interface SupplierDetailProps {
   id: string;
 }
 
+/**
+ * 后端 profile 只返回最近 20 条变更日志
+ * （SupSupplierServiceImpl.getProfile → listBySupplierId(id, 20)），
+ * 达到上限时显示 "20+"，不把截断值当成总数。
+ */
+const CHANGE_LOG_PROFILE_CAP = 20;
+
 /** 左栏分区 —— 顺序即页面上从上到下的顺序。 */
 type SectionKey =
   | "overview"
@@ -40,7 +47,10 @@ export default function SupplierDetail({ id }: SupplierDetailProps) {
   const [section, setSection] = useState<SectionKey>("overview");
 
   const { data: profile, isLoading } = useSupplierProfile(id);
-  const { data: performance } = useSupplierPerformance(id);
+  const {
+    data: performance,
+    isLoading: performanceLoading,
+  } = useSupplierPerformance(id);
 
   if (isLoading && !profile) {
     return (
@@ -109,14 +119,37 @@ export default function SupplierDetail({ id }: SupplierDetailProps) {
     },
   ];
 
-  const sections: { key: SectionKey; label: string; count?: number }[] = [
+  const changeLogCount = profile.changeLogs.length;
+
+  const sections: { key: SectionKey; label: string; badge?: string }[] = [
     { key: "overview", label: "概览" },
-    { key: "categories", label: "分类", count: profile.categories.length },
-    { key: "contacts", label: "联系人", count: profile.contacts.length },
-    { key: "bankAccounts", label: "银行账户", count: profile.bankAccounts.length },
-    { key: "certificates", label: "资质证照", count: profile.certificates.length },
-    { key: "performance", label: "绩效评价", count: performance?.evaluationCount },
-    { key: "changeLogs", label: "变更留痕", count: profile.changeLogs.length },
+    { key: "categories", label: "分类", badge: String(profile.categories.length) },
+    { key: "contacts", label: "联系人", badge: String(profile.contacts.length) },
+    {
+      key: "bankAccounts",
+      label: "银行账户",
+      badge: String(profile.bankAccounts.length),
+    },
+    {
+      key: "certificates",
+      label: "资质证照",
+      badge: String(profile.certificates.length),
+    },
+    {
+      // 评价总数是服务端给的真实值；查询在途时用 "-" 占位，避免左栏抖动。
+      key: "performance",
+      label: "绩效评价",
+      badge: performance ? String(performance.evaluationCount) : "-",
+    },
+    {
+      // profile 的变更日志被后端截断到 20 条，达到上限只能说明「至少这么多」。
+      key: "changeLogs",
+      label: "变更留痕",
+      badge:
+        changeLogCount >= CHANGE_LOG_PROFILE_CAP
+          ? `${changeLogCount}+`
+          : String(changeLogCount),
+    },
   ];
 
   const activeSection = sections.find((item) => item.key === section);
@@ -167,8 +200,8 @@ export default function SupplierDetail({ id }: SupplierDetailProps) {
               )}
             >
               <span>{item.label}</span>
-              {item.count !== undefined && (
-                <span className="text-[10px] tabular-nums">{item.count}</span>
+              {item.badge !== undefined && (
+                <span className="text-[10px] tabular-nums">{item.badge}</span>
               )}
             </button>
           ))}
@@ -176,7 +209,11 @@ export default function SupplierDetail({ id }: SupplierDetailProps) {
 
         <div className="min-w-0 flex-1">
           {section === "overview" ? (
-            <SupplierOverviewPanel profile={profile} performance={performance} />
+            <SupplierOverviewPanel
+              profile={profile}
+              performance={performance}
+              performanceLoading={performanceLoading}
+            />
           ) : (
             <p className="text-muted-foreground text-xs">
               {`${activeSection?.label ?? ""}分区正在建设中。`}

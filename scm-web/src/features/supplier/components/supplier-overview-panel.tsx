@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { SUPPLIER_LEVELS, SUPPLIER_TYPES, labelOf } from "../lib/constants";
 import { formatDate } from "../lib/mappers";
@@ -17,6 +18,12 @@ import type { SupplierPerformance, SupplierProfile } from "../types";
 interface SupplierOverviewPanelProps {
   profile: SupplierProfile;
   performance?: SupplierPerformance | null;
+  /**
+   * 绩效查询在途 —— 用骨架屏占位。
+   * 后端的绩效接口要遍历全部评价算均值，比 profile 慢，
+   * 在途期间显示「暂无绩效数据。」是假的空状态。
+   */
+  performanceLoading?: boolean;
 }
 
 /** 缺失值的统一占位 —— 本模块的既有约定。 */
@@ -60,6 +67,7 @@ const capitalOf = (capital?: number): string =>
 export default function SupplierOverviewPanel({
   profile,
   performance,
+  performanceLoading = false,
 }: SupplierOverviewPanelProps) {
   const supplier = profile.supplier;
 
@@ -143,7 +151,23 @@ export default function SupplierOverviewPanel({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {!performance ? (
+          {performanceLoading ? (
+            <div className="space-y-5">
+              <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-5">
+                {Array.from({ length: 5 }, (_, index) => (
+                  <div key={index} className="space-y-2">
+                    <Skeleton className="h-3 w-16" />
+                    <Skeleton className="h-6 w-12" />
+                  </div>
+                ))}
+              </div>
+              <div className="space-y-2.5">
+                {Array.from({ length: 4 }, (_, index) => (
+                  <Skeleton key={index} className="h-[5px] w-full rounded-full" />
+                ))}
+              </div>
+            </div>
+          ) : !performance ? (
             <p className="text-muted-foreground text-xs">暂无绩效数据。</p>
           ) : (
             <>
