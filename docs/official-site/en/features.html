@@ -2,304 +2,549 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCM Platform — Features</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&family=Noto+Serif+SC:wght@400;500;600&display=swap');
-:root {
-  --mono: 'JetBrains Mono', monospace;
-  --serif: 'Instrument Serif', 'Noto Serif SC', serif;
-  --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --bg: #fafaf8; --bg2: #f5f5f0; --bg-card: #ffffff;
-  --t1: #1a1a18; --t2: #5a5a56; --t3: #8a8a86;
-  --border: #e8e8e4; --border2: #d4d4d0;
-  --accent: #2563eb; --green: #16a34a; --red: #dc2626; --amber: #d97706;
-}
-.lang-switch { font-family: var(--mono); font-size: 10px; padding: 4px 10px; border-radius: 6px; color: var(--t3); text-decoration: none; border: .5px solid var(--border); transition: color .15s, background .15s; letter-spacing: .02em; margin-left: 8px; }
-.lang-switch:hover { color: var(--t1); background: var(--bg2); }
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: var(--sans); background: var(--bg); color: var(--t1); -webkit-font-smoothing: antialiased; }
-
-/* Header */
-.site-header { position: sticky; top: 0; z-index: 100; background: rgba(250,250,248,.85); backdrop-filter: blur(12px); border-bottom: .5px solid var(--border); }
-.site-header-inner { max-width: 960px; margin: 0 auto; padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; }
-.site-logo { font-family: var(--mono); font-size: 13px; font-weight: 500; color: var(--t1); text-decoration: none; }
-.site-nav { display: flex; gap: 4px; align-items: center; }
-.site-nav a { font-family: var(--mono); font-size: 11px; padding: 5px 12px; border-radius: 6px; color: var(--t3); text-decoration: none; transition: color .15s, background .15s; letter-spacing: .02em; }
-.site-nav a:hover, .site-nav a.active { color: var(--t1); background: var(--bg2); }
-.site-nav-cta { background: var(--t1) !important; color: var(--bg) !important; padding: 5px 14px !important; border-radius: 6px !important; }
-.site-nav-cta:hover { opacity: .85 !important; }
-
-/* Footer */
-.site-footer { border-top: .5px solid var(--border); padding: 32px 0; margin-top: 64px; }
-.site-footer-inner { max-width: 960px; margin: 0 auto; padding: 0 24px; display: flex; justify-content: space-between; align-items: center; }
-.site-footer-left { font-family: var(--mono); font-size: 11px; color: var(--t3); }
-.site-footer-right { font-family: var(--serif); font-size: 13px; font-style: italic; color: var(--t3); }
-
-/* Page */
-.site-page { max-width: 680px; margin: 0 auto; padding: 0 24px; }
-.site-hero { padding: 48px 0 32px; border-bottom: .5px solid var(--border); margin-bottom: 40px; }
-.site-hero-eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; color: var(--t3); text-transform: uppercase; margin-bottom: 16px; }
-.site-hero h1 { font-family: var(--serif); font-size: 34px; font-weight: 400; line-height: 1.15; color: var(--t1); margin-bottom: 16px; }
-.site-hero-sub { font-size: 15px; color: var(--t2); line-height: 1.65; max-width: 520px; }
-.site-section { margin-bottom: 48px; }
-.site-section-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: .5px solid var(--border); }
-.site-section-num { font-family: var(--mono); font-size: 11px; color: var(--t3); min-width: 20px; }
-.site-section-title { font-size: 15px; font-weight: 500; color: var(--t1); }
-.site-prose { font-size: 14px; line-height: 1.8; color: var(--t2); }
-.site-prose + .site-prose { margin-top: 12px; }
-.site-callout { border-left: 2px solid var(--border2); padding: 12px 16px; margin: 16px 0; font-family: var(--serif); font-size: 15px; font-style: italic; color: var(--t2); line-height: 1.6; }
-
-/* Pillar grid */
-.site-pillar-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
-.site-pillar-card { background: var(--bg-card); border: .5px solid var(--border); border-radius: 8px; padding: 14px 16px; }
-.site-pillar-label { font-family: var(--mono); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--t3); margin-bottom: 4px; }
-.site-pillar-title { font-size: 13px; font-weight: 500; color: var(--t1); margin-bottom: 4px; }
-.site-pillar-desc { font-size: 12px; color: var(--t2); line-height: 1.5; }
-
-/* Feature grid */
-.site-feature-grid { display: flex; flex-direction: column; gap: 0; margin: 16px 0; }
-.site-feature-row { display: grid; grid-template-columns: 180px 1fr; gap: 16px; padding: 16px 0; border-bottom: .5px solid var(--border); align-items: start; }
-.site-feature-row:last-child { border-bottom: none; }
-.site-feature-name { font-size: 13px; font-weight: 500; color: var(--t1); }
-.site-feature-port { font-family: var(--mono); font-size: 10px; color: var(--t3); margin-top: 2px; }
-.site-feature-desc { font-size: 13px; color: var(--t2); line-height: 1.6; }
-
-/* Landing */
-.site-landing-hero { padding: 80px 0 48px; text-align: center; }
-.site-landing-hero h1 { font-family: var(--serif); font-size: 48px; font-weight: 400; line-height: 1.1; color: var(--t1); margin-bottom: 20px; }
-.site-landing-hero-sub { font-size: 16px; color: var(--t2); line-height: 1.7; max-width: 560px; margin: 0 auto 32px; }
-.site-landing-cta { display: inline-flex; gap: 12px; }
-.site-landing-cta a { font-family: var(--mono); font-size: 12px; padding: 10px 24px; border-radius: 8px; text-decoration: none; transition: opacity .15s; }
-.site-landing-cta-primary { background: var(--t1); color: var(--bg); }
-.site-landing-cta-secondary { background: var(--bg2); color: var(--t1); border: .5px solid var(--border); }
-
-/* Highlight grid */
-.site-highlight-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin: 32px 0; }
-.site-highlight-card { background: var(--bg-card); border: .5px solid var(--border); border-radius: 8px; padding: 20px 16px; }
-.site-highlight-icon { font-size: 20px; margin-bottom: 12px; }
-.site-highlight-title { font-size: 13px; font-weight: 500; color: var(--t1); margin-bottom: 6px; }
-.site-highlight-desc { font-size: 12px; color: var(--t2); line-height: 1.5; }
-
-/* Tech bar */
-.site-tech-bar { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 24px 0; }
-.site-tech-tag { font-family: var(--mono); font-size: 10px; padding: 4px 10px; border-radius: 99px; border: .5px solid var(--border); color: var(--t3); background: var(--bg-card); }
-
-/* Diagram */
-.site-diagram { background: var(--bg2); border-radius: 12px; border: .5px solid var(--border); padding: 20px; margin: 16px 0; overflow-x: auto; }
-.site-diagram svg { display: block; margin: 0 auto; }
-
-/* SLO grid */
-.site-slo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 16px 0; }
-.site-slo-card { background: var(--bg2); border-radius: 8px; padding: 12px; border: .5px solid var(--border); }
-.site-slo-op { font-size: 11px; color: var(--t2); margin-bottom: 8px; line-height: 1.4; }
-.site-slo-vals { display: flex; gap: 4px; flex-wrap: wrap; }
-.site-slo-val { font-family: var(--mono); font-size: 10px; padding: 2px 5px; border-radius: 4px; background: var(--bg-card); border: .5px solid var(--border); color: var(--t2); }
-.site-slo-label { font-family: var(--mono); font-size: 9px; color: var(--t3); }
-
-/* Philosophy nav pills */
-.site-nav-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 32px; }
-.site-nav-pill { font-family: var(--mono); font-size: 10px; padding: 4px 12px; border-radius: 99px; border: .5px solid var(--border); color: var(--t3); cursor: pointer; transition: background .15s, color .15s, border-color .15s; background: none; }
-.site-nav-pill:hover, .site-nav-pill.active { background: var(--bg2); color: var(--t1); border-color: var(--border2); }
-.dp-section { margin-bottom: 40px; display: none; }
-.dp-section.visible { display: block; }
-
-/* Tradeoff */
-.site-tradeoff { background: var(--bg2); border-radius: 8px; border: .5px solid var(--border); padding: 16px 20px; margin: 16px 0; }
-.site-tradeoff-head { font-family: var(--mono); font-size: 10px; letter-spacing: .07em; text-transform: uppercase; color: var(--t3); margin-bottom: 12px; }
-.site-tradeoff-row { display: grid; grid-template-columns: 80px 1fr; gap: 12px; padding: 8px 0; border-bottom: .5px solid var(--border); font-size: 13px; line-height: 1.5; align-items: start; }
-.site-tradeoff-row:last-child { border-bottom: none; }
-.site-tradeoff-label { font-family: var(--mono); font-size: 10px; padding-top: 2px; }
-.label-chosen { color: var(--green); }
-.label-rejected { color: var(--red); }
-.label-cost { color: var(--amber); }
-.site-tradeoff-text { color: var(--t2); }
-
-/* Principle list */
-.site-principle-list { display: flex; flex-direction: column; gap: 0; margin: 16px 0; }
-.site-principle { display: flex; gap: 14px; padding: 12px 0; border-bottom: .5px solid var(--border); align-items: flex-start; }
-.site-principle:last-child { border-bottom: none; }
-.site-principle-glyph { font-family: var(--mono); font-size: 11px; color: var(--t3); padding-top: 2px; min-width: 20px; }
-.site-principle-title { font-size: 13px; font-weight: 500; color: var(--t1); margin-bottom: 3px; }
-.site-principle-desc { font-size: 13px; color: var(--t2); line-height: 1.6; }
-
-/* Scale grid */
-.site-scale-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 16px 0; }
-.site-scale-card { border: .5px solid var(--border); border-radius: 8px; padding: 14px 16px; background: var(--bg-card); }
-.site-scale-label { font-family: var(--mono); font-size: 9px; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 6px; }
-.sl-easy { color: var(--green); } .sl-hard { color: var(--amber); } .sl-defer { color: var(--t3); }
-.site-scale-title { font-size: 13px; font-weight: 500; color: var(--t1); margin-bottom: 4px; }
-.site-scale-desc { font-size: 12px; color: var(--t2); line-height: 1.5; }
-
-/* Non-goal list */
-.site-nongoal-list { display: flex; flex-direction: column; gap: 0; margin: 12px 0; }
-.site-nongoal-item { display: flex; gap: 10px; padding: 10px 0; border-bottom: .5px solid var(--border); font-size: 13px; color: var(--t2); line-height: 1.5; }
-.site-nongoal-item:last-child { border-bottom: none; }
-.site-nongoal-x { font-family: var(--mono); font-size: 11px; color: var(--red); padding-top: 2px; min-width: 14px; }
-.site-nongoal-title { color: var(--t1); font-weight: 500; }
-
-/* Tech table */
-.site-tech-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 16px 0; }
-.site-tech-table th { font-family: var(--mono); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--t3); font-weight: 400; text-align: left; padding: 8px 12px 8px 0; border-bottom: .5px solid var(--border); }
-.site-tech-table td { padding: 10px 12px 10px 0; border-bottom: .5px solid var(--border); color: var(--t2); vertical-align: top; line-height: 1.5; }
-.site-tech-table td:first-child { color: var(--t1); font-weight: 500; white-space: nowrap; padding-right: 20px; }
-.site-tech-table tr:last-child td { border-bottom: none; }
-
-/* Code */
-.site-code { font-family: var(--mono); font-size: 12px; background: var(--bg2); padding: 1px 6px; border-radius: 4px; border: .5px solid var(--border); color: var(--t1); }
-.site-code-block { font-family: var(--mono); font-size: 12px; background: var(--bg2); padding: 16px 20px; border-radius: 8px; border: .5px solid var(--border); color: var(--t1); line-height: 1.6; overflow-x: auto; margin: 12px 0; white-space: pre; }
-
-@media (max-width: 640px) {
-  .site-pillar-grid, .site-highlight-grid, .site-slo-grid, .site-scale-grid { grid-template-columns: 1fr; }
-  .site-feature-row { grid-template-columns: 1fr; gap: 4px; }
-  .site-landing-hero h1 { font-size: 32px; }
-  .site-nav { display: none; }
-}
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Features — SCM Platform</title>
+<meta name="description" content="SCM Platform capabilities grouped by domain: supplier SRM, inventory and warehousing, orders and fulfillment, logistics, finance, governance, documents, analytics, commerce and the console.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%2308090a'/%3E%3Cpath d='M12 3 21 12 12 21 3 12Z' fill='none' stroke='%23cf9366' stroke-width='1.4'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/site.css">
+<script>document.documentElement.classList.add('js');</script>
 </head>
 <body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="progress" aria-hidden="true"><span></span></div>
 
-<!-- Header -->
 <header class="site-header">
-  <div class="site-header-inner">
-    <a href="index.html" class="site-logo">SCM Platform</a>
-    <nav class="site-nav">
+  <div class="header-inner">
+    <a class="brand" href="index.html" aria-label="SCM Platform home">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+          <path d="M12 2.2 21.8 12 12 21.8 2.2 12Z"/>
+          <path d="M12 7.2 16.8 12 12 16.8 7.2 12Z" fill="currentColor" fill-opacity=".35" stroke="none"/>
+        </svg>
+      </span>
+      <span class="brand-text">SCM<span class="slash">/</span><span class="light">PLATFORM</span></span>
+    </a>
+    <nav class="site-nav" aria-label="Primary">
       <a href="index.html">Home</a>
-      <a href="features.html" class="active">Features</a>
+      <a href="features.html" class="is-active" aria-current="page">Features</a>
       <a href="architecture.html">Architecture</a>
       <a href="philosophy.html">Philosophy</a>
       <a href="tech-stack.html">Tech Stack</a>
-      <a href="../zh/features.html" class="lang-switch">中文</a>
     </nav>
+    <a class="lang-switch" href="../zh/features.html" hreflang="zh-CN" lang="zh-CN">中文</a>
   </div>
 </header>
 
-<main>
+<main id="main">
+  <div class="wrap narrow">
 
-<div class="site-page">
-  <div class="site-hero">
-    <div class="site-hero-eyebrow">Platform Modules</div>
-    <h1>Features</h1>
-    <div class="site-hero-sub">15 independent modules covering the full supply chain lifecycle — from procurement to delivery, from inventory to finance.</div>
+    <div class="page-hero">
+      <div class="intro">
+        <div class="eyebrow">capability map · 01–10</div>
+        <h1>Capability,<br>by <em>domain</em>.</h1>
+        <p class="lede">
+          Not a service inventory — an answer to “what problem does this solve”. Each domain lists only
+          endpoints and constraints that exist in the code today. Capabilities that are not wired do not
+          appear here.
+        </p>
+      </div>
+    </div>
+
+    <nav class="index-bar" aria-label="Capability index">
+      <a href="#supplier"><span class="n">01</span>Supplier &amp; Procurement</a>
+      <a href="#inventory"><span class="n">02</span>Inventory &amp; Warehousing</a>
+      <a href="#order"><span class="n">03</span>Orders &amp; Fulfillment</a>
+      <a href="#logistics"><span class="n">04</span>Logistics</a>
+      <a href="#finance"><span class="n">05</span>Finance &amp; Money</a>
+      <a href="#governance"><span class="n">06</span>Governance</a>
+      <a href="#document"><span class="n">07</span>Documents &amp; Files</a>
+      <a href="#analytics"><span class="n">08</span>Data &amp; Analytics</a>
+      <a href="#commerce"><span class="n">09</span>Commerce</a>
+      <a href="#console"><span class="n">10</span>Console</a>
+    </nav>
+
+    <section class="domain-block" id="supplier">
+      <header class="domain-head" data-reveal>
+        <span class="domain-num">01</span>
+        <div>
+          <h2>Supplier &amp; Procurement</h2>
+          <p class="problem"><b>Problem</b>When admission, certificates, contacts, accounts and evaluations live apart, the supplier has no single truth.</p>
+        </div>
+        <span class="domain-tag">SRM / Purchase</span>
+      </header>
+      <div class="cap-grid">
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Admission</span>
+          <h3>Admission flow</h3>
+          <p>Draft → submit → review (approve/reject). Only approved, non-blacklisted suppliers can be enabled; the tax id must be complete; every change is written to the change log.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Certificate</span>
+          <h3>Certificates</h3>
+          <p>Validity is classified as valid, expiring, expired or rejected from the expiry date. Review, expiry query and counts feed the supplier overview.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Risk</span>
+          <h3>Risk &amp; cooperation</h3>
+          <p>Risk levels 1–3; cooperation states 0–3 move along legal paths. Blacklisting disables the supplier and terminates cooperation; removing it does not rewrite admission history.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Performance</span>
+          <h3>Performance scorecard</h3>
+          <p>Evaluations weight quality, delivery, service and price; the total is written back to the supplier. The scorecard aggregates by dimension and suggests a grade.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Profile</span>
+          <h3>Profile &amp; master data</h3>
+          <p>The profile aggregates master data, contacts, bank accounts, certificates, categories and recent changes. The first contact or account becomes default; switching clears the old default.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Procurement</span>
+          <h3>Procurement &amp; settlement</h3>
+          <p>Purchase plans, RFQs, quotations, price comparison, contracts, purchase orders and receipts; supplier statements support create, confirm and mark paid.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="domain-block" id="inventory">
+      <header class="domain-head" data-reveal>
+        <span class="domain-num">02</span>
+        <div>
+          <h2>Inventory &amp; Warehousing</h2>
+          <p class="problem"><b>Problem</b>Available-to-promise must answer at the moment of order; the ledger must still reconcile.</p>
+        </div>
+        <span class="domain-tag">Inventory / WMS</span>
+      </header>
+      <div class="cap-grid">
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Atomic</span>
+          <h3>Redis Lua deduction</h3>
+          <p>Deduction, restock and flash-sale counters run atomically in Redis. The hot path does not query PostgreSQL; stock cache keeps a short TTL.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Reservation</span>
+          <h3>Reserve and release</h3>
+          <p>Reservations default to 900 seconds; a successful payment confirms and converts them to a real deduction; cancel or timeout releases; an expired-release endpoint feeds the scheduler.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Adjustment</span>
+          <h3>Adjustment &amp; transfer</h3>
+          <p>Inbound, outbound, stock-take adjustments and cross-warehouse transfers are idempotent by business number; retries do not double-post.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Alert</span>
+          <h3>Stock alerts</h3>
+          <p>Low-stock and out-of-stock alerts support paging, statistics, resolution and a full scan; alerts clear automatically when stock recovers.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Snapshot</span>
+          <h3>Daily snapshots</h3>
+          <p>Snapshots are generated by date, SKU and warehouse and support trend queries. A repeat run for the same day skips existing rows.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Warehouse</span>
+          <h3>Warehouse operations</h3>
+          <p>Inbound/outbound orders, receiving, shipping, cancellation, locations and wave picking; only orders that have not been received or shipped may be edited.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="domain-block" id="order">
+      <header class="domain-head" data-reveal>
+        <span class="domain-num">03</span>
+        <div>
+          <h2>Orders &amp; Fulfillment</h2>
+          <p class="problem"><b>Problem</b>With enough statuses, an unauthorized or illegal transition becomes a data incident.</p>
+        </div>
+        <span class="domain-tag">Order / Fulfillment</span>
+      </header>
+      <div class="cap-grid">
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">State machine</span>
+          <h3>Only legal paths</h3>
+          <p><code>PENDING_PAYMENT → PAID → PENDING_SHIP → SHIPPED → IN_TRANSIT → DELIVERED → COMPLETED</code>. Cancellation is only from pending-payment or paid; terminal states stay terminal.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Aggregate</span>
+          <h3>Validation in the aggregate</h3>
+          <p><code>OrdOrder.transitionTo()</code> calls <code>canTransitionTo()</code> and <code>validNextStatuses()</code>. Illegal transitions are rejected in the domain layer, not patched by a controller.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Dashboard</span>
+          <h3>Order dashboard</h3>
+          <p>Today, last 7 days or last 30 days, compared with the previous period or year-over-year. Revenue and order count are bucketed by day (or hour), with status counts and backlog; trend points carry time ranges for drill-down.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Contract</span>
+          <h3>Pagination &amp; validation</h3>
+          <p>Order, order center and fulfillment share a paging shape; write endpoints use <code>@Valid</code>; the raw page echo is normalized by the frontend contract layer.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Order center</span>
+          <h3>Commerce order center</h3>
+          <p>Create, pay, ship, deliver, receive and cancel; shares tenant, permissions and audit with the supply chain orders.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Fulfillment</span>
+          <h3>Fulfillment path</h3>
+          <p>Pick → pack → ship (waybill and carrier recorded) → sign off. Cancellation records a reason; tracking events and the latest event are queried separately.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="domain-block" id="logistics">
+      <header class="domain-head" data-reveal>
+        <span class="domain-num">04</span>
+        <div>
+          <h2>Logistics &amp; Delivery</h2>
+          <p class="problem"><b>Problem</b>When waybills, tracking, routes and coverage live apart, the fulfillment result cannot be explained.</p>
+        </div>
+        <span class="domain-tag">TMS</span>
+      </header>
+      <div class="cap-grid">
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Waybill</span>
+          <h3>Waybills</h3>
+          <p>Create, query by order or waybill number, update status, cancel and logically delete; cancellation records the reason and operator.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Tracking</span>
+          <h3>Tracking</h3>
+          <p>Tracking nodes are reported, queried by waybill or number and paged. Fulfillment can also read the latest tracking event on its own.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Route</span>
+          <h3>Routes</h3>
+          <p>Rider, delivery date and route status with CRUD; routes page by delivery date.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Coverage</span>
+          <h3>Delivery coverage</h3>
+          <p>Carrier delivery areas are maintained and used to check whether a province/city/district address is covered.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Carrier</span>
+          <h3>Carriers</h3>
+          <p>Waybills are linked to carriers; waybill status and tracking are kept separate from order status.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Boundary</span>
+          <h3>Responsibility boundary</h3>
+          <p>Logistics owns the transport facts. Whether an order advances remains a decision of the order aggregate.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="domain-block" id="finance">
+      <header class="domain-head" data-reveal>
+        <span class="domain-num">05</span>
+        <div>
+          <h2>Finance &amp; Money</h2>
+          <p class="problem"><b>Problem</b>Between documents, payments, reconciliation and service fees, the difference must land on one row.</p>
+        </div>
+        <span class="domain-tag">Finance / Payment</span>
+      </header>
+      <div class="cap-grid">
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Settlement</span>
+          <h3>Settlement &amp; invoice</h3>
+          <p>Settlement orders and items, invoice paging (optionally by counterparty) and freight rules; financial data stays inside the same tenant scope.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Reconciliation</span>
+          <h3>Reconciliation workbench</h3>
+          <p>Creating a record computes the amount difference; records are filtered by period, status and difference flag; reconcile, confirm and record a difference reason.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Service fee</span>
+          <h3>Platform service fee</h3>
+          <p>Bills support create, update, delete, a pending list and payment registration by bill; the tenant side provides rate configuration and a calculation job.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Payment</span>
+          <h3>Payment orders</h3>
+          <p>Create, query, page and cancel. A duplicate request for the same order and channel returns the existing pending payment instead of creating another.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Callback</span>
+          <h3>Callback verification</h3>
+          <p>Alipay RSA2 with app_id/seller_id checks; WeChat v3 signature header, a 5-minute clock window and AES-GCM resource decryption. Amount and channel must match the local payment.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Refund</span>
+          <h3>Refund &amp; idempotency</h3>
+          <p>Refund orders and service; a payment only moves pending → paid; a repeated paid callback is treated as a no-op.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="domain-block" id="governance">
+      <header class="domain-head" data-reveal>
+        <span class="domain-num">06</span>
+        <div>
+          <h2>Platform Governance</h2>
+          <p class="problem"><b>Problem</b>If permissions, approval, audit and notifications each invent their own tenancy, the boundary leaks once per service.</p>
+        </div>
+        <span class="domain-tag">Tenant / Governance</span>
+      </header>
+      <div class="cap-grid">
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Tenant</span>
+          <h3>Tenant</h3>
+          <p>Lifecycle, plans, quotas and platform rates; the tenant id enters the request context, SQL predicate and async threads.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Access</span>
+          <h3>Permissions</h3>
+          <p>Users, roles, permissions, departments and dictionaries; URL-level permission checks; if the permission lookup fails, the request is denied rather than allowed.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Approval</span>
+          <h3>Approval</h3>
+          <p>Flowable BPMN: start, approve, reject, pending tasks and process status; permission-change approval has its own entry point.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Audit</span>
+          <h3>Audit</h3>
+          <p>The <code>@AuditLog</code> aspect collects records. Writes require an internal HMAC-SHA256 signature; there is no HTTP delete endpoint; high-risk actions are mirrored to the sensitive-operation table.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Notify</span>
+          <h3>Notifications</h3>
+          <p>Templates, channel preferences and notification audit; in-app messages page, expose unread counts, mark one read and mark all read.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Message</span>
+          <h3>Event publishing</h3>
+          <p>An event-publishing service (scm-message): domain events are persisted through an outbox and delivered to Kafka for consumers such as analytics. In-app messages live in scm-notify, kept separate from notification audit.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="domain-block" id="document">
+      <header class="domain-head" data-reveal>
+        <span class="domain-num">07</span>
+        <div>
+          <h2>Documents &amp; Files</h2>
+          <p class="problem"><b>Problem</b>Once contracts, documents and attachments have versions, “current” and “who changed it” must have answers.</p>
+        </div>
+        <span class="domain-tag">Document / File</span>
+      </header>
+      <div class="cap-grid">
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Template</span>
+          <h3>Template versions</h3>
+          <p>Version list, create a new version with an incrementing number, publish while archiving the previously published version and updating the current version.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Variable</span>
+          <h3>Variable schema</h3>
+          <p>Template variable schemas can be saved and queried; the definition must be a valid JSON array, so rendering can validate before it runs.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Render</span>
+          <h3>Rendering</h3>
+          <p>Render a document from a template and variable data; a manually registered document starts as generated.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Version</span>
+          <h3>Document versions</h3>
+          <p>Documents page, expose detail and allow manual registration; versions are listed newest first, preserving every render result.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Trail</span>
+          <h3>Audit trail</h3>
+          <p>Generate, render, sign and archive actions are written to the document audit trail; signing and archiving also change the document status.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">File</span>
+          <h3>Files</h3>
+          <p>Metadata paging, a 30-minute presigned URL, create and delete. scm-file uses the MinIO client and is compatible with S3/OSS.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="domain-block" id="analytics">
+      <header class="domain-head" data-reveal>
+        <span class="domain-num">08</span>
+        <div>
+          <h2>Data &amp; Analytics</h2>
+          <p class="problem"><b>Problem</b>A transactional database is the wrong place for period aggregation, and reports must not press on the order database.</p>
+        </div>
+        <span class="domain-tag">OLAP</span>
+      </header>
+      <div class="cap-grid">
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Layers</span>
+          <h3>ODS → DWD → DWS → ADS</h3>
+          <p>Four models in ClickHouse: ODS keeps the raw CDC payload, DWD holds detail, DWS aggregates and ADS serves dashboards. Ordered by <code>tenant_id</code>, partitioned by month.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Ingest</span>
+          <h3>Kafka ingest</h3>
+          <p>A Kafka consumer writes ODS with the Kafka offset and timestamp. ReplacingMergeTree and SummingMergeTree are chosen per table.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Query</span>
+          <h3>Declarative query</h3>
+          <p>Metric, dimension, dataset and field metadata; SQL is generated from dataset and metric definitions, executed and filtered by organization scope.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Governance</span>
+          <h3>Governance</h3>
+          <p>Data lineage registration and upstream/downstream queries, data quality evaluation and materialization management.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Dashboard</span>
+          <h3>Dashboards</h3>
+          <p>The order dashboard aggregates inside PostgreSQL instead of shipping pages of transactions to the browser; period analysis runs on ClickHouse.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Retention</span>
+          <h3>Retention</h3>
+          <p>ODS 1 year, DWD 2 years, DWS/ADS 3 years. Business side: audit 2 years, login 1 year, API logs 90 days, notifications 6 months.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="domain-block" id="commerce">
+      <header class="domain-head" data-reveal>
+        <span class="domain-num">09</span>
+        <div>
+          <h2>Commerce layer</h2>
+          <p class="problem"><b>Problem</b>Consumer-facing members, promotions, mall and payments must share tenancy and permissions with the supply chain base.</p>
+        </div>
+        <span class="domain-tag">Commerce</span>
+      </header>
+      <div class="cap-grid">
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Member</span>
+          <h3>Members</h3>
+          <p>Registration, profile, level, point accrual and ledger, delivery addresses and default address; duplicate registration returns the existing member.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Coupon</span>
+          <h3>Coupons</h3>
+          <p>Template issuance uses an atomic database decrement; usability is checked against the order amount; redemption is idempotent and repeated redemption returns the used result.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Campaign</span>
+          <h3>Group buy &amp; flash sale</h3>
+          <p>Start and join a group, list members; list active flash sales, check stock and place a flash-sale order.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Mall</span>
+          <h3>Mall</h3>
+          <p>Seller onboarding, cart add/update/remove/clear and product reviews with paged queries.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Search</span>
+          <h3>Search</h3>
+          <p>Product search, similar products and personalized recommendations; single and batch indexing, full rebuild and removal by id.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Order center</span>
+          <h3>Order center</h3>
+          <p>Create, pay, ship, deliver, receive and cancel; paged queries filter by order number, user and status.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="domain-block" id="console">
+      <header class="domain-head" data-reveal>
+        <span class="domain-num">10</span>
+        <div>
+          <h2>Console</h2>
+          <p class="problem"><b>Problem</b>Backend capability without a coherent operating path is capability nobody can use.</p>
+        </div>
+        <span class="domain-tag">Next.js</span>
+      </header>
+      <div class="cap-grid">
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Routes</span>
+          <h3>50+ routes</h3>
+          <p>Dashboard, product, order, inventory, warehouse, logistics, supplier, purchase, finance, notifications, tenant, approval, audit, document, file and analytics.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Stack</span>
+          <h3>Target stack</h3>
+          <p>Next.js 16.4 App Router, React 19, Tailwind v4 and shadcn/ui; TanStack Query v5 and TanStack Table v9.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Form</span>
+          <h3>Forms</h3>
+          <p>React Hook Form + Zod; long forms use <code>zodResolver</code> and a shared FormField.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Chart</span>
+          <h3>Charts</h3>
+          <p>Recharts for KPIs, ECharts for complex figures, G6 for topology; all lazy-loaded. AG Grid enters only through the DataGrid wrapper.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Contract</span>
+          <h3>Contract layer</h3>
+          <p>Backend DTOs live in <code>contracts/</code> and feature services map them; the raw paged echo is normalized by <code>contracts/page.ts</code>.</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Migration</span>
+          <h3>Migration state</h3>
+          <p>Ant Design 6 remains only on legacy pages. No new AntD pages; each domain moves to shadcn/ui incrementally.</p>
+        </article>
+      </div>
+    </section>
+
+    <div class="closing" style="margin-top:40px">
+      <blockquote style="font-size:clamp(24px,3.4vw,36px)">Capability lives in code,<br>not in slogans.</blockquote>
+      <div class="closing-foot">
+        <a href="architecture.html">How these capabilities connect</a>
+        <a href="philosophy.html">Why the trade-offs</a>
+      </div>
+    </div>
+
   </div>
-
-  <div class="site-feature-grid">
-    <div class="site-feature-row">
-      <div>
-        <div class="site-feature-name">API Gateway</div>
-        <div class="site-feature-port">:8761</div>
-      </div>
-      <div class="site-feature-desc">Unified routing entry, request rate limiting, cross-cutting concerns. Sentinel circuit breaking ensures system stability.</div>
-    </div>
-    <div class="site-feature-row">
-      <div>
-        <div class="site-feature-name">Authentication Service</div>
-        <div class="site-feature-port">:8106</div>
-      </div>
-      <div class="site-feature-desc">OAuth2 + JWT + WebAuthn passwordless login. Token refresh, session management, multi-factor authentication.</div>
-    </div>
-    <div class="site-feature-row">
-      <div>
-        <div class="site-feature-name">System Management</div>
-        <div class="site-feature-port">:8081</div>
-      </div>
-      <div class="site-feature-desc">Users, roles, permissions, departments, dictionaries, configuration management. RBAC fine-grained data access control.</div>
-    </div>
-    <div class="site-feature-row">
-      <div>
-        <div class="site-feature-name">Product Management</div>
-        <div class="site-feature-port">:8201</div>
-      </div>
-      <div class="site-feature-desc">SPU/SKU system, categories, brands, attribute management. Supports multi-spec products and batch operations.</div>
-    </div>
-    <div class="site-feature-row">
-      <div>
-        <div class="site-feature-name">Inventory Management</div>
-        <div class="site-feature-port">:8202</div>
-      </div>
-      <div class="site-feature-desc">Real-time inventory, reservations, alerts, snapshots. Redis Lua atomic deduction, zero database queries on hot paths.</div>
-    </div>
-    <div class="site-feature-row">
-      <div>
-        <div class="site-feature-name">Order Management</div>
-        <div class="site-feature-port">:8203</div>
-      </div>
-      <div class="site-feature-desc">Order lifecycle, state machine, payments, refunds. Seata distributed transactions guarantee cross-service consistency.</div>
-    </div>
-    <div class="site-feature-row">
-      <div>
-        <div class="site-feature-name">Warehouse Management</div>
-        <div class="site-feature-port">:8204</div>
-      </div>
-      <div class="site-feature-desc">Inbound/outbound, wave picking, location management. Supports multi-warehouse, multi-zone fine-grained operations.</div>
-    </div>
-    <div class="site-feature-row">
-      <div>
-        <div class="site-feature-name">Logistics Management</div>
-        <div class="site-feature-port">:8205</div>
-      </div>
-      <div class="site-feature-desc">Carriers, waybills, tracking, route optimization. Integrated with major logistics platforms.</div>
-    </div>
-    <div class="site-feature-row">
-      <div>
-        <div class="site-feature-name">Supplier Management</div>
-        <div class="site-feature-port">:8206</div>
-      </div>
-      <div class="site-feature-desc">Supplier onboarding, evaluation, settlement. Full supplier lifecycle management.</div>
-    </div>
-    <div class="site-feature-row">
-      <div>
-        <div class="site-feature-name">Procurement Management</div>
-        <div class="site-feature-port">&mdash;</div>
-      </div>
-      <div class="site-feature-desc">Inquiry, quotation, contracts, purchase orders. Digitalized procurement workflow.</div>
-    </div>
-    <div class="site-feature-row">
-      <div>
-        <div class="site-feature-name">Financial Management</div>
-        <div class="site-feature-port">&mdash;</div>
-      </div>
-      <div class="site-feature-desc">Settlement, invoicing, freight rules, reconciliation. Integrated financial and business data.</div>
-    </div>
-    <div class="site-feature-row">
-      <div>
-        <div class="site-feature-name">Tenant Management</div>
-        <div class="site-feature-port">&mdash;</div>
-      </div>
-      <div class="site-feature-desc">Tenant lifecycle, plans, feature toggles. Per-tenant data and functionality isolation.</div>
-    </div>
-    <div class="site-feature-row">
-      <div>
-        <div class="site-feature-name">Approval Workflow</div>
-        <div class="site-feature-port">&mdash;</div>
-      </div>
-      <div class="site-feature-desc">Configurable approval workflow engine. Supports multi-level approval, conditional branching, countersigning.</div>
-    </div>
-    <div class="site-feature-row">
-      <div>
-        <div class="site-feature-name">Audit Log</div>
-        <div class="site-feature-port">&mdash;</div>
-      </div>
-      <div class="site-feature-desc">Operation logging, sensitive action tracking. Complete behavioral audit trail.</div>
-    </div>
-    <div class="site-feature-row">
-      <div>
-        <div class="site-feature-name">Notification Service</div>
-        <div class="site-feature-port">&mdash;</div>
-      </div>
-      <div class="site-feature-desc">Template-based messaging, multi-channel delivery (in-app, email, SMS, Webhook).</div>
-    </div>
-  </div>
-</div>
-
 </main>
 
 <footer class="site-footer">
-  <div class="site-footer-inner">
-    <div class="site-footer-left">SCM Platform &middot; Apache 2.0 License</div>
-    <div class="site-footer-right">Built for Enterprise Supply Chain</div>
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a class="brand" href="index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+              <path d="M12 2.2 21.8 12 12 21.8 2.2 12Z"/>
+              <path d="M12 7.2 16.8 12 12 16.8 7.2 12Z" fill="currentColor" fill-opacity=".35" stroke="none"/>
+            </svg>
+          </span>
+          <span class="brand-text">SCM<span class="slash">/</span><span class="light">PLATFORM</span></span>
+        </a>
+        <p>A multi-tenant supply chain platform. Procurement, inventory, orders, fulfillment, finance and governance inside one boundary.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Browse</h4>
+        <a href="index.html">Home</a>
+        <a href="features.html">Features</a>
+        <a href="architecture.html">Architecture</a>
+        <a href="philosophy.html">Philosophy</a>
+        <a href="tech-stack.html">Tech Stack</a>
+      </div>
+      <div class="footer-col">
+        <h4>Version</h4>
+        <div class="colophon">
+          Spring Boot 4.1.2<br>
+          Spring Cloud 2025.1.4<br>
+          PostgreSQL 18 · ClickHouse 26.10<br>
+          Next.js 16.4.3 · Apache 2.0
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>SCM Platform · 2026</span>
+      <span>26 services · zh-CN / en-US</span>
+      <a href="../index.html">Portal</a>
+    </div>
   </div>
 </footer>
 
+<script src="../assets/site.js" defer></script>
 </body>
 </html>
