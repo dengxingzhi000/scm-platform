@@ -12,20 +12,22 @@ import com.scmcloud.common.security.PermissionChecker;
 import com.scmcloud.common.tenant.TenantValidationUtil;
 import com.scmcloud.common.web.domain.SecurityUser;
 import com.scmcloud.common.web.util.SecurityUtils;
+import com.scmcloud.system.domain.entity.SysDept;
 import com.scmcloud.system.domain.entity.SysUser;
+import com.scmcloud.system.mapper.SysDeptMapper;
 import com.scmcloud.system.mapper.SysUserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -44,6 +46,7 @@ public class SysUserQueryServiceImpl implements ISysUserQueryService {
     private static final String KEY_GEN = "tenantAwareCacheKeyGenerator";
 
     private final SysUserMapper userMapper;
+    private final SysDeptMapper deptMapper;
     private final UserCrossDatabaseQueryService userQueryService;
     private final DeptCrossDatabaseQueryService deptQueryService;
     private final PermissionCrossDatabaseQueryService permissionQueryService;
@@ -51,7 +54,8 @@ public class SysUserQueryServiceImpl implements ISysUserQueryService {
 
     @Override
     @Slave
-    @Transactional(readOnly = true)
+    // 不要加 @Transactional：listUsers 会跨 db_user（用户）与 db_permission（数据权限），
+    // 事务提前绑定主库连接后 @DS("permission") 无法切换，会报 relation "sys_role" does not exist。
     public Page<UserDTO> listUsers(Integer pageNum, Integer pageSize,
                                    String username, Integer status) {
         UUID tenantId = TenantValidationUtil.getRequiredTenantId();
@@ -83,6 +87,24 @@ public class SysUserQueryServiceImpl implements ISysUserQueryService {
         List<UserDTO> dtos = userPage.getRecords().stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
+        Map<UUID, String> deptNames = loadDeptNames(dtos);
+        dtos.forEach(dto -> dto.setDeptName(deptNames.get(dto.getDeptId())));
+
+        Map<UUID, List<Map<String, Object>>> roleRows = userQueryService.findUserRolesWithNamesByUserIds(
+                dtos.stream().map(UserDTO::getId).toList());
+        for (UserDTO dto : dtos) {
+            List<Map<String, Object>> roles = roleRows.get(dto.getId());
+            if (roles != null && !roles.isEmpty()) {
+                dto.setRoleIds(roles.stream()
+                        .map(r -> toUuid(r.get("role_id")))
+                        .filter(Objects::nonNull)
+                        .toList());
+                dto.setRoleNames(roles.stream()
+                        .map(r -> String.valueOf(r.get("name")))
+                        .toList());
+            }
+        }
+
         dtoPage.setRecords(dtos);
         return dtoPage;
     }
@@ -125,6 +147,12 @@ public class SysUserQueryServiceImpl implements ISysUserQueryService {
                     ResultCode.USER_NOT_FOUND.getMessage());
         }
         UserDTO dto = convertToDTO(user);
+        if (user.getDeptId() != null) {
+            SysDept dept = deptMapper.selectByDeptId(user.getDeptId());
+            if (dept != null) {
+                dto.setDeptName(dept.getDeptName());
+            }
+        }
         List<Map<String, Object>> roles = userQueryService.findUserRolesWithNames(id);
         if (!roles.isEmpty()) {
             List<UUID> roleIds = roles.stream()
@@ -201,9 +229,42 @@ public class SysUserQueryServiceImpl implements ISysUserQueryService {
         return stats;
     }
 
+    /** 批量补齐部门名称，避免用户列表出现大量 N+1 跨库查询。 */
+    private Map<UUID, String> loadDeptNames(List<UserDTO> users) {
+        List<UUID> deptIds = users.stream()
+                .map(UserDTO::getDeptId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        if (deptIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        List<Map<String, Object>> rows = deptMapper.selectDeptNames(deptIds);
+        Map<UUID, String> names = new HashMap<>();
+        for (Map<String, Object> row : rows) {
+            Object id = row.get("id");
+            Object name = row.get("dept_name");
+            if (id == null) {
+                continue;
+            }
+            UUID deptId = id instanceof UUID uuid ? uuid : UUID.fromString(id.toString());
+            names.put(deptId, name != null ? name.toString() : null);
+        }
+        return names;
+    }
+
+    private UUID toUuid(Object value) {
+        if (value == null) {
+            return null;
+        }
+        return value instanceof UUID uuid ? uuid : UUID.fromString(value.toString());
+    }
+
     private UserDTO convertToDTO(SysUser user) {
         UserDTO dto = new UserDTO();
         BeanUtils.copyProperties(user, dto);
+        // 密码哈希绝不能出现在用户列表/详情响应里。
+        dto.setPassword(null);
         return dto;
     }
 }

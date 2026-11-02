@@ -1,6 +1,8 @@
 package com.scmcloud.system.service.command;
 
+import com.scmcloud.common.tenant.TenantContextHolder;
 import com.scmcloud.system.mapper.SysUserRoleMapper;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,6 +39,7 @@ class UserRoleCrossDatabaseCommandServiceTest {
     private UUID testUserId;
     private UUID testRoleId;
     private UUID testCreateBy;
+    private UUID testTenantId;
     private List<UUID> testRoleIds;
     private LocalDateTime testEffectiveTime;
     private LocalDateTime testExpireTime;
@@ -46,9 +49,16 @@ class UserRoleCrossDatabaseCommandServiceTest {
         testUserId = UUID.randomUUID();
         testRoleId = UUID.randomUUID();
         testCreateBy = UUID.randomUUID();
+        testTenantId = UUID.randomUUID();
         testRoleIds = Arrays.asList(testRoleId, UUID.randomUUID(), UUID.randomUUID());
         testEffectiveTime = LocalDateTime.now();
         testExpireTime = LocalDateTime.now().plusDays(30);
+        TenantContextHolder.setTenantId(testTenantId);
+    }
+
+    @AfterEach
+    void tearDown() {
+        TenantContextHolder.clear();
     }
 
     // ========================================
@@ -58,14 +68,14 @@ class UserRoleCrossDatabaseCommandServiceTest {
     @Test
     void batchInsertUserRoles_WithValidParameters_ReturnsInsertedCount() {
         // Arrange
-        when(userRoleMapper.batchInsert(testUserId, testRoleIds, testCreateBy)).thenReturn(3);
+        when(userRoleMapper.batchInsert(testUserId, testRoleIds, testCreateBy, testTenantId)).thenReturn(3);
 
         // Act
         int result = service.batchInsertUserRoles(testUserId, testRoleIds, testCreateBy);
 
         // Assert
         assertEquals(3, result);
-        verify(userRoleMapper).batchInsert(testUserId, testRoleIds, testCreateBy);
+        verify(userRoleMapper).batchInsert(testUserId, testRoleIds, testCreateBy, testTenantId);
     }
 
     @Test
@@ -75,7 +85,7 @@ class UserRoleCrossDatabaseCommandServiceTest {
 
         // Assert
         assertEquals(0, result);
-        verify(userRoleMapper, never()).batchInsert(any(), anyList(), any());
+        verify(userRoleMapper, never()).batchInsert(any(), anyList(), any(), any());
     }
 
     @Test
@@ -85,7 +95,7 @@ class UserRoleCrossDatabaseCommandServiceTest {
 
         // Assert
         assertEquals(0, result);
-        verify(userRoleMapper, never()).batchInsert(any(), anyList(), any());
+        verify(userRoleMapper, never()).batchInsert(any(), anyList(), any(), any());
     }
 
     @Test
@@ -95,41 +105,41 @@ class UserRoleCrossDatabaseCommandServiceTest {
 
         // Assert
         assertEquals(0, result);
-        verify(userRoleMapper, never()).batchInsert(any(), anyList(), any());
+        verify(userRoleMapper, never()).batchInsert(any(), anyList(), any(), any());
     }
 
     @Test
     void batchInsertUserRoles_WithSingleRole_ReturnsOne() {
         // Arrange
         List<UUID> singleRole = Collections.singletonList(testRoleId);
-        when(userRoleMapper.batchInsert(testUserId, singleRole, testCreateBy)).thenReturn(1);
+        when(userRoleMapper.batchInsert(testUserId, singleRole, testCreateBy, testTenantId)).thenReturn(1);
 
         // Act
         int result = service.batchInsertUserRoles(testUserId, singleRole, testCreateBy);
 
         // Assert
         assertEquals(1, result);
-        verify(userRoleMapper).batchInsert(testUserId, singleRole, testCreateBy);
+        verify(userRoleMapper).batchInsert(testUserId, singleRole, testCreateBy, testTenantId);
     }
 
     @Test
     void batchInsertUserRoles_MapperReturnsZero_ReturnsZero() {
         // Arrange
-        when(userRoleMapper.batchInsert(testUserId, testRoleIds, testCreateBy)).thenReturn(0);
+        when(userRoleMapper.batchInsert(testUserId, testRoleIds, testCreateBy, testTenantId)).thenReturn(0);
 
         // Act
         int result = service.batchInsertUserRoles(testUserId, testRoleIds, testCreateBy);
 
         // Assert
         assertEquals(0, result);
-        verify(userRoleMapper).batchInsert(testUserId, testRoleIds, testCreateBy);
+        verify(userRoleMapper).batchInsert(testUserId, testRoleIds, testCreateBy, testTenantId);
     }
 
     @Test
     void batchInsertTemporaryUserRoles_WithValidParameters_ReturnsInsertedCount() {
         // Arrange
         when(userRoleMapper.batchInsertTemporary(
-                testUserId, testRoleIds, testEffectiveTime, testExpireTime, testCreateBy
+                testUserId, testRoleIds, testEffectiveTime, testExpireTime, testCreateBy, testTenantId
         )).thenReturn(3);
 
         // Act
@@ -140,7 +150,7 @@ class UserRoleCrossDatabaseCommandServiceTest {
         // Assert
         assertEquals(3, result);
         verify(userRoleMapper).batchInsertTemporary(
-                testUserId, testRoleIds, testEffectiveTime, testExpireTime, testCreateBy
+                testUserId, testRoleIds, testEffectiveTime, testExpireTime, testCreateBy, testTenantId
         );
     }
 
@@ -153,7 +163,7 @@ class UserRoleCrossDatabaseCommandServiceTest {
 
         // Assert
         assertEquals(0, result);
-        verify(userRoleMapper, never()).batchInsertTemporary(any(), anyList(), any(), any(), any());
+        verify(userRoleMapper, never()).batchInsertTemporary(any(), anyList(), any(), any(), any(), any());
     }
 
     @Test
@@ -165,7 +175,7 @@ class UserRoleCrossDatabaseCommandServiceTest {
 
         // Assert
         assertEquals(0, result);
-        verify(userRoleMapper, never()).batchInsertTemporary(any(), anyList(), any(), any(), any());
+        verify(userRoleMapper, never()).batchInsertTemporary(any(), anyList(), any(), any(), any(), any());
     }
 
     @Test
@@ -177,14 +187,14 @@ class UserRoleCrossDatabaseCommandServiceTest {
 
         // Assert
         assertEquals(0, result);
-        verify(userRoleMapper, never()).batchInsertTemporary(any(), anyList(), any(), any(), any());
+        verify(userRoleMapper, never()).batchInsertTemporary(any(), anyList(), any(), any(), any(), any());
     }
 
     @Test
     void batchInsertTemporaryUserRoles_WithNullEffectiveTime_CallsMapper() {
         // Arrange
         when(userRoleMapper.batchInsertTemporary(
-                testUserId, testRoleIds, null, testExpireTime, testCreateBy
+                testUserId, testRoleIds, null, testExpireTime, testCreateBy, testTenantId
         )).thenReturn(3);
 
         // Act
@@ -195,7 +205,7 @@ class UserRoleCrossDatabaseCommandServiceTest {
         // Assert
         assertEquals(3, result);
         verify(userRoleMapper).batchInsertTemporary(
-                testUserId, testRoleIds, null, testExpireTime, testCreateBy
+                testUserId, testRoleIds, null, testExpireTime, testCreateBy, testTenantId
         );
     }
 
@@ -204,7 +214,7 @@ class UserRoleCrossDatabaseCommandServiceTest {
         // Arrange
         LocalDateTime futureTime = LocalDateTime.now().plusYears(1);
         when(userRoleMapper.batchInsertTemporary(
-                testUserId, testRoleIds, testEffectiveTime, futureTime, testCreateBy
+                testUserId, testRoleIds, testEffectiveTime, futureTime, testCreateBy, testTenantId
         )).thenReturn(3);
 
         // Act
@@ -215,7 +225,7 @@ class UserRoleCrossDatabaseCommandServiceTest {
         // Assert
         assertEquals(3, result);
         verify(userRoleMapper).batchInsertTemporary(
-                testUserId, testRoleIds, testEffectiveTime, futureTime, testCreateBy
+                testUserId, testRoleIds, testEffectiveTime, futureTime, testCreateBy, testTenantId
         );
     }
 
@@ -396,7 +406,7 @@ class UserRoleCrossDatabaseCommandServiceTest {
     @Test
     void batchInsertUserRoles_ThrowsException_ShouldRollback() {
         // Arrange
-        when(userRoleMapper.batchInsert(testUserId, testRoleIds, testCreateBy))
+        when(userRoleMapper.batchInsert(testUserId, testRoleIds, testCreateBy, testTenantId))
                 .thenThrow(new RuntimeException("Database error"));
 
         // Act & Assert
@@ -404,7 +414,7 @@ class UserRoleCrossDatabaseCommandServiceTest {
                 service.batchInsertUserRoles(testUserId, testRoleIds, testCreateBy)
         );
 
-        verify(userRoleMapper).batchInsert(testUserId, testRoleIds, testCreateBy);
+        verify(userRoleMapper).batchInsert(testUserId, testRoleIds, testCreateBy, testTenantId);
     }
 
     @Test
@@ -434,14 +444,14 @@ class UserRoleCrossDatabaseCommandServiceTest {
                 UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
                 UUID.randomUUID() // 10 roles
         );
-        when(userRoleMapper.batchInsert(testUserId, manyRoles, testCreateBy)).thenReturn(10);
+        when(userRoleMapper.batchInsert(testUserId, manyRoles, testCreateBy, testTenantId)).thenReturn(10);
 
         // Act
         int result = service.batchInsertUserRoles(testUserId, manyRoles, testCreateBy);
 
         // Assert
         assertEquals(10, result);
-        verify(userRoleMapper).batchInsert(testUserId, manyRoles, testCreateBy);
+        verify(userRoleMapper).batchInsert(testUserId, manyRoles, testCreateBy, testTenantId);
     }
 
     @Test
@@ -449,7 +459,7 @@ class UserRoleCrossDatabaseCommandServiceTest {
         // Arrange
         LocalDateTime sameTime = LocalDateTime.now().plusDays(1);
         when(userRoleMapper.batchInsertTemporary(
-                testUserId, testRoleIds, sameTime, sameTime, testCreateBy
+                testUserId, testRoleIds, sameTime, sameTime, testCreateBy, testTenantId
         )).thenReturn(3);
 
         // Act
@@ -460,7 +470,7 @@ class UserRoleCrossDatabaseCommandServiceTest {
         // Assert
         assertEquals(3, result);
         verify(userRoleMapper).batchInsertTemporary(
-                testUserId, testRoleIds, sameTime, sameTime, testCreateBy
+                testUserId, testRoleIds, sameTime, sameTime, testCreateBy, testTenantId
         );
     }
 

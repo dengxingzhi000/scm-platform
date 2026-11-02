@@ -89,7 +89,9 @@ public class UserCrossDatabaseQueryService {
      */
     @Slave
     @Timed(value = "cross_db_query", extraTags = {"method", "findUserRolesWithNames"})
-    @Cacheable(value = "userRoles", key = "#userId", unless = "#result.isEmpty()")
+    // 不能与 getUserRoles 共用 "userRoles" 缓存：后者缓存的是 Set<String>，
+    // 同一 key 命中后转换成 List<Map> 会抛 ClassCastException。
+    @Cacheable(value = "userRolesWithNames", key = "#userId", unless = "#result.isEmpty()")
     public List<Map<String, Object>> findUserRolesWithNames(UUID userId) {
         if (userId == null) {
             return Collections.emptyList();
@@ -106,6 +108,28 @@ public class UserCrossDatabaseQueryService {
      * @param userId 鐢ㄦ埛 ID
      * @return 瑙掕壊缂栫爜闆嗗悎
      */
+    /**
+     * 批量查询用户角色（id / code / name），用户列表一次查询即可，避免 N+1。
+     */
+    @Slave
+    @Timed(value = "cross_db_query", extraTags = {"method", "findUserRolesWithNamesByUserIds"})
+    public Map<UUID, List<Map<String, Object>>> findUserRolesWithNamesByUserIds(List<UUID> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        List<Map<String, Object>> rows = userRoleMapper.findUserRolesWithNamesByUserIds(userIds);
+        Map<UUID, List<Map<String, Object>>> result = new HashMap<>();
+        for (Map<String, Object> row : rows) {
+            Object userId = row.get("user_id");
+            if (userId == null) {
+                continue;
+            }
+            UUID id = userId instanceof UUID uuid ? uuid : UUID.fromString(userId.toString());
+            result.computeIfAbsent(id, k -> new ArrayList<>()).add(row);
+        }
+        return result;
+    }
+
     @Slave
     @Timed(value = "cross_db_query", extraTags = {"method", "findRoleCodesByUserId"})
     @Cacheable(value = "userRoleCodes", key = "#userId", unless = "#result.isEmpty()")

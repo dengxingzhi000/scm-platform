@@ -28,7 +28,7 @@ public class CustomPermissionEvaluator implements PermissionEvaluator {
      * 鍒ゆ柇鐢ㄦ埛鏄惁鏈夋寚瀹氭潈锟?
      */
     @Override
-    public boolean hasPermission(@NonNull Authentication authentication, @NonNull Object targetDomainObject,
+    public boolean hasPermission(@NonNull Authentication authentication, Object targetDomainObject,
                                  @NonNull Object permission) {
         if (!(authentication.getPrincipal() instanceof SecurityUser user)) {
             return false;

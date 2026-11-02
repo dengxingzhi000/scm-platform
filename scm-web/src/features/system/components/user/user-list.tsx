@@ -1,11 +1,37 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, Plus, Search, Trash2 } from "lucide-react";
-import { Popconfirm } from "antd";
+import {
+  MoreHorizontal,
+  KeyRound,
+  Lock,
+  LogOut,
+  Pencil,
+  Plus,
+  BarChart3,
+  Search,
+  Trash2,
+  Unlock,
+  UserCog,
+} from "lucide-react";
+import { Descriptions, Popconfirm, Select as AntSelect } from "antd";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import {
@@ -24,12 +50,23 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useDeleteUser, useUserList } from "../../hooks";
+import {
+  useDeleteUser,
+  useForceLogoutUser,
+  useGrantUserRoles,
+  useLockUser,
+  useResetUserPassword,
+  useRoleList,
+  useUserList,
+  useUserStatistics,
+} from "../../hooks";
+import { userService } from "../../services/user.service";
 import type { User } from "../../types";
 import UserForm from "./user-form";
 
@@ -64,14 +101,71 @@ export default function UserList() {
   const [current, setCurrent] = useState(1);
   const [keywordDraft, setKeywordDraft] = useState("");
   const [keyword, setKeyword] = useState("");
+  const [status, setStatus] = useState<string | undefined>(undefined);
   const [formOpen, setFormOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const { data, isLoading } = useUserList({ current, keyword });
+
+  const [rolesUser, setRolesUser] = useState<User | null>(null);
+  const [roleIds, setRoleIds] = useState<string[]>([]);
+  const [logoutUser, setLogoutUser] = useState<User | null>(null);
+  const [logoutReason, setLogoutReason] = useState("");
+  const [statsUser, setStatsUser] = useState<User | null>(null);
+  const [passwordResult, setPasswordResult] = useState<{
+    username: string;
+    password: string;
+  } | null>(null);
+
+  const { data, isLoading } = useUserList({ current, keyword, status });
   const deleteUser = useDeleteUser();
+  const resetPassword = useResetUserPassword();
+  const lockUser = useLockUser();
+  const grantRoles = useGrantUserRoles();
+  const forceLogout = useForceLogoutUser();
+  const { data: roles } = useRoleList();
+  const { data: statistics, isLoading: statisticsLoading } = useUserStatistics(
+    statsUser?.id ?? null,
+  );
 
   const rows = data?.records ?? [];
   const total = data?.total ?? 0;
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  const openRoles = async (user: User) => {
+    try {
+      // 列表接口不返回 roleIds，先取详情再打开弹窗，避免直接保存把已有角色清空。
+      const detail = await userService.getById(user.id);
+      setRoleIds(detail.roleIds ?? []);
+      setRolesUser(detail);
+    } catch {
+      setRoleIds([]);
+      setRolesUser(user);
+    }
+  };
+
+  const handleResetPassword = (user: User) => {
+    resetPassword
+      .mutateAsync(user.id)
+      .then((password) =>
+        setPasswordResult({ username: user.username, password }),
+      )
+      .catch(() => undefined);
+  };
+
+  const submitRoles = async () => {
+    if (!rolesUser) return;
+    await grantRoles.mutateAsync({ id: rolesUser.id, roleIds });
+    setRolesUser(null);
+  };
+
+  const submitLogout = async () => {
+    if (!logoutUser || !logoutReason.trim()) return;
+    await forceLogout.mutateAsync({
+      id: logoutUser.id,
+      reason: logoutReason.trim(),
+    });
+    setLogoutUser(null);
+    setLogoutReason("");
+  };
 
   return (
     <div className="space-y-4">
@@ -118,6 +212,21 @@ export default function UserList() {
               <Search />
             </Button>
           </form>
+          <AntSelect
+            allowClear
+            placeholder="全部状态"
+            style={{ width: 120 }}
+            value={status}
+            onChange={(value) => {
+              setStatus(value);
+              setCurrent(1);
+            }}
+            options={[
+              { label: "启用", value: "active" },
+              { label: "禁用", value: "disabled" },
+              { label: "锁定", value: "locked" },
+            ]}
+          />
           <TableToolbarEnd>
             <span className="text-muted-foreground text-[11px]">
               共 {total} 个用户
@@ -203,6 +312,53 @@ export default function UserList() {
                           </TooltipTrigger>
                           <TooltipContent>编辑</TooltipContent>
                         </Tooltip>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label="更多操作"
+                            >
+                              <MoreHorizontal />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onSelect={() => openRoles(user)}>
+                              <UserCog />
+                              分配角色
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onSelect={() =>
+                                lockUser.mutate({
+                                  id: user.id,
+                                  lock: user.status !== "locked",
+                                })
+                              }
+                            >
+                              {user.status === "locked" ? <Unlock /> : <Lock />}
+                              {user.status === "locked" ? "解锁账号" : "锁定账号"}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onSelect={() => handleResetPassword(user)}
+                            >
+                              <KeyRound />
+                              重置密码
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onSelect={() => {
+                                setLogoutReason("");
+                                setLogoutUser(user);
+                              }}
+                            >
+                              <LogOut />
+                              强制下线
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => setStatsUser(user)}>
+                              <BarChart3 />
+                              查看统计
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                         <Popconfirm
                           title="确定删除此用户？"
                           onConfirm={() => deleteUser.mutate(user.id)}
@@ -239,6 +395,126 @@ export default function UserList() {
         onClose={() => setFormOpen(false)}
         user={editingUser}
       />
+
+      <Dialog
+        open={!!rolesUser}
+        onOpenChange={(open) => !open && setRolesUser(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>分配角色</DialogTitle>
+            <DialogDescription>
+              {rolesUser?.displayName || rolesUser?.username}
+            </DialogDescription>
+          </DialogHeader>
+          <AntSelect
+            mode="multiple"
+            style={{ width: "100%" }}
+            value={roleIds}
+            onChange={(value) => setRoleIds(value)}
+            placeholder="选择角色"
+            options={(roles ?? []).map((role) => ({
+              label: role.name,
+              value: role.id,
+            }))}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRolesUser(null)}>
+              取消
+            </Button>
+            <Button disabled={grantRoles.isPending} onClick={submitRoles}>
+              保存
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!logoutUser}
+        onOpenChange={(open) => !open && setLogoutUser(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>强制下线</DialogTitle>
+            <DialogDescription>
+              将 {logoutUser?.displayName || logoutUser?.username} 的所有会话强制失效。
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={logoutReason}
+            onChange={(event) => setLogoutReason(event.target.value)}
+            placeholder="请输入下线原因"
+            maxLength={200}
+            rows={3}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLogoutUser(null)}>
+              取消
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={!logoutReason.trim() || forceLogout.isPending}
+              onClick={submitLogout}
+            >
+              确认下线
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!statsUser} onOpenChange={(open) => !open && setStatsUser(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>用户统计</DialogTitle>
+            <DialogDescription>
+              {statsUser?.displayName || statsUser?.username}
+            </DialogDescription>
+          </DialogHeader>
+          {statisticsLoading ? (
+            <p className="text-muted-foreground text-sm">加载中…</p>
+          ) : (
+            <Descriptions
+              column={1}
+              size="small"
+              items={Object.entries(statistics ?? {}).map(([key, value]) => ({
+                key,
+                label: key,
+                children:
+                  value !== null && typeof value === "object"
+                    ? JSON.stringify(value)
+                    : String(value ?? "-"),
+              }))}
+            />
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setStatsUser(null)}>
+              关闭
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!passwordResult}
+        onOpenChange={(open) => !open && setPasswordResult(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>密码已重置</DialogTitle>
+            <DialogDescription>
+              请将新密码告知 {passwordResult?.username}，并提示其登录后修改。
+            </DialogDescription>
+          </DialogHeader>
+          <div className="bg-muted rounded-lg p-3 font-mono text-sm">
+            {passwordResult?.password || "(接口未返回新密码)"}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPasswordResult(null)}>
+              关闭
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

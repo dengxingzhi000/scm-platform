@@ -72,6 +72,25 @@ public interface SysUserRoleMapper extends BaseMapper<SysUserRole> {
     List<SysUserRole> findByUserId(@Param("userId") UUID userId);
 
     /**
+     * 批量查询用户的角色（含角色名称），用于用户列表避免 N+1 查询。
+     */
+    @Select("""
+            <script>
+            SELECT ur.user_id, r.id as role_id, r.role_code as code, r.role_name as name
+            FROM sys_user_role ur
+            INNER JOIN sys_role r ON ur.role_id = r.id
+            WHERE ur.user_id IN
+            <foreach collection='userIds' item='userId' open='(' close=')' separator=','>
+                #{userId}
+            </foreach>
+              AND ur.approval_status = 2
+              AND (ur.expire_time IS NULL OR ur.expire_time > NOW())
+              AND NOT r.deleted
+            </script>
+            """)
+    List<Map<String, Object>> findUserRolesWithNamesByUserIds(@Param("userIds") List<UUID> userIds);
+
+    /**
      * 鏌ヨ鎷ユ湁鎸囧畾瑙掕壊鐨勭敤锟絀D 鍒楄〃
      */
     @Select("""
@@ -300,15 +319,16 @@ public interface SysUserRoleMapper extends BaseMapper<SysUserRole> {
      */
     @Insert("""
             <script>
-            INSERT INTO sys_user_role (id, user_id, role_id, approval_status, create_by, create_time) VALUES
+            INSERT INTO sys_user_role (id, user_id, role_id, approval_status, create_by, create_time, tenant_id) VALUES
             <foreach collection='roleIds' item='roleId' separator=','>
-            (gen_random_uuid(), #{userId}, #{roleId}, 2, #{createBy}, NOW())
+            (gen_random_uuid(), #{userId}, #{roleId}, 2, #{createBy}, NOW(), #{tenantId})
             </foreach>
             </script>
             """)
     int batchInsert(@Param("userId") UUID userId,
                     @Param("roleIds") List<UUID> roleIds,
-                    @Param("createBy") UUID createBy);
+                    @Param("createBy") UUID createBy,
+                    @Param("tenantId") UUID tenantId);
 
     /**
      * 鎵归噺鎻掑叆涓存椂鐢ㄦ埛瑙掕壊鍏宠仈
@@ -316,10 +336,10 @@ public interface SysUserRoleMapper extends BaseMapper<SysUserRole> {
     @Insert("""
             <script>
             INSERT INTO sys_user_role
-            (id, user_id, role_id, approval_status, effective_time, expire_time, create_by, create_time)
+            (id, user_id, role_id, approval_status, effective_time, expire_time, create_by, create_time, tenant_id)
             VALUES
             <foreach collection='roleIds' item='roleId' separator=','>
-            (gen_random_uuid(), #{userId}, #{roleId}, 2, #{effectiveTime}, #{expireTime}, #{createBy}, NOW())
+            (gen_random_uuid(), #{userId}, #{roleId}, 2, #{effectiveTime}, #{expireTime}, #{createBy}, NOW(), #{tenantId})
             </foreach>
             </script>
             """)
@@ -327,14 +347,15 @@ public interface SysUserRoleMapper extends BaseMapper<SysUserRole> {
                              @Param("roleIds") List<UUID> roleIds,
                              @Param("effectiveTime") LocalDateTime effectiveTime,
                              @Param("expireTime") LocalDateTime expireTime,
-                             @Param("createBy") UUID createBy);
+                             @Param("createBy") UUID createBy,
+                             @Param("tenantId") UUID tenantId);
 
     /**
      * 鎻掑叆涓存椂瑙掕壊鎺堟潈
      */
     @Insert("""
-            INSERT INTO sys_user_role (id, user_id, role_id, effective_time, expire_time, approval_status, approved_by, approved_time, create_by, create_time)
-            VALUES (gen_random_uuid(), #{userId}, #{roleId}, #{effectiveTime}, #{expireTime}, #{approvalStatus}, #{approvedBy}, #{approvedTime}, #{createBy}, NOW())
+            INSERT INTO sys_user_role (id, user_id, role_id, effective_time, expire_time, approval_status, approved_by, approved_time, create_by, create_time, tenant_id)
+            VALUES (gen_random_uuid(), #{userId}, #{roleId}, #{effectiveTime}, #{expireTime}, #{approvalStatus}, #{approvedBy}, #{approvedTime}, #{createBy}, NOW(), #{tenantId})
             """)
     int insertTemporary(SysUserRole userRole);
 

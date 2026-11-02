@@ -5,7 +5,6 @@ import com.scmcloud.system.mapper.SysRoleDeptMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
@@ -33,7 +32,6 @@ public class DeptRoleCrossDatabaseCommandService {
      * @return 鍒犻櫎琛屾暟
      */
     @Master(reason = "Write operation must use master database")
-    @Transactional(rollbackFor = Exception.class)
     public int deleteRoleDeptsByDeptId(UUID deptId) {
         if (deptId == null) {
             return 0;

@@ -85,16 +85,17 @@ public interface SysRoleDeptMapper extends BaseMapper<SysRoleDept> {
      */
     @Insert("""
             <script>
-            INSERT INTO sys_role_dept (id, role_id, dept_id, include_children, create_by, create_time) VALUES
+            INSERT INTO sys_role_dept (id, role_id, dept_id, include_children, create_by, create_time, tenant_id) VALUES
             <foreach collection='deptIds' item='deptId' separator=','>
-            (gen_random_uuid(), #{roleId}, #{deptId}, #{includeChildren}, #{createBy}, NOW())
+            (gen_random_uuid(), #{roleId}, #{deptId}, #{includeChildren}, #{createBy}, NOW(), #{tenantId})
             </foreach>
             </script>
             """)
     int batchInsert(@Param("roleId") UUID roleId,
                     @Param("deptIds") List<UUID> deptIds,
                     @Param("includeChildren") boolean includeChildren,
-                    @Param("createBy") UUID createBy);
+                    @Param("createBy") UUID createBy,
+                    @Param("tenantId") UUID tenantId);
 
     /**
      * 鍒犻櫎瑙掕壊閮ㄩ棬鍏宠仈

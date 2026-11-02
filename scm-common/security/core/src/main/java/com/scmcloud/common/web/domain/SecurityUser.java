@@ -84,7 +84,9 @@ public class SecurityUser implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return this.status != 2; // 2琛ㄧず閿佸畾
+        // JWT 过滤器构造的 SecurityUser 不带 status；null 不能触发拆箱 NPE，
+        // 否则 Dubbo 序列化 authentication 时会直接把请求打断。
+        return this.status == null || this.status != 2; // 2 表示锁定
     }
 
     @Override
@@ -97,6 +99,7 @@ public class SecurityUser implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return this.status == 1; // 1琛ㄧず鍚敤
+        // status 缺失时按已启用处理，账号状态在登录阶段已经校验。
+        return this.status == null || this.status == 1; // 1琛ㄧず鍚敤
     }
 }

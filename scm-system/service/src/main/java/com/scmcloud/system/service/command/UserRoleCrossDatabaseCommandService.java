@@ -1,11 +1,11 @@
 package com.scmcloud.system.service.command;
 
 import com.scmcloud.common.data.rw.annotation.Master;
+import com.scmcloud.common.tenant.TenantValidationUtil;
 import com.scmcloud.system.mapper.SysUserRoleMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -36,14 +36,15 @@ public class UserRoleCrossDatabaseCommandService {
      * @param createBy 鍒涘缓锟絀D
      * @return 鎻掑叆琛屾暟
      */
+    // 事务边界由调用方的 @DSTransactional 管理；这里再开 Spring 事务会把连接绑到主库，
+    // 造成后续 @DS("permission") 无法切换。
     @Master(reason = "Write operation must use master database")
-    @Transactional(rollbackFor = Exception.class)
     public int batchInsertUserRoles(UUID userId, List<UUID> roleIds, UUID createBy) {
         if (userId == null || roleIds == null || roleIds.isEmpty()) {
             return 0;
         }
         log.debug("Batch inserting user roles: userId={}, roleCount={}", userId, roleIds.size());
-        return userRoleMapper.batchInsert(userId, roleIds, createBy);
+        return userRoleMapper.batchInsert(userId, roleIds, createBy, TenantValidationUtil.getRequiredTenantId());
     }
 
     /**
@@ -60,7 +61,6 @@ public class UserRoleCrossDatabaseCommandService {
      * @return 鎻掑叆琛屾暟
      */
     @Master(reason = "Write operation must use master database")
-    @Transactional(rollbackFor = Exception.class)
     public int batchInsertTemporaryUserRoles(UUID userId, List<UUID> roleIds,
                                               LocalDateTime effectiveTime,
                                               LocalDateTime expireTime,
@@ -70,7 +70,8 @@ public class UserRoleCrossDatabaseCommandService {
         }
         log.debug("Batch inserting temporary user roles: userId={}, roleCount={}, expireTime={}",
                 userId, roleIds.size(), expireTime);
-        return userRoleMapper.batchInsertTemporary(userId, roleIds, effectiveTime, expireTime, createBy);
+        return userRoleMapper.batchInsertTemporary(userId, roleIds, effectiveTime, expireTime, createBy,
+                TenantValidationUtil.getRequiredTenantId());
     }
 
     /**
@@ -83,7 +84,6 @@ public class UserRoleCrossDatabaseCommandService {
      * @return 鍒犻櫎琛屾暟
      */
     @Master(reason = "Write operation must use master database")
-    @Transactional(rollbackFor = Exception.class)
     public int deleteUserRoles(UUID userId) {
         if (userId == null) {
             return 0;
@@ -104,7 +104,6 @@ public class UserRoleCrossDatabaseCommandService {
      * @return 鏇存柊琛屾暟
      */
     @Master(reason = "Write operation must use master database")
-    @Transactional(rollbackFor = Exception.class)
     public int extendTemporaryRole(UUID userId, UUID roleId, LocalDateTime newExpireTime) {
         if (userId == null || roleId == null || newExpireTime == null) {
             return 0;
@@ -125,7 +124,6 @@ public class UserRoleCrossDatabaseCommandService {
      * @return 鏇存柊琛屾暟
      */
     @Master(reason = "Write operation must use master database")
-    @Transactional(rollbackFor = Exception.class)
     public int terminateTemporaryRole(UUID userId, UUID roleId) {
         if (userId == null || roleId == null) {
             return 0;

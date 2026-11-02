@@ -23,6 +23,7 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.baomidou.dynamic.datasource.annotation.DSTransactional;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
@@ -65,12 +66,15 @@ public class SysUserCommandServiceImpl implements ISysUserCommandService {
     private String defaultPassword;
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
+    // 跨 db_user（用户）与 db_permission（用户角色）：必须用 @DSTransactional，
+    // 普通 @Transactional 会锁定主库连接，导致 @DS("permission") 路由失效。
+    @DSTransactional
     @CacheEvict(value = {"user", "userDetails", "userInfo"}, allEntries = true)
     public void addUser(UserDTO userDTO) {
         UUID tenantId = TenantValidationUtil.getRequiredTenantId();
         UUID operatorId = SecurityUtils.getCurrentUserUuid().orElse(null);
         permissionChecker.requirePermission(operatorId, "user:add");
+        validateRoleAssignment(operatorId, userDTO.getRoleIds());
 
         if (userMapper.existsByUsername(userDTO.getUsername())) {
             throw new BusinessException(ResultCode.USER_EXIST.getCode(),
@@ -105,11 +109,13 @@ public class SysUserCommandServiceImpl implements ISysUserCommandService {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
+    @DSTransactional
     @CacheEvict(value = {"user", "userDetails", "userInfo"}, keyGenerator = KEY_GEN)
     public void updateUser(UserDTO userDTO) {
         SysUser user = commandTemplate.execute("UPDATE", "user:update", userDTO.getId(),
                 (loaded, op) -> {
+                    validateRoleAssignment(op, userDTO.getRoleIds());
+
                     SysUser update = new SysUser();
                     BeanUtils.copyProperties(userDTO, update);
                     update.setPassword(null);
@@ -136,7 +142,7 @@ public class SysUserCommandServiceImpl implements ISysUserCommandService {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
+    @DSTransactional
     @CacheEvict(value = {"user", "userDetails", "userInfo"}, keyGenerator = KEY_GEN)
     public void deleteUser(UUID id) {
         SysUser user = commandTemplate.execute("DELETE", "user:delete", id,
@@ -152,6 +158,8 @@ public class SysUserCommandServiceImpl implements ISysUserCommandService {
                                 ResultCode.USER_CANNOT_DELETE_SELF.getCode(),
                                 ResultCode.USER_CANNOT_DELETE_SELF.getMessage());
                     }
+                    // 同时清理 db_permission 中的用户角色，避免留下孤儿授权。
+                    userRoleCommandService.deleteUserRoles(loaded.getId());
                     userMapper.deleteById(loaded.getId());
                     dataSyncEventPublisher.publishUserDeleted(loaded.getId());
                 });
@@ -211,7 +219,7 @@ public class SysUserCommandServiceImpl implements ISysUserCommandService {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
+    @DSTransactional
     @CacheEvict(value = {"user", "userDetails", "userInfo"}, keyGenerator = KEY_GEN)
     public void grantRoles(UUID userId, List<UUID> roleIds) {
         // Preserves the original behaviour: data-scope check is NOT applied for role grants,
@@ -227,17 +235,7 @@ public class SysUserCommandServiceImpl implements ISysUserCommandService {
         }
         TenantValidationUtil.validateDataOwnership(user.getTenantId());
 
-        if (roleIds != null && !roleIds.isEmpty()) {
-            Integer operatorMaxRoleLevel = userQueryService.getUserMaxRoleLevel(operatorId);
-            for (UUID roleId : roleIds) {
-                Integer roleLevel = roleQueryService.getRoleLevel(roleId);
-                permissionChecker.requireRoleAssignmentPermission(
-                        operatorId, operatorMaxRoleLevel, roleLevel);
-
-                UUID roleTenantId = roleQueryService.getRoleTenantId(roleId);
-                TenantValidationUtil.validateRoleAccess(roleTenantId);
-            }
-        }
+        validateRoleAssignment(operatorId, roleIds);
 
         int deleted = userRoleCommandService.deleteUserRoles(user.getId());
         log.debug("授权操作清除原有角色: user={}, deletedCount={}",
@@ -294,6 +292,21 @@ public class SysUserCommandServiceImpl implements ISysUserCommandService {
                 .set(SysUser::getLastLoginTime, loginTime != null ? loginTime : LocalDateTime.now())
                 .set(SysUser::getLastLoginIp, ipAddress);
         userMapper.update(null, wrapper);
+    }
+
+    /**
+     * 校验当前操作者可以分配目标角色：角色等级不能高于操作者，且角色必须属于当前租户或为平台角色。
+     */
+    private void validateRoleAssignment(UUID operatorId, List<UUID> roleIds) {
+        if (roleIds == null || roleIds.isEmpty()) {
+            return;
+        }
+        Integer operatorMaxRoleLevel = userQueryService.getUserMaxRoleLevel(operatorId);
+        for (UUID roleId : roleIds) {
+            Integer roleLevel = roleQueryService.getRoleLevel(roleId);
+            permissionChecker.requireRoleAssignmentPermission(operatorId, operatorMaxRoleLevel, roleLevel);
+            TenantValidationUtil.validateRoleAccess(roleQueryService.getRoleTenantId(roleId));
+        }
     }
 
     private String generateRandomPassword() {

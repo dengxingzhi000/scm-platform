@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { Form, Input, Select, Modal, Tree } from 'antd'
+import { Form, Input, InputNumber, Select, Modal, Tree } from 'antd'
 import { useCreateRole, useRoleDetail, useUpdateRole, usePermissionList } from '../../hooks'
 import type { Role, Permission } from '../../types'
 
@@ -35,6 +35,7 @@ export default function RoleForm({ open, onClose, role }: RoleFormProps) {
       checkedKeysRef.current = roleDetail?.permissionIds ?? role.permissionIds ?? []
     } else {
       form.resetFields()
+      form.setFieldsValue({ status: 'active', dataScope: 4, roleLevel: 1, sortOrder: 0 })
       checkedKeysRef.current = []
     }
   }, [open, role, roleDetail, form])
@@ -68,6 +69,33 @@ export default function RoleForm({ open, onClose, role }: RoleFormProps) {
           <Input placeholder="ROLE_WAREHOUSE_ADMIN" disabled={!!role} />
         </Form.Item>
         <Form.Item name="description" label="描述"><Input.TextArea /></Form.Item>
+        <Form.Item
+          name="dataScope"
+          label="数据权限范围"
+          tooltip="控制该角色能看到的业务数据范围；1 全部、2 本部门、3 本部门及以下、4 仅本人、5 自定义"
+          rules={[{ required: true }]}
+        >
+          <Select
+            options={[
+              { label: '全部数据', value: 1 },
+              { label: '本部门', value: 2 },
+              { label: '本部门及以下', value: 3 },
+              { label: '仅本人', value: 4 },
+              { label: '自定义', value: 5 },
+            ]}
+          />
+        </Form.Item>
+        <Form.Item
+          name="roleLevel"
+          label="角色等级"
+          tooltip="数值越大代表可分配的角色范围越广；超级管理员建议 9"
+          rules={[{ required: true }]}
+        >
+          <InputNumber min={1} max={9} style={{ width: '100%' }} />
+        </Form.Item>
+        <Form.Item name="sortOrder" label="排序">
+          <InputNumber min={0} max={9999} style={{ width: '100%' }} />
+        </Form.Item>
         <Form.Item name="status" label="状态" rules={[{ required: true }]}><Select options={[{ label: '启用', value: 'active' }, { label: '禁用', value: 'disabled' }]} /></Form.Item>
         <Form.Item label="权限">
           <Tree

@@ -101,10 +101,10 @@ export const toRolePayload = (
   roleCode: normalizeRoleCode(values.code ?? existing?.code ?? ""),
   roleName: values.name ?? existing?.name ?? "",
   roleDesc: values.description ?? existing?.description,
-  roleType: values.roleType ?? existing?.roleType ?? "CUSTOM",
+  roleType: values.roleType ?? existing?.roleType ?? "TENANT_ROLE",
   roleCategory: values.roleCategory ?? existing?.roleCategory ?? "BUSINESS",
   roleLevel: values.roleLevel ?? existing?.roleLevel ?? 1,
-  dataScope: values.dataScope ?? existing?.dataScope ?? 5,
+  dataScope: values.dataScope ?? existing?.dataScope ?? 4,
   status: toApiStatus(values.status ?? existing?.status),
   sortOrder: values.sortOrder ?? existing?.sortOrder ?? 0,
   permissionIds: values.permissionIds ?? existing?.permissionIds ?? [],
@@ -141,12 +141,14 @@ export const toDeptPayload = (
 });
 
 const toUiPermissionType = (type?: number): Permission["type"] => {
+  if (type === 1) return "directory";
   if (type === 3) return "button";
   if (type === 4 || type === 5) return "data";
   return "menu";
 };
 
 const toApiPermissionType = (type: Permission["type"]): number => {
+  if (type === "directory") return 1;
   if (type === "button") return 3;
   if (type === "data") return 5;
   return 2;
