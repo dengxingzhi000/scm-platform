@@ -1,5 +1,6 @@
 package com.scmcloud.ordercenter.service;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.IService;
 import com.scmcloud.ordercenter.domain.entity.OcOrder;
 import com.scmcloud.ordercenter.domain.entity.OcOrderItem;
@@ -11,6 +12,8 @@ public interface IOrderCenterService extends IService<OcOrder> {
     OcOrder createOrder(OcOrder order, List<OcOrderItem> items);
 
     OcOrder getOrder(String orderNo);
+
+    Page<OcOrder> pageQuery(int page, int size, String orderNo, String userId, Integer status);
 
     void cancelOrder(String orderNo, String reason);
 
