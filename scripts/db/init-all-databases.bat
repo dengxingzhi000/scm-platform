@@ -45,7 +45,7 @@ echo.
 
 REM 创建数据库
 echo 第一步: 创建数据库
-for %%d in (db_user db_org db_permission db_approval db_audit db_notify db_product db_inventory db_order db_warehouse db_logistics db_supplier db_tenant db_finance db_purchase db_promotion db_analytics) do (
+for %%d in (db_user db_org db_permission db_approval db_audit db_notify db_system db_product db_inventory db_order db_warehouse db_logistics db_supplier db_tenant db_finance db_purchase db_promotion db_analytics) do (
     echo 创建 %%d...
     psql -h %DB_HOST% -p %DB_PORT% -U %DB_USER% -d postgres -c "CREATE DATABASE %%d WITH ENCODING = 'UTF8';" 2>nul
     if !ERRORLEVEL! EQU 0 (
@@ -68,6 +68,7 @@ for %%s in (
     "db_approval:microservices\004_db_approval.sql"
     "db_audit:microservices\005_db_audit.sql"
     "db_notify:microservices\006_db_notify.sql"
+    "db_system:microservices\030_sys_file_metadata.sql"
     "db_product:microservices\010_db_product.sql"
     "db_inventory:microservices\011_db_inventory.sql"
     "db_order:microservices\012_db_order.sql"

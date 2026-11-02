@@ -31,6 +31,7 @@ DATABASES=(
     "db_approval:审批服务"
     "db_audit:审计服务"
     "db_notify:通知服务"
+    "db_system:文件/消息共享库"
     "db_product:商品服务"
     "db_inventory:库存服务"
     "db_order:订单服务"
@@ -95,6 +96,7 @@ EXISTING_SCRIPTS=(
     "microservices/004_db_approval.sql:db_approval"
     "microservices/005_db_audit.sql:db_audit"
     "microservices/006_db_notify.sql:db_notify"
+    "microservices/030_sys_file_metadata.sql:db_system"
 )
 
 for script_entry in "${EXISTING_SCRIPTS[@]}"; do
