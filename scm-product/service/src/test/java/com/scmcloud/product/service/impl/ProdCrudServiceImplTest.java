@@ -10,6 +10,10 @@ import com.scmcloud.product.mapper.ProdBrandMapper;
 import com.scmcloud.product.mapper.ProdCategoryMapper;
 import com.scmcloud.product.mapper.ProdSkuMapper;
 import com.scmcloud.product.mapper.ProdSpuMapper;
+import com.baomidou.mybatisplus.core.MybatisConfiguration;
+import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
+import org.apache.ibatis.builder.MapperBuilderAssistant;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -24,6 +28,20 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class ProdCrudServiceImplTest {
+
+    @BeforeEach
+    void initTableInfo() {
+        // The delete paths build a LambdaUpdateWrapper, which resolves the
+        // column names through the MyBatis-Plus lambda cache. That cache is
+        // only populated when a mapper is initialised, so a plain Mockito
+        // test has to seed it explicitly.
+        MapperBuilderAssistant assistant = new MapperBuilderAssistant(new MybatisConfiguration(), "");
+        TableInfoHelper.initTableInfo(assistant, ProdSpu.class);
+        TableInfoHelper.initTableInfo(assistant, ProdBrand.class);
+        TableInfoHelper.initTableInfo(assistant, ProdSku.class);
+        TableInfoHelper.initTableInfo(assistant, ProdCategory.class);
+        TableInfoHelper.initTableInfo(assistant, ProdAttributeTemplate.class);
+    }
 
     private void attach(Object service, Object mapper) {
         ReflectionTestUtils.setField(service, "baseMapper", mapper);

@@ -5,6 +5,7 @@ import com.scmcloud.product.service.IProdBrandService;
 import com.scmcloud.product.service.IProdCategoryService;
 import com.scmcloud.product.service.IProdSkuService;
 import com.scmcloud.product.service.IProdSpuService;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -17,6 +18,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -124,6 +126,11 @@ class ProductCrudControllersTest {
 
     @Test
     void listEndpointsShouldDelegateQueryConditions() throws Exception {
+        // PageResult.of() rejects a null page, so the delegated call has to
+        // return a real page rather than the default null from the mock.
+        when(skuService.pageBySpuId(eq("spu-1"), eq(1), eq(10))).thenReturn(new Page<>());
+        when(brandService.pageByName(eq("brand"), eq(1), eq(10))).thenReturn(new Page<>());
+
         MockMvc skuMvc = MockMvcBuilders.standaloneSetup(skuController).build();
         skuMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
                         .get("/api/v1/prod-sku").param("spuId", "spu-1"))
