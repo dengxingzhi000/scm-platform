@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,12 +21,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   useAssignSupplierCategories,
   useSupplierAssignedCategories,
   useSupplierCategories,
 } from "../hooks";
 import { errorMessage } from "../lib/api-error";
+import type { SupplierCategory } from "../types";
 
 interface SupplierCategoryPanelProps {
   supplierId: string;
@@ -39,21 +41,115 @@ const MISSING = "-";
 const ERROR_STRIP =
   "border-destructive/30 bg-destructive/10 text-destructive rounded-md border px-3 py-2 text-sm";
 
-/** 两个 id 集合是否一致（顺序无关）。 */
-const sameIds = (a: string[], b: string[]): boolean =>
-  a.length === b.length && a.every((id) => b.includes(id));
+interface CategoryDialogProps {
+  open: boolean;
+  supplierId: string;
+  /** 分类字典 —— 勾选列表。 */
+  categories: SupplierCategory[];
+  /** 已关联的分类 id —— 勾选初值。 */
+  assignedIds: string[];
+  onOpenChange: (open: boolean) => void;
+}
+
+/**
+ * 勾选弹窗。只在打开时挂载：勾选状态在挂载那一刻用「已关联的分类」初始化，
+ * 之后服务端集合再变也不会动用户正在做的选择。
+ */
+function CategoryDialog({
+  open,
+  supplierId,
+  categories,
+  assignedIds,
+  onOpenChange,
+}: CategoryDialogProps) {
+  const assign = useAssignSupplierCategories();
+  const [selected, setSelected] = useState<string[]>(assignedIds);
+  const [error, setError] = useState<string | null>(null);
+
+  const toggle = (id: string, checked: boolean) => {
+    setSelected((prev) =>
+      checked
+        ? prev.includes(id)
+          ? prev
+          : [...prev, id]
+        : prev.filter((item) => item !== id),
+    );
+  };
+
+  /**
+   * PUT /suppliers/{id}/categories 是整体替换，不是增量 ——
+   * 提交的是完整的 id 集合，取消勾选就是解除关联。
+   */
+  const handleSave = async () => {
+    setError(null);
+    try {
+      await assign.mutateAsync({ id: supplierId, categoryIds: selected });
+      onOpenChange(false);
+    } catch (e) {
+      setError(errorMessage(e));
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>设置分类</DialogTitle>
+          <DialogDescription>
+            勾选该供应商供应的分类；保存后整体替换当前的关联关系。
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="max-h-[50vh] space-y-0.5 overflow-y-auto pr-1">
+          {categories.length === 0 ? (
+            <p className="text-muted-foreground text-xs">分类字典为空。</p>
+          ) : (
+            categories.map((category) => (
+              <label
+                key={category.id}
+                className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 hover:bg-[var(--color-bg-hover)]"
+              >
+                <Checkbox
+                  checked={selected.includes(category.id)}
+                  onCheckedChange={(checked) =>
+                    toggle(category.id, checked === true)
+                  }
+                  aria-label={category.categoryName ?? category.id}
+                />
+                <span className="text-[12px]">
+                  {/* 子分类用全角空格缩进，与商品分类的下拉写法一致。 */}
+                  {category.parentId ? "　" : ""}
+                  {category.categoryName ?? MISSING}
+                </span>
+              </label>
+            ))
+          )}
+        </div>
+
+        {error && <div className={ERROR_STRIP}>{error}</div>}
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            取消
+          </Button>
+          <Button disabled={assign.isPending} onClick={handleSave}>
+            {assign.isPending ? "保存中…" : "保存"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function SupplierCategoryPanel({
   supplierId,
 }: SupplierCategoryPanelProps) {
   // 已关联的分类（GET /suppliers/{id}/categories）与分类字典是两回事。
-  const { data: assigned } = useSupplierAssignedCategories(supplierId);
+  const { data: assigned, isLoading: assignedLoading } =
+    useSupplierAssignedCategories(supplierId);
   const { data: dictionary } = useSupplierCategories();
-  const assign = useAssignSupplierCategories();
 
   const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState<string[]>([]);
-  const [error, setError] = useState<string | null>(null);
 
   const assignedCategories = assigned ?? [];
   const assignedIds = useMemo(
@@ -77,38 +173,10 @@ export default function SupplierCategoryPanel({
   );
 
   /**
-   * 已关联的分类是服务端的事实：弹窗打开、或服务端返回的集合变化时
-   * （保存后刷新、后台重新拉取），把勾选状态对齐到服务端返回的集合。
-   * 集合内容没变时保持 state 不动 —— 否则每次渲染都会白写一遍。
+   * 已关联的集合还没到手时不挂弹窗：勾选初值在挂载那一刻就得是对的，
+   * 否则「先开弹窗、后拿到数据」会把已有关联当成空的，保存等于清空。
    */
-  useEffect(() => {
-    if (!open) return;
-    setSelected((prev) => (sameIds(prev, assignedIds) ? prev : assignedIds));
-  }, [open, assignedIds]);
-
-  const toggle = (id: string, checked: boolean) => {
-    setSelected((prev) =>
-      checked
-        ? prev.includes(id)
-          ? prev
-          : [...prev, id]
-        : prev.filter((item) => item !== id),
-    );
-  };
-
-  /**
-   * PUT /suppliers/{id}/categories 是整体替换，不是增量 ——
-   * 提交的是完整的 id 集合，清空所有勾选等于解除全部关联。
-   */
-  const handleSave = async () => {
-    setError(null);
-    try {
-      await assign.mutateAsync({ id: supplierId, categoryIds: selected });
-      setOpen(false);
-    } catch (e) {
-      setError(errorMessage(e));
-    }
-  };
+  const assignedReady = assigned !== undefined;
 
   return (
     <Card>
@@ -120,10 +188,8 @@ export default function SupplierCategoryPanel({
         <CardAction>
           <Button
             variant="outline"
-            onClick={() => {
-              setError(null);
-              setOpen(true);
-            }}
+            disabled={!assignedReady}
+            onClick={() => setOpen(true)}
           >
             设置分类
           </Button>
@@ -131,7 +197,9 @@ export default function SupplierCategoryPanel({
       </CardHeader>
 
       <CardContent>
-        {assignedCategories.length === 0 ? (
+        {assignedLoading ? (
+          <Skeleton className="h-5 w-32" />
+        ) : assignedCategories.length === 0 ? (
           <p className="text-muted-foreground text-xs">尚未关联分类。</p>
         ) : (
           <div className="flex flex-wrap gap-2">
@@ -144,53 +212,15 @@ export default function SupplierCategoryPanel({
         )}
       </CardContent>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>设置分类</DialogTitle>
-            <DialogDescription>
-              勾选该供应商供应的分类；保存后整体替换当前的关联关系。
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="max-h-[50vh] space-y-0.5 overflow-y-auto pr-1">
-            {categories.length === 0 ? (
-              <p className="text-muted-foreground text-xs">分类字典为空。</p>
-            ) : (
-              categories.map((category) => (
-                <label
-                  key={category.id}
-                  className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 hover:bg-[var(--color-bg-hover)]"
-                >
-                  <Checkbox
-                    checked={selected.includes(category.id)}
-                    onCheckedChange={(checked) =>
-                      toggle(category.id, checked === true)
-                    }
-                    aria-label={category.categoryName ?? category.id}
-                  />
-                  <span className="text-[12px]">
-                    {/* 子分类用全角空格缩进，与商品分类的下拉写法一致。 */}
-                    {category.parentId ? "　" : ""}
-                    {category.categoryName ?? MISSING}
-                  </span>
-                </label>
-              ))
-            )}
-          </div>
-
-          {error && <div className={ERROR_STRIP}>{error}</div>}
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>
-              取消
-            </Button>
-            <Button disabled={assign.isPending} onClick={handleSave}>
-              {assign.isPending ? "保存中…" : "保存"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {open && assignedReady && (
+        <CategoryDialog
+          open={open}
+          supplierId={supplierId}
+          categories={categories}
+          assignedIds={assignedIds}
+          onOpenChange={setOpen}
+        />
+      )}
     </Card>
   );
 }

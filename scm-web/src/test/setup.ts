@@ -25,6 +25,28 @@ if (!globalThis.ResizeObserver) {
 }
 
 /**
+ * jsdom 也没有实现 Pointer Capture 与 scrollIntoView。Radix UI 的 Select 在
+ * 处理指针事件时会调 `target.hasPointerCapture(...)`,选中选项时还会调
+ * `candidate.scrollIntoView(...)`,于是点开下拉会直接抛
+ * "target.hasPointerCapture is not a function" / "candidate?.scrollIntoView is not a function"。
+ *
+ * 这里补几个空实现 —— 组件测试关心的是交互与可访问性,
+ * 不需要真实的指针捕获状态与滚动行为。
+ */
+if (!Element.prototype.hasPointerCapture) {
+  Element.prototype.hasPointerCapture = () => false;
+}
+if (!Element.prototype.setPointerCapture) {
+  Element.prototype.setPointerCapture = () => {};
+}
+if (!Element.prototype.releasePointerCapture) {
+  Element.prototype.releasePointerCapture = () => {};
+}
+if (!Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = () => {};
+}
+
+/**
  * Vitest 没有开 globals:true,所以全局不存在 afterEach,
  * Testing Library 的自动 cleanup 不会注册(见 @testing-library/react 的
  * dist/index.js:仅在全局 afterEach/teardown 存在时自动 cleanup)。

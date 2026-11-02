@@ -9,11 +9,15 @@ const h = vi.hoisted(() => ({
   create: vi.fn(),
   update: vi.fn(),
   contacts: [] as unknown[],
+  assigned: [] as unknown[],
 }));
 
 vi.mock("../hooks", () => ({
-  useSupplierCategories: () => ({ data: [{ id: "c-1", categoryCode: "RAW", categoryName: "原材料", level: 1, enabled: true, sortOrder: 10, createTime: null, remark: null }] }),
-  useSupplierAssignedCategories: () => ({ data: [{ id: "c-1", categoryCode: "RAW", categoryName: "原材料", level: 1, enabled: true, sortOrder: 10, createTime: null, remark: null }] }),
+  useSupplierCategories: () => ({ data: [
+    { id: "c-1", categoryCode: "RAW", categoryName: "原材料", level: 1, enabled: true, sortOrder: 10, createTime: null, remark: null },
+    { id: "c-2", categoryCode: "RAW_ELEC", categoryName: "电子元器件", level: 2, enabled: true, sortOrder: 11, createTime: null, remark: null },
+  ] }),
+  useSupplierAssignedCategories: () => ({ data: h.assigned }),
   useAssignSupplierCategories: () => ({ mutateAsync: h.assign, isPending: false }),
   useSupplierContacts: () => ({ data: h.contacts }),
   useCreateSupplierContact: () => ({ mutateAsync: h.create, isPending: false }),
@@ -24,6 +28,18 @@ vi.mock("../hooks", () => ({
 
 import SupplierCategoryPanel from "./supplier-category-panel";
 import SupplierContactPanel from "./supplier-contact-panel";
+
+/** 分类字典里的「原材料」。 */
+const rawCategory = {
+  id: "c-1",
+  categoryCode: "RAW",
+  categoryName: "原材料",
+  level: 1,
+  enabled: true,
+  sortOrder: 10,
+  createTime: null,
+  remark: null,
+};
 
 /** 主联系人 —— 张伟。 */
 const zhangWei = {
@@ -60,6 +76,7 @@ describe("supplier detail panels", () => {
     h.create.mockReset().mockResolvedValue(undefined);
     h.update.mockReset().mockResolvedValue(undefined);
     h.contacts = [zhangWei];
+    h.assigned = [];
   });
 
   it("sends the selected category ids as an array when the assignment is saved", async () => {
@@ -74,12 +91,29 @@ describe("supplier detail panels", () => {
     render(<SupplierContactPanel supplierId="s-1" />);
     expect(await screen.findByText("张伟")).toBeInTheDocument();
     expect(screen.getByText("主联系人")).toBeInTheDocument();
+    expect(screen.getByText("销售")).toBeInTheDocument();
   });
 
   it("pre-checks the categories the supplier is already assigned", async () => {
+    h.assigned = [rawCategory];
     render(<SupplierCategoryPanel supplierId="s-1" />);
     await userEvent.click(screen.getByRole("button", { name: "设置分类" }));
     expect(await screen.findByRole("checkbox", { name: "原材料" })).toBeChecked();
+  });
+
+  it("removes an association when the user unchecks it", async () => {
+    h.assigned = [rawCategory];
+    render(<SupplierCategoryPanel supplierId="s-1" />);
+    await userEvent.click(screen.getByRole("button", { name: "设置分类" }));
+
+    const checkbox = await screen.findByRole("checkbox", { name: "原材料" });
+    expect(checkbox).toBeChecked();
+    await userEvent.click(checkbox);
+
+    await userEvent.click(screen.getByRole("button", { name: "保存" }));
+    await waitFor(() =>
+      expect(h.assign).toHaveBeenCalledWith({ id: "s-1", categoryIds: [] }),
+    );
   });
 
   it("shows the failure reason when the assignment is rejected", async () => {
@@ -101,12 +135,12 @@ describe("supplier detail panels", () => {
   it("deletes a contact only after the confirmation", async () => {
     render(<SupplierContactPanel supplierId="s-1" />);
     await userEvent.click(await screen.findByRole("button", { name: "删除张伟" }));
+    expect(h.remove).not.toHaveBeenCalled();
     await userEvent.click(await screen.findByRole("button", { name: "删除" }));
     await waitFor(() => expect(h.remove).toHaveBeenCalledWith({ supplierId: "s-1", id: "ct-1" }));
   });
 
-  // 角色下拉本身没有用例：Radix Select 在 jsdom 里需要 hasPointerCapture 桩，
-  // 而仓库的 test/setup.ts 只补了 ResizeObserver。这里断言下拉的默认值映射。
+  // 「未指定」是角色下拉的默认值，提交时要落成 null。
   it("creates a contact from the form", async () => {
     render(<SupplierContactPanel supplierId="s-1" />);
     await userEvent.click(await screen.findByRole("button", { name: "新增联系人" }));
@@ -135,6 +169,23 @@ describe("supplier detail panels", () => {
         supplierId: "s-1",
         id: "ct-1",
         data: expect.objectContaining({ contactPhone: "13900002211" }),
+      }),
+    );
+  });
+
+  it("picks the contact role from the dropdown", async () => {
+    render(<SupplierContactPanel supplierId="s-1" />);
+    await userEvent.click(await screen.findByRole("button", { name: "新增联系人" }));
+
+    await userEvent.click(await screen.findByLabelText("角色"));
+    await userEvent.click(await screen.findByRole("option", { name: "财务" }));
+
+    await userEvent.type(await screen.findByLabelText("姓名"), "李娜");
+    await userEvent.click(screen.getByRole("button", { name: "保存" }));
+    await waitFor(() =>
+      expect(h.create).toHaveBeenCalledWith({
+        supplierId: "s-1",
+        data: expect.objectContaining({ contactName: "李娜", contactRole: "FINANCE" }),
       }),
     );
   });
