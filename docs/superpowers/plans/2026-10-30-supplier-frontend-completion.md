@@ -1518,15 +1518,20 @@ git commit -m "feat(supplier): performance evaluation and change log sections"
 
 **Files:**
 - Create: `src/features/supplier/components/supplier-form.tsx`
+- Create: `src/features/supplier/hooks/use-supplier-form-detail.ts`
 - Create: `src/app/[locale]/(app)/supplier/new/page.tsx`
 - Create: `src/app/[locale]/(app)/supplier/[id]/edit/page.tsx`
+- Modify: `src/features/supplier/hooks/index.ts`（导出新 hook）
+- Modify: `src/features/supplier/lib/query-keys.ts`（新增 `formDetail` key）
+- Modify: `src/features/supplier/components/index.ts`（具名导出 `SupplierForm`）
 - Test: `src/features/supplier/components/supplier-form.test.tsx`
 
 **Interfaces:**
 - Consumes: Task 4 的 `supplierFormSchema` / `toSupplierFormValues` / `toSupplierPayload` / `supplierFormDefaults`、
-  Task 5 的 `useCreateSupplier` / `useUpdateSupplier` / `useSupplierDetail`、Task 3 的 `errorMessage`
+  Task 5 的 `useCreateSupplier` / `useUpdateSupplier`、Task 3 的 `errorMessage`
 - Produces:
   - `components/supplier-form.tsx` 导出 `default function SupplierForm({ id }: { id?: string })`
+  - `hooks/use-supplier-form-detail.ts` 导出 `useSupplierFormDetail(id: string)` —— 返回 **`SupplierDTO`**（不是 UI `Supplier`）
 
 - [ ] **Step 1: 写失败的测试**
 
@@ -1539,7 +1544,7 @@ const h = vi.hoisted(() => ({ push: vi.fn(), create: vi.fn(), update: vi.fn() })
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: h.push }) }));
 vi.mock("../hooks", () => ({
-  useSupplierDetail: () => ({ data: undefined }),
+  useSupplierFormDetail: () => ({ data: undefined, isLoading: false, isError: false }),
   useCreateSupplier: () => ({ mutateAsync: h.create, isPending: false }),
   useUpdateSupplier: () => ({ mutateAsync: h.update, isPending: false }),
 }));
@@ -1579,8 +1584,14 @@ describe("SupplierForm", () => {
 - [ ] **Step 3: 实现 `components/supplier-form.tsx`**
 
 - `useForm<SupplierFormValues>({ resolver: zodResolver(supplierFormSchema), defaultValues: supplierFormDefaults, mode: "onBlur" })`
-- 编辑模式：`useSupplierDetail(id)` 拿到 DTO 后 `form.reset(toSupplierFormValues(dto))`
-  （`useEffect` 依赖 `[data, form]`）
+- 编辑模式：`useSupplierFormDetail(id ?? "")` 拿到 **`SupplierDTO`** 后
+  `form.reset(toSupplierFormValues(dto))`（`useEffect` 依赖 `[dto, form]`）；
+  查询在途时显示 `Skeleton`，失败时显示 `errorMessage(error)` + 「返回列表」。
+  **不要用 `useSupplierDetail`**：它返回的是 UI `Supplier`（`code` / `name` / `contactPerson`），
+  缺少 `bankName` / `bankAccount` / `businessLicense` / `certificates` 等表单字段，而且目前没有任何调用点；
+  它的文件里还有别的 agent 未提交的改动，本次不要碰。新 hook 直接返回
+  `supplierApiService.getById(id)` 的 `SupplierDTO`，query key 用新增的
+  `supplierKeys.formDetail(id)`，避免以后和 `detail` 的 UI 形状撞车。
 - 4 张 `Card`：基本信息 / 联系信息 / 结算信息 / 其他，栅格 `grid gap-4 md:grid-cols-2`
 - 字段与 `SupplierFormValues` 一一对应；`supplierType` 用 `Select`（`SUPPLIER_TYPES`），
   `creditRating` 用 `Select`（空串选项 + 6 个等级），`registeredCapital` / `sortOrder` 用 `type="number"`，
@@ -1615,12 +1626,21 @@ import { SupplierForm } from "@/features/supplier/components";
 
 export default function SupplierEditPage() {
   const pathname = usePathname();
-  const id = pathname.split("/").pop() ?? "";
+  // 路径是 /{locale}/supplier/{id}/edit，最后一段是 "edit"，id 在倒数第二段。
+  // 不能照抄详情页的 split("/").pop() —— 那会拿到 "edit"。
+  const segments = pathname.split("/").filter(Boolean);
+  const id = segments[segments.length - 2] ?? "";
   return <SupplierForm id={id} />;
 }
 ```
 
-（与既有 `src/app/[locale]/(app)/supplier/[id]/page.tsx` 的取 id 方式保持一致）
+`components/index.ts` 增加一行具名导出，路由用的 `import { SupplierForm }` 才能成立：
+
+```ts
+export { default as SupplierForm } from './supplier-form'
+```
+
+（`supplier-form.tsx` 本身仍是 default export。）
 
 - [ ] **Step 5: 跑测试 + 类型检查 + 提交**
 
@@ -1628,7 +1648,7 @@ Run: `npx vitest run src/features/supplier/components/supplier-form.test.tsx` �
 Run: `npm run typecheck` → 无错误
 
 ```bash
-git add src/features/supplier/components/supplier-form.tsx src/features/supplier/components/supplier-form.test.tsx "src/app/[locale]/(app)/supplier/new/page.tsx" "src/app/[locale]/(app)/supplier/[id]/edit/page.tsx"
+git add src/features/supplier/components/supplier-form.tsx src/features/supplier/components/supplier-form.test.tsx src/features/supplier/components/index.ts src/features/supplier/hooks/use-supplier-form-detail.ts src/features/supplier/hooks/index.ts src/features/supplier/lib/query-keys.ts "src/app/[locale]/(app)/supplier/new/page.tsx" "src/app/[locale]/(app)/supplier/[id]/edit/page.tsx"
 git commit -m "feat(supplier): create and edit supplier master data form"
 ```
 
