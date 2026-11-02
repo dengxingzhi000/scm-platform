@@ -1,5 +1,7 @@
 package com.scmcloud.document.file.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.scmcloud.document.file.domain.entity.DocumentFile;
 import com.scmcloud.document.file.mapper.DocumentFileMapper;
@@ -9,6 +11,7 @@ import com.scmcloud.file.api.dto.FileMetadataDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.util.Optional;
 
@@ -27,6 +30,20 @@ public class DocumentFileService extends ServiceImpl<DocumentFileMapper, Documen
                 .eq(DocumentFile::getId, id)
                 .eq(DocumentFile::getTenantId, tenantId)
                 .oneOpt();
+    }
+
+    /**
+     * 分页查询文档文件，支持按名称关键字、来源类型和关联业务 ID 过滤。
+     */
+    public Page<DocumentFile> pageQuery(int page, int size, String tenantId, String keyword,
+                                        String sourceType, String refId) {
+        LambdaQueryWrapper<DocumentFile> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(DocumentFile::getTenantId, tenantId)
+                .like(StringUtils.hasText(keyword), DocumentFile::getOriginalName, keyword)
+                .eq(StringUtils.hasText(sourceType), DocumentFile::getSourceType, sourceType)
+                .eq(StringUtils.hasText(refId), DocumentFile::getRefId, refId)
+                .orderByDesc(DocumentFile::getCreateTime);
+        return page(new Page<>(page, size), wrapper);
     }
 
     /** 通过 scm-file 解析真实文件元数据 */
