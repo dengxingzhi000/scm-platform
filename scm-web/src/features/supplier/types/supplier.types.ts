@@ -21,11 +21,22 @@ export interface Supplier {
   remark?: string
 }
 
+/**
+ * 列表筛选条件。`current` / `pageSize` / `keyword` / `status` 是前端自己的
+ * 分页与关键字筛选项，其余字段与后端 `GET /suppliers` 的查询参数同名，直接透传。
+ */
 export interface SupplierSearchParams {
   current?: number
   pageSize?: number
   keyword?: string
-  status?: string
+  status?: string // active | disabled
+  supplierType?: number
+  cooperationStatus?: number
+  auditStatus?: number
+  supplierLevel?: number
+  riskLevel?: number
+  blacklisted?: boolean
+  categoryId?: string
 }
 
 export interface PageResult<T> {
