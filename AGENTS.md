@@ -265,10 +265,11 @@ pointing at its own `db_<service>`.
 (`com.scmcloud.common.data.rw.annotation`); `scm-common/data-rw-stub` is a
 no-op variant for editions without replicas. Query services → `@Slave`, command
 services → `@Master`. **The whole auto-configuration is gated on
-`spring.datasource.rw.enabled=true`, which no service sets**, so the annotations
-are inert and everything hits the single `spring.datasource.url` until a service
-opts in via a profile — see `docs/guides/READ_WRITE_SEPARATION_GUIDE.md`
-(`scm-order` ships `application-readwrite.yml` as the template).
+`spring.datasource.rw.enabled=true`.** `scm-product` is the only service that
+sets it, together with `spring.datasource.dynamic.enabled=false`; every other
+service keeps the inert single-datasource behaviour. Routing semantics, fallback
+and observability are documented in `docs/guides/READ_WRITE_SEPARATION_GUIDE.md`
+(`scm-order` still ships an unactivated `application-readwrite.yml` template).
 
 ### CQRS
 

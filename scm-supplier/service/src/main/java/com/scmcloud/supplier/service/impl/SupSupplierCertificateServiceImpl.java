@@ -141,7 +141,7 @@ public class SupSupplierCertificateServiceImpl
                 .filter(StringUtils::hasText)
                 .collect(Collectors.toSet());
         if (!supplierIds.isEmpty()) {
-            Map<String, SupSupplier> suppliers = supplierMapper.selectBatchIds(supplierIds).stream()
+            Map<String, SupSupplier> suppliers = supplierMapper.selectByIds(supplierIds).stream()
                     .collect(Collectors.toMap(SupSupplier::getId, Function.identity()));
             records.forEach(certificate -> {
                 SupSupplier supplier = suppliers.get(certificate.getSupplierId());

@@ -2,304 +2,558 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCM Platform — 功能特性</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&family=Noto+Serif+SC:wght@400;500;600&display=swap');
-:root {
-  --mono: 'JetBrains Mono', monospace;
-  --serif: 'Instrument Serif', 'Noto Serif SC', serif;
-  --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --bg: #fafaf8; --bg2: #f5f5f0; --bg-card: #ffffff;
-  --t1: #1a1a18; --t2: #5a5a56; --t3: #8a8a86;
-  --border: #e8e8e4; --border2: #d4d4d0;
-  --accent: #2563eb; --green: #16a34a; --red: #dc2626; --amber: #d97706;
-}
-.lang-switch { font-family: var(--mono); font-size: 10px; padding: 4px 10px; border-radius: 6px; color: var(--t3); text-decoration: none; border: .5px solid var(--border); transition: color .15s, background .15s; letter-spacing: .02em; margin-left: 8px; }
-.lang-switch:hover { color: var(--t1); background: var(--bg2); }
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: var(--sans); background: var(--bg); color: var(--t1); -webkit-font-smoothing: antialiased; }
-
-/* Header */
-.site-header { position: sticky; top: 0; z-index: 100; background: rgba(250,250,248,.85); backdrop-filter: blur(12px); border-bottom: .5px solid var(--border); }
-.site-header-inner { max-width: 960px; margin: 0 auto; padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; }
-.site-logo { font-family: var(--mono); font-size: 13px; font-weight: 500; color: var(--t1); text-decoration: none; }
-.site-nav { display: flex; gap: 4px; align-items: center; }
-.site-nav a { font-family: var(--mono); font-size: 11px; padding: 5px 12px; border-radius: 6px; color: var(--t3); text-decoration: none; transition: color .15s, background .15s; letter-spacing: .02em; }
-.site-nav a:hover, .site-nav a.active { color: var(--t1); background: var(--bg2); }
-.site-nav-cta { background: var(--t1) !important; color: var(--bg) !important; padding: 5px 14px !important; border-radius: 6px !important; }
-.site-nav-cta:hover { opacity: .85 !important; }
-
-/* Footer */
-.site-footer { border-top: .5px solid var(--border); padding: 32px 0; margin-top: 64px; }
-.site-footer-inner { max-width: 960px; margin: 0 auto; padding: 0 24px; display: flex; justify-content: space-between; align-items: center; }
-.site-footer-left { font-family: var(--mono); font-size: 11px; color: var(--t3); }
-.site-footer-right { font-family: var(--serif); font-size: 13px; font-style: italic; color: var(--t3); }
-
-/* Page */
-.site-page { max-width: 680px; margin: 0 auto; padding: 0 24px; }
-.site-hero { padding: 48px 0 32px; border-bottom: .5px solid var(--border); margin-bottom: 40px; }
-.site-hero-eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; color: var(--t3); text-transform: uppercase; margin-bottom: 16px; }
-.site-hero h1 { font-family: var(--serif); font-size: 34px; font-weight: 400; line-height: 1.15; color: var(--t1); margin-bottom: 16px; }
-.site-hero-sub { font-size: 15px; color: var(--t2); line-height: 1.65; max-width: 520px; }
-.site-section { margin-bottom: 48px; }
-.site-section-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: .5px solid var(--border); }
-.site-section-num { font-family: var(--mono); font-size: 11px; color: var(--t3); min-width: 20px; }
-.site-section-title { font-size: 15px; font-weight: 500; color: var(--t1); }
-.site-prose { font-size: 14px; line-height: 1.8; color: var(--t2); }
-.site-prose + .site-prose { margin-top: 12px; }
-.site-callout { border-left: 2px solid var(--border2); padding: 12px 16px; margin: 16px 0; font-family: var(--serif); font-size: 15px; font-style: italic; color: var(--t2); line-height: 1.6; }
-
-/* Pillar grid */
-.site-pillar-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
-.site-pillar-card { background: var(--bg-card); border: .5px solid var(--border); border-radius: 8px; padding: 14px 16px; }
-.site-pillar-label { font-family: var(--mono); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--t3); margin-bottom: 4px; }
-.site-pillar-title { font-size: 13px; font-weight: 500; color: var(--t1); margin-bottom: 4px; }
-.site-pillar-desc { font-size: 12px; color: var(--t2); line-height: 1.5; }
-
-/* Feature grid */
-.site-feature-grid { display: flex; flex-direction: column; gap: 0; margin: 16px 0; }
-.site-feature-row { display: grid; grid-template-columns: 180px 1fr; gap: 16px; padding: 16px 0; border-bottom: .5px solid var(--border); align-items: start; }
-.site-feature-row:last-child { border-bottom: none; }
-.site-feature-name { font-size: 13px; font-weight: 500; color: var(--t1); }
-.site-feature-port { font-family: var(--mono); font-size: 10px; color: var(--t3); margin-top: 2px; }
-.site-feature-desc { font-size: 13px; color: var(--t2); line-height: 1.6; }
-
-/* Landing */
-.site-landing-hero { padding: 80px 0 48px; text-align: center; }
-.site-landing-hero h1 { font-family: var(--serif); font-size: 48px; font-weight: 400; line-height: 1.1; color: var(--t1); margin-bottom: 20px; }
-.site-landing-hero-sub { font-size: 16px; color: var(--t2); line-height: 1.7; max-width: 560px; margin: 0 auto 32px; }
-.site-landing-cta { display: inline-flex; gap: 12px; }
-.site-landing-cta a { font-family: var(--mono); font-size: 12px; padding: 10px 24px; border-radius: 8px; text-decoration: none; transition: opacity .15s; }
-.site-landing-cta-primary { background: var(--t1); color: var(--bg); }
-.site-landing-cta-secondary { background: var(--bg2); color: var(--t1); border: .5px solid var(--border); }
-
-/* Highlight grid */
-.site-highlight-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin: 32px 0; }
-.site-highlight-card { background: var(--bg-card); border: .5px solid var(--border); border-radius: 8px; padding: 20px 16px; }
-.site-highlight-icon { font-size: 20px; margin-bottom: 12px; }
-.site-highlight-title { font-size: 13px; font-weight: 500; color: var(--t1); margin-bottom: 6px; }
-.site-highlight-desc { font-size: 12px; color: var(--t2); line-height: 1.5; }
-
-/* Tech bar */
-.site-tech-bar { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 24px 0; }
-.site-tech-tag { font-family: var(--mono); font-size: 10px; padding: 4px 10px; border-radius: 99px; border: .5px solid var(--border); color: var(--t3); background: var(--bg-card); }
-
-/* Diagram */
-.site-diagram { background: var(--bg2); border-radius: 12px; border: .5px solid var(--border); padding: 20px; margin: 16px 0; overflow-x: auto; }
-.site-diagram svg { display: block; margin: 0 auto; }
-
-/* SLO grid */
-.site-slo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 16px 0; }
-.site-slo-card { background: var(--bg2); border-radius: 8px; padding: 12px; border: .5px solid var(--border); }
-.site-slo-op { font-size: 11px; color: var(--t2); margin-bottom: 8px; line-height: 1.4; }
-.site-slo-vals { display: flex; gap: 4px; flex-wrap: wrap; }
-.site-slo-val { font-family: var(--mono); font-size: 10px; padding: 2px 5px; border-radius: 4px; background: var(--bg-card); border: .5px solid var(--border); color: var(--t2); }
-.site-slo-label { font-family: var(--mono); font-size: 9px; color: var(--t3); }
-
-/* Philosophy nav pills */
-.site-nav-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 32px; }
-.site-nav-pill { font-family: var(--mono); font-size: 10px; padding: 4px 12px; border-radius: 99px; border: .5px solid var(--border); color: var(--t3); cursor: pointer; transition: background .15s, color .15s, border-color .15s; background: none; }
-.site-nav-pill:hover, .site-nav-pill.active { background: var(--bg2); color: var(--t1); border-color: var(--border2); }
-.dp-section { margin-bottom: 40px; display: none; }
-.dp-section.visible { display: block; }
-
-/* Tradeoff */
-.site-tradeoff { background: var(--bg2); border-radius: 8px; border: .5px solid var(--border); padding: 16px 20px; margin: 16px 0; }
-.site-tradeoff-head { font-family: var(--mono); font-size: 10px; letter-spacing: .07em; text-transform: uppercase; color: var(--t3); margin-bottom: 12px; }
-.site-tradeoff-row { display: grid; grid-template-columns: 80px 1fr; gap: 12px; padding: 8px 0; border-bottom: .5px solid var(--border); font-size: 13px; line-height: 1.5; align-items: start; }
-.site-tradeoff-row:last-child { border-bottom: none; }
-.site-tradeoff-label { font-family: var(--mono); font-size: 10px; padding-top: 2px; }
-.label-chosen { color: var(--green); }
-.label-rejected { color: var(--red); }
-.label-cost { color: var(--amber); }
-.site-tradeoff-text { color: var(--t2); }
-
-/* Principle list */
-.site-principle-list { display: flex; flex-direction: column; gap: 0; margin: 16px 0; }
-.site-principle { display: flex; gap: 14px; padding: 12px 0; border-bottom: .5px solid var(--border); align-items: flex-start; }
-.site-principle:last-child { border-bottom: none; }
-.site-principle-glyph { font-family: var(--mono); font-size: 11px; color: var(--t3); padding-top: 2px; min-width: 20px; }
-.site-principle-title { font-size: 13px; font-weight: 500; color: var(--t1); margin-bottom: 3px; }
-.site-principle-desc { font-size: 13px; color: var(--t2); line-height: 1.6; }
-
-/* Scale grid */
-.site-scale-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 16px 0; }
-.site-scale-card { border: .5px solid var(--border); border-radius: 8px; padding: 14px 16px; background: var(--bg-card); }
-.site-scale-label { font-family: var(--mono); font-size: 9px; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 6px; }
-.sl-easy { color: var(--green); } .sl-hard { color: var(--amber); } .sl-defer { color: var(--t3); }
-.site-scale-title { font-size: 13px; font-weight: 500; color: var(--t1); margin-bottom: 4px; }
-.site-scale-desc { font-size: 12px; color: var(--t2); line-height: 1.5; }
-
-/* Non-goal list */
-.site-nongoal-list { display: flex; flex-direction: column; gap: 0; margin: 12px 0; }
-.site-nongoal-item { display: flex; gap: 10px; padding: 10px 0; border-bottom: .5px solid var(--border); font-size: 13px; color: var(--t2); line-height: 1.5; }
-.site-nongoal-item:last-child { border-bottom: none; }
-.site-nongoal-x { font-family: var(--mono); font-size: 11px; color: var(--red); padding-top: 2px; min-width: 14px; }
-.site-nongoal-title { color: var(--t1); font-weight: 500; }
-
-/* Tech table */
-.site-tech-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 16px 0; }
-.site-tech-table th { font-family: var(--mono); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--t3); font-weight: 400; text-align: left; padding: 8px 12px 8px 0; border-bottom: .5px solid var(--border); }
-.site-tech-table td { padding: 10px 12px 10px 0; border-bottom: .5px solid var(--border); color: var(--t2); vertical-align: top; line-height: 1.5; }
-.site-tech-table td:first-child { color: var(--t1); font-weight: 500; white-space: nowrap; padding-right: 20px; }
-.site-tech-table tr:last-child td { border-bottom: none; }
-
-/* Code */
-.site-code { font-family: var(--mono); font-size: 12px; background: var(--bg2); padding: 1px 6px; border-radius: 4px; border: .5px solid var(--border); color: var(--t1); }
-.site-code-block { font-family: var(--mono); font-size: 12px; background: var(--bg2); padding: 16px 20px; border-radius: 8px; border: .5px solid var(--border); color: var(--t1); line-height: 1.6; overflow-x: auto; margin: 12px 0; white-space: pre; }
-
-@media (max-width: 640px) {
-  .site-pillar-grid, .site-highlight-grid, .site-slo-grid, .site-scale-grid { grid-template-columns: 1fr; }
-  .site-feature-row { grid-template-columns: 1fr; gap: 4px; }
-  .site-landing-hero h1 { font-size: 32px; }
-  .site-nav { display: none; }
-}
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>功能特性 — SCM Platform</title>
+<meta name="description" content="按业务域组织的 SCM Platform 能力清单：供应商 SRM、库存仓储、订单履约、物流、财务资金、平台治理、文档文件、数据分析、电商与控制台。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%2308090a'/%3E%3Cpath d='M12 3 21 12 12 21 3 12Z' fill='none' stroke='%23cf9366' stroke-width='1.4'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/site.css">
+<script>document.documentElement.classList.add('js');</script>
 </head>
 <body>
+<a class="skip" href="#main">跳到主要内容</a>
+<div class="progress" aria-hidden="true"><span></span></div>
 
-<!-- Header -->
 <header class="site-header">
-  <div class="site-header-inner">
-    <a href="index.html" class="site-logo">SCM Platform</a>
-    <nav class="site-nav">
+  <div class="header-inner">
+    <a class="brand" href="index.html" aria-label="SCM Platform 首页">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+          <path d="M12 2.2 21.8 12 12 21.8 2.2 12Z"/>
+          <path d="M12 7.2 16.8 12 12 16.8 7.2 12Z" fill="currentColor" fill-opacity=".35" stroke="none"/>
+        </svg>
+      </span>
+      <span class="brand-text">SCM<span class="slash">/</span><span class="light">PLATFORM</span></span>
+    </a>
+    <nav class="site-nav" aria-label="主导航">
       <a href="index.html">首页</a>
-      <a href="features.html" class="active">功能</a>
+      <a href="features.html" class="is-active" aria-current="page">功能</a>
       <a href="architecture.html">架构</a>
       <a href="philosophy.html">理念</a>
       <a href="tech-stack.html">技术栈</a>
-      <a href="../en/features.html" class="lang-switch">English</a>
     </nav>
+    <a class="lang-switch" href="../en/features.html" hreflang="en" lang="en">EN</a>
   </div>
 </header>
 
-<main>
+<main id="main">
+  <div class="wrap narrow">
 
-<div class="site-page">
-  <div class="site-hero">
-    <div class="site-hero-eyebrow">平台模块</div>
-    <h1>功能特性</h1>
-    <div class="site-hero-sub">15 个独立模块覆盖供应链全流程——从采购到交付，从库存到财务。</div>
+    <div class="page-hero">
+      <div class="intro">
+        <div class="eyebrow">capability map · 01–10</div>
+        <h1>能力，<br><em>按域</em>展开。</h1>
+        <p class="lede">
+          不按服务清单罗列，而按“解决了什么”组织。每个域下面只写当前代码里已经存在的接口与约束；
+          没有落地的能力不写进这里。
+        </p>
+      </div>
+    </div>
+
+    <nav class="index-bar" aria-label="能力域索引">
+      <a href="#supplier"><span class="n">01</span>供应商与采购</a>
+      <a href="#inventory"><span class="n">02</span>库存与仓储</a>
+      <a href="#order"><span class="n">03</span>订单与履约</a>
+      <a href="#logistics"><span class="n">04</span>物流与配送</a>
+      <a href="#finance"><span class="n">05</span>财务与资金</a>
+      <a href="#governance"><span class="n">06</span>平台治理</a>
+      <a href="#document"><span class="n">07</span>文档与文件</a>
+      <a href="#analytics"><span class="n">08</span>数据与分析</a>
+      <a href="#commerce"><span class="n">09</span>电商层</a>
+      <a href="#console"><span class="n">10</span>控制台</a>
+    </nav>
+
+    <!-- 01 Supplier -->
+    <section class="domain-block" id="supplier">
+      <header class="domain-head" data-reveal>
+        <span class="domain-num">01</span>
+        <div>
+          <h2>供应商与采购</h2>
+          <p class="problem"><b>解决的问题</b>供应商资料散落在资质、联系人、账户与评价里，准入与风险没有统一口径。</p>
+        </div>
+        <span class="domain-tag">SRM / Purchase</span>
+      </header>
+      <div class="cap-grid">
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Admission</span>
+          <h3>准入流程</h3>
+          <p>草稿 → 提交 → 审核（通过／驳回）；只有准入通过且未列入黑名单的供应商才能启用，税号必须补全，每次变更写入变更日志。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Certificate</span>
+          <h3>资质证照</h3>
+          <p>按有效期自动判定有效、临期、过期或驳回；支持审核、到期查询与统计，资质到期数量进入供应商概览。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Risk</span>
+          <h3>风险与合作状态</h3>
+          <p>风险等级 1–3；合作状态 0–3 按合法路径流转；列入黑名单会同时停用并终止合作，移出黑名单不改变原准入状态。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Performance</span>
+          <h3>绩效评分卡</h3>
+          <p>评价按质量／交付／服务／价格加权计算总分并回写供应商绩效；评分卡按维度汇总并给出分级建议。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Profile</span>
+          <h3>档案与主数据</h3>
+          <p>画像聚合主数据、联系人、银行账户、资质、分类与最近变更；首个联系人／账户自动成为默认项，切换时自动取消旧默认。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Procurement</span>
+          <h3>采购与结算</h3>
+          <p>采购计划、询价、报价、比价、合同、采购单与收货；供应商对账单支持创建、确认与标记已付款。</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- 02 Inventory -->
+    <section class="domain-block" id="inventory">
+      <header class="domain-head" data-reveal>
+        <span class="domain-num">02</span>
+        <div>
+          <h2>库存与仓储</h2>
+          <p class="problem"><b>解决的问题</b>可售库存必须在下单瞬间给出答案，而账面库存又必须能对上。</p>
+        </div>
+        <span class="domain-tag">Inventory / WMS</span>
+      </header>
+      <div class="cap-grid">
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Atomic</span>
+          <h3>Redis Lua 原子扣减</h3>
+          <p>扣减、回补与秒杀在 Redis 单线程内原子执行；热路径不查询 PostgreSQL，库存缓存保持短 TTL。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Reservation</span>
+          <h3>预占与释放</h3>
+          <p>预占默认 900 秒；支付成功确认预占并转为实扣；取消或超时释放；过期预占提供批量释放接口供定时任务调用。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Adjustment</span>
+          <h3>调整与调拨</h3>
+          <p>入库、出库、盘点调整与跨仓调拨按业务单号做幂等保护；重复请求不会重复记账。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Alert</span>
+          <h3>水位告警</h3>
+          <p>不足与缺货告警支持分页、统计、处理与全量扫描；库存恢复后自动解除对应告警。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Snapshot</span>
+          <h3>每日快照</h3>
+          <p>按日期、SKU 与仓库生成快照，支持水位趋势查询；同日重复生成会跳过已有记录。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Warehouse</span>
+          <h3>仓储作业</h3>
+          <p>入库／出库单、收货与发货、取消、库位与波次拣货；只有未收货／未发货的单据允许修改。</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- 03 Order -->
+    <section class="domain-block" id="order">
+      <header class="domain-head" data-reveal>
+        <span class="domain-num">03</span>
+        <div>
+          <h2>订单与履约</h2>
+          <p class="problem"><b>解决的问题</b>订单状态一多，越权跳转和非法回退就会变成数据事故。</p>
+        </div>
+        <span class="domain-tag">Order / Fulfillment</span>
+      </header>
+      <div class="cap-grid">
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">State machine</span>
+          <h3>状态只能沿合法路径前进</h3>
+          <p><code>PENDING_PAYMENT → PAID → PENDING_SHIP → SHIPPED → IN_TRANSIT → DELIVERED → COMPLETED</code>；取消仅限待支付／已支付，终态不可再变。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Aggregate</span>
+          <h3>校验在聚合内</h3>
+          <p><code>OrdOrder.transitionTo()</code> 调用 <code>canTransitionTo()</code> 与 <code>validNextStatuses()</code>；非法流转在领域层被拒绝，而不是靠控制器兜底。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Dashboard</span>
+          <h3>订单看板</h3>
+          <p>支持今日、近 7 天、近 30 天，对比上期或同比；按天／小时聚合收入与订单量，返回状态计数与积压量，趋势点带时间范围可下钻。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Contract</span>
+          <h3>分页与校验</h3>
+          <p>订单、订单中心与履约统一分页；写接口使用 <code>@Valid</code>；分页回显由前端契约层归一化。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Order center</span>
+          <h3>电商订单中心</h3>
+          <p>创建、支付、发货、送达、收货、取消；与供应链订单共用租户、权限与审计。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Fulfillment</span>
+          <h3>履约链路</h3>
+          <p>拣货 → 打包 → 发货（登记运单与承运商）→ 签收；取消记录原因；轨迹事件与最新轨迹单独查询。</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- 04 Logistics -->
+    <section class="domain-block" id="logistics">
+      <header class="domain-head" data-reveal>
+        <span class="domain-num">04</span>
+        <div>
+          <h2>物流与配送</h2>
+          <p class="problem"><b>解决的问题</b>运单、轨迹、路线与配送范围各自为政时，履约结果无法解释。</p>
+        </div>
+        <span class="domain-tag">TMS</span>
+      </header>
+      <div class="cap-grid">
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Waybill</span>
+          <h3>运单</h3>
+          <p>创建、按订单或运单号查询、状态更新、取消与逻辑删除；取消记录原因与操作人。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Tracking</span>
+          <h3>轨迹</h3>
+          <p>轨迹节点上报；按运单或运单号查询、分页查询；履约侧可单独取最新一条轨迹。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Route</span>
+          <h3>路线</h3>
+          <p>骑手、配送日期、路线状态与增删改查；路线列表按配送日期分页。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Coverage</span>
+          <h3>配送覆盖</h3>
+          <p>按承运商维护配送区域，并校验省市区地址是否被覆盖。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Carrier</span>
+          <h3>承运商</h3>
+          <p>承运商与运单关联；运单状态与轨迹分开维护，避免把运输事实写进订单状态。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Boundary</span>
+          <h3>职责边界</h3>
+          <p>物流只负责运输事实；订单是否进入下一状态仍由订单聚合决定。</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- 05 Finance -->
+    <section class="domain-block" id="finance">
+      <header class="domain-head" data-reveal>
+        <span class="domain-num">05</span>
+        <div>
+          <h2>财务与资金</h2>
+          <p class="problem"><b>解决的问题</b>业务单据、支付、对账与服务费之间，差额必须能落在一张表上。</p>
+        </div>
+        <span class="domain-tag">Finance / Payment</span>
+      </header>
+      <div class="cap-grid">
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Settlement</span>
+          <h3>结算与发票</h3>
+          <p>结算单与明细、发票分页（可按往来单位）、运费规则；财务数据与业务单据保持同一租户范围。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Reconciliation</span>
+          <h3>对账工作台</h3>
+          <p>创建时计算双方金额差异；按账期、状态与差异标记筛选；支持对账、确认与差异原因登记。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Service fee</span>
+          <h3>平台服务费</h3>
+          <p>账单创建、更新、删除、待支付列表与按账单登记实付；租户侧提供费率配置与计算任务。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Payment</span>
+          <h3>支付单</h3>
+          <p>创建、查询、分页、取消；同订单同渠道的重复请求返回已有待支付单，避免重复下单。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Callback</span>
+          <h3>回调验签</h3>
+          <p>支付宝 RSA2 验签并校验 app_id／seller_id；微信 v3 校验签名头、5 分钟时钟窗口并解密 resource；金额与渠道必须匹配本地支付单。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Refund</span>
+          <h3>退款与幂等</h3>
+          <p>退款单与退款服务；支付状态只允许待支付 → 已支付；已支付回调重复到达时按幂等处理。</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- 06 Governance -->
+    <section class="domain-block" id="governance">
+      <header class="domain-head" data-reveal>
+        <span class="domain-num">06</span>
+        <div>
+          <h2>平台治理</h2>
+          <p class="problem"><b>解决的问题</b>权限、审批、审计与通知如果各写一套，租户边界会在每个服务里漏一次。</p>
+        </div>
+        <span class="domain-tag">Tenant / Governance</span>
+      </header>
+      <div class="cap-grid">
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Tenant</span>
+          <h3>租户</h3>
+          <p>生命周期、套餐、配额与平台费率；租户 ID 进入请求上下文、SQL 谓词与异步线程。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Access</span>
+          <h3>权限</h3>
+          <p>用户、角色、权限、部门与字典；URL 级权限校验；权限查询失败时直接拒绝，而不是放行。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Approval</span>
+          <h3>审批</h3>
+          <p>基于 Flowable BPMN：发起、通过、驳回、待办与流程状态查询；权限变更审批独立入口。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Audit</span>
+          <h3>审计</h3>
+          <p><code>@AuditLog</code> 切面采集；写入必须携带内部 HMAC-SHA256 签名；不提供 HTTP 删除入口；高风险操作镜像到敏感操作表。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Notify</span>
+          <h3>通知</h3>
+          <p>模板、渠道偏好、通知审计；站内信分页、未读数、单条已读与全部已读。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Message</span>
+          <h3>事件发布</h3>
+          <p>事件发布服务（scm-message）：领域事件经 outbox 持久化后投递 Kafka，再由 analytics 等消费者消费；站内信由 scm-notify 负责，消息记录与通知审计分开维护。</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- 07 Document -->
+    <section class="domain-block" id="document">
+      <header class="domain-head" data-reveal>
+        <span class="domain-num">07</span>
+        <div>
+          <h2>文档与文件</h2>
+          <p class="problem"><b>解决的问题</b>合同、单据与附件一旦有多个版本，“当前版本”和“谁改过”必须可回答。</p>
+        </div>
+        <span class="domain-tag">Document / File</span>
+      </header>
+      <div class="cap-grid">
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Template</span>
+          <h3>模板版本</h3>
+          <p>版本列表、创建新版本（版本号递增）、发布时归档旧版本并更新模板当前版本。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Variable</span>
+          <h3>变量 Schema</h3>
+          <p>保存与查询模板变量 Schema；变量定义必须是合法 JSON 数组，渲染前即可校验。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Render</span>
+          <h3>渲染</h3>
+          <p>按模板与变量数据渲染生成文档，文档初始状态为已生成。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Version</span>
+          <h3>文档版本</h3>
+          <p>文档分页、详情与手工登记；版本列表按版本号倒序，保留每一次渲染结果。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Trail</span>
+          <h3>审计轨迹</h3>
+          <p>生成、渲染、签署、归档等操作写入文档审计轨迹；签署与归档同时变更文档状态。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">File</span>
+          <h3>文件</h3>
+          <p>元数据分页、30 分钟预签名访问地址、创建与删除；scm-file 使用 MinIO 客户端，兼容 S3／OSS。</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- 08 Analytics -->
+    <section class="domain-block" id="analytics">
+      <header class="domain-head" data-reveal>
+        <span class="domain-num">08</span>
+        <div>
+          <h2>数据与分析</h2>
+          <p class="problem"><b>解决的问题</b>交易库不适合跨周期聚合，报表也不应该反压订单库。</p>
+        </div>
+        <span class="domain-tag">OLAP</span>
+      </header>
+      <div class="cap-grid">
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Layers</span>
+          <h3>ODS → DWD → DWS → ADS</h3>
+          <p>ClickHouse 内建立四层模型：ODS 保留原始 CDC 载荷，DWD 明细、DWS 汇总、ADS 看板；按 <code>tenant_id</code> 排序、按月分区。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Ingest</span>
+          <h3>Kafka 接入</h3>
+          <p>Kafka 消费者写入 ODS，保留 Kafka offset 与时间戳；ReplacingMergeTree 与 SummingMergeTree 按场景选择。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Query</span>
+          <h3>声明式查询</h3>
+          <p>指标、维度、数据集与字段元数据；按数据集与指标定义生成 SQL 并执行，按组织范围过滤。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Governance</span>
+          <h3>治理</h3>
+          <p>数据血缘登记与上下游查询、数据质量评估、物化结果管理。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Dashboard</span>
+          <h3>看板</h3>
+          <p>订单看板在 PostgreSQL 内聚合，避免把交易表整页搬到浏览器；跨周期分析走 ClickHouse。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Retention</span>
+          <h3>保留策略</h3>
+          <p>ODS 1 年、DWD 2 年、DWS／ADS 3 年；业务侧审计 2 年、登录 1 年、API 日志 90 天、通知 6 个月。</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- 09 Commerce -->
+    <section class="domain-block" id="commerce">
+      <header class="domain-head" data-reveal>
+        <span class="domain-num">09</span>
+        <div>
+          <h2>电商层</h2>
+          <p class="problem"><b>解决的问题</b>面向消费者的会员、促销、商城与支付，要和供应链底座共用租户与权限。</p>
+        </div>
+        <span class="domain-tag">Commerce</span>
+      </header>
+      <div class="cap-grid">
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Member</span>
+          <h3>会员</h3>
+          <p>注册、档案、等级、积分增减与明细、收货地址与默认地址；重复注册返回已有会员。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Coupon</span>
+          <h3>优惠券</h3>
+          <p>模板发放时数据库原子扣减；使用前校验订单金额；核销幂等，同订单重复核销返回已使用结果。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Campaign</span>
+          <h3>拼团与秒杀</h3>
+          <p>发起与参团、成员查询；进行中的秒杀、库存校验与秒杀下单。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Mall</span>
+          <h3>商城</h3>
+          <p>卖家入驻、购物车增删改清空、商品评价发表与分页查询。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Search</span>
+          <h3>搜索</h3>
+          <p>商品搜索、相似商品、个性化推荐；单条与批量索引、全量重建、按 ID 移除。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Order center</span>
+          <h3>订单中心</h3>
+          <p>创建、支付、发货、送达、收货、取消；分页查询按订单号、用户与状态过滤。</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- 10 Console -->
+    <section class="domain-block" id="console">
+      <header class="domain-head" data-reveal>
+        <span class="domain-num">10</span>
+        <div>
+          <h2>控制台</h2>
+          <p class="problem"><b>解决的问题</b>后端能力再多，没有一条连贯的操作路径就等于没有。</p>
+        </div>
+        <span class="domain-tag">Next.js</span>
+      </header>
+      <div class="cap-grid">
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Routes</span>
+          <h3>50+ 路由</h3>
+          <p>仪表盘、商品、订单、库存、仓储、物流、供应商、采购、财务、通知、租户、审批、审计、文档、文件与分析。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Stack</span>
+          <h3>目标技术栈</h3>
+          <p>Next.js 16.4 App Router、React 19、Tailwind v4、shadcn/ui；TanStack Query v5、TanStack Table v9。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Form</span>
+          <h3>表单</h3>
+          <p>React Hook Form + Zod；长表单使用 <code>zodResolver</code> 与统一 FormField。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Chart</span>
+          <h3>图表</h3>
+          <p>Recharts 负责 KPI，ECharts 负责复杂图形，G6 负责拓扑；全部按需加载，AG Grid 只通过 DataGrid 包装引入。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Contract</span>
+          <h3>契约层</h3>
+          <p>后端 DTO 放在 <code>contracts/</code>，feature 服务做字段映射；分页原始回显由 <code>contracts/page.ts</code> 归一化。</p>
+        </article>
+        <article class="cap" data-reveal>
+          <span class="cap-kicker">Migration</span>
+          <h3>迁移状态</h3>
+          <p>Ant Design 6 只保留在存量页面；不新增 AntD 页面，按域逐步迁移到 shadcn/ui。</p>
+        </article>
+      </div>
+    </section>
+
+    <div class="closing" style="margin-top:40px">
+      <blockquote style="font-size:clamp(24px,3.4vw,36px)">能力写在代码里，<br>不写在口号里。</blockquote>
+      <div class="closing-foot">
+        <a href="architecture.html">这些能力如何连起来</a>
+        <a href="philosophy.html">为什么这样取舍</a>
+      </div>
+    </div>
+
   </div>
-
-  <div class="site-feature-grid">
-    <div class="site-feature-row">
-      <div>
-        <div class="site-feature-name">API 网关</div>
-        <div class="site-feature-port">:8761</div>
-      </div>
-      <div class="site-feature-desc">统一路由入口，请求限流，跨切面处理。Sentinel 熔断降级保障系统稳定性。</div>
-    </div>
-    <div class="site-feature-row">
-      <div>
-        <div class="site-feature-name">认证服务</div>
-        <div class="site-feature-port">:8106</div>
-      </div>
-      <div class="site-feature-desc">OAuth2 + JWT + WebAuthn 无密码登录。Token 刷新、会话管理、多因子认证。</div>
-    </div>
-    <div class="site-feature-row">
-      <div>
-        <div class="site-feature-name">系统管理</div>
-        <div class="site-feature-port">:8081</div>
-      </div>
-      <div class="site-feature-desc">用户、角色、权限、部门、字典、配置管理。RBAC 细粒度数据权限控制。</div>
-    </div>
-    <div class="site-feature-row">
-      <div>
-        <div class="site-feature-name">商品管理</div>
-        <div class="site-feature-port">:8201</div>
-      </div>
-      <div class="site-feature-desc">SPU/SKU 体系、分类、品牌、属性管理。支持多规格商品和批量操作。</div>
-    </div>
-    <div class="site-feature-row">
-      <div>
-        <div class="site-feature-name">库存管理</div>
-        <div class="site-feature-port">:8202</div>
-      </div>
-      <div class="site-feature-desc">实时库存、预留、预警、快照。Redis Lua 原子扣减，热路径零数据库查询。</div>
-    </div>
-    <div class="site-feature-row">
-      <div>
-        <div class="site-feature-name">订单管理</div>
-        <div class="site-feature-port">:8203</div>
-      </div>
-      <div class="site-feature-desc">订单生命周期、状态机、支付、退款。Seata 分布式事务保障跨服务一致性。</div>
-    </div>
-    <div class="site-feature-row">
-      <div>
-        <div class="site-feature-name">仓库管理</div>
-        <div class="site-feature-port">:8204</div>
-      </div>
-      <div class="site-feature-desc">出入库、波次拣货、库位管理。支持多仓多库区精细化运营。</div>
-    </div>
-    <div class="site-feature-row">
-      <div>
-        <div class="site-feature-name">物流管理</div>
-        <div class="site-feature-port">:8205</div>
-      </div>
-      <div class="site-feature-desc">承运商、运单、轨迹追踪、路线优化。对接主流物流平台。</div>
-    </div>
-    <div class="site-feature-row">
-      <div>
-        <div class="site-feature-name">供应商管理</div>
-        <div class="site-feature-port">:8206</div>
-      </div>
-      <div class="site-feature-desc">供应商入驻、评估、结算。供应商全生命周期管理。</div>
-    </div>
-    <div class="site-feature-row">
-      <div>
-        <div class="site-feature-name">采购管理</div>
-        <div class="site-feature-port">&mdash;</div>
-      </div>
-      <div class="site-feature-desc">询价、报价、合同、采购单。采购全流程数字化。</div>
-    </div>
-    <div class="site-feature-row">
-      <div>
-        <div class="site-feature-name">财务管理</div>
-        <div class="site-feature-port">&mdash;</div>
-      </div>
-      <div class="site-feature-desc">结算、发票、运费规则、对账。财务与业务数据一体化。</div>
-    </div>
-    <div class="site-feature-row">
-      <div>
-        <div class="site-feature-name">租户管理</div>
-        <div class="site-feature-port">&mdash;</div>
-      </div>
-      <div class="site-feature-desc">租户生命周期、套餐、特性开关。按租户粒度的功能和数据隔离。</div>
-    </div>
-    <div class="site-feature-row">
-      <div>
-        <div class="site-feature-name">审批流程</div>
-        <div class="site-feature-port">&mdash;</div>
-      </div>
-      <div class="site-feature-desc">可配置审批流程引擎。支持多级审批、条件分支、加签转签。</div>
-    </div>
-    <div class="site-feature-row">
-      <div>
-        <div class="site-feature-name">审计日志</div>
-        <div class="site-feature-port">&mdash;</div>
-      </div>
-      <div class="site-feature-desc">操作日志、敏感操作追踪。完整的行为审计链。</div>
-    </div>
-    <div class="site-feature-row">
-      <div>
-        <div class="site-feature-name">通知服务</div>
-        <div class="site-feature-port">&mdash;</div>
-      </div>
-      <div class="site-feature-desc">模板化消息、多渠道投递（站内信、邮件、短信、Webhook）。</div>
-    </div>
-  </div>
-</div>
-
 </main>
 
 <footer class="site-footer">
-  <div class="site-footer-inner">
-    <div class="site-footer-left">SCM Platform &middot; Apache 2.0 License</div>
-    <div class="site-footer-right">为企业级供应链而生</div>
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a class="brand" href="index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+              <path d="M12 2.2 21.8 12 12 21.8 2.2 12Z"/>
+              <path d="M12 7.2 16.8 12 12 16.8 7.2 12Z" fill="currentColor" fill-opacity=".35" stroke="none"/>
+            </svg>
+          </span>
+          <span class="brand-text">SCM<span class="slash">/</span><span class="light">PLATFORM</span></span>
+        </a>
+        <p>多租户供应链管理平台。把采购、库存、订单、履约、财务与治理放在同一套边界里。</p>
+      </div>
+      <div class="footer-col">
+        <h4>浏览</h4>
+        <a href="index.html">首页</a>
+        <a href="features.html">功能</a>
+        <a href="architecture.html">架构</a>
+        <a href="philosophy.html">理念</a>
+        <a href="tech-stack.html">技术栈</a>
+      </div>
+      <div class="footer-col">
+        <h4>版本</h4>
+        <div class="colophon">
+          Spring Boot 4.1.2<br>
+          Spring Cloud 2025.1.4<br>
+          PostgreSQL 18 · ClickHouse 26.10<br>
+          Next.js 16.4.3 · Apache 2.0
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>SCM Platform · 2026</span>
+      <span>26 services · zh-CN / en-US</span>
+      <a href="../index.html">入口页</a>
+    </div>
   </div>
 </footer>
 
+<script src="../assets/site.js" defer></script>
 </body>
 </html>

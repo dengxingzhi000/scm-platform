@@ -31,6 +31,14 @@ public class ReadWriteProperties {
 
     private LoadBalanceType loadBalance = LoadBalanceType.ROUND_ROBIN;
 
+    /**
+     * Target used when neither the annotation nor the SQL layer made a decision
+     * (current() == AUTO). Master is the safe default: an unannotated path can
+     * never silently read a stale replica, including async threads that lost the
+     * routing context.
+     */
+    private RoutingTarget defaultTarget = RoutingTarget.MASTER;
+
     private Duration replicationLagTolerance = Duration.ofSeconds(1);
 
     private Duration readMasterAfterWrite = Duration.ofSeconds(2);
@@ -38,6 +46,62 @@ public class ReadWriteProperties {
     private boolean healthCheckEnabled = true;
 
     private Duration healthCheckInterval = Duration.ofSeconds(30);
+
+    /**
+     * Mark a slave unavailable on the first failed connection probe. When false the
+     * slave stays eligible until the periodic health check removes it.
+     */
+    private boolean failFastOnSlaveConnectionFailure = true;
+
+    /**
+     * Timeout of the routing-level {@code Connection.isValid()} probe.
+     */
+    @Min(value = 1, message = "Validation timeout must be greater than 0")
+    private int validationTimeoutSeconds = 3;
+
+    @Valid
+    private CircuitBreakerProperties circuitBreaker = new CircuitBreakerProperties();
+
+    @Data
+    public static class CircuitBreakerProperties {
+
+        /**
+         * Circuit breaking is executed through Sentinel when enabled. When disabled the
+         * routing datasource still falls back to master on the first failed probe.
+         */
+        private boolean enabled = true;
+
+        /**
+         * Max acceptable connection-hold time in milliseconds. Requests slower than this
+         * count towards {@code slow-ratio-threshold}.
+         */
+        @Min(value = 1, message = "Slow RT must be greater than 0")
+        private long slowRtMs = 500;
+
+        @DecimalMin(value = "0.0", message = "Slow ratio threshold must be >= 0")
+        @DecimalMax(value = "1.0", message = "Slow ratio threshold must be <= 1")
+        private double slowRatioThreshold = 0.5;
+
+        @DecimalMin(value = "0.0", message = "Error ratio must be >= 0")
+        @DecimalMax(value = "1.0", message = "Error ratio must be <= 1")
+        private double errorRatio = 0.5;
+
+        @Min(value = 1, message = "Time window must be greater than 0")
+        private int timeWindowSeconds = 30;
+
+        @Min(value = 1, message = "Min request amount must be greater than 0")
+        private int minRequestAmount = 10;
+
+        @Min(value = 100, message = "Stat interval must be at least 100ms")
+        private int statIntervalMs = 10000;
+    }
+
+    /**
+     * Whether an unavailable slave should turn the whole actuator health endpoint
+     * DOWN. Default false: reads fall back to master, so the service is still able
+     * to serve traffic and a replica outage must not trigger a pod restart.
+     */
+    private boolean slaveDownAffectsHealth = false;
 
     @Min(value = 1, message = "Failure threshold must be greater than 0")
     @Max(value = 100, message = "Failure threshold must not exceed 100")
@@ -51,6 +115,7 @@ public class ReadWriteProperties {
     @Valid
     public static class DataSourceGroup {
 
+        @Valid
         @NotNull(message = "Master datasource config must not be null")
         private DataSourceConfig master;
 
@@ -86,6 +151,13 @@ public class ReadWriteProperties {
         private Duration idleTimeout = Duration.ofMinutes(10);
         private Duration maxLifetime = Duration.ofMinutes(30);
         private String connectionTestQuery;
+
+        /**
+         * HikariCP initializationFailTimeout in milliseconds. Negative means the pool
+         * starts in the background and never fails the application context, which is
+         * required for an unreachable replica at startup. Positive values fail fast.
+         */
+        private long initializationFailTimeout = -1;
     }
 
     @Data
@@ -108,5 +180,10 @@ public class ReadWriteProperties {
         RANDOM,
         WEIGHTED_RANDOM,
         LEAST_CONNECTIONS
+    }
+
+    public enum RoutingTarget {
+        MASTER,
+        SLAVE
     }
 }

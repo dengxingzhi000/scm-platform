@@ -49,6 +49,11 @@ public class ConnectionPoolMetrics {
      * Register datasource metrics.
      */
     public void registerDataSource(String groupName, String dsName, DataSource dataSource) {
+        if (meterRegistry == null) {
+            log.debug("[Pool-Metrics] No MeterRegistry available, skipping metrics for [{}]",
+                    groupName + "." + dsName);
+            return;
+        }
         if (!(dataSource instanceof HikariDataSource hikariDs)) {
             log.warn("[Pool-Metrics] DataSource [{}] is not HikariDataSource, skipping metrics",
                     dsName);

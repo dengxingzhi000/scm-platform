@@ -4,7 +4,9 @@ import com.baomidou.dynamic.datasource.provider.DynamicDataSourceProvider;
 import com.baomidou.dynamic.datasource.spring.boot.autoconfigure.DynamicDataSourceAssistConfiguration;
 import com.baomidou.dynamic.datasource.spring.boot.autoconfigure.DynamicDataSourceAutoConfiguration;
 import com.scmcloud.common.data.rw.aop.ReadWriteRoutingAspect;
+import com.scmcloud.common.data.rw.async.ReadWriteTaskDecorator;
 import com.scmcloud.common.data.rw.circuitbreaker.SlaveCircuitBreaker;
+import com.scmcloud.common.data.rw.dynamic.CountingDataSource;
 import com.scmcloud.common.data.rw.dynamic.DynamicDataSourceRefresher;
 import com.scmcloud.common.data.rw.endpoint.ReadWriteEndpoint;
 import com.scmcloud.common.data.rw.health.ReadWriteHealthIndicator;
@@ -13,21 +15,36 @@ import com.scmcloud.common.data.rw.loadbalance.*;
 import com.scmcloud.common.data.rw.metrics.ConnectionPoolMetrics;
 import com.scmcloud.common.data.rw.routing.ReadWriteRoutingDataSource;
 import com.scmcloud.common.data.rw.sql.SqlRoutingInterceptor;
+import com.scmcloud.common.data.rw.tracing.ReadWriteTracingInterceptor;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.aop.Advisor;
+import org.springframework.aop.aspectj.AspectJExpressionPointcut;
+import org.springframework.aop.support.DefaultPointcutAdvisor;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.context.properties.bind.Binder;
+import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Condition;
+import org.springframework.context.annotation.ConditionContext;
+import org.springframework.context.annotation.Conditional;
+import org.springframework.context.event.EventListener;
+import org.springframework.core.Ordered;
 import org.springframework.core.env.Environment;
+import org.springframework.core.task.TaskDecorator;
+import org.springframework.core.type.AnnotatedTypeMetadata;
+import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 import javax.sql.DataSource;
@@ -66,14 +83,26 @@ public class ReadWriteAutoConfiguration {
     private final Map<String, ReadWriteRoutingDataSource> routingDataSources = new ConcurrentHashMap<>();
     private final Map<String, Map<String, DataSource>> slaveDataSourcesMap = new ConcurrentHashMap<>();
 
+    private final SlaveCircuitBreaker circuitBreaker;
+    private final SlaveWarmupManager warmupManager;
+
     public ReadWriteAutoConfiguration(ReadWriteProperties properties,
                                        ObjectProvider<MeterRegistry> meterRegistryProvider, Environment environment) {
         this.properties = properties;
         this.meterRegistry = meterRegistryProvider.getIfAvailable();
         this.environment = environment;
+        this.circuitBreaker = new SlaveCircuitBreaker(properties);
+        this.warmupManager = new SlaveWarmupManager();
 
-        log.debug("[RW-Config] Initializing read-write separation with {} group(s)",
-                properties.getGroups().size());
+        if (properties.getGroups().isEmpty()) {
+            log.warn("[RW-Config] spring.datasource.rw.enabled=true but no groups are configured. "
+                    + "Read-write routing is NOT active; the service keeps using its single spring.datasource datasource. "
+                    + "Configure spring.datasource.rw.groups.<name>.master to enable it.");
+            return;
+        }
+
+        log.info("[RW-Config] Initializing read-write separation with {} group(s), default target: {}",
+                properties.getGroups().size(), properties.getDefaultTarget());
 
         initializeDataSources();
     }
@@ -87,33 +116,47 @@ public class ReadWriteAutoConfiguration {
                 String groupName = entry.getKey();
                 ReadWriteProperties.DataSourceGroup group = entry.getValue();
 
-                log.debug("[RW-Config] Configuring group [{}] with {} slave(s)",
-                        groupName, group.getSlaves().size());
-
-                HikariDataSource masterDataSource = createDataSource(groupName + "-master", group.getMaster());
-                allDataSources.add(masterDataSource);
+                if (group.getMaster() == null) {
+                    throw new IllegalStateException("[RW-Config] Group [" + groupName
+                            + "] has no master datasource. Configure spring.datasource.rw.groups."
+                            + groupName + ".master");
+                }
 
                 Map<String, DataSource> slaveDataSources = new HashMap<>();
                 List<SlaveLoadBalancer.SlaveInfo> slaveInfos = new ArrayList<>();
 
-                for (ReadWriteProperties.SlaveDataSourceConfig slaveConfig : group.getSlaves()) {
-                    String slaveName = slaveConfig.getName();
-                    HikariDataSource slaveDataSource = createDataSource(groupName + "-" + slaveName, slaveConfig);
-                    allDataSources.add(slaveDataSource);
-                    slaveDataSources.put(slaveName, slaveDataSource);
+                if (group.isSlavesEnabled()) {
+                    for (ReadWriteProperties.SlaveDataSourceConfig slaveConfig : group.getSlaves()) {
+                        String slaveName = slaveConfig.getName();
+                        HikariDataSource slaveDataSource = createDataSource(
+                                groupName + "-" + slaveName, slaveConfig, groupName);
+                        allDataSources.add(slaveDataSource);
+                        // Count live connections for LEAST_CONNECTIONS; the wrapper
+                        // decrements on close and on failed acquisition.
+                        slaveDataSources.put(slaveName, new CountingDataSource(slaveDataSource));
 
-                    slaveInfos.add(new SlaveLoadBalancer.SlaveInfo(
-                            slaveName,
-                            slaveConfig.getWeight(),
-                            0,
-                            slaveConfig.isAvailable()
-                    ));
+                        slaveInfos.add(new SlaveLoadBalancer.SlaveInfo(
+                                slaveName,
+                                slaveConfig.getWeight(),
+                                0,
+                                slaveConfig.isAvailable()
+                        ));
+                    }
+                } else {
+                    log.info("[RW-Config] Group [{}] has slaves disabled; all reads route to master", groupName);
                 }
+
+                HikariDataSource masterDataSource = createDataSource(
+                        groupName + "-master", group.getMaster(), groupName);
+                allDataSources.add(masterDataSource);
 
                 slaveDataSourcesMap.put(groupName, slaveDataSources);
 
                 SlaveLoadBalancer loadBalancer = createLoadBalancer(
                         group.getLoadBalance() != null ? group.getLoadBalance() : properties.getLoadBalance());
+                if (loadBalancer instanceof AbstractLoadBalancer abstractLoadBalancer) {
+                    abstractLoadBalancer.setWarmupManager(warmupManager);
+                }
 
                 ReadWriteRoutingDataSource routingDataSource = new ReadWriteRoutingDataSource(
                         groupName,
@@ -121,22 +164,34 @@ public class ReadWriteAutoConfiguration {
                         slaveDataSources,
                         properties,
                         loadBalancer,
-                        meterRegistry
+                        meterRegistry,
+                        circuitBreaker
                 );
                 routingDataSource.setSlaveInfos(slaveInfos);
                 routingDataSource.afterPropertiesSet();
 
                 routingDataSources.put(groupName, routingDataSource);
 
-                log.debug("[RW-Config] Group [{}] configured successfully. Master: {}, Slaves: {}",
+                log.info("[RW-Config] Group [{}] configured. Master: {}, slaves: {}, loadBalance: {}",
                         groupName,
                         maskUrl(group.getMaster().getUrl()),
-                        slaveDataSources.keySet());
+                        slaveDataSources.keySet(),
+                        loadBalancer.getClass().getSimpleName());
             }
+            registerCircuitBreakerRules();
         } catch (Exception e) {
             cleanupDataSources(initialSize);
             throw e;
         }
+    }
+
+    private void registerCircuitBreakerRules() {
+        if (routingDataSources.isEmpty()) {
+            return;
+        }
+        Map<String, java.util.Collection<String>> groupSlaves = new java.util.LinkedHashMap<>();
+        slaveDataSourcesMap.forEach((group, slaves) -> groupSlaves.put(group, slaves.keySet()));
+        circuitBreaker.registerGroups(groupSlaves);
     }
 
     private void cleanupDataSources(int fromIndex) {
@@ -149,7 +204,18 @@ public class ReadWriteAutoConfiguration {
         allDataSources.subList(fromIndex, allDataSources.size()).clear();
     }
 
-    private HikariDataSource createDataSource(String poolName, ReadWriteProperties.DataSourceConfig config) {
+    private HikariDataSource createDataSource(String poolName,
+                                               ReadWriteProperties.DataSourceConfig config,
+                                               String groupName) {
+        if (config.getUrl() == null || config.getUrl().isBlank()) {
+            throw new IllegalStateException("[RW-Config] Datasource [" + poolName + "] of group ["
+                    + groupName + "] has a blank url. Check spring.datasource.rw.groups." + groupName);
+        }
+        if (config.getUsername() == null || config.getUsername().isBlank()) {
+            throw new IllegalStateException("[RW-Config] Datasource [" + poolName + "] of group ["
+                    + groupName + "] has a blank username. Check spring.datasource.rw.groups." + groupName);
+        }
+
         HikariConfig hikariConfig = new HikariConfig();
         hikariConfig.setPoolName(poolName);
         hikariConfig.setJdbcUrl(config.getUrl());
@@ -162,6 +228,10 @@ public class ReadWriteAutoConfiguration {
         hikariConfig.setConnectionTimeout(config.getConnectionTimeout().toMillis());
         hikariConfig.setIdleTimeout(config.getIdleTimeout().toMillis());
         hikariConfig.setMaxLifetime(config.getMaxLifetime().toMillis());
+
+        // Negative => the pool starts in the background. An unreachable slave at
+        // startup must never fail the application context.
+        hikariConfig.setInitializationFailTimeout(config.getInitializationFailTimeout());
 
         if (config.getConnectionTestQuery() != null) {
             hikariConfig.setConnectionTestQuery(config.getConnectionTestQuery());
@@ -188,15 +258,10 @@ public class ReadWriteAutoConfiguration {
             name = "enabled",
             havingValue = "false"
     )
+    @Conditional(GroupsConfiguredCondition.class)
     public DataSource dataSource() {
-        if (routingDataSources.isEmpty()) {
-            throw new IllegalStateException(
-                    "[RW-Config] No datasource group configured. " +
-                            "Please configure spring.datasource.rw.groups");
-        }
-
         String defaultGroup = routingDataSources.keySet().iterator().next();
-        log.debug("[RW-Config] Using group [{}] as default DataSource", defaultGroup);
+        log.info("[RW-Config] Using group [{}] as the primary DataSource", defaultGroup);
         return routingDataSources.get(defaultGroup);
     }
 
@@ -209,25 +274,99 @@ public class ReadWriteAutoConfiguration {
             havingValue = "true",
             matchIfMissing = true
     )
+    @Conditional(GroupsConfiguredCondition.class)
     public DynamicDataSourceProvider readWriteDynamicDataSourceProvider() {
         return () -> {
             Map<String, DataSource> dataSources = new HashMap<>(routingDataSources);
-            log.debug("[RW-Config] Exposed {} rw datasource group(s) to DynamicDatasource: {}",
+            log.info("[RW-Config] Exposed {} rw datasource group(s) to DynamicDatasource: {}. "
+                    + "spring.datasource.dynamic.primary must point at one of them.",
                     dataSources.size(), dataSources.keySet());
             return dataSources;
         };
     }
 
     @Bean
+    @ConditionalOnMissingBean
+    @Conditional(GroupsConfiguredCondition.class)
     public ReadWriteDataSourceProvider readWriteDataSourceProvider() {
         return new ReadWriteDataSourceProvider(routingDataSources);
     }
 
     @Bean
     @ConditionalOnMissingBean
+    @Conditional(GroupsConfiguredCondition.class)
     public ReadWriteRoutingAspect readWriteRoutingAspect() {
         log.debug("[RW-Config] Registering ReadWriteRoutingAspect");
         return new ReadWriteRoutingAspect();
+    }
+
+    @Bean
+    @Conditional(GroupsConfiguredCondition.class)
+    public SlaveCircuitBreaker slaveCircuitBreaker() {
+        return circuitBreaker;
+    }
+
+    @Bean
+    @Conditional(GroupsConfiguredCondition.class)
+    public SlaveWarmupManager slaveWarmupManager() {
+        return warmupManager;
+    }
+
+    /**
+     * Tracing advisor must run inside {@link ReadWriteRoutingAspect} so it sees the
+     * pushed scope, and outside the transaction interceptor so it covers the whole
+     * service call.
+     */
+    @Bean
+    @Conditional(GroupsConfiguredCondition.class)
+    public Advisor readWriteTracingAdvisor() {
+        AspectJExpressionPointcut pointcut = new AspectJExpressionPointcut();
+        pointcut.setExpression(
+                "@annotation(com.scmcloud.common.data.rw.annotation.Master)"
+                        + " || @annotation(com.scmcloud.common.data.rw.annotation.Slave)"
+                        + " || @within(com.scmcloud.common.data.rw.annotation.Master)"
+                        + " || @within(com.scmcloud.common.data.rw.annotation.Slave)"
+                        + " || @annotation(org.springframework.transaction.annotation.Transactional)"
+                        + " || @within(org.springframework.transaction.annotation.Transactional)");
+        DefaultPointcutAdvisor advisor =
+                new DefaultPointcutAdvisor(pointcut, new ReadWriteTracingInterceptor());
+        advisor.setOrder(Ordered.HIGHEST_PRECEDENCE + 10);
+        log.debug("[RW-Config] Registering ReadWriteTracingAdvisor");
+        return advisor;
+    }
+
+    @Bean
+    @Conditional(GroupsConfiguredCondition.class)
+    public SmartInitializingSingleton readWriteDatasourceConflictChecker(ConfigurableApplicationContext context) {
+        var groups = java.util.Set.copyOf(routingDataSources.keySet());
+        return () -> new ReadWriteDatasourceConflictChecker(context, groups).check();
+    }
+
+    /**
+     * Pre-warm slave connections after the context is ready. The work is submitted to
+     * the warmup manager's daemon executor, so a slow or dead replica never blocks
+     * application startup.
+     */
+    @EventListener(ApplicationReadyEvent.class)
+    public void onApplicationReady(ApplicationReadyEvent event) {
+        if (slaveDataSourcesMap.isEmpty()) {
+            return;
+        }
+        int count = slaveDataSourcesMap.values().stream().mapToInt(Map::size).sum();
+        if (count == 0) {
+            return;
+        }
+        log.info("[RW-Config] Application ready, prewarming {} slave datasource(s) asynchronously", count);
+        warmupManager.warmupAll(slaveDataSourcesMap);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(TaskDecorator.class)
+    @ConditionalOnClass(name = "org.springframework.core.task.TaskDecorator")
+    @Conditional(GroupsConfiguredCondition.class)
+    public TaskDecorator readWriteTaskDecorator() {
+        log.info("[RW-Config] Registering ReadWriteTaskDecorator for async routing-context propagation");
+        return new ReadWriteTaskDecorator();
     }
 
     @Bean
@@ -267,14 +406,6 @@ public class ReadWriteAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnClass(name = "com.alibaba.csp.sentinel.SphU")
-    public SlaveCircuitBreaker slaveCircuitBreaker() {
-        log.debug("[RW-Config] Registering SlaveCircuitBreaker with Sentinel integration");
-        return new SlaveCircuitBreaker(routingDataSources);
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
     public ConnectionPoolMetrics connectionPoolMetrics() {
         ConnectionPoolMetrics metrics = new ConnectionPoolMetrics(meterRegistry);
 
@@ -293,25 +424,41 @@ public class ReadWriteAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnClass(name = "org.springframework.boot.actuate.health.HealthIndicator")
+    @ConditionalOnClass(name = "org.springframework.boot.health.contributor.HealthIndicator")
+    @Conditional(GroupsConfiguredCondition.class)
+    @ConditionalOnProperty(
+            prefix = "spring.datasource.rw",
+            name = "health-check-enabled",
+            havingValue = "true",
+            matchIfMissing = true
+    )
     public ReadWriteHealthIndicator readWriteHealthIndicator(
             SlaveHealthChecker healthChecker, ReadWriteDataSourceProvider dataSourceProvider) {
         log.debug("[RW-Config] Registering ReadWriteHealthIndicator for Actuator");
-        return new ReadWriteHealthIndicator(healthChecker, dataSourceProvider);
+        return new ReadWriteHealthIndicator(healthChecker, dataSourceProvider, properties);
     }
 
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnClass(name = "org.springframework.boot.actuate.endpoint.annotation.Endpoint")
+    @Conditional(GroupsConfiguredCondition.class)
+    @ConditionalOnProperty(
+            prefix = "spring.datasource.rw",
+            name = "health-check-enabled",
+            havingValue = "true",
+            matchIfMissing = true
+    )
     public ReadWriteEndpoint readWriteEndpoint(
             ReadWriteDataSourceProvider dataSourceProvider, SlaveHealthChecker healthChecker) {
         log.debug("[RW-Config] Registering ReadWriteEndpoint for Actuator");
-        return new ReadWriteEndpoint(dataSourceProvider, healthChecker);
+        return new ReadWriteEndpoint(dataSourceProvider, healthChecker, properties,
+                circuitBreaker, warmupManager);
     }
 
     @PreDestroy
     public void destroy() {
         log.debug("[RW-Config] Shutting down all datasources...");
+        warmupManager.shutdown();
         for (HikariDataSource dataSource : allDataSources) {
             try {
                 if (!dataSource.isClosed()) {
@@ -322,6 +469,21 @@ public class ReadWriteAutoConfiguration {
                 log.warn("[RW-Config] Error closing datasource {}: {}",
                         dataSource.getPoolName(), e.getMessage());
             }
+        }
+    }
+
+    /**
+     * Only publish the RW datasource beans when at least one group is configured.
+     * Otherwise the service keeps its regular single datasource and startup is not
+     * broken by a half-filled configuration.
+     */
+    static class GroupsConfiguredCondition implements Condition {
+        @Override
+        public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
+            ReadWriteProperties bound = Binder.get(context.getEnvironment())
+                    .bind("spring.datasource.rw", ReadWriteProperties.class)
+                    .orElse(null);
+            return bound != null && bound.getGroups() != null && !bound.getGroups().isEmpty();
         }
     }
 

@@ -1,26 +1,90 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCM Platform</title>
-<script>
-(function() {
-  var lang = navigator.language || navigator.userLanguage || 'en';
-  if (lang.startsWith('zh')) {
-    window.location.replace('zh/');
-  } else {
-    window.location.replace('en/');
-  }
-})();
-</script>
-<style>
-body { background: #fafaf8; color: #1a1a18; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; font-size: 14px; }
-a { color: #2563eb; text-decoration: none; }
-a:hover { text-decoration: underline; }
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SCM Platform — 多租户供应链管理平台 / Multi-tenant supply chain</title>
+<meta name="description" content="SCM Platform：26 个可独立部署的后端服务与 Next.js 控制台，覆盖采购、库存、仓储、订单、履约、物流、财务、供应商 SRM、文档与数据分析。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%2308090a'/%3E%3Cpath d='M12 3 21 12 12 21 3 12Z' fill='none' stroke='%23cf9366' stroke-width='1.4'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/site.css">
+<script>document.documentElement.classList.add('js');</script>
 </head>
 <body>
-<p>Redirecting to <a href="en/">English</a> or <a href="zh/">中文</a>…</p>
+<div class="progress" aria-hidden="true"><span></span></div>
+
+<div class="portal wrap">
+  <div class="portal-top">
+    <a class="brand" href="index.html" aria-label="SCM Platform">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+          <path d="M12 2.2 21.8 12 12 21.8 2.2 12Z"/>
+          <path d="M12 7.2 16.8 12 12 16.8 7.2 12Z" fill="currentColor" fill-opacity=".35" stroke="none"/>
+        </svg>
+      </span>
+      <span class="brand-text">SCM<span class="slash">/</span><span class="light">PLATFORM</span></span>
+    </a>
+    <span class="mono">official site · 26 services</span>
+  </div>
+
+  <main class="portal-main" id="main">
+    <div class="intro">
+      <div class="eyebrow">multi-tenant supply chain platform</div>
+      <h1 class="portal-title">
+        <span>SCM</span>
+        <em>Platform</em>
+      </h1>
+    </div>
+
+    <div class="portal-epigraph intro">
+      <p lang="zh-CN">供应链，<br>是一套<em>可核对</em>的系统。</p>
+      <p lang="en">A supply chain<br>you can <em>audit</em>.</p>
+    </div>
+
+    <div class="doors">
+      <div class="door" data-lang-door="zh" lang="zh-CN">
+        <span class="suggest">suggested</span>
+        <a class="door-main" href="zh/index.html">
+          <div class="door-top">
+            <h2>中文</h2>
+            <span class="door-code">zh-CN</span>
+          </div>
+          <p>从定位、能力地图到架构分层与工程取舍。按业务域组织，而不是按服务清单罗列。</p>
+        </a>
+        <div class="door-links">
+          <a href="zh/index.html">首页</a>
+          <a href="zh/features.html">功能</a>
+          <a href="zh/architecture.html">架构</a>
+          <a href="zh/philosophy.html">理念</a>
+          <a href="zh/tech-stack.html">技术栈</a>
+        </div>
+      </div>
+
+      <div class="door" data-lang-door="en" lang="en">
+        <span class="suggest">suggested</span>
+        <a class="door-main" href="en/index.html">
+          <div class="door-top">
+            <h2>English</h2>
+            <span class="door-code">en-US</span>
+          </div>
+          <p>Positioning, capability map, runtime architecture and the engineering trade-offs behind them.</p>
+        </a>
+        <div class="door-links">
+          <a href="en/index.html">Home</a>
+          <a href="en/features.html">Features</a>
+          <a href="en/architecture.html">Architecture</a>
+          <a href="en/philosophy.html">Philosophy</a>
+          <a href="en/tech-stack.html">Tech Stack</a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div class="portal-bottom">
+    <span>Spring Boot 4.1.2 · PostgreSQL 18 · Next.js 16.4.3</span>
+    <span>Apache 2.0 License</span>
+  </div>
+</div>
+
+<script src="assets/site.js" defer></script>
 </body>
 </html>

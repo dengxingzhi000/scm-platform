@@ -7,21 +7,39 @@ import com.alibaba.csp.sentinel.slots.block.BlockException;
 import com.alibaba.csp.sentinel.slots.block.degrade.DegradeRule;
 import com.alibaba.csp.sentinel.slots.block.degrade.DegradeRuleManager;
 import com.alibaba.csp.sentinel.slots.block.degrade.circuitbreaker.CircuitBreakerStrategy;
-import com.scmcloud.common.data.rw.routing.ReadWriteRoutingDataSource;
+import com.scmcloud.common.data.rw.config.ReadWriteProperties;
 import lombok.extern.slf4j.Slf4j;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Proxy;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Slave circuit breaker.
  * <p>
- * Based on Sentinel, implements slave circuit breaking:
- * - Slow request ratio
- * - Error ratio
- * - Error count
+ * Sentinel wraps the <b>whole</b> connection lifetime: the entry is created when a
+ * slave connection is handed to the caller and exited when the connection is closed
+ * (or immediately when acquiring the connection fails). That means:
+ * <ul>
+ *   <li>slow queries / transactions on a replica count towards the slow-request ratio;</li>
+ *   <li>SQL exceptions thrown while the connection is held count towards the error ratio;</li>
+ *   <li>once the circuit opens, {@link #isOpen} makes the routing datasource skip the
+ *       slave entirely, so no further probe or connection attempt reaches it;</li>
+ *   <li>after {@code time-window-seconds} a trial request is allowed; success closes the
+ *       circuit, another block re-opens it.</li>
+ * </ul>
+ * If Sentinel is disabled ({@code spring.datasource.rw.circuit-breaker.enabled=false})
+ * the breaker is inert and the routing datasource still falls back to master on the
+ * first failed connection probe.
  *
  * @author Deng
  * @since 2025-12-16
@@ -30,8 +48,11 @@ import java.util.concurrent.ConcurrentHashMap;
 public class SlaveCircuitBreaker {
     private static final String RESOURCE_PREFIX = "slave:";
 
-    private final Map<String, ReadWriteRoutingDataSource> routingDataSources;
+    private final ReadWriteProperties properties;
+
     private final Map<String, CircuitBreakerState> circuitStates = new ConcurrentHashMap<>();
+    private final Map<String, Long> openUntilMs = new ConcurrentHashMap<>();
+    private final Set<String> registeredResources = ConcurrentHashMap.newKeySet();
 
     public enum CircuitBreakerState {
         CLOSED,
@@ -39,106 +60,178 @@ public class SlaveCircuitBreaker {
         HALF_OPEN
     }
 
-    public SlaveCircuitBreaker(Map<String, ReadWriteRoutingDataSource> routingDataSources) {
-        this.routingDataSources = routingDataSources;
-        initDegradeRules();
-    }
-
-    private void initDegradeRules() {
-        List<DegradeRule> rules = new ArrayList<>();
-
-        for (String groupName : routingDataSources.keySet()) {
-            ReadWriteRoutingDataSource ds = routingDataSources.get(groupName);
-            for (String slaveName : ds.getSlaveAvailability().keySet()) {
-                String resource = RESOURCE_PREFIX + groupName + "." + slaveName;
-
-                DegradeRule slowRule = new DegradeRule(resource)
-                        .setGrade(CircuitBreakerStrategy.SLOW_REQUEST_RATIO.getType())
-                        .setCount(0.5)
-                        .setSlowRatioThreshold(0.5)
-                        .setTimeWindow(30)
-                        .setMinRequestAmount(10)
-                        .setStatIntervalMs(10000);
-
-                DegradeRule exceptionRule = new DegradeRule(resource)
-                        .setGrade(CircuitBreakerStrategy.ERROR_RATIO.getType())
-                        .setCount(0.5)
-                        .setTimeWindow(30)
-                        .setMinRequestAmount(10)
-                        .setStatIntervalMs(10000);
-
-                rules.add(slowRule);
-                rules.add(exceptionRule);
-
-                circuitStates.put(resource, CircuitBreakerState.CLOSED);
-                log.debug("[Circuit-Breaker] Registered rules for slave: {}", resource);
-            }
-        }
-
-        DegradeRuleManager.loadRules(rules);
-        log.debug("[Circuit-Breaker] Loaded {} degrade rules for {} slaves",
-                rules.size(), circuitStates.size());
+    public SlaveCircuitBreaker(ReadWriteProperties properties) {
+        this.properties = properties;
     }
 
     /**
-     * Execute operation with circuit breaker protection.
+     * Register Sentinel degrade rules for every configured slave. Must be called once
+     * after all routing datasources are created, because
+     * {@code DegradeRuleManager.loadRules} replaces the whole rule set of the JVM.
      *
-     * @param groupName datasource group name
-     * @param slaveName slave name
-     * @param operation operation to execute
-     * @param fallback  fallback when circuit is open
-     * @param <T>       return type
-     * @return execution result
+     * @param groupSlaves group name to slave names
      */
-    public <T> T executeWithCircuitBreaker(String groupName, String slaveName, SlaveOperation<T> operation,
-                                            SlaveFallback<T> fallback) throws Exception {
-        String resource = RESOURCE_PREFIX + groupName + "." + slaveName;
+    public void registerGroups(Map<String, ? extends Collection<String>> groupSlaves) {
+        if (!properties.getCircuitBreaker().isEnabled()) {
+            log.info("[Circuit-Breaker] Disabled by configuration; relying on connection probes only");
+            return;
+        }
 
+        List<DegradeRule> rules = new ArrayList<>();
+        groupSlaves.forEach((group, slaves) -> slaves.forEach(slave -> {
+            String resource = resource(group, slave);
+            if (!registeredResources.add(resource)) {
+                return;
+            }
+            circuitStates.put(resource, CircuitBreakerState.CLOSED);
+            rules.add(buildSlowRule(resource));
+            rules.add(buildErrorRule(resource));
+            log.debug("[Circuit-Breaker] Registered rules for slave: {}", resource);
+        }));
+
+        if (rules.isEmpty()) {
+            return;
+        }
+
+        DegradeRuleManager.loadRules(rules);
+        log.info("[Circuit-Breaker] Loaded {} Sentinel degrade rules for {} slaves",
+                rules.size(), registeredResources.size());
+    }
+
+    private DegradeRule buildSlowRule(String resource) {
+        ReadWriteProperties.CircuitBreakerProperties cb = properties.getCircuitBreaker();
+        return new DegradeRule(resource)
+                .setGrade(CircuitBreakerStrategy.SLOW_REQUEST_RATIO.getType())
+                // For SLOW_REQUEST_RATIO the count is the max acceptable RT in ms.
+                .setCount(cb.getSlowRtMs())
+                .setSlowRatioThreshold(cb.getSlowRatioThreshold())
+                .setTimeWindow(cb.getTimeWindowSeconds())
+                .setMinRequestAmount(cb.getMinRequestAmount())
+                .setStatIntervalMs(cb.getStatIntervalMs());
+    }
+
+    private DegradeRule buildErrorRule(String resource) {
+        ReadWriteProperties.CircuitBreakerProperties cb = properties.getCircuitBreaker();
+        return new DegradeRule(resource)
+                .setGrade(CircuitBreakerStrategy.ERROR_RATIO.getType())
+                .setCount(cb.getErrorRatio())
+                .setTimeWindow(cb.getTimeWindowSeconds())
+                .setMinRequestAmount(cb.getMinRequestAmount())
+                .setStatIntervalMs(cb.getStatIntervalMs());
+    }
+
+    /**
+     * Whether the slave circuit is open. When the configured window has elapsed the
+     * state moves to HALF_OPEN and one trial is allowed.
+     */
+    public boolean isOpen(String groupName, String slaveName) {
+        if (!properties.getCircuitBreaker().isEnabled()) {
+            return false;
+        }
+        String resource = resource(groupName, slaveName);
+        Long until = openUntilMs.get(resource);
+        if (until == null) {
+            return false;
+        }
+        if (System.currentTimeMillis() < until) {
+            return true;
+        }
+        openUntilMs.remove(resource);
+        circuitStates.put(resource, CircuitBreakerState.HALF_OPEN);
+        log.info("[Circuit-Breaker] Slave [{}] window elapsed, allowing a trial request", resource);
+        return false;
+    }
+
+    /**
+     * Acquire a slave connection guarded by Sentinel.
+     *
+     * @return the connection (a proxy that exits the Sentinel entry on close), or
+     *         {@code null} when the circuit is open and the caller must fall back to master
+     */
+    public Connection connect(String groupName, String slaveName, ConnectionSupplier supplier)
+            throws SQLException {
+        if (!properties.getCircuitBreaker().isEnabled()) {
+            return supplier.get();
+        }
+
+        String resource = resource(groupName, slaveName);
         Entry entry;
         try {
             entry = SphU.entry(resource);
         } catch (BlockException e) {
-            log.warn("[Circuit-Breaker] Slave [{}] is blocked, circuit is OPEN", resource);
+            openUntilMs.put(resource,
+                    System.currentTimeMillis() + properties.getCircuitBreaker().getTimeWindowSeconds() * 1000L);
             circuitStates.put(resource, CircuitBreakerState.OPEN);
-            markSlaveUnavailable(groupName, slaveName);
-            return fallback.fallback(e);
+            log.warn("[Circuit-Breaker] Slave [{}] is OPEN, falling back to master", resource);
+            return null;
         }
 
-        try (entry) {
-            T result = operation.execute();
-            circuitStates.put(resource, CircuitBreakerState.CLOSED);
-            return result;
-        } catch (Exception e) {
+        Connection connection;
+        try {
+            connection = supplier.get();
+        } catch (SQLException | RuntimeException e) {
             Tracer.trace(e);
+            entry.exit();
             throw e;
         }
+
+        openUntilMs.remove(resource);
+        circuitStates.put(resource, CircuitBreakerState.CLOSED);
+        return wrap(connection, entry, resource);
     }
 
-    private void markSlaveUnavailable(String groupName, String slaveName) {
-        ReadWriteRoutingDataSource ds = routingDataSources.get(groupName);
-        if (ds != null) {
-            ds.markSlaveUnavailable(slaveName);
-            log.warn("[Circuit-Breaker] Marked slave [{}] in group [{}] as UNAVAILABLE",
-                    slaveName, groupName);
-        }
+    private Connection wrap(Connection delegate, Entry entry, String resource) {
+        AtomicBoolean exited = new AtomicBoolean(false);
+        return (Connection) Proxy.newProxyInstance(
+                Connection.class.getClassLoader(),
+                new Class<?>[]{Connection.class},
+                (proxy, method, args) -> {
+                    try {
+                        return method.invoke(delegate, args);
+                    } catch (InvocationTargetException e) {
+                        Throwable cause = e.getCause();
+                        if (cause instanceof SQLException sqlException) {
+                            Tracer.trace(sqlException);
+                        }
+                        throw cause;
+                    } finally {
+                        if ("close".equals(method.getName()) && exited.compareAndSet(false, true)) {
+                            entry.exit();
+                            if (circuitStates.get(resource) == CircuitBreakerState.HALF_OPEN) {
+                                circuitStates.put(resource, CircuitBreakerState.CLOSED);
+                                log.info("[Circuit-Breaker] Slave [{}] trial succeeded, circuit CLOSED", resource);
+                            }
+                        }
+                    }
+                });
     }
 
     public CircuitBreakerState getState(String groupName, String slaveName) {
-        String resource = RESOURCE_PREFIX + groupName + "." + slaveName;
-        return circuitStates.getOrDefault(resource, CircuitBreakerState.CLOSED);
+        return circuitStates.getOrDefault(resource(groupName, slaveName), CircuitBreakerState.CLOSED);
     }
 
     public Map<String, CircuitBreakerState> getAllStates() {
         return Map.copyOf(circuitStates);
     }
 
-    @FunctionalInterface
-    public interface SlaveOperation<T> {
-        T execute() throws Exception;
+    public Map<String, Object> getSnapshot() {
+        Map<String, Object> snapshot = new LinkedHashMap<>();
+        circuitStates.forEach((resource, state) -> {
+            Map<String, Object> detail = new LinkedHashMap<>();
+            detail.put("state", state.name());
+            Long until = openUntilMs.get(resource);
+            detail.put("openUntil", until == null ? null : until);
+            snapshot.put(resource, detail);
+        });
+        return snapshot;
+    }
+
+    private String resource(String groupName, String slaveName) {
+        return RESOURCE_PREFIX + groupName + "." + slaveName;
     }
 
     @FunctionalInterface
-    public interface SlaveFallback<T> {
-        T fallback(BlockException e);
+    public interface ConnectionSupplier {
+        Connection get() throws SQLException;
     }
 }

@@ -14,7 +14,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -122,6 +121,14 @@ public class SupSettlementServiceImpl extends ServiceImpl<SupSettlementMapper, S
         };
     }
 
+    private void validateTransitionTo(SupSettlement settlement, String targetStatus) {
+        String currentStatus = resolveStatusName(settlement.getStatus());
+        if (targetStatus.equals(currentStatus)) {
+            return;
+        }
+        statusValidator.validateTransition("SUPPLIER_SETTLEMENT", currentStatus, targetStatus);
+    }
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean confirm(String id, String approverId, String approverName) {
@@ -132,7 +139,7 @@ public class SupSettlementServiceImpl extends ServiceImpl<SupSettlementMapper, S
             log.warn("对账单不存在: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
             return false;
         }
-        statusValidator.validateTransition("SUPPLIER_SETTLEMENT", "DRAFT", "CONFIRMED");
+        validateTransitionTo(settlement, "CONFIRMED");
 
         settlement.setStatus(1);
         settlement.setApproverId(approverId);
@@ -157,17 +164,9 @@ public class SupSettlementServiceImpl extends ServiceImpl<SupSettlementMapper, S
             log.warn("对账单不存在: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
             return false;
         }
-        String implPayFromStatus;
-        if (settlement.getStatus() == 1) {
-            implPayFromStatus = "CONFIRMED";
-        } else if (settlement.getStatus() == 2) {
-            implPayFromStatus = "PARTIAL_PAID";
-        } else {
-            implPayFromStatus = "FULLY_PAID";
-        }
-        statusValidator.validateTransition("SUPPLIER_SETTLEMENT", implPayFromStatus, "CLOSED");
+        validateTransitionTo(settlement, "FULLY_PAID");
 
-        settlement.setStatus(4);
+        settlement.setStatus(3);
         settlement.setPaymentAmount(settlement.getActualAmount());
         settlement.setUpdateTime(LocalDateTime.now());
         settlement.setUpdateBy(updateBy);

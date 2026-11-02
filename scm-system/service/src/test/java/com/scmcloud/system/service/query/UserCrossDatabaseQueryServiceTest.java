@@ -9,7 +9,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.expression.spel.standard.SpelExpressionParser;
+import org.springframework.expression.spel.support.StandardEvaluationContext;
 
+import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -388,6 +392,23 @@ class UserCrossDatabaseQueryServiceTest {
         // Assert
         assertEquals(5, result); // Default: 浠呮湰锟?
         verify(userRoleMapper).getUserDataScope(testUserId);
+    }
+
+    @Test
+    void getUserDataScope_UsesScopePrefixedCacheKey() throws Exception {
+        Method method = UserCrossDatabaseQueryService.class.getMethod("getUserDataScope", UUID.class);
+        Cacheable cacheable = method.getAnnotation(Cacheable.class);
+
+        StandardEvaluationContext context = new StandardEvaluationContext();
+        context.setVariable("userId", testUserId);
+        String key = String.valueOf(new SpelExpressionParser()
+                .parseExpression(cacheable.key())
+                .getValue(context));
+
+        // 数值码值独占 "scope:<userId>"，不得与 PermissionQueryServiceImpl 的 String 枚举共用裸 userId 键。
+        assertEquals("scope:" + testUserId, key);
+        assertEquals("userDataScope", cacheable.value()[0]);
+        assertEquals(Integer.class, method.getReturnType());
     }
 
     @Test

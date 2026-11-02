@@ -2,157 +2,399 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCM Platform — 技术栈</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&family=Noto+Serif+SC:wght@400;500;600&display=swap');
-:root {
-  --mono: 'JetBrains Mono', monospace;
-  --serif: 'Instrument Serif', 'Noto Serif SC', serif;
-  --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --bg: #fafaf8; --bg2: #f5f5f0; --bg-card: #ffffff;
-  --t1: #1a1a18; --t2: #5a5a56; --t3: #8a8a86;
-  --border: #e8e8e4; --border2: #d4d4d0;
-  --accent: #2563eb; --green: #16a34a; --red: #dc2626; --amber: #d97706;
-}
-.lang-switch { font-family: var(--mono); font-size: 10px; padding: 4px 10px; border-radius: 6px; color: var(--t3); text-decoration: none; border: .5px solid var(--border); transition: color .15s, background .15s; letter-spacing: .02em; margin-left: 8px; }
-.lang-switch:hover { color: var(--t1); background: var(--bg2); }
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: var(--sans); background: var(--bg); color: var(--t1); -webkit-font-smoothing: antialiased; }
-
-/* Header */
-.site-header { position: sticky; top: 0; z-index: 100; background: rgba(250,250,248,.85); backdrop-filter: blur(12px); border-bottom: .5px solid var(--border); }
-.site-header-inner { max-width: 960px; margin: 0 auto; padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; }
-.site-logo { font-family: var(--mono); font-size: 13px; font-weight: 500; color: var(--t1); text-decoration: none; }
-.site-nav { display: flex; gap: 4px; align-items: center; }
-.site-nav a { font-family: var(--mono); font-size: 11px; padding: 5px 12px; border-radius: 6px; color: var(--t3); text-decoration: none; transition: color .15s, background .15s; letter-spacing: .02em; }
-.site-nav a:hover, .site-nav a.active { color: var(--t1); background: var(--bg2); }
-.site-nav-cta { background: var(--t1) !important; color: var(--bg) !important; padding: 5px 14px !important; border-radius: 6px !important; }
-.site-nav-cta:hover { opacity: .85 !important; }
-
-/* Footer */
-.site-footer { border-top: .5px solid var(--border); padding: 32px 0; margin-top: 64px; }
-.site-footer-inner { max-width: 960px; margin: 0 auto; padding: 0 24px; display: flex; justify-content: space-between; align-items: center; }
-.site-footer-left { font-family: var(--mono); font-size: 11px; color: var(--t3); }
-.site-footer-right { font-family: var(--serif); font-size: 13px; font-style: italic; color: var(--t3); }
-
-/* Page */
-.site-page { max-width: 680px; margin: 0 auto; padding: 0 24px; }
-.site-hero { padding: 48px 0 32px; border-bottom: .5px solid var(--border); margin-bottom: 40px; }
-.site-hero-eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; color: var(--t3); text-transform: uppercase; margin-bottom: 16px; }
-.site-hero h1 { font-family: var(--serif); font-size: 34px; font-weight: 400; line-height: 1.15; color: var(--t1); margin-bottom: 16px; }
-.site-hero-sub { font-size: 15px; color: var(--t2); line-height: 1.65; max-width: 520px; }
-.site-section { margin-bottom: 48px; }
-.site-section-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: .5px solid var(--border); }
-.site-section-num { font-family: var(--mono); font-size: 11px; color: var(--t3); min-width: 20px; }
-.site-section-title { font-size: 15px; font-weight: 500; color: var(--t1); }
-
-/* Tech table */
-.site-tech-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 16px 0; }
-.site-tech-table th { font-family: var(--mono); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--t3); font-weight: 400; text-align: left; padding: 8px 12px 8px 0; border-bottom: .5px solid var(--border); }
-.site-tech-table td { padding: 10px 12px 10px 0; border-bottom: .5px solid var(--border); color: var(--t2); vertical-align: top; line-height: 1.5; }
-.site-tech-table td:first-child { color: var(--t1); font-weight: 500; white-space: nowrap; padding-right: 20px; }
-.site-tech-table tr:last-child td { border-bottom: none; }
-
-/* Flow steps */
-.site-flow { display: flex; flex-direction: column; gap: 0; margin: 16px 0; }
-.site-flow-step { display: grid; grid-template-columns: 40px 1fr; gap: 16px; padding: 16px 0; border-bottom: .5px solid var(--border); align-items: start; }
-.site-flow-step:last-child { border-bottom: none; }
-.site-flow-num { font-family: var(--mono); font-size: 11px; color: var(--t3); padding-top: 2px; }
-.site-flow-title { font-size: 13px; font-weight: 500; color: var(--t1); margin-bottom: 4px; }
-.site-flow-desc { font-size: 13px; color: var(--t2); line-height: 1.6; }
-
-.site-prose { font-size: 14px; line-height: 1.8; color: var(--t2); }
-.site-prose + .site-prose { margin-top: 12px; }
-
-@media (max-width: 640px) {
-  .site-nav { display: none; }
-}
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>技术栈 — SCM Platform</title>
+<meta name="description" content="SCM Platform 的分层技术选型与理由：Java 21、Spring Boot 4.1.2、Spring Cloud 2025.1.4、PostgreSQL 18、Redis 8、ClickHouse、Next.js 16.4.3，以及刻意未启用的能力。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%2308090a'/%3E%3Cpath d='M12 3 21 12 12 21 3 12Z' fill='none' stroke='%23cf9366' stroke-width='1.4'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/site.css">
+<script>document.documentElement.classList.add('js');</script>
 </head>
 <body>
+<a class="skip" href="#main">跳到主要内容</a>
+<div class="progress" aria-hidden="true"><span></span></div>
 
-<!-- Header -->
 <header class="site-header">
-  <div class="site-header-inner">
-    <a href="index.html" class="site-logo">SCM Platform</a>
-    <nav class="site-nav">
+  <div class="header-inner">
+    <a class="brand" href="index.html" aria-label="SCM Platform 首页">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+          <path d="M12 2.2 21.8 12 12 21.8 2.2 12Z"/>
+          <path d="M12 7.2 16.8 12 12 16.8 7.2 12Z" fill="currentColor" fill-opacity=".35" stroke="none"/>
+        </svg>
+      </span>
+      <span class="brand-text">SCM<span class="slash">/</span><span class="light">PLATFORM</span></span>
+    </a>
+    <nav class="site-nav" aria-label="主导航">
       <a href="index.html">首页</a>
       <a href="features.html">功能</a>
       <a href="architecture.html">架构</a>
       <a href="philosophy.html">理念</a>
-      <a href="tech-stack.html" class="active">技术栈</a>
-      <a href="../en/tech-stack.html" class="lang-switch">English</a>
+      <a href="tech-stack.html" class="is-active" aria-current="page">技术栈</a>
     </nav>
+    <a class="lang-switch" href="../en/tech-stack.html" hreflang="en" lang="en">EN</a>
   </div>
 </header>
 
-<main>
+<main id="main">
+  <div class="wrap narrow">
 
-<div class="site-page">
+    <div class="page-hero">
+      <div class="intro">
+        <div class="eyebrow">technology choices</div>
+        <h1>选型，<br>是<em>对问题</em>的回答。</h1>
+        <p class="lede">
+          版本取自当前父 POM、各服务 POM 与 <code>scm-web/package.json</code>；理由只看代码里实际使用的边界。
+          这里不列 logo 墙，只写“为什么是它”和“它没有解决什么”。
+        </p>
+      </div>
+    </div>
 
-<!-- Hero -->
-<div class="site-hero">
-  <div class="site-hero-eyebrow">technology choices</div>
-  <h1>技术栈</h1>
-  <div class="site-hero-sub">每一层的技术选型都经过深思熟虑——不是追逐最新潮流，而是选择最适合问题的工具。</div>
-</div>
+    <div class="ribbon" style="margin-bottom:8px" data-reveal>
+      <span>Java 21</span>
+      <span>Spring Boot 4.1.2</span>
+      <span>Spring Cloud 2025.1.4</span>
+      <span>Spring Cloud Alibaba 2025.1.0.0</span>
+      <span>Next.js 16.4.3</span>
+      <span>PostgreSQL 18</span>
+      <span>Redis 8</span>
+      <span>ClickHouse 26.10</span>
+    </div>
 
-<!-- Tech Stack Table -->
-<div class="site-section">
-  <table class="site-tech-table">
-    <tr><th>层</th><th>组件</th></tr>
-    <tr><td>后端</td><td>Java 21 (Virtual Threads), Spring Boot 4.0.6, Spring Cloud 2025.1.1</td></tr>
-    <tr><td>阿里巴巴生态</td><td>Spring Cloud Alibaba 2025.1.0.0 (Nacos, Sentinel, Seata)</td></tr>
-    <tr><td>数据库</td><td>PostgreSQL, MyBatis-Plus 3.5.15, ShardingSphere 5.5.1</td></tr>
-    <tr><td>缓存</td><td>Redis (distributed cache, Lua scripts for atomic operations)</td></tr>
-    <tr><td>搜索</td><td>Elasticsearch 8.11.4, Canal 1.1.7 (binlog sync)</td></tr>
-    <tr><td>消息</td><td>Kafka (event streaming), RabbitMQ (reliable queue)</td></tr>
-    <tr><td>RPC</td><td>Apache Dubbo 3.3.6 (internal service calls)</td></tr>
-    <tr><td>调度</td><td>XXL-Job 3.3.1 (distributed task scheduling)</td></tr>
-    <tr><td>监控</td><td>Sentinel, SkyWalking 9.3.0, Micrometer + Prometheus</td></tr>
-    <tr><td>前端</td><td>Next.js 15 (App Router), React 19, Ant Design 5, Zustand 5, TanStack Query 5</td></tr>
-    <tr><td>DevOps</td><td>Docker, GitHub Actions, SonarCloud, OWASP Dependency Check</td></tr>
-  </table>
-</div>
+    <!-- 01 -->
+    <section class="stack-layer">
+      <div class="stack-head" data-reveal>
+        <span class="roman">01</span>
+        <div>
+          <h2>运行时与框架</h2>
+          <p>26 个服务共享一套运行时与版本管理。统一的代价是升级要一起做，收益是排障时不用先问“这是哪个栈”。</p>
+        </div>
+      </div>
+      <div class="stack-grid">
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Java 21</b><span class="ver">21</span></div>
+          <p>统一运行时；使用 record、模式匹配与标准并发库。热路径性能来自 Redis Lua 与异步编排，不依赖线程模型。</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Spring Boot</b><span class="ver">4.1.2</span></div>
+          <p>统一 Web、Validation、Actuator 与自动配置；父 POM 管理全部版本，服务只声明自己需要的能力。</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Spring Cloud</b><span class="ver">2025.1.4</span></div>
+          <p>网关、配置与发现的基础版本；服务通过 Nacos 注册，网关按服务名路由。</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Spring Cloud Alibaba</b><span class="ver">2025.1.0.0</span></div>
+          <p>Nacos 3.2.4 作为发现与配置中心；Seata 与 Sentinel 通过同一生态接入，减少自建控制面。</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Apache Dubbo</b><span class="ver">3.3.6</span></div>
+          <p>内部同步调用走 RPC 契约，接口与 DTO 放在各模块的 <code>api/</code>；浏览器侧仍走 REST + 网关，不让前端感知 RPC。</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Jakarta Servlet</b><span class="ver">6.x</span></div>
+          <p>只用 <code>jakarta.servlet</code>；maven-enforcer 禁止 <code>javax.servlet</code>，避免在 Boot 4 上出现隐式不兼容。</p>
+        </article>
+      </div>
+    </section>
 
-<!-- Key Decisions -->
-<div class="site-section">
-  <div class="site-section-header"><span class="site-section-num">→</span><span class="site-section-title">关键选型决策</span></div>
-  <div class="site-flow">
-    <div class="site-flow-step">
-      <div class="site-flow-num">01</div>
-      <div><div class="site-flow-title">Java 21 虚拟线程</div><div class="site-flow-desc">每个请求一个虚拟线程，无需线程池调优。I/O 密集型场景吞吐量提升 3-5 倍。</div></div>
+    <!-- 02 -->
+    <section class="stack-layer">
+      <div class="stack-head" data-reveal>
+        <span class="roman">02</span>
+        <div>
+          <h2>数据与存储</h2>
+          <p>每种存储只承担一种角色：账本、速度、分析、检索、文件。跨界使用会立刻在一致性或性能上付出代价。</p>
+        </div>
+      </div>
+      <div class="stack-grid">
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>PostgreSQL</b><span class="ver">18</span></div>
+          <p>每个服务独立 <code>db_*</code>；<code>ord_order</code>、<code>inv_reservation</code>、<code>sup_purchase_order</code> 按月分区，默认保留 24 个月。不做跨库 JOIN。</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>MyBatis-Plus</b><span class="ver">3.5.17</span></div>
+          <p>显式 SQL 便于审计与优化；租户谓词由拦截器统一追加。软删除是全局字段（<code>deleted</code>）。</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Redis</b><span class="ver">8</span></div>
+          <p>Lua 负责扣减、回补与秒杀；预占索引与短 TTL 缓存。两级缓存（Caffeine L1 + Redis L2）默认关闭，由服务按需开启。</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>ClickHouse</b><span class="ver">26.10</span></div>
+          <p>分析层专用：ODS → DWD → DWS → ADS，按 <code>tenant_id</code> 排序、<code>toYYYYMM</code> 分区；不在交易路径上。</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Elasticsearch</b><span class="ver">9.5.5</span></div>
+          <p>商品搜索、相似商品与推荐；支持单条／批量索引与全量重建。它不是账本，索引可以重建。</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Kafka</b><span class="ver">cp-kafka 8.4.0</span></div>
+          <p>事件主干；至少一次投递，消费者用幂等处理重复。序列化使用 <code>JacksonJsonSerializer</code>，不用已移除的 JsonSerializer。</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>RabbitMQ</b><span class="ver">5.37.0 client</span></div>
+          <p>可靠队列；<code>RabbitAdmin</code> 启动时声明队列。与 Kafka 分工：RabbitMQ 负责点对点可靠投递，Kafka 负责事件流。</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>MinIO / S3</b><span class="ver">client</span></div>
+          <p>文件对象存储，兼容 S3／OSS；下载走 30 分钟预签名地址，元数据留在 PostgreSQL。</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Flyway</b><span class="ver">13.11.1</span></div>
+          <p>每服务独立版本线；<code>validate-on-migrate=true</code>、<code>out-of-order=false</code>。Spring Boot 4 把自动配置拆到 starter，见下方边界。</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- 03 -->
+    <section class="stack-layer">
+      <div class="stack-head" data-reveal>
+        <span class="roman">03</span>
+        <div>
+          <h2>一致性与调度</h2>
+          <p>强一致只发生在聚合内部；跨服务的一致性是设计出来的补偿，不是框架许愿。</p>
+        </div>
+      </div>
+      <div class="stack-grid">
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Seata</b><span class="ver">2.0.0 client</span></div>
+          <p>AT 模式用于跨服务事务；每个库都要有 <code>undo_log</code>。订单与库存的预占另有 TCC 分支，显式 confirm／cancel。</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Saga</b><span class="ver">in-house</span></div>
+          <p><code>scm-common/integration</code> 提供轻量 Saga 编排；用于长流程补偿，不引入独立编排引擎。</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>XXL-Job</b><span class="ver">3.5.0</span></div>
+          <p>定时任务：过期预占释放、库存快照、租户服务费计算等；空 admin 地址会拒绝启动，避免“看起来在跑”。</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Flowable</b><span class="ver">BPMN</span></div>
+          <p>审批流程引擎；平台提供发起、通过、驳回、待办与流程状态接口，流程模型由 BPMN 定义。</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- 04 -->
+    <section class="stack-layer">
+      <div class="stack-head" data-reveal>
+        <span class="roman">04</span>
+        <div>
+          <h2>可观测</h2>
+          <p>指标、链路与日志不是三套系统，而是同一个请求的三种视角。</p>
+        </div>
+      </div>
+      <div class="stack-grid">
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Sentinel</b><span class="ver">2025.0.0.0</span></div>
+          <p>熔断与限流；规则可来自 Nacos。默认不是“可选插件”，而是网关与业务服务的稳定性边界。</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>SkyWalking</b><span class="ver">agent 9.3.0</span></div>
+          <p>链路追踪；OAP 与 UI 使用 10.4.0 镜像。跨服务调用在 trace 里能看到 Dubbo 与 HTTP 两段。</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Micrometer + Prometheus</b><span class="ver">1.17.2</span></div>
+          <p>指标采集；每个服务暴露 Actuator 端点，Prometheus 抓取，Grafana 展示。</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Actuator</b><span class="ver">Boot 4</span></div>
+          <p><code>/actuator/health</code> 是统一健康端点；租户过滤器把它排除在租户校验之外，否则探针会被拒绝。</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- 05 -->
+    <section class="stack-layer">
+      <div class="stack-head" data-reveal>
+        <span class="roman">05</span>
+        <div>
+          <h2>前端</h2>
+          <p>目标栈已经确定，迁移仍在进行。新页面只进 shadcn/ui，存量 Ant Design 页面按域替换。</p>
+        </div>
+      </div>
+      <div class="stack-grid">
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Next.js</b><span class="ver">16.4.3</span></div>
+          <p>App Router；<code>proxy.ts</code> 负责 locale 前缀与未登录跳转。Next 16 把 middleware 约定改名为 proxy。</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>React</b><span class="ver">19.3.1</span></div>
+          <p>仪表盘是客户端页面，直接聚合网关数据；不再用服务端 prefetch 去赌 cookie 转发。</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>TypeScript</b><span class="ver">7 + 6</span></div>
+          <p><code>typecheck</code> 走 TypeScript 7（<code>@typescript/native</code>）；ESLint 与 Next 构建仍走 TS 6，因为 typescript-eslint 尚未支持 TS 7 API。</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Tailwind CSS</b><span class="ver">4.3.3</span></div>
+          <p>CSS-first 配置；<code>design-tokens.css</code> 是 Ant Design、Tailwind 与 Canvas 图表的唯一调色板来源。</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>shadcn/ui</b><span class="ver">vendored</span></div>
+          <p>组件源码直接进 <code>src/components/ui</code>，可改；不引入第二套 CSS-in-JS。</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Ant Design</b><span class="ver">6.6.7</span></div>
+          <p>只保留在存量页面；不新增 AntD 页面。迁移完成一个域，就删掉一个域的 AntD 依赖。</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>TanStack Query</b><span class="ver">5.104.5</span></div>
+          <p>服务端状态；一个 <code>QueryClient</code>。查询数据不包 <code>'use cache'</code>，缓存策略在 Query 层显式配置。</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>TanStack Table / AG Grid</b><span class="ver">9.3.1 / 36.2</span></div>
+          <p>默认表格用 TanStack Table；AG Grid 只通过懒加载的 <code>DataGrid</code> 包装进入，避免把重表格打进首屏。</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Zustand</b><span class="ver">5.0.16</span></div>
+          <p>只放 UI 状态（侧栏、主题、筛选上下文）；服务端数据不进 store。</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>React Hook Form + Zod</b><span class="ver">7.91 / 4.6</span></div>
+          <p>长表单使用 <code>zodResolver</code> 与统一 FormField；校验规则与后端约束保持一致。</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Recharts / ECharts / G6</b><span class="ver">3.10 / 6.1 / 5.1</span></div>
+          <p>KPI 用 Recharts，复杂图形用 ECharts，拓扑用 G6；全部懒加载，ECharts 只从 <code>echarts/core</code> 引入。</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Vitest + Playwright</b><span class="ver">5.0.5 / 1.64.1</span></div>
+          <p>数据转换与纯逻辑走 Vitest；核心账本路径走 Playwright（Chromium / Firefox / WebKit）。</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- 06 -->
+    <section class="stack-layer">
+      <div class="stack-head" data-reveal>
+        <span class="roman">06</span>
+        <div>
+          <h2>交付与验证</h2>
+          <p>构建与发布不是“最后一步”。它决定了前面所有选择能否被验证。</p>
+        </div>
+      </div>
+      <div class="stack-grid">
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Maven 多模块</b><span class="ver">3.9.x</span></div>
+          <p>根目录没有 <code>pom.xml</code>；所有命令都要 <code>-f com.scm.parent/pom.xml</code>，模块通过 <code>../scm-*</code> 引用。</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>GitHub Actions</b><span class="ver">CI</span></div>
+          <p>PR 跑后端 <code>test-compile test</code> 与前端 typecheck／lint／test／build；push 跑 <code>verify</code> 并上传 Codecov。</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Docker Compose</b><span class="ver">infra</span></div>
+          <p>默认 profile 起 Nacos、PostgreSQL、Redis、Kafka、RabbitMQ、Elasticsearch、ClickHouse 等；核心服务以 JVM 进程运行。</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>SonarCloud</b><span class="ver">optional</span></div>
+          <p>仅在 <code>SONAR_ORG</code> 设置时运行；不把外部质量平台设为硬门禁。</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>OWASP Dependency Check</b><span class="ver">advisory</span></div>
+          <p><code>continue-on-error</code>：发现依赖漏洞会报，但不会替开发者决定是否阻塞发布。</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>JaCoCo</b><span class="ver">off by default</span></div>
+          <p>父 POM 设置 <code>jacoco.skip=true</code>；只有显式传 <code>-Djacoco.skip=false</code> 才执行覆盖率门禁。</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- 07 -->
+    <section class="stack-layer">
+      <div class="stack-head" data-reveal>
+        <span class="roman">07</span>
+        <div>
+          <h2>边界与未启用项</h2>
+          <p>选型表如果只写“用了什么”，会掩盖“其实没跑起来”的部分。下面这些是当前状态。</p>
+        </div>
+      </div>
+      <div class="limits">
+        <div class="limit" data-reveal>
+          <div class="limit-key">读写分离</div>
+          <div class="limit-text"><code>@Master</code>／<code>@Slave</code> 注解与自动配置存在，但整套能力由 <code>spring.datasource.rw.enabled=true</code> 控制；当前没有服务启用，默认单库读写。</div>
+        </div>
+        <div class="limit" data-reveal>
+          <div class="limit-key">可选子系统</div>
+          <div class="limit-text">OAuth2 授权服务器（<code>security.uaa.enabled</code>）仅在 scm-auth 开启；mTLS、PKCE、两级缓存、数据同步默认关闭，需要服务显式 opt-in。</div>
+        </div>
+        <div class="limit" data-reveal>
+          <div class="limit-key">Flyway 自动配置</div>
+          <div class="limit-text">Spring Boot 4 把 Flyway 自动配置拆到 <code>spring-boot-starter-flyway</code>；当前只有 scm-supplier 显式引入。只声明 <code>flyway-core</code> 的服务，迁移可能不会自动执行。</div>
+        </div>
+        <div class="limit" data-reveal>
+          <div class="limit-key">集成测试</div>
+          <div class="limit-text"><code>@Tag("integration")</code> 的测试被 surefire 默认排除；CI 不启动 Spring 上下文，只跑 Mockito 单测与前端门禁。需要 Docker／Testcontainers 的验证要在本地显式启用。</div>
+        </div>
+        <div class="limit" data-reveal>
+          <div class="limit-key">Canal / ShardingSphere</div>
+          <div class="limit-text">两者都不在运行路径里：Canal 客户端依赖在父 POM 中被注释，ShardingSphere 未引入。搜索同步由 scm-search 的索引接口负责，分库分表未启用。</div>
+        </div>
+        <div class="limit" data-reveal>
+          <div class="limit-key">前端迁移</div>
+          <div class="limit-text">Ant Design 6 仍在部分存量页面；新页面只使用 shadcn/ui。迁移按域推进，不设“一次性重写”的里程碑。</div>
+        </div>
+        <div class="limit" data-reveal>
+          <div class="limit-key">电商层测试</div>
+          <div class="limit-text">payment、promotion 等模块有单测；member、mall、search 等模块的测试覆盖仍较薄，不能把“有接口”当成“已验证”。</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="closing">
+      <blockquote>选型不是站队，<br>是接受一组代价。</blockquote>
+      <div class="closing-foot">
+        <a href="architecture.html">看它如何连起来</a>
+        <a href="philosophy.html">看取舍的原则</a>
+      </div>
     </div>
-    <div class="site-flow-step">
-      <div class="site-flow-num">02</div>
-      <div><div class="site-flow-title">Seata 分布式事务</div><div class="site-flow-desc">AT 模式零侵入，TCC 模式高性能，Saga 模式长事务。三种模式按场景选择。</div></div>
-    </div>
-    <div class="site-flow-step">
-      <div class="site-flow-num">03</div>
-      <div><div class="site-flow-title">Redis Lua 原子操作</div><div class="site-flow-desc">库存扣减在 Redis 单线程中原子执行。无竞态条件，无数据库锁。热路径延迟 &lt;2ms。</div></div>
-    </div>
-    <div class="site-flow-step">
-      <div class="site-flow-num">04</div>
-      <div><div class="site-flow-title">Canal binlog 同步</div><div class="site-flow-desc">监听 MySQL/PostgreSQL binlog，实时同步到 Elasticsearch。业务代码零侵入。</div></div>
-    </div>
-    <div class="site-flow-step">
-      <div class="site-flow-num">05</div>
-      <div><div class="site-flow-title">Next.js 15 App Router</div><div class="site-flow-desc">服务端组件减少客户端 JS 体积。流式渲染提升首屏性能。内置 i18n 支持。</div></div>
-    </div>
+
   </div>
-</div>
-
-</div>
-
 </main>
 
 <footer class="site-footer">
-  <div class="site-footer-inner">
-    <div class="site-footer-left">SCM Platform &middot; Apache 2.0 License</div>
-    <div class="site-footer-right">为企业级供应链而生</div>
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a class="brand" href="index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+              <path d="M12 2.2 21.8 12 12 21.8 2.2 12Z"/>
+              <path d="M12 7.2 16.8 12 12 16.8 7.2 12Z" fill="currentColor" fill-opacity=".35" stroke="none"/>
+            </svg>
+          </span>
+          <span class="brand-text">SCM<span class="slash">/</span><span class="light">PLATFORM</span></span>
+        </a>
+        <p>多租户供应链管理平台。把采购、库存、订单、履约、财务与治理放在同一套边界里。</p>
+      </div>
+      <div class="footer-col">
+        <h4>浏览</h4>
+        <a href="index.html">首页</a>
+        <a href="features.html">功能</a>
+        <a href="architecture.html">架构</a>
+        <a href="philosophy.html">理念</a>
+        <a href="tech-stack.html">技术栈</a>
+      </div>
+      <div class="footer-col">
+        <h4>版本</h4>
+        <div class="colophon">
+          Spring Boot 4.1.2<br>
+          Spring Cloud 2025.1.4<br>
+          PostgreSQL 18 · ClickHouse 26.10<br>
+          Next.js 16.4.3 · Apache 2.0
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>SCM Platform · 2026</span>
+      <span>26 services · zh-CN / en-US</span>
+      <a href="../index.html">入口页</a>
+    </div>
   </div>
 </footer>
 
+<script src="../assets/site.js" defer></script>
 </body>
 </html>

@@ -193,7 +193,10 @@ public class UserCrossDatabaseQueryService {
      */
     @Slave
     @Timed(value = "cross_db_query", extraTags = {"method", "getUserDataScope"})
-    @Cacheable(value = "userDataScope", key = "#userId")
+    // 数值码值（1-5）与 PermissionQueryServiceImpl 的 String 枚举共用 "userDataScope" 缓存区。
+    // 这里刻意使用 "scope:<userId>" 而非裸 userId：后者由 String 枚举占用，同键不同型会触发
+    // ClassCastException。该键由本方法唯一负责写入。
+    @Cacheable(value = "userDataScope", key = "'scope:' + #userId")
     public Integer getUserDataScope(UUID userId) {
         if (userId == null) {
             return 5; // 榛樿浠呮湰锟?

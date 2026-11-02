@@ -15,9 +15,9 @@ import org.apache.ibatis.session.RowBounds;
  * <p>
  * Parses SQL type before execution and sets routing context.
  * <p>
- * References:
- * - Meituan Zebra ZebraInterceptor
- * - Apache ShardingSphere SQLRouteExecutor
+ * It only makes a decision when no explicit scope is active. A SELECT is sent to a
+ * slave only on a servlet request thread; async, scheduled and startup threads keep
+ * the master default so they never silently observe stale data.
  *
  * @author Deng
  * @since 2025-12-16
@@ -60,7 +60,13 @@ public class SqlRoutingInterceptor implements Interceptor {
                 return executeWithMaster(invocation);
             }
 
-            log.debug("[SQL-Routing] Detected SELECT, routing to SLAVE");
+            if (!ReadWriteRoutingContext.isRequestScope()) {
+                // No request scope: keep the datasource default (master). Prevents
+                // async / scheduled reads from landing on a replica by accident.
+                return invocation.proceed();
+            }
+
+            log.debug("[SQL-Routing] Detected SELECT in request scope, routing to SLAVE");
             return executeWithSlave(invocation);
         }
 
@@ -77,13 +83,8 @@ public class SqlRoutingInterceptor implements Interceptor {
                 return executeWithMaster(invocation);
             }
             case SLAVE -> {
-                if (hint.slaveName() != null) {
-                    log.debug("[SQL-Routing] Hint: SLAVE({})", hint.slaveName());
-                    ReadWriteRoutingContext.specifySlave(hint.slaveName());
-                } else {
-                    log.debug("[SQL-Routing] Hint: SLAVE");
-                }
-                return executeWithSlave(invocation);
+                log.debug("[SQL-Routing] Hint: SLAVE({})", hint.slaveName());
+                return executeWithSlave(invocation, hint.slaveName());
             }
             default -> {
                 return invocation.proceed();
@@ -92,7 +93,7 @@ public class SqlRoutingInterceptor implements Interceptor {
     }
 
     private Object executeWithMaster(Invocation invocation) throws Throwable {
-        ReadWriteRoutingContext.push(ReadWriteRoutingContext.RoutingType.MASTER);
+        ReadWriteRoutingContext.push(ReadWriteRoutingContext.RoutingType.MASTER, null, true);
         try {
             return invocation.proceed();
         } finally {
@@ -101,7 +102,7 @@ public class SqlRoutingInterceptor implements Interceptor {
     }
 
     private Object executeWithMasterAndMarkWrite(Invocation invocation) throws Throwable {
-        ReadWriteRoutingContext.push(ReadWriteRoutingContext.RoutingType.MASTER);
+        ReadWriteRoutingContext.push(ReadWriteRoutingContext.RoutingType.MASTER, null, true);
         try {
             Object result = invocation.proceed();
             ReadWriteRoutingContext.markWrite();
@@ -112,12 +113,15 @@ public class SqlRoutingInterceptor implements Interceptor {
     }
 
     private Object executeWithSlave(Invocation invocation) throws Throwable {
-        ReadWriteRoutingContext.push(ReadWriteRoutingContext.RoutingType.SLAVE);
+        return executeWithSlave(invocation, null);
+    }
+
+    private Object executeWithSlave(Invocation invocation, String slaveName) throws Throwable {
+        ReadWriteRoutingContext.push(ReadWriteRoutingContext.RoutingType.SLAVE, slaveName, true);
         try {
             return invocation.proceed();
         } finally {
             ReadWriteRoutingContext.pop();
-            ReadWriteRoutingContext.specifySlave(null);
         }
     }
 }

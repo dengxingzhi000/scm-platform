@@ -2,407 +2,328 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCM Platform — 设计哲学</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&family=Noto+Serif+SC:wght@400;500;600&display=swap');
-:root {
-  --mono: 'JetBrains Mono', monospace;
-  --serif: 'Instrument Serif', 'Noto Serif SC', serif;
-  --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --bg: #fafaf8; --bg2: #f5f5f0; --bg-card: #ffffff;
-  --t1: #1a1a18; --t2: #5a5a56; --t3: #8a8a86;
-  --border: #e8e8e4; --border2: #d4d4d0;
-  --accent: #2563eb; --green: #16a34a; --red: #dc2626; --amber: #d97706;
-}
-.lang-switch { font-family: var(--mono); font-size: 10px; padding: 4px 10px; border-radius: 6px; color: var(--t3); text-decoration: none; border: .5px solid var(--border); transition: color .15s, background .15s; letter-spacing: .02em; margin-left: 8px; }
-.lang-switch:hover { color: var(--t1); background: var(--bg2); }
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: var(--sans); background: var(--bg); color: var(--t1); -webkit-font-smoothing: antialiased; }
-
-/* Header */
-.site-header { position: sticky; top: 0; z-index: 100; background: rgba(250,250,248,.85); backdrop-filter: blur(12px); border-bottom: .5px solid var(--border); }
-.site-header-inner { max-width: 960px; margin: 0 auto; padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; }
-.site-logo { font-family: var(--mono); font-size: 13px; font-weight: 500; color: var(--t1); text-decoration: none; }
-.site-nav { display: flex; gap: 4px; align-items: center; }
-.site-nav a { font-family: var(--mono); font-size: 11px; padding: 5px 12px; border-radius: 6px; color: var(--t3); text-decoration: none; transition: color .15s, background .15s; letter-spacing: .02em; }
-.site-nav a:hover, .site-nav a.active { color: var(--t1); background: var(--bg2); }
-.site-nav-cta { background: var(--t1) !important; color: var(--bg) !important; padding: 5px 14px !important; border-radius: 6px !important; }
-.site-nav-cta:hover { opacity: .85 !important; }
-
-/* Footer */
-.site-footer { border-top: .5px solid var(--border); padding: 32px 0; margin-top: 64px; }
-.site-footer-inner { max-width: 960px; margin: 0 auto; padding: 0 24px; display: flex; justify-content: space-between; align-items: center; }
-.site-footer-left { font-family: var(--mono); font-size: 11px; color: var(--t3); }
-.site-footer-right { font-family: var(--serif); font-size: 13px; font-style: italic; color: var(--t3); }
-
-/* Page */
-.site-page { max-width: 680px; margin: 0 auto; padding: 0 24px; }
-.site-hero { padding: 48px 0 32px; border-bottom: .5px solid var(--border); margin-bottom: 40px; }
-.site-hero-eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; color: var(--t3); text-transform: uppercase; margin-bottom: 16px; }
-.site-hero h1 { font-family: var(--serif); font-size: 34px; font-weight: 400; line-height: 1.15; color: var(--t1); margin-bottom: 16px; }
-.site-hero-sub { font-size: 15px; color: var(--t2); line-height: 1.65; max-width: 520px; }
-.site-section { margin-bottom: 48px; }
-.site-section-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: .5px solid var(--border); }
-.site-section-num { font-family: var(--mono); font-size: 11px; color: var(--t3); min-width: 20px; }
-.site-section-title { font-size: 15px; font-weight: 500; color: var(--t1); }
-.site-prose { font-size: 14px; line-height: 1.8; color: var(--t2); }
-.site-prose + .site-prose { margin-top: 12px; }
-.site-callout { border-left: 2px solid var(--border2); padding: 12px 16px; margin: 16px 0; font-family: var(--serif); font-size: 15px; font-style: italic; color: var(--t2); line-height: 1.6; }
-
-/* Pillar grid */
-.site-pillar-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
-.site-pillar-card { background: var(--bg-card); border: .5px solid var(--border); border-radius: 8px; padding: 14px 16px; }
-.site-pillar-label { font-family: var(--mono); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--t3); margin-bottom: 4px; }
-.site-pillar-title { font-size: 13px; font-weight: 500; color: var(--t1); margin-bottom: 4px; }
-.site-pillar-desc { font-size: 12px; color: var(--t2); line-height: 1.5; }
-
-/* Feature grid */
-.site-feature-grid { display: flex; flex-direction: column; gap: 0; margin: 16px 0; }
-.site-feature-row { display: grid; grid-template-columns: 180px 1fr; gap: 16px; padding: 16px 0; border-bottom: .5px solid var(--border); align-items: start; }
-.site-feature-row:last-child { border-bottom: none; }
-.site-feature-name { font-size: 13px; font-weight: 500; color: var(--t1); }
-.site-feature-port { font-family: var(--mono); font-size: 10px; color: var(--t3); margin-top: 2px; }
-.site-feature-desc { font-size: 13px; color: var(--t2); line-height: 1.6; }
-
-/* Landing */
-.site-landing-hero { padding: 80px 0 48px; text-align: center; }
-.site-landing-hero h1 { font-family: var(--serif); font-size: 48px; font-weight: 400; line-height: 1.1; color: var(--t1); margin-bottom: 20px; }
-.site-landing-hero-sub { font-size: 16px; color: var(--t2); line-height: 1.7; max-width: 560px; margin: 0 auto 32px; }
-.site-landing-cta { display: inline-flex; gap: 12px; }
-.site-landing-cta a { font-family: var(--mono); font-size: 12px; padding: 10px 24px; border-radius: 8px; text-decoration: none; transition: opacity .15s; }
-.site-landing-cta-primary { background: var(--t1); color: var(--bg); }
-.site-landing-cta-secondary { background: var(--bg2); color: var(--t1); border: .5px solid var(--border); }
-
-/* Highlight grid */
-.site-highlight-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin: 32px 0; }
-.site-highlight-card { background: var(--bg-card); border: .5px solid var(--border); border-radius: 8px; padding: 20px 16px; }
-.site-highlight-icon { font-size: 20px; margin-bottom: 12px; }
-.site-highlight-title { font-size: 13px; font-weight: 500; color: var(--t1); margin-bottom: 6px; }
-.site-highlight-desc { font-size: 12px; color: var(--t2); line-height: 1.5; }
-
-/* Tech bar */
-.site-tech-bar { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 24px 0; }
-.site-tech-tag { font-family: var(--mono); font-size: 10px; padding: 4px 10px; border-radius: 99px; border: .5px solid var(--border); color: var(--t3); background: var(--bg-card); }
-
-/* Diagram */
-.site-diagram { background: var(--bg2); border-radius: 12px; border: .5px solid var(--border); padding: 20px; margin: 16px 0; overflow-x: auto; }
-.site-diagram svg { display: block; margin: 0 auto; }
-
-/* SLO grid */
-.site-slo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 16px 0; }
-.site-slo-card { background: var(--bg2); border-radius: 8px; padding: 12px; border: .5px solid var(--border); }
-.site-slo-op { font-size: 11px; color: var(--t2); margin-bottom: 8px; line-height: 1.4; }
-.site-slo-vals { display: flex; gap: 4px; flex-wrap: wrap; }
-.site-slo-val { font-family: var(--mono); font-size: 10px; padding: 2px 5px; border-radius: 4px; background: var(--bg-card); border: .5px solid var(--border); color: var(--t2); }
-.site-slo-label { font-family: var(--mono); font-size: 9px; color: var(--t3); }
-
-/* Philosophy nav pills */
-.site-nav-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 32px; }
-.site-nav-pill { font-family: var(--mono); font-size: 10px; padding: 4px 12px; border-radius: 99px; border: .5px solid var(--border); color: var(--t3); cursor: pointer; transition: background .15s, color .15s, border-color .15s; background: none; }
-.site-nav-pill:hover, .site-nav-pill.active { background: var(--bg2); color: var(--t1); border-color: var(--border2); }
-.dp-section { margin-bottom: 40px; display: none; }
-.dp-section.visible { display: block; }
-
-/* Tradeoff */
-.site-tradeoff { background: var(--bg2); border-radius: 8px; border: .5px solid var(--border); padding: 16px 20px; margin: 16px 0; }
-.site-tradeoff-head { font-family: var(--mono); font-size: 10px; letter-spacing: .07em; text-transform: uppercase; color: var(--t3); margin-bottom: 12px; }
-.site-tradeoff-row { display: grid; grid-template-columns: 80px 1fr; gap: 12px; padding: 8px 0; border-bottom: .5px solid var(--border); font-size: 13px; line-height: 1.5; align-items: start; }
-.site-tradeoff-row:last-child { border-bottom: none; }
-.site-tradeoff-label { font-family: var(--mono); font-size: 10px; padding-top: 2px; }
-.label-chosen { color: var(--green); }
-.label-rejected { color: var(--red); }
-.label-cost { color: var(--amber); }
-.site-tradeoff-text { color: var(--t2); }
-
-/* Principle list */
-.site-principle-list { display: flex; flex-direction: column; gap: 0; margin: 16px 0; }
-.site-principle { display: flex; gap: 14px; padding: 12px 0; border-bottom: .5px solid var(--border); align-items: flex-start; }
-.site-principle:last-child { border-bottom: none; }
-.site-principle-glyph { font-family: var(--mono); font-size: 11px; color: var(--t3); padding-top: 2px; min-width: 20px; }
-.site-principle-title { font-size: 13px; font-weight: 500; color: var(--t1); margin-bottom: 3px; }
-.site-principle-desc { font-size: 13px; color: var(--t2); line-height: 1.6; }
-
-/* Scale grid */
-.site-scale-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 16px 0; }
-.site-scale-card { border: .5px solid var(--border); border-radius: 8px; padding: 14px 16px; background: var(--bg-card); }
-.site-scale-label { font-family: var(--mono); font-size: 9px; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 6px; }
-.sl-easy { color: var(--green); } .sl-hard { color: var(--amber); } .sl-defer { color: var(--t3); }
-.site-scale-title { font-size: 13px; font-weight: 500; color: var(--t1); margin-bottom: 4px; }
-.site-scale-desc { font-size: 12px; color: var(--t2); line-height: 1.5; }
-
-/* Non-goal list */
-.site-nongoal-list { display: flex; flex-direction: column; gap: 0; margin: 12px 0; }
-.site-nongoal-item { display: flex; gap: 10px; padding: 10px 0; border-bottom: .5px solid var(--border); font-size: 13px; color: var(--t2); line-height: 1.5; }
-.site-nongoal-item:last-child { border-bottom: none; }
-.site-nongoal-x { font-family: var(--mono); font-size: 11px; color: var(--red); padding-top: 2px; min-width: 14px; }
-.site-nongoal-title { color: var(--t1); font-weight: 500; }
-
-/* Tech table */
-.site-tech-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 16px 0; }
-.site-tech-table th { font-family: var(--mono); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--t3); font-weight: 400; text-align: left; padding: 8px 12px 8px 0; border-bottom: .5px solid var(--border); }
-.site-tech-table td { padding: 10px 12px 10px 0; border-bottom: .5px solid var(--border); color: var(--t2); vertical-align: top; line-height: 1.5; }
-.site-tech-table td:first-child { color: var(--t1); font-weight: 500; white-space: nowrap; padding-right: 20px; }
-.site-tech-table tr:last-child td { border-bottom: none; }
-
-/* Code */
-.site-code { font-family: var(--mono); font-size: 12px; background: var(--bg2); padding: 1px 6px; border-radius: 4px; border: .5px solid var(--border); color: var(--t1); }
-.site-code-block { font-family: var(--mono); font-size: 12px; background: var(--bg2); padding: 16px 20px; border-radius: 8px; border: .5px solid var(--border); color: var(--t1); line-height: 1.6; overflow-x: auto; margin: 12px 0; white-space: pre; }
-
-@media (max-width: 640px) {
-  .site-pillar-grid, .site-highlight-grid, .site-slo-grid, .site-scale-grid { grid-template-columns: 1fr; }
-  .site-feature-row { grid-template-columns: 1fr; gap: 4px; }
-  .site-landing-hero h1 { font-size: 32px; }
-  .site-nav { display: none; }
-}
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>设计理念 — SCM Platform</title>
+<meta name="description" content="SCM Platform 的八条工程原则：租户隔离、一致性边界、契约优先、热冷路径分离、可回滚演进、默认拒绝、可观测与明确的非目标。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%2308090a'/%3E%3Cpath d='M12 3 21 12 12 21 3 12Z' fill='none' stroke='%23cf9366' stroke-width='1.4'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/site.css">
+<script>document.documentElement.classList.add('js');</script>
 </head>
 <body>
+<a class="skip" href="#main">跳到主要内容</a>
+<div class="progress" aria-hidden="true"><span></span></div>
 
 <header class="site-header">
-  <div class="site-header-inner">
-    <a href="index.html" class="site-logo">SCM Platform</a>
-    <nav class="site-nav">
+  <div class="header-inner">
+    <a class="brand" href="index.html" aria-label="SCM Platform 首页">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+          <path d="M12 2.2 21.8 12 12 21.8 2.2 12Z"/>
+          <path d="M12 7.2 16.8 12 12 16.8 7.2 12Z" fill="currentColor" fill-opacity=".35" stroke="none"/>
+        </svg>
+      </span>
+      <span class="brand-text">SCM<span class="slash">/</span><span class="light">PLATFORM</span></span>
+    </a>
+    <nav class="site-nav" aria-label="主导航">
       <a href="index.html">首页</a>
       <a href="features.html">功能</a>
       <a href="architecture.html">架构</a>
-      <a href="philosophy.html" class="active">理念</a>
+      <a href="philosophy.html" class="is-active" aria-current="page">理念</a>
       <a href="tech-stack.html">技术栈</a>
-      <a href="../en/philosophy.html" class="lang-switch">English</a>
     </nav>
+    <a class="lang-switch" href="../en/philosophy.html" hreflang="en" lang="en">EN</a>
   </div>
 </header>
 
-<main class="site-page">
+<main id="main">
+  <div class="wrap narrow">
 
-<div class="site-hero">
-  <div class="site-hero-eyebrow">design philosophy · v1.0</div>
-  <h1>我们为什么这样构建</h1>
-  <p class="site-hero-sub">观点即架构。每一个技术决策背后都是一个价值判断。</p>
-</div>
-
-<div class="site-nav-pills">
-  <button class="site-nav-pill active" onclick="show('all')">All</button>
-  <button class="site-nav-pill" onclick="show('ddd')">DDD</button>
-  <button class="site-nav-pill" onclick="show('cqrs')">CQRS</button>
-  <button class="site-nav-pill" onclick="show('events')">事件驱动</button>
-  <button class="site-nav-pill" onclick="show('cache')">缓存</button>
-  <button class="site-nav-pill" onclick="show('storage')">存储</button>
-  <button class="site-nav-pill" onclick="show('ai')">AI</button>
-  <button class="site-nav-pill" onclick="show('tenancy')">多租户</button>
-  <button class="site-nav-pill" onclick="show('scale')">扩展</button>
-  <button class="site-nav-pill" onclick="show('ops')">运维</button>
-  <button class="site-nav-pill" onclick="show('nongoals')">非目标</button>
-</div>
-
-<section class="dp-section visible" data-tags="all ddd">
-  <div class="site-section-header"><span class="site-section-num">I</span><span class="site-section-title">领域驱动设计</span></div>
-  <div class="site-callout">当领域模型正确时，代码读起来像业务语言。当领域模型错误时，每一行代码都是一次翻译。</div>
-  <p class="site-prose">我们不把 DDD 当作方法论来崇拜，而把它当作沟通工具。在供应链领域，术语本身就是疆域——"订单"在采购语境和销售语境中含义截然不同。我们通过限界上下文（Bounded Context）确保每个服务拥有自己的语义空间，而不是共享一个臃肿的贫血模型。</p>
-  <p class="site-prose">聚合根的设计遵循"一致性边界"原则：一个事务只修改一个聚合。订单聚合包含订单行和支付记录，但不包含物流轨迹——后者属于另一个上下文的职责。这种边界约束迫使我们在服务间使用最终一致性，而非强事务，这是技术决策，更是业务决策。</p>
-  <p class="site-prose">Repository 层隐藏持久化细节，让领域模型专注于业务规则。我们反对在领域层暴露 JPA 注解或 ORM 特化逻辑——领域对象不该知道它被存在 PostgreSQL 还是 Redis 里。</p>
-</section>
-
-<section class="dp-section" data-tags="all cqrs">
-  <div class="site-section-header"><span class="site-section-num">II</span><span class="site-section-title">CQRS</span></div>
-  <p class="site-prose">读写分离不是一个"性能优化"，而是一种建模选择。在 scm-system 模块中，跨数据库查询的复杂性迫使我们正视统一模型的局限性。CQRS 让我们为读操作和写操作分别建立最优模型：写模型服从领域规则，读模型服从查询效率。</p>
-  <p class="site-prose">Command 端使用 JPA + @Master 写主库，Query 端使用 MyBatis-Plus + @Slave 读从库或 Redis 缓存。两者通过事件同步——当写模型变更时，发布 DomainEvent，Eventual Consistency 自动更新读模型。</p>
-  <div class="site-tradeoff">
-    <div class="site-tradeoff-head">Trade‑off</div>
-    <div class="site-tradeoff-row">
-      <span class="site-tradeoff-label label-rejected">rejected</span>
-      <span class="site-tradeoff-text">统一模型（CRUD Repository 同时承担查询和命令）—— 跨数据库 join 时性能不可控，查询逻辑污染领域模型。</span>
+    <div class="page-hero">
+      <div class="intro">
+        <div class="eyebrow">engineering principles</div>
+        <h1>我们这样构建，<br>因为<em>边界</em>会说话。</h1>
+        <p class="lede">
+          架构不是一组技术偏好，而是一组可被反复执行的判断。下面八条，都是代码里能指到出处的那种：
+          有选择，也有代价；有做到的，也有明确不做的。
+        </p>
+      </div>
     </div>
-    <div class="site-tradeoff-row">
-      <span class="site-tradeoff-label label-chosen">chosen</span>
-      <span class="site-tradeoff-text">CQRS 分离 —— 每个用例的查询可以独立优化，领域模型保持纯净。</span>
+
+    <div class="filters" aria-label="按主题筛选">
+      <button class="filter" type="button" data-filter="all" aria-pressed="true">全部</button>
+      <button class="filter" type="button" data-filter="isolation" aria-pressed="false">隔离</button>
+      <button class="filter" type="button" data-filter="consistency" aria-pressed="false">一致性</button>
+      <button class="filter" type="button" data-filter="contract" aria-pressed="false">契约</button>
+      <button class="filter" type="button" data-filter="performance" aria-pressed="false">性能</button>
+      <button class="filter" type="button" data-filter="evolution" aria-pressed="false">演进</button>
+      <button class="filter" type="button" data-filter="security" aria-pressed="false">安全</button>
+      <button class="filter" type="button" data-filter="ops" aria-pressed="false">运维</button>
+      <button class="filter" type="button" data-filter="boundary" aria-pressed="false">边界</button>
     </div>
+
+    <!-- I -->
+    <section class="principle" data-tags="all isolation" data-reveal>
+      <div class="principle-head">
+        <span class="roman">I</span>
+        <div>
+          <h2>隔离先于便利</h2>
+          <div class="callout">租户标识不是可选项。缺省即拒绝。</div>
+        </div>
+      </div>
+      <div class="principle-body">
+        <p>
+          租户在请求入口被解析，而不是在业务代码里被“记得”。<code>TenantFilter</code> 写入线程上下文，
+          <code>TenantInterceptor</code> 在 MyBatis 层给 SELECT、UPDATE、DELETE 追加带别名的谓词，
+          <code>AsyncTenantAutoConfiguration</code> 让异步线程继承同一上下文。默认 <code>scm.tenant.required=true</code>，
+          缺失即抛出 <code>TenantParseException</code>；单个服务可以关闭 SQL 隔离，但关闭是一个显式动作，不是遗漏。
+        </p>
+        <p>
+          已知边界也写在这里：JOIN 只对驱动表追加谓词，FROM 里的子查询不会被过滤；
+          这类复杂查询需要开发者显式补条件。把限制说出来，比让它藏在框架里更安全。
+        </p>
+      </div>
+      <div class="tradeoff">
+        <div class="tradeoff-row"><span class="tag rejected">rejected</span><span>每个服务自己拼 <code>tenant_id</code> —— 一处遗漏就是一整片数据越界。</span></div>
+        <div class="tradeoff-row"><span class="tag chosen">chosen</span><span>入口过滤器 + SQL 拦截器统一注入 —— 业务代码不需要“记得”。</span></div>
+        <div class="tradeoff-row"><span class="tag cost">cost</span><span>复杂 JOIN 仍需人工确认；异步任务必须走租户感知执行器。</span></div>
+      </div>
+    </section>
+
+    <!-- II -->
+    <section class="principle" data-tags="all consistency" data-reveal>
+      <div class="principle-head">
+        <span class="roman">II</span>
+        <div>
+          <h2>一致性有边界</h2>
+          <div class="callout">一个事务，只改一个聚合。</div>
+        </div>
+      </div>
+      <div class="principle-body">
+        <p>
+          跨库的工作被限制在 <code>service/query/</code> 与 <code>service/command/</code>；代码库里没有跨数据库 JOIN。
+          跨服务的强一致交给 Seata AT，每个库都要有 <code>undo_log</code>；订单与库存的预占使用 TCC，
+          明确实现 confirm 与 cancel 分支；长流程用 <code>scm-common/integration</code> 里的 Saga 编排。
+        </p>
+        <p>
+          这不是“最终一致性更先进”，而是承认分布式事务的成本，把成本放在能看见的地方：
+          补偿动作、幂等消费者、可重试的消息。
+        </p>
+      </div>
+      <div class="tradeoff">
+        <div class="tradeoff-row"><span class="tag rejected">rejected</span><span>跨库 JOIN 拼一个大事务 —— 性能不可控，失败后无法定位是谁的回滚。</span></div>
+        <div class="tradeoff-row"><span class="tag chosen">chosen</span><span>聚合内强一致 + 跨服务最终一致 —— 每个边界都有对应的补偿。</span></div>
+        <div class="tradeoff-row"><span class="tag cost">cost</span><span>需要 undo_log、TCC 分支、幂等表与对账兜底。</span></div>
+      </div>
+    </section>
+
+    <!-- III -->
+    <section class="principle" data-tags="all contract" data-reveal>
+      <div class="principle-head">
+        <span class="roman">III</span>
+        <div>
+          <h2>契约先于实现</h2>
+          <div class="callout">错误响应也是契约的一部分。</div>
+        </div>
+      </div>
+      <div class="principle-body">
+        <p>
+          统一响应走 <code>ApiResponse</code>；分页保留 MyBatis-Plus 的原始回显（<code>records</code>、<code>total</code>、
+          <code>size</code>、<code>current</code>），由前端 <code>contracts/page.ts</code> 归一化，而不是在服务端另造一套分页壳。
+        </p>
+        <p>
+          异常处理按 bean 分治：<code>SecurityRestExceptionHandler</code> 只负责认证、授权与校验，
+          <code>GlobalExceptionHandler</code> 拥有其余异常和 catch-all。这样 404 仍然是 404，405 仍然是 405，
+          只有应用主动抛出的 <code>ServiceException</code>／<code>BusinessException</code> 消息才允许到达客户端。
+          过滤器链里的失败走 <code>SecurityErrorResponseWriter</code>，不依赖 advice。
+        </p>
+      </div>
+      <div class="tradeoff">
+        <div class="tradeoff-row"><span class="tag rejected">rejected</span><span>一个 catch-all 接管所有异常 —— 会遮蔽业务异常，并把原始 message 放到公网。</span></div>
+        <div class="tradeoff-row"><span class="tag chosen">chosen</span><span>按 bean 明确归属，状态码从异常类型或注解解析。</span></div>
+        <div class="tradeoff-row"><span class="tag cost">cost</span><span>新增异常类型时必须明确它归哪个 handler；契约变更要同步前端。</span></div>
+      </div>
+    </section>
+
+    <!-- IV -->
+    <section class="principle" data-tags="all performance" data-reveal>
+      <div class="principle-head">
+        <span class="roman">IV</span>
+        <div>
+          <h2>热与冷，分开走</h2>
+          <div class="callout">热路径不等待数据库。</div>
+        </div>
+      </div>
+      <div class="principle-body">
+        <p>
+          库存扣减、回补与秒杀在 Redis Lua 中原子执行；预占默认 900 秒，支付确认后转实扣，取消或超时释放。
+          水位告警与每日快照走独立接口，不进入下单链路。订单看板在 PostgreSQL 内聚合，并用
+          <code>create_time at time zone</code> 与 <code>timestamptz</code> 绑定来避免时区漂移。
+        </p>
+        <p>
+          Redis 不是账本。它承担承诺与速度，PostgreSQL 承担事实与对账；两者之间的窗口靠补偿、
+          幂等和对账工作台收敛。
+        </p>
+      </div>
+      <div class="tradeoff">
+        <div class="tradeoff-row"><span class="tag rejected">rejected</span><span>每次扣减都写 PostgreSQL —— 热点行锁与事务开销会把下单延迟放大。</span></div>
+        <div class="tradeoff-row"><span class="tag chosen">chosen</span><span>内存原子操作 + 异步落账 + 对账兜底。</span></div>
+        <div class="tradeoff-row"><span class="tag cost">cost</span><span>Redis 与账本存在短暂窗口；缓存失效与预占回收必须有任务兜底。</span></div>
+      </div>
+    </section>
+
+    <!-- V -->
+    <section class="principle" data-tags="all evolution" data-reveal>
+      <div class="principle-head">
+        <span class="roman">V</span>
+        <div>
+          <h2>先能回滚，再谈上线</h2>
+          <div class="callout">演进不是一次性重写，是可持续的替换。</div>
+        </div>
+      </div>
+      <div class="principle-body">
+        <p>
+          每个服务维护自己的 Flyway 版本线，<code>validate-on-migrate=true</code>、<code>out-of-order=false</code>；
+          新 schema 变更进 <code>db/migration/V&lt;n&gt;__*.sql</code>，不再往 <code>scripts/db/</code> 里追加。
+          读写分离的自动配置默认关闭，需要服务显式设置 <code>spring.datasource.rw.enabled=true</code>；
+          UAA、mTLS、PKCE、两级缓存、数据同步等可选子系统也默认关闭，由服务按需 opt-in。
+        </p>
+        <p>
+          前端同样渐进：shadcn/ui 与 Tailwind v4 是目标栈，Ant Design 6 只留在存量页面；
+          不新增 AntD 页面，按域迁移，避免“大爆炸式”重写。
+        </p>
+      </div>
+      <div class="tradeoff">
+        <div class="tradeoff-row"><span class="tag rejected">rejected</span><span>所有服务共享一条迁移线 —— 一个服务的失败会阻塞全部发布。</span></div>
+        <div class="tradeoff-row"><span class="tag chosen">chosen</span><span>每服务独立版本线 + 默认关闭的可选能力。</span></div>
+        <div class="tradeoff-row"><span class="tag cost">cost</span><span>跨服务变更需要显式排序；功能默认关闭意味着更多配置与验证。</span></div>
+      </div>
+    </section>
+
+    <!-- VI -->
+    <section class="principle" data-tags="all security" data-reveal>
+      <div class="principle-head">
+        <span class="roman">VI</span>
+        <div>
+          <h2>默认拒绝</h2>
+          <div class="callout">默认拒绝比默认方便更难，但更安全。</div>
+        </div>
+      </div>
+      <div class="principle-body">
+        <p>
+          审计写入只接受内部服务的 HMAC-SHA256 签名，时间窗 5 分钟，控制器没有删除入口；
+          支付回调在密钥缺失时直接拒绝，而不是“先接受再补验”；权限查询失败时返回 403，而不是放行。
+          WebAuthn 与 <code>StepUpFilter</code> 负责敏感操作的二次校验。
+        </p>
+        <p>
+          这些选择会让本地联调更麻烦：必须配密钥、必须带租户头、必须有 <code>scm-system</code> 才能拿到权限。
+          这是有意的摩擦，不是没做完。
+        </p>
+      </div>
+      <div class="tradeoff">
+        <div class="tradeoff-row"><span class="tag rejected">rejected</span><span>把审计入口开放给任意登录用户 —— 等于允许伪造或抹掉证据。</span></div>
+        <div class="tradeoff-row"><span class="tag chosen">chosen</span><span>只接受签名写入；回调未配置即失败；权限查询失败即拒绝。</span></div>
+        <div class="tradeoff-row"><span class="tag cost">cost</span><span>密钥分发与轮换是运维责任；回调配置错误会拒绝合法通知（按设计如此）。</span></div>
+      </div>
+    </section>
+
+    <!-- VII -->
+    <section class="principle" data-tags="all ops" data-reveal>
+      <div class="principle-head">
+        <span class="roman">VII</span>
+        <div>
+          <h2>可观测是需求</h2>
+          <div class="callout">没有 traceId 的 500，等于没有发生。</div>
+        </div>
+      </div>
+      <div class="principle-body">
+        <p>
+          5xx 返回通用文案与 <code>X-Request-ID</code>，完整堆栈连同 traceId 写入日志；
+          每个服务暴露 <code>/actuator/health</code>，指标进入 Prometheus，链路进入 SkyWalking。
+          错误处理、审计和调用链都围绕同一个请求标识组织，排障时不需要先在日志里“猜时间”。
+        </p>
+      </div>
+      <div class="tradeoff">
+        <div class="tradeoff-row"><span class="tag rejected">rejected</span><span>把 <code>e.getMessage()</code> 直接返回前端 —— 泄漏内部结构，且无法聚合统计。</span></div>
+        <div class="tradeoff-row"><span class="tag chosen">chosen</span><span>通用文案 + 请求 ID + 结构化日志。</span></div>
+        <div class="tradeoff-row"><span class="tag cost">cost</span><span>排障依赖日志与追踪系统；埋点与上下文传播需要持续维护。</span></div>
+      </div>
+    </section>
+
+    <!-- VIII -->
+    <section class="principle" data-tags="all boundary" data-reveal>
+      <div class="principle-head">
+        <span class="roman">VIII</span>
+        <div>
+          <h2>非目标</h2>
+          <div class="callout">克制不是保守，是不把成本藏起来。</div>
+        </div>
+      </div>
+      <div class="principle-body">
+        <p>
+          明确不做什么，比明确做什么更难。以下是我们刻意不做的事——它们让剩下的选择更专注。
+        </p>
+        <ul class="plain-list">
+          <li><b>No PaaS</b><span>不做通用型 PaaS。平台服务的是有供应链领域知识、需要定制与运维掌控的团队。</span></li>
+          <li><b>No numbers</b><span>不写没有压测依据的容量与可用性数字。没有“百万并发”“99.99%”这类装饰性指标。</span></li>
+          <li><b>No mesh</b><span>不引入 Service Mesh。当前规模下，网关 + Nacos + Dubbo 已足够，额外的控制面只会增加故障面。</span></li>
+          <li><b>No theater</b><span>不把未落地的能力写进文档。没有 AI 推理、没有 Canal 同步、没有 ShardingSphere——它们不在运行路径里。</span></li>
+          <li><b>No hiding</b><span>不承诺“零配置”。启动顺序、密钥、租户头与数据库初始化都需要被理解，文档只降低门槛，不替代知识。</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <div class="closing">
+      <blockquote>原则不是口号，<br>是下一次改动时的默认答案。</blockquote>
+      <div class="closing-foot">
+        <a href="architecture.html">回到运行时</a>
+        <a href="tech-stack.html">看选型的代价</a>
+      </div>
+    </div>
+
   </div>
-</section>
-
-<section class="dp-section" data-tags="all events">
-  <div class="site-section-header"><span class="site-section-num">III</span><span class="site-section-title">事件驱动</span></div>
-  <div class="site-callout">事件不是消息，是不可撤销的事实。一旦入库，它就是审计日志的一部分。</div>
-  <p class="site-prose">分布式系统中，同步调用链是脆弱性的源头。我们使用 Spring Cloud Function + 消息中间件实现事件驱动编排：当订单创建后，系统发布 OrderCreatedEvent，库存服务、物流服务、通知服务分别独立响应。没有中心编排器，没有同步阻塞。</p>
-  <p class="site-prose">我们遵循"事件溯源"的思想——不是必须把所有状态存成事件流，而是把关键业务事件持久化到独立的事件表，作为审计和诊断的依据。Kafka 作为事件主干，保证至少一次投递，消费者通过幂等性处理重复消息。</p>
-  <div class="site-tradeoff">
-    <div class="site-tradeoff-head">Trade‑off</div>
-    <div class="site-tradeoff-row">
-      <span class="site-tradeoff-label label-rejected">rejected</span>
-      <span class="site-tradeoff-text">同步管道（服务间通过 HTTP 同步调用编排）—— 缺乏弹性，一个下游故障阻塞整个链路。</span>
-    </div>
-    <div class="site-tradeoff-row">
-      <span class="site-tradeoff-label label-cost">cost</span>
-      <span class="site-tradeoff-text">事件可能丢失（消息中间件故障、消费者崩溃、网络分区）—— 通过死信队列 + 定时补偿 + 幂等表兜底。</span>
-    </div>
-  </div>
-</section>
-
-<section class="dp-section" data-tags="all cache">
-  <div class="site-section-header"><span class="site-section-num">IV</span><span class="site-section-title">缓存即性能架构</span></div>
-  <p class="site-prose">缓存不是事后追加的优化，而是架构的一等公民。我们为每一个查询路径设计了明确的缓存策略，而非在性能瓶颈出现后才被动加缓存。</p>
-  <div class="site-principle-list">
-    <div class="site-principle">
-      <span class="site-principle-glyph">01</span>
-      <div><div class="site-principle-title">L1 Caffeine 本地缓存</div><div class="site-principle-desc">每个服务实例维护 5 分钟 TTL 的本地缓存，减少对 Redis 的读取压力。适合字典数据、配置项、低频变更的领域对象。</div></div>
-    </div>
-    <div class="site-principle">
-      <span class="site-principle-glyph">02</span>
-      <div><div class="site-principle-title">L2 Redis 分布式缓存</div><div class="site-principle-desc">跨服务共享的缓存数据，30 分钟 TTL。使用 Redis 发布/订阅机制在数据变更时主动失效相关缓存，而非依赖 TTL 被动过期。</div></div>
-    </div>
-    <div class="site-principle">
-      <span class="site-principle-glyph">03</span>
-      <div><div class="site-principle-title">强失效策略</div><div class="site-principle-desc">写操作执行完毕后立即失效缓存，而非更新缓存。下一次读请求自然回填最新数据，避免缓存与数据库的不一致窗口。</div></div>
-    </div>
-  </div>
-</section>
-
-<section class="dp-section" data-tags="all storage">
-  <div class="site-section-header"><span class="site-section-num">V</span><span class="site-section-title">存储抽象</span></div>
-  <div class="site-callout">存储选型是架构中最后悔成本最高的决策之一。抽象层让你保留换掉它的权利。</div>
-  <p class="site-prose">我们不直接在业务代码中使用 RedisTemplate 或 JPA EntityManager。相反，每个数据访问都通过 Repository 接口或自定义抽象层进行。这不仅让测试更简单，更重要的是——当某天需要从 PostgreSQL 迁移到 CockroachDB，或者从 Redis Standalone 升级到 Redis Cluster 时，改动范围被限制在一层之内。</p>
-  <div class="site-tradeoff">
-    <div class="site-tradeoff-head">Trade‑off</div>
-    <div class="site-tradeoff-row">
-      <span class="site-tradeoff-label label-rejected">rejected</span>
-      <span class="site-tradeoff-text">直接 SDK 集成（业务代码调用 RedisTemplate、MongoTemplate 等）—— 代码与具体存储深度耦合，换存储等于重写服务。</span>
-    </div>
-    <div class="site-tradeoff-row">
-      <span class="site-tradeoff-label label-cost">cost</span>
-      <span class="site-tradeoff-text">每加一个存储抽象层约额外两小时开发时间 —— 但在项目生命周期内，这种抽象带来的灵活性回报远超成本。</span>
-    </div>
-  </div>
-</section>
-
-<section class="dp-section" data-tags="all ai">
-  <div class="site-section-header"><span class="site-section-num">VI</span><span class="site-section-title">AI 作为基础设施</span></div>
-  <div class="site-callout">AI 不是产品功能，是基础设施能力。我们不以「AI 功能」来命名需求，而是把智能能力编织到现有业务流程的缝隙里。</div>
-  <p class="site-prose">我们不追求用 AI 替换人类决策者。模型做预测，人做决策。AI 模块负责：需求预测、库存健康评分、供应商风险评级、订单异常检测。这些能力以嵌入式的形式出现在业务界面中，而非单独的 AI 控制台。</p>
-  <div class="site-principle-list">
-    <div class="site-principle">
-      <span class="site-principle-glyph">01</span>
-      <div><div class="site-principle-title">无条件集成</div><div class="site-principle-desc">AI 推理结果以 JSON 结构输出，与业务数据格式一致。即使用户不使用 AI 功能，业务系统完全可运行——AI 是增量，不是依赖。</div></div>
-    </div>
-    <div class="site-principle">
-      <span class="site-principle-glyph">02</span>
-      <div><div class="site-principle-title">异步推理</div><div class="site-principle-desc">所有 AI 推理走消息队列异步执行。用户操作不受模型推理时间影响——库存预测在后台完成，结果通过 WebSocket 推送到前端。</div></div>
-    </div>
-    <div class="site-principle">
-      <span class="site-principle-glyph">03</span>
-      <div><div class="site-principle-title">分类归一化</div><div class="site-principle-desc">不同来源的商品分类（SPU 分类、海关编码、仓库货位分类）通过 AI 映射到统一分类树，消除 N×N 的映射复杂度。</div></div>
-    </div>
-  </div>
-</section>
-
-<section class="dp-section" data-tags="all tenancy">
-  <div class="site-section-header"><span class="site-section-num">VII</span><span class="site-section-title">多租户隔离</span></div>
-  <div class="site-callout">隔离级别是一个安全决策，不是架构决策。选错了隔离模型，要么漏数据，要么维护到崩溃。</div>
-  <p class="site-prose">我们采用混合隔离策略：大多数场景使用逻辑隔离（共享数据库按租户过滤），高安全需求场景使用物理隔离（独立数据库实例）。TenantContextHolder 在请求入口处解析租户标识，贯穿整个调用链路，确保数据边界不被突破。</p>
-  <div class="site-principle-list">
-    <div class="site-principle">
-      <span class="site-principle-glyph">01</span>
-      <div><div class="site-principle-title">Hibernate 过滤器</div><div class="site-principle-desc">ORM 层自动追加 tenant_id 过滤条件，开发者无需手动拼接 SQL。所有表均包含 tenant_id 列，索引覆盖过滤条件。</div></div>
-    </div>
-    <div class="site-principle">
-      <span class="site-principle-glyph">02</span>
-      <div><div class="site-principle-title">Redis 键前缀</div><div class="site-principle-desc">缓存键使用 tenant_id 作为前缀，确保不同租户的缓存数据不会互相覆盖。秒杀库存等热数据按租户分片存储。</div></div>
-    </div>
-    <div class="site-principle">
-      <span class="site-principle-glyph">03</span>
-      <div><div class="site-principle-title">Schema 隔离</div><div class="site-principle-desc">对于金融级租户，使用独立数据库 Schema 而非行级过滤。连接池按租户动态路由，TenantContextHolder 驱动 @DS 注解切换数据源。</div></div>
-    </div>
-  </div>
-</section>
-
-<section class="dp-section" data-tags="all scale">
-  <div class="site-section-header"><span class="site-section-num">VIII</span><span class="site-section-title">扩展哲学</span></div>
-  <div class="site-callout">不要预测瓶颈。监控它，然后扩展它。过早扩展和从不扩展一样危险。</div>
-  <p class="site-prose">我们的扩展策略遵循"先垂直再水平"的原则：在出现明确水平扩展需求之前，先通过垂直扩容和代码优化释放性能。当必须水平扩展时，每个服务的无状态设计确保了扩展的简洁性。</p>
-  <div class="site-scale-grid">
-    <div class="site-scale-card">
-      <div class="site-scale-label sl-easy">easy</div>
-      <div class="site-scale-title">HTTP 层</div>
-      <div class="site-scale-desc">无状态服务通过负载均衡水平扩展。Gateway 层自动路由，Nacos 注册中心实时感知节点上下线。加实例，提吞吐。</div>
-    </div>
-    <div class="site-scale-card">
-      <div class="site-scale-label sl-hard">hard</div>
-      <div class="site-scale-title">WebSocket 层</div>
-      <div class="site-scale-desc">长连接服务需要会话亲和性。通过 Redis Pub/Sub 广播跨实例消息，或在 Gateway 层做 Sticky Session。</div>
-    </div>
-    <div class="site-scale-card">
-      <div class="site-scale-label sl-easy">easy</div>
-      <div class="site-scale-title">Worker 层</div>
-      <div class="site-scale-desc">消息消费者任务无状态，通过 Kafka 分区重平衡自动分配。增加消费者组实例数即可提升吞吐。</div>
-    </div>
-    <div class="site-scale-card">
-      <div class="site-scale-label sl-defer">defer</div>
-      <div class="site-scale-title">数据库</div>
-      <div class="site-scale-desc">读写分离 + 分库分表（ShardingSphere）已在架构层预留，但只在单库达到 5000 QPS 或 2TB 时启用。</div>
-    </div>
-  </div>
-</section>
-
-<section class="dp-section" data-tags="all ops">
-  <div class="site-section-header"><span class="site-section-num">IX</span><span class="site-section-title">运维哲学</span></div>
-  <p class="site-prose">一个跑不起来的架构设计再优雅也毫无意义。我们从第一天就把可运维性作为架构需求——这意味每个服务在提交代码之前就已经想好了如何部署、如何监控、如何排障。基础设施即代码（IaC）和不可变基础设施是我们默认的运维模型。</p>
-  <div class="site-principle-list">
-    <div class="site-principle">
-      <span class="site-principle-glyph">01</span>
-      <div><div class="site-principle-title">可观测性优先</div><div class="site-principle-desc">每个服务必须暴露健康检查、指标端点（Prometheus）、分布式追踪（SkyWalking）和结构化日志。没有埋点的代码不允许上线。</div></div>
-    </div>
-    <div class="site-principle">
-      <span class="site-principle-glyph">02</span>
-      <div><div class="site-principle-title">幂等性系统化</div><div class="site-principle-desc">所有关键写操作（订单创建、库存扣减、支付回调）通过请求 ID 实现幂等性。Redis 存储 24 小时幂等表，重复请求安全降级。</div></div>
-    </div>
-    <div class="site-principle">
-      <span class="site-principle-glyph">03</span>
-      <div><div class="site-principle-title">优雅降级</div><div class="site-principle-desc">Sentinel 熔断 + 服务降级是默认配置，不是可选功能。每个 Feign 调用都有 fallback，每个缓存穿透都有保护。系统宁可降级也不可雪崩。</div></div>
-    </div>
-  </div>
-</section>
-
-<section class="dp-section" data-tags="all nongoals">
-  <div class="site-section-header"><span class="site-section-num">X</span><span class="site-section-title">非目标</span></div>
-  <p class="site-prose">明确不做什么比明确做什么更难。以下是我们刻意不做的事情——这些限制让我们的架构选择更加专注。</p>
-  <div class="site-nongoal-list">
-    <div class="site-nongoal-item">
-      <span class="site-nongoal-x">✕</span>
-      <div><span class="site-nongoal-title">不追求 100% 可用性</span> — 我们的 SLO 目标是 99.9%（每月约 43 分钟停机）。这决定了我们不需要多活部署、不需要单元化架构、不需要跨 AZ 实时同步。在可用性上的克制让我们能集中资源做正确的事。</div>
-    </div>
-    <div class="site-nongoal-item">
-      <span class="site-nongoal-x">✕</span>
-      <div><span class="site-nongoal-title">不追求"技术先进性"</span> — 我们倾向成熟、经过验证的技术栈。Kubernetes 是基础设施基座，但不引入 Service Mesh；使用 PostgreSQL 而非 NewSQL 数据库；选择经典的消息队列而非事件流平台。创新的边界只停留在业务逻辑层。</div>
-    </div>
-    <div class="site-nongoal-item">
-      <span class="site-nongoal-x">✕</span>
-      <div><span class="site-nongoal-title">不做通用平台</span> — SCM Platform 是为中大型供应链企业设计的，不是通用型 PaaS。我们假设用户有专门的运维团队、有明确的业务领域知识、有定制化的需求。不做"开箱即用"的 SaaS 产品。</div>
-    </div>
-    <div class="site-nongoal-item">
-      <span class="site-nongoal-x">✕</span>
-      <div><span class="site-nongoal-title">不承诺"零配置"</span> — 好的架构需要理解。我们不试图用过度抽象隐藏复杂度——每个服务的启动顺序、配置项含义、数据库初始化脚本都需要被理解。文档不替代知识，但降低获取知识的门槛。</div>
-    </div>
-  </div>
-</section>
-
 </main>
 
 <footer class="site-footer">
-  <div class="site-footer-inner">
-    <div class="site-footer-left">SCM Platform &middot; Apache 2.0 License</div>
-    <div class="site-footer-right">为企业级供应链而生</div>
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a class="brand" href="index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+              <path d="M12 2.2 21.8 12 12 21.8 2.2 12Z"/>
+              <path d="M12 7.2 16.8 12 12 16.8 7.2 12Z" fill="currentColor" fill-opacity=".35" stroke="none"/>
+            </svg>
+          </span>
+          <span class="brand-text">SCM<span class="slash">/</span><span class="light">PLATFORM</span></span>
+        </a>
+        <p>多租户供应链管理平台。把采购、库存、订单、履约、财务与治理放在同一套边界里。</p>
+      </div>
+      <div class="footer-col">
+        <h4>浏览</h4>
+        <a href="index.html">首页</a>
+        <a href="features.html">功能</a>
+        <a href="architecture.html">架构</a>
+        <a href="philosophy.html">理念</a>
+        <a href="tech-stack.html">技术栈</a>
+      </div>
+      <div class="footer-col">
+        <h4>版本</h4>
+        <div class="colophon">
+          Spring Boot 4.1.2<br>
+          Spring Cloud 2025.1.4<br>
+          PostgreSQL 18 · ClickHouse 26.10<br>
+          Next.js 16.4.3 · Apache 2.0
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>SCM Platform · 2026</span>
+      <span>26 services · zh-CN / en-US</span>
+      <a href="../index.html">入口页</a>
+    </div>
   </div>
 </footer>
 
-<script>
-function show(tag) {
-  document.querySelectorAll('.site-nav-pill').forEach(function(p) { p.classList.remove('active'); });
-  event.target.classList.add('active');
-  document.querySelectorAll('.dp-section').forEach(function(s) {
-    var tags = s.dataset.tags || '';
-    s.classList.toggle('visible', tags.indexOf(tag) !== -1);
-  });
-}
-</script>
-
+<script src="../assets/site.js" defer></script>
 </body>
 </html>
