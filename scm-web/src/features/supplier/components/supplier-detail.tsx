@@ -19,7 +19,9 @@ import {
   variantOf,
 } from "../lib/constants";
 import type { BadgeVariant } from "../lib/constants";
+import SupplierBankAccountPanel from "./supplier-bank-account-panel";
 import SupplierCategoryPanel from "./supplier-category-panel";
+import SupplierCertificatePanel from "./supplier-certificate-panel";
 import SupplierContactPanel from "./supplier-contact-panel";
 import SupplierOverviewPanel from "./supplier-overview-panel";
 
@@ -220,6 +222,10 @@ export default function SupplierDetail({ id }: SupplierDetailProps) {
             <SupplierCategoryPanel supplierId={id} />
           ) : section === "contacts" ? (
             <SupplierContactPanel supplierId={id} />
+          ) : section === "bankAccounts" ? (
+            <SupplierBankAccountPanel supplierId={id} />
+          ) : section === "certificates" ? (
+            <SupplierCertificatePanel supplierId={id} />
           ) : (
             <p className="text-muted-foreground text-xs">
               {`${activeSection?.label ?? ""}分区正在建设中。`}

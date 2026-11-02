@@ -16,7 +16,7 @@ vi.mock("../hooks", () => ({
     data: h.performance,
     isLoading: h.performanceLoading,
   }),
-  // 分类 / 联系人分区各自的 hook —— 详情页切到这两个分区时会用到。
+  // 分类 / 联系人 / 银行账户 / 证照分区各自的 hook —— 详情页切到这些分区时会用到。
   useSupplierAssignedCategories: () => ({ data: [] }),
   useSupplierCategories: () => ({ data: [] }),
   useAssignSupplierCategories: () => ({ mutateAsync: vi.fn(), isPending: false }),
@@ -25,6 +25,16 @@ vi.mock("../hooks", () => ({
   useUpdateSupplierContact: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useSetPrimarySupplierContact: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useDeleteSupplierContact: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useSupplierBankAccounts: () => ({ data: [] }),
+  useCreateSupplierBankAccount: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useUpdateSupplierBankAccount: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useDeleteSupplierBankAccount: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useSetDefaultSupplierBankAccount: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useSupplierCertificates: () => ({ data: [] }),
+  useCreateSupplierCertificate: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useUpdateSupplierCertificate: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useVerifySupplierCertificate: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useDeleteSupplierCertificate: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 
 import SupplierDetail from "./supplier-detail";
@@ -66,8 +76,8 @@ describe("SupplierDetail", () => {
 
   it("switches to the placeholder of a section that is not built yet", async () => {
     render(<SupplierDetail id="s-1" />);
-    await userEvent.click(screen.getByText("银行账户"));
-    expect(screen.getByText("银行账户分区正在建设中。")).toBeInTheDocument();
+    await userEvent.click(screen.getByText("绩效评价"));
+    expect(screen.getByText("绩效评价分区正在建设中。")).toBeInTheDocument();
   });
 
   it("shows the category and the contact panel instead of their placeholders", async () => {
@@ -80,6 +90,18 @@ describe("SupplierDetail", () => {
     await userEvent.click(screen.getByText("联系人"));
     expect(screen.getByText("供应商联系人")).toBeInTheDocument();
     expect(screen.queryByText("联系人分区正在建设中。")).not.toBeInTheDocument();
+  });
+
+  it("shows the bank account and the certificate panel instead of their placeholders", async () => {
+    render(<SupplierDetail id="s-1" />);
+
+    await userEvent.click(screen.getByText("银行账户"));
+    expect(screen.getByText("供应商银行账户")).toBeInTheDocument();
+    expect(screen.queryByText("银行账户分区正在建设中。")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByText("资质证照"));
+    expect(screen.getByText("供应商资质证照")).toBeInTheDocument();
+    expect(screen.queryByText("资质证照分区正在建设中。")).not.toBeInTheDocument();
   });
 
   it("marks a truncated change-log count as at-least instead of a total", () => {
