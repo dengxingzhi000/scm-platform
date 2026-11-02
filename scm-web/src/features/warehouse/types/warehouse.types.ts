@@ -44,3 +44,10 @@ export interface OutboundItem {
   productName: string
   quantity: number
 }
+
+export interface PageResult<T> {
+  records: T[]
+  total: number
+  current: number
+  pageSize: number
+}

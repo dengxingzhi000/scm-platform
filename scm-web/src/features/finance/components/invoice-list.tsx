@@ -20,12 +20,17 @@ import type { Invoice } from "../types";
 
 const statusConfig: Record<
   Invoice["status"],
-  { label: string; variant: "success" | "warning" | "info" }
+  {
+    label: string;
+    variant: "success" | "warning" | "info" | "destructive" | "secondary";
+  }
 > = {
   pending: { label: "待开票", variant: "warning" },
   issued: { label: "已开票", variant: "info" },
   sent: { label: "已寄送", variant: "info" },
   received: { label: "已收票", variant: "success" },
+  voided: { label: "已作废", variant: "destructive" },
+  red_flushed: { label: "已红冲", variant: "secondary" },
 };
 
 const statusAccent: Record<Invoice["status"], string> = {
@@ -33,6 +38,8 @@ const statusAccent: Record<Invoice["status"], string> = {
   issued: "var(--color-info)",
   sent: "var(--color-info)",
   received: "var(--color-success)",
+  voided: "var(--color-error)",
+  red_flushed: "var(--color-border-strong)",
 };
 
 const currency = (value: number) => `¥${value.toLocaleString()}`;

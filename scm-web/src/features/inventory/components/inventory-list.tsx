@@ -8,7 +8,7 @@ import {
   Modal,
   Select as AntSelect,
 } from "antd";
-import { Search, SlidersHorizontal } from "lucide-react";
+import { Search, SlidersHorizontal, ArrowRightLeft, PackagePlus } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,7 +38,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import { useAdjustStock, useInventoryList } from "../hooks";
+import { useAdjustStock, useInitStock, useInventoryList, useTransferStock } from "../hooks";
 import type { InventoryItem, StockLevel } from "../types";
 
 const PAGE_SIZE = 20;
@@ -78,14 +78,32 @@ interface AdjustForm {
   remark?: string;
 }
 
+interface TransferForm {
+  toWarehouseId: string;
+  quantity: number;
+  remark?: string;
+}
+
+interface InitForm {
+  skuId: string;
+  warehouseId: string;
+  initialStock: number;
+}
+
 export default function InventoryList() {
   const [current, setCurrent] = useState(1);
   const [skuIdDraft, setSkuIdDraft] = useState("");
   const [skuId, setSkuId] = useState("");
   const [status, setStatus] = useState<StockLevel>();
   const [adjustTarget, setAdjustTarget] = useState<InventoryItem | null>(null);
+  const [transferTarget, setTransferTarget] = useState<InventoryItem | null>(null);
+  const [initOpen, setInitOpen] = useState(false);
   const [form] = Form.useForm<AdjustForm>();
+  const [transferForm] = Form.useForm<TransferForm>();
+  const [initForm] = Form.useForm<InitForm>();
   const adjustStock = useAdjustStock();
+  const transferStock = useTransferStock();
+  const initStock = useInitStock();
 
   const skuIds = skuId ? [skuId] : undefined;
   const { data, isLoading } = useInventoryList({
@@ -112,12 +130,47 @@ export default function InventoryList() {
     setAdjustTarget(null);
   };
 
+  const submitTransfer = async () => {
+    if (!transferTarget) return;
+    const values = await transferForm.validateFields();
+    await transferStock.mutateAsync({
+      skuId: transferTarget.skuId,
+      fromWarehouseId: transferTarget.warehouseId,
+      toWarehouseId: values.toWarehouseId.trim(),
+      quantity: values.quantity,
+      remark: values.remark,
+    });
+    setTransferTarget(null);
+  };
+
+  const submitInit = async () => {
+    const values = await initForm.validateFields();
+    await initStock.mutateAsync({
+      skuId: values.skuId.trim(),
+      warehouseId: values.warehouseId.trim(),
+      initialStock: values.initialStock,
+    });
+    setInitOpen(false);
+  };
+
   return (
     <div className="space-y-4">
       <PageHeader
         eyebrow="库存运营"
         title="库存管理"
         description="查询 SKU 库存水位并执行入库、出库与盘点调整"
+        actions={
+          <Button
+            variant="outline"
+            onClick={() => {
+              initForm.resetFields();
+              setInitOpen(true);
+            }}
+          >
+            <PackagePlus />
+            初始化库存
+          </Button>
+        }
       />
 
       <TablePanel>
@@ -250,18 +303,32 @@ export default function InventoryList() {
                       {item.updatedAt}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-7 gap-1 px-2 text-[11px]"
-                        onClick={() => {
-                          setAdjustTarget(item);
-                          form.resetFields();
-                        }}
-                      >
-                        <SlidersHorizontal />
-                        调整
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 gap-1 px-2 text-[11px]"
+                          onClick={() => {
+                            setAdjustTarget(item);
+                            form.resetFields();
+                          }}
+                        >
+                          <SlidersHorizontal />
+                          调整
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 gap-1 px-2 text-[11px]"
+                          onClick={() => {
+                            setTransferTarget(item);
+                            transferForm.resetFields();
+                          }}
+                        >
+                          <ArrowRightLeft />
+                          调拨
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -318,6 +385,71 @@ export default function InventoryList() {
           </Form.Item>
           <Form.Item name="remark" label="备注">
             <AntInput.TextArea rows={2} maxLength={200} />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title={`库存调拨 · ${transferTarget?.skuId ?? ""}`}
+        open={!!transferTarget}
+        okText="提交"
+        confirmLoading={transferStock.isPending}
+        onOk={submitTransfer}
+        onCancel={() => setTransferTarget(null)}
+      >
+        <Form form={transferForm} layout="vertical">
+          <Form.Item label="源仓库">
+            <AntInput value={transferTarget?.warehouseId ?? ""} disabled />
+          </Form.Item>
+          <Form.Item
+            name="toWarehouseId"
+            label="目标仓库 ID"
+            rules={[{ required: true, message: "请输入目标仓库 ID" }]}
+          >
+            <AntInput placeholder="目标仓库 UUID" />
+          </Form.Item>
+          <Form.Item
+            name="quantity"
+            label="调拨数量"
+            rules={[{ required: true, message: "请输入调拨数量" }]}
+          >
+            <InputNumber style={{ width: "100%" }} min={1} max={1000000} precision={0} />
+          </Form.Item>
+          <Form.Item name="remark" label="备注">
+            <AntInput.TextArea rows={2} maxLength={200} />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title="初始化库存"
+        open={initOpen}
+        okText="提交"
+        confirmLoading={initStock.isPending}
+        onOk={submitInit}
+        onCancel={() => setInitOpen(false)}
+      >
+        <Form form={initForm} layout="vertical">
+          <Form.Item
+            name="skuId"
+            label="SKU ID"
+            rules={[{ required: true, message: "请输入 SKU ID" }]}
+          >
+            <AntInput placeholder="SKU UUID" />
+          </Form.Item>
+          <Form.Item
+            name="warehouseId"
+            label="仓库 ID"
+            rules={[{ required: true, message: "请输入仓库 ID" }]}
+          >
+            <AntInput placeholder="仓库 UUID" />
+          </Form.Item>
+          <Form.Item
+            name="initialStock"
+            label="初始库存"
+            rules={[{ required: true, message: "请输入初始库存" }]}
+          >
+            <InputNumber style={{ width: "100%" }} min={0} max={10000000} precision={0} />
           </Form.Item>
         </Form>
       </Modal>

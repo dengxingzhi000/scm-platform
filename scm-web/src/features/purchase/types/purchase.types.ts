@@ -5,7 +5,7 @@ export interface PurchaseOrder {
   supplierName: string
   items: PurchaseOrderItem[]
   totalAmount: number
-  status: 'draft' | 'pending' | 'approved' | 'ordered' | 'received' | 'completed' | 'cancelled'
+  status: 'draft' | 'pending' | 'approved' | 'ordered' | 'received' | 'completed' | 'cancelled' | 'exception'
   statusLabel: string
   remark?: string
   createdAt: string
@@ -30,4 +30,11 @@ export interface PurchaseSearchParams {
   keyword?: string
   status?: string
   supplierId?: string
+}
+
+export interface PageResult<T> {
+  records: T[]
+  total: number
+  current: number
+  pageSize: number
 }

@@ -23,6 +23,11 @@ export const QUERY_KEYS = {
     LIST: (params?: Record<string, unknown>) => ['inventory', 'list', params] as const,
     DETAIL: (skuId: string) => ['inventory', 'detail', skuId] as const,
   },
+  NOTIFICATION: {
+    ALL: ['notifications'] as const,
+    LIST: (params?: unknown) => ['notifications', 'list', params] as const,
+    UNREAD_COUNT: ['notifications', 'unread'] as const,
+  },
   DASHBOARD: {
     STATS: ['dashboard', 'stats'] as const,
     KPI: ['dashboard', 'kpi'] as const,

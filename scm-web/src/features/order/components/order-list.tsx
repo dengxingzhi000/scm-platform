@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Eye, Search } from "lucide-react";
+import dayjs from "dayjs";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Eye, Search, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -74,20 +75,64 @@ const statusAccent: Record<OrderStatus, string> = {
 
 const currency = (value: number) => `¥${value.toLocaleString()}`;
 
+const isOrderStatus = (value: string | null): value is OrderStatus =>
+  value !== null && Object.hasOwn(statusVariant, value);
+
 export default function OrderList() {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
   const [current, setCurrent] = useState(1);
   const [orderNoDraft, setOrderNoDraft] = useState("");
   const [orderNo, setOrderNo] = useState("");
-  const [status, setStatus] = useState<OrderStatus>();
+  const [status, setStatus] = useState<OrderStatus | undefined>(() => {
+    const fromUrl = searchParams.get("status");
+    return isOrderStatus(fromUrl) ? fromUrl : undefined;
+  });
+  // The dashboard drills in with the bucket's exact time window.
+  const [startTime, setStartTime] = useState<string | undefined>(
+    searchParams.get("startTime") ?? undefined
+  );
+  const [endTime, setEndTime] = useState<string | undefined>(
+    searchParams.get("endTime") ?? undefined
+  );
 
   const { data, isLoading } = useOrderList({
     current,
     pageSize: PAGE_SIZE,
     orderNo: orderNo || undefined,
     status,
+    startTime,
+    endTime,
   });
   const statusFlow = orderService.getStatusFlow();
+
+  const replaceQuery = (mutate: (params: URLSearchParams) => void) => {
+    const params = new URLSearchParams(searchParams.toString());
+    mutate(params);
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname);
+  };
+
+  const applyStatus = (next: OrderStatus | undefined) => {
+    setStatus(next);
+    setCurrent(1);
+    replaceQuery((params) => {
+      if (next) params.set("status", next);
+      else params.delete("status");
+    });
+  };
+
+  const clearRange = () => {
+    setStartTime(undefined);
+    setEndTime(undefined);
+    setCurrent(1);
+    replaceQuery((params) => {
+      params.delete("startTime");
+      params.delete("endTime");
+    });
+  };
 
   const rows = data?.records ?? [];
   const total = data?.total ?? 0;
@@ -129,15 +174,30 @@ export default function OrderList() {
             </Button>
           </form>
 
+          {(startTime || endTime) && (
+            <span className="text-muted-foreground bg-sunken inline-flex items-center gap-1 rounded-full border border-[var(--color-border-secondary)] px-2 py-0.5 text-[10px]">
+              区间{" "}
+              {startTime ? dayjs(startTime).format("MM-DD HH:mm") : "不限"} ~{" "}
+              {endTime ? dayjs(endTime).format("MM-DD HH:mm") : "不限"}
+              <button
+                type="button"
+                aria-label="清除时间区间"
+                className="hover:text-foreground"
+                onClick={clearRange}
+              >
+                <X className="size-3" />
+              </button>
+            </span>
+          )}
+
           <TableToolbarEnd>
             <Select
               value={status ?? ALL}
-              onValueChange={(value) => {
-                setStatus(
+              onValueChange={(value) =>
+                applyStatus(
                   value === ALL ? undefined : (value as OrderStatus),
-                );
-                setCurrent(1);
-              }}
+                )
+              }
             >
               <SelectTrigger size="sm" className="w-32 text-xs">
                 <span className="text-muted-foreground">状态</span>

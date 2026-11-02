@@ -25,6 +25,12 @@ const iconMap: Record<string, LucideIcon> = {
   TeamOutlined: Users,
 };
 
+const TREND_CLASS = {
+  up: "bg-[var(--color-success-soft)] text-[var(--color-success-text)]",
+  down: "bg-[var(--color-error-soft)] text-[var(--color-error-text)]",
+  flat: "bg-sunken text-muted-foreground",
+} as const;
+
 interface KPICardsProps {
   kpis: KPIData[];
   loading?: boolean;
@@ -37,7 +43,7 @@ export default function KPICards({ kpis, loading }: KPICardsProps) {
     return (
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {Array.from({ length: 4 }).map((_, index) => (
-          <Skeleton key={index} className="h-[132px] w-full rounded-lg" />
+          <Skeleton key={index} className="h-[148px] w-full rounded-lg" />
         ))}
       </div>
     );
@@ -48,66 +54,82 @@ export default function KPICards({ kpis, loading }: KPICardsProps) {
       {kpis.map((kpi, index) => {
         const Icon = iconMap[kpi.icon] ?? DollarSign;
         const color = tokens.chart[index % tokens.chart.length];
+        const direction = kpi.trend?.direction ?? "flat";
         const TrendIcon =
-          kpi.trend?.direction === "up"
+          direction === "up"
             ? ArrowUpRight
-            : kpi.trend?.direction === "down"
+            : direction === "down"
               ? ArrowDownRight
               : Minus;
 
         return (
-          <Card
-            key={`${kpi.title}-${index}`}
-            className="relative overflow-hidden py-5"
-          >
-            <CardContent className="flex items-center gap-4 px-5">
-              <div
-                className="flex size-12 shrink-0 items-center justify-center rounded-xl"
-                style={{
-                  backgroundColor: `${color}14`,
-                  color,
-                }}
-              >
-                <Icon className="size-5" />
+          <Card key={`${kpi.title}-${index}`} className="gap-0 overflow-hidden py-0">
+            <CardContent className="px-5 pt-4 pb-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-muted-foreground text-[11px] font-medium tracking-[0.04em]">
+                    {kpi.title}
+                  </p>
+                  <p className="mt-1.5 flex items-baseline gap-1 text-[30px] leading-none font-semibold tracking-[-0.03em] tabular-nums">
+                    <span className="truncate">
+                      {kpi.prefix}
+                      {kpi.value}
+                    </span>
+                    {kpi.suffix && (
+                      <span className="text-muted-foreground text-[12px] font-medium">
+                        {kpi.suffix}
+                      </span>
+                    )}
+                  </p>
+                </div>
+                <span
+                  className="flex size-9 shrink-0 items-center justify-center rounded-lg"
+                  style={{ backgroundColor: `${color}14`, color }}
+                >
+                  <Icon className="size-4" />
+                </span>
               </div>
 
-              <div className="min-w-0 flex-1">
-                <p className="text-muted-foreground mb-1 text-[11px] font-medium tracking-[0.04em]">
-                  {kpi.title}
-                </p>
-                <p className="text-[28px] leading-none font-semibold tracking-[-0.02em] tabular-nums">
-                  {kpi.prefix}
-                  {kpi.value}
-                  {kpi.suffix}
-                </p>
+              <div className="mt-2.5 flex min-h-[18px] flex-wrap items-center gap-1.5 text-[11px]">
                 {kpi.trend && (
-                  <p
+                  <span
                     className={cn(
-                      "mt-1 flex items-center gap-1 text-[11px] whitespace-nowrap",
-                      kpi.trend.direction === "up" && "text-[var(--color-success-text)]",
-                      kpi.trend.direction === "down" && "text-destructive",
-                      kpi.trend.direction === "flat" && "text-muted-foreground",
+                      "inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium tabular-nums",
+                      TREND_CLASS[direction],
                     )}
                   >
-                    <TrendIcon className="size-3.5" />
-                    {kpi.trend.direction === "up"
-                      ? "上升"
-                      : kpi.trend.direction === "down"
-                        ? "下降"
-                        : "持平"}{" "}
-                    {kpi.trend.value}% {kpi.trend.period}
-                  </p>
+                    <TrendIcon className="size-3" />
+                    <span className="sr-only">
+                      {direction === "up"
+                        ? "上升"
+                        : direction === "down"
+                          ? "下降"
+                          : "持平"}
+                    </span>
+                    {kpi.trend.value}%
+                  </span>
+                )}
+                {kpi.trend && (
+                  <span className="text-muted-foreground text-[10px]">
+                    {kpi.trend.period}
+                  </span>
+                )}
+                {kpi.hint && (
+                  <span className="text-muted-foreground truncate text-[10px]">
+                    {kpi.trend ? "· " : ""}
+                    {kpi.hint}
+                  </span>
                 )}
               </div>
-
-              {kpi.sparkline && kpi.sparkline.length > 1 && (
-                <Sparkline
-                  data={kpi.sparkline}
-                  color={color}
-                  className="pointer-events-none absolute right-0 bottom-0 h-12 w-24 opacity-70"
-                />
-              )}
             </CardContent>
+
+            {kpi.sparkline && kpi.sparkline.length > 1 && (
+              <Sparkline
+                data={kpi.sparkline}
+                color={color}
+                className="pointer-events-none h-10 w-full opacity-60"
+              />
+            )}
           </Card>
         );
       })}

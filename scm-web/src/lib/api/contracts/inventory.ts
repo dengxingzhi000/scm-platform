@@ -92,4 +92,51 @@ export interface InventoryStatsResponse {
   normalStockCount?: number;
 }
 
+/** `com.scmcloud.inventory.dto.InvAlertResponse`. */
+export interface InvAlertResponse {
+  id: string;
+  skuId?: string | null;
+  warehouseId?: string | null;
+  /** 1-库存不足，2-库存为0，3-即将过期，4-损坏 */
+  alertType?: number | null;
+  alertTypeName?: string | null;
+  currentStock?: number | null;
+  safetyStock?: number | null;
+  thresholdValue?: number | null;
+  isResolved?: boolean | null;
+  resolvedAt?: string | null;
+  resolvedBy?: string | null;
+  notified?: boolean | null;
+  notifiedAt?: string | null;
+  createTime?: string | null;
+  updateTime?: string | null;
+  remark?: string | null;
+}
+
+export interface InvAlertQueryRequest {
+  skuId?: string;
+  warehouseId?: string;
+  alertType?: number;
+  isResolved?: boolean;
+  page: number;
+  size: number;
+}
+
+export interface InvAlertStatsResponse {
+  total: number;
+  unresolved: number;
+  resolved: number;
+  lowStock: number;
+  outOfStock: number;
+}
+
+export interface InvAlertScanResult {
+  scannedInventories: number;
+  created: number;
+  updated: number;
+  resolved: number;
+}
+
+export type InvAlertPage = MpPage<InvAlertResponse>;
+
 export type InventoryPage = MpPage<InventoryResponse>;

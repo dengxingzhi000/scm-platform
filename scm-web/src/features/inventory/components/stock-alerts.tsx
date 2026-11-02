@@ -21,7 +21,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import { useStockAlerts } from "../hooks";
+import { useResolveStockAlert, useScanStockAlerts, useStockAlerts } from "../hooks";
 import type { StockAlert } from "../types";
 
 const statusConfig: Record<
@@ -49,6 +49,8 @@ const statusConfig: Record<
 
 export default function StockAlerts() {
   const { data: alerts, isLoading, refetch } = useStockAlerts();
+  const scan = useScanStockAlerts();
+  const resolve = useResolveStockAlert();
   const rows = alerts ?? [];
 
   return (
@@ -56,28 +58,36 @@ export default function StockAlerts() {
       <PageHeader
         eyebrow="库存运营"
         title="库存预警"
-        description="由库存水位实时计算偏低与缺货 SKU"
+        description="库存扫描任务按可用库存与安全库存生成告警，可在此处理"
         actions={
-          <Button
-            variant="outline"
-            disabled={isLoading}
-            onClick={() => refetch()}
-          >
-            <RefreshCw />
-            刷新
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              disabled={isLoading || scan.isPending}
+              onClick={() => scan.mutate()}
+            >
+              扫描告警
+            </Button>
+            <Button
+              variant="outline"
+              disabled={isLoading}
+              onClick={() => refetch()}
+            >
+              <RefreshCw />
+              刷新
+            </Button>
+          </div>
         }
       />
 
       <TablePanel>
         <TableToolbar>
-          {/* scm-inventory exposes no alert API, so this list is derived from the stock query. */}
           <span className="text-muted-foreground text-[11px]">
-            预警按 availableStock 与 safetyStock 比较得出，无独立告警记录
+            告警由后端扫描任务生成；库存恢复后会自动解除，也可手动处理
           </span>
           <TableToolbarEnd>
             <span className="text-muted-foreground text-[11px]">
-              共 {rows.length} 个预警 SKU
+              共 {rows.length} 条未处理告警
             </span>
           </TableToolbarEnd>
         </TableToolbar>
@@ -97,6 +107,8 @@ export default function StockAlerts() {
                 <TableHead numeric>缺口</TableHead>
                 <TableHead>水位</TableHead>
                 <TableHead className="text-center">状态</TableHead>
+                <TableHead>创建时间</TableHead>
+                <TableHead className="text-right">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -153,6 +165,19 @@ export default function StockAlerts() {
                     </TableCell>
                     <TableCell className="text-center">
                       <Badge variant={config.variant}>{config.label}</Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {alert.createdAt ?? "-"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={resolve.isPending}
+                        onClick={() => resolve.mutate(alert.id)}
+                      >
+                        处理
+                      </Button>
                     </TableCell>
                   </TableRow>
                 );

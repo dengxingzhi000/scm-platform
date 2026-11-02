@@ -15,7 +15,7 @@ export interface Invoice {
   settlementNo: string
   amount: number
   taxAmount: number
-  status: 'pending' | 'issued' | 'sent' | 'received'
+  status: 'pending' | 'issued' | 'sent' | 'received' | 'voided' | 'red_flushed'
   statusLabel: string
   createdAt: string
 }

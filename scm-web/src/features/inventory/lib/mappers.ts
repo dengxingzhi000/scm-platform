@@ -1,6 +1,7 @@
 import dayjs from "dayjs";
 
 import type {
+  InvAlertResponse,
   InventoryPage,
   InventoryResponse,
   StockStatus,
@@ -74,3 +75,15 @@ export const toStockAlerts = (items: InventoryItem[]): StockAlert[] =>
       threshold: item.safetyStock,
       status: item.status,
     }));
+
+export const toStockAlertsFromAlerts = (alerts: InvAlertResponse[]): StockAlert[] =>
+  alerts.map((alert) => ({
+    id: alert.id,
+    skuId: alert.skuId ?? "-",
+    warehouseId: alert.warehouseId ?? "-",
+    currentStock: num(alert.currentStock),
+    threshold: num(alert.thresholdValue ?? alert.safetyStock),
+    status: alert.alertType === 2 ? "out" : "low",
+    alertType: alert.alertType ?? undefined,
+    createdAt: formatDateTime(alert.createTime),
+  }));

@@ -13,6 +13,9 @@ const get = <T>(url: string, params?: object) =>
 const put = <T>(url: string, params?: object) =>
   unwrap<T>(apiClient.put(url, undefined, { params }));
 
+const del = <T>(url: string, params?: object) =>
+  unwrap<T>(apiClient.delete(url, { params }));
+
 export const notificationApiService = {
   page: (query: UserNotificationQuery) =>
     get<UserNotificationPage>(`${NOTIFICATION_BASE}/page`, query),
@@ -20,4 +23,7 @@ export const notificationApiService = {
   markAsRead: (id: string) =>
     put<boolean>(`${NOTIFICATION_BASE}/${id}/read`),
   markAllAsRead: () => put<boolean>(`${NOTIFICATION_BASE}/read-all`),
+  remove: (id: string) => del<boolean>(`${NOTIFICATION_BASE}/${id}`),
+  removeMany: (ids: string[]) =>
+    del<number>(NOTIFICATION_BASE, { ids: ids.join(",") }),
 };

@@ -1,5 +1,6 @@
+export { default as AttentionStrip } from './attention-strip'
 export { default as KPICards } from './kpi-cards'
 export { default as SalesChart } from './sales-chart'
-export { default as OrderStatusChart } from './order-status-chart'
+export { default as OrderStatusBreakdown } from './order-status-breakdown'
 export { default as RecentOrders } from './recent-orders'
 export { default as InventoryAlerts } from './inventory-alerts'

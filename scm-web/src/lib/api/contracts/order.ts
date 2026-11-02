@@ -252,3 +252,42 @@ export type OrderPage = MpPage<OrderResponse>;
 export type OrderItemPage = MpPage<OrderItemResponse>;
 export type RefundPage = MpPage<RefundResponse>;
 export type PaymentPage = MpPage<PaymentResponse>;
+
+export type OrderDashboardRange = "TODAY" | "LAST_7_DAYS" | "LAST_30_DAYS";
+export type OrderDashboardCompare =
+  | "NONE"
+  | "PREVIOUS_PERIOD"
+  | "YEAR_OVER_YEAR";
+export type OrderDashboardGranularity = "HOUR" | "DAY";
+
+export interface OrderDashboardTrendPointDTO {
+  /** Bucket start/end (left-closed, right-open), used for drill-down. */
+  startTime: string;
+  endTime: string;
+  revenue: number;
+  orders: number;
+}
+
+/** `com.scmcloud.order.dto.OrderDashboardSummaryResponse`. */
+export interface OrderDashboardSummaryDTO {
+  range: OrderDashboardRange;
+  compareMode: OrderDashboardCompare;
+  granularity: OrderDashboardGranularity;
+  rangeStart: string;
+  rangeEnd: string;
+  comparisonStartDate?: string | null;
+  comparisonEndDate?: string | null;
+  generatedAt: string;
+  currentRevenue: number;
+  comparisonRevenue: number;
+  currentOrders: number;
+  comparisonOrders: number;
+  totalOrders: number;
+  points: OrderDashboardTrendPointDTO[];
+  statusCounts: Array<{ status: OrderStatus; count: number }>;
+  attention: {
+    pendingPayment: number;
+    pendingShip: number;
+    refunding: number;
+  };
+}

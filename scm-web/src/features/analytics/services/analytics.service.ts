@@ -14,6 +14,8 @@ interface ApiEnvelope<T> {
   timestamp: number
 }
 
+const ANALYTICS_BASE = '/scm-analytics/api/v1/analytics'
+
 const get = <T>(url: string, params?: Record<string, unknown>) =>
   apiClient.get(url, { params }) as unknown as Promise<ApiEnvelope<T>>
 
@@ -22,7 +24,7 @@ const post = <T>(url: string, body: unknown) =>
 
 export const analyticsService = {
   listDatasets: async (params?: { page?: number; size?: number; keyword?: string }) => {
-    const response = await get<PageData<DatasetDefinition>>('/api/v1/analytics/datasets', {
+    const response = await get<PageData<DatasetDefinition>>(`${ANALYTICS_BASE}/datasets`, {
       page: params?.page ?? 1,
       size: params?.size ?? 100,
       keyword: params?.keyword,
@@ -32,13 +34,13 @@ export const analyticsService = {
 
   listFields: async (datasetId: string) => {
     const response = await get<DatasetFieldDefinition[]>(
-      `/api/v1/analytics/datasets/${datasetId}/fields`,
+      `${ANALYTICS_BASE}/datasets/${datasetId}/fields`,
     )
     return response.data
   },
 
   query: async (request: DatasetQueryRequest) => {
-    const response = await post<DatasetQueryResult>('/api/v1/analytics/query', request)
+    const response = await post<DatasetQueryResult>(`${ANALYTICS_BASE}/query`, request)
     return response.data
   },
 }

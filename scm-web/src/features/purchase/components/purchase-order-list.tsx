@@ -53,6 +53,7 @@ const statusVariant: Record<
   received: "info",
   completed: "success",
   cancelled: "destructive",
+  exception: "destructive",
 };
 
 const statusAccent: Record<PurchaseOrder["status"], string> = {
@@ -63,6 +64,7 @@ const statusAccent: Record<PurchaseOrder["status"], string> = {
   received: "var(--color-success)",
   completed: "var(--color-success)",
   cancelled: "var(--color-error)",
+  exception: "var(--color-error)",
 };
 
 const currency = (value: number) => `¥${value.toLocaleString()}`;
@@ -141,6 +143,7 @@ export default function PurchaseOrderList() {
                 <SelectItem value="received">已收货</SelectItem>
                 <SelectItem value="completed">已完成</SelectItem>
                 <SelectItem value="cancelled">已取消</SelectItem>
+                <SelectItem value="exception">异常</SelectItem>
               </SelectContent>
             </Select>
             <span className="text-muted-foreground text-[11px]">
