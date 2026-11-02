@@ -1974,7 +1974,17 @@ git commit -m "feat(supplier): wire routes, suspense boundary and the supplier m
 （`GET /suppliers/active`、`DELETE /supplier-categories/{id}`）——
 理由要写在表里，不能静默漏掉。
 
-- [ ] **Step 2: 跑全量单测**
+- [ ] **Step 2: 删掉遗留的 mock service 模块**
+
+`scm-web/src/features/supplier/services/supplier.service.ts` 在 Task 5 之后**没有任何调用方**
+（`useSupplierList` 改为直接调 `supplierApiService.list` + `toSupplierPage`，
+因为旧 service 只转发 `keyword`/`enabled`，会丢掉 Task 6 新增的筛选字段）。
+
+先确认无引用（`grep -rn "features/supplier/services/supplier.service\|from '../services/supplier.service'" scm-web/src`），
+确认无引用后 `git rm` 该文件；若 `scm-web/src/features/supplier/index.ts` 或
+`scm-web/src/features/supplier/services/index.ts` 还在 re-export 它，一并清理。
+
+- [ ] **Step 3: 跑全量单测**
 
 Run: `npm test`
 Expected: 全绿，既有 21 个测试文件的用例不回归
