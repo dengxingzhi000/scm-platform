@@ -13,12 +13,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import org.springframework.transaction.annotation.Transactional;
+
 import java.lang.reflect.Method;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -32,6 +36,7 @@ class ReadWriteRoutingAspectTest {
 
     private final MasterTarget masterTarget = new MasterTarget();
     private final SlaveTarget slaveTarget = new SlaveTarget();
+    private final TxTarget txTarget = new TxTarget();
 
     @BeforeEach
     void setUp() {
@@ -88,6 +93,110 @@ class ReadWriteRoutingAspectTest {
         assertNull(ReadWriteRoutingContext.getLastWriteTime(), "只读方法不应标记写");
     }
 
+    @Test
+    @DisplayName("@Slave(value) 应把从库名带进当前作用域")
+    void slaveShouldPropagateSpecifiedSlave() throws Throwable {
+        bind(slaveTarget, "readFrom");
+        String[] observed = new String[1];
+        when(joinPoint.proceed()).thenAnswer(invocation -> {
+            observed[0] = ReadWriteRoutingContext.getSpecifiedSlave();
+            return "ok";
+        });
+
+        aspect.aroundSlave(joinPoint);
+
+        assertEquals("slave2", observed[0]);
+        assertEquals(ReadWriteRoutingContext.RoutingType.AUTO, ReadWriteRoutingContext.current());
+    }
+
+    @Test
+    @DisplayName("嵌套 @Slave 返回后应恢复外层从库选择")
+    void nestedSlaveShouldRestoreOuterScope() throws Throwable {
+        ReadWriteRoutingContext.push(ReadWriteRoutingContext.RoutingType.SLAVE, "slave1", true);
+
+        bind(slaveTarget, "readFrom");
+        when(joinPoint.proceed()).thenReturn("ok");
+        aspect.aroundSlave(joinPoint);
+
+        assertEquals("slave1", ReadWriteRoutingContext.getSpecifiedSlave());
+        ReadWriteRoutingContext.pop();
+    }
+
+    @Test
+    @DisplayName("fallbackToMaster=false 应传入上下文")
+    void slaveWithoutFallbackShouldReachContext() throws Throwable {
+        bind(slaveTarget, "readNoFallback");
+        boolean[] observed = new boolean[1];
+        when(joinPoint.proceed()).thenAnswer(invocation -> {
+            observed[0] = ReadWriteRoutingContext.isFallbackToMaster();
+            return "ok";
+        });
+
+        aspect.aroundSlave(joinPoint);
+
+        assertFalse(observed[0]);
+        assertEquals(ReadWriteRoutingContext.RoutingType.AUTO, ReadWriteRoutingContext.current());
+        assertTrue(ReadWriteRoutingContext.isFallbackToMaster());
+    }
+
+    private void bindMethodOnly(Object target, String methodName, Class<?>... parameterTypes) throws Exception {
+        Method method = target.getClass().getMethod(methodName, parameterTypes);
+        when(joinPoint.getSignature()).thenReturn(signature);
+        when(signature.getMethod()).thenReturn(method);
+        when(signature.getName()).thenReturn(methodName);
+        when(signature.getDeclaringType()).thenReturn(target.getClass());
+    }
+
+    @Test
+    @DisplayName("readOnly 事务应路由到从库")
+    void readOnlyTransactionShouldRouteToSlave() throws Throwable {
+        bindMethodOnly(txTarget, "readOnlyTx");
+        ReadWriteRoutingContext.RoutingType[] observed = new ReadWriteRoutingContext.RoutingType[1];
+        when(joinPoint.proceed()).thenAnswer(invocation -> {
+            observed[0] = ReadWriteRoutingContext.current();
+            return "ok";
+        });
+
+        aspect.aroundTransactional(joinPoint);
+
+        assertEquals(ReadWriteRoutingContext.RoutingType.SLAVE, observed[0]);
+        assertEquals(ReadWriteRoutingContext.RoutingType.AUTO, ReadWriteRoutingContext.current());
+    }
+
+    @Test
+    @DisplayName("非 readOnly 事务应路由到主库并标记写")
+    void writeTransactionShouldRouteToMaster() throws Throwable {
+        bindMethodOnly(txTarget, "writeTx");
+        ReadWriteRoutingContext.RoutingType[] observed = new ReadWriteRoutingContext.RoutingType[1];
+        when(joinPoint.proceed()).thenAnswer(invocation -> {
+            observed[0] = ReadWriteRoutingContext.current();
+            return "ok";
+        });
+
+        aspect.aroundTransactional(joinPoint);
+
+        assertEquals(ReadWriteRoutingContext.RoutingType.MASTER, observed[0]);
+        assertNotNull(ReadWriteRoutingContext.getLastWriteTime());
+    }
+
+    @Test
+    @DisplayName("非 readOnly 事务嵌套在 @Slave 作用域内必须强制主库，不能把写事务留在从库上")
+    void writeTransactionNestedInSlaveScopeShouldForceMaster() throws Throwable {
+        ReadWriteRoutingContext.push(ReadWriteRoutingContext.RoutingType.SLAVE, "slave1", true);
+        bindMethodOnly(txTarget, "writeTx");
+        ReadWriteRoutingContext.RoutingType[] observed = new ReadWriteRoutingContext.RoutingType[1];
+        when(joinPoint.proceed()).thenAnswer(invocation -> {
+            observed[0] = ReadWriteRoutingContext.current();
+            return "ok";
+        });
+
+        aspect.aroundTransactional(joinPoint);
+
+        assertEquals(ReadWriteRoutingContext.RoutingType.MASTER, observed[0]);
+        assertEquals(ReadWriteRoutingContext.RoutingType.SLAVE, ReadWriteRoutingContext.current(),
+                "事务结束后应恢复外层 @Slave 作用域");
+    }
+
     private void assertPoppedBackToAuto() {
         assertEquals(ReadWriteRoutingContext.RoutingType.AUTO, ReadWriteRoutingContext.current(),
                 "@Master 返回后必须弹栈");
@@ -105,6 +214,29 @@ class ReadWriteRoutingAspectTest {
     static class SlaveTarget {
         @Slave
         public String read() {
+            return "ok";
+        }
+
+        @Slave("slave2")
+        public String readFrom() {
+            return "ok";
+        }
+
+        @Slave(value = "slave3", fallbackToMaster = false)
+        public String readNoFallback() {
+            return "ok";
+        }
+    }
+
+    @SuppressWarnings("unused")
+    static class TxTarget {
+        @Transactional(readOnly = true)
+        public String readOnlyTx() {
+            return "ok";
+        }
+
+        @Transactional
+        public String writeTx() {
             return "ok";
         }
     }

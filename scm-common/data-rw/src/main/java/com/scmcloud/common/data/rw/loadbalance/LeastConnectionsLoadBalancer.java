@@ -5,6 +5,11 @@ import java.util.List;
 
 /**
  * Least connections load balancer.
+ * <p>
+ * The {@code activeConnections} field is filled by the routing datasource from
+ * {@link com.scmcloud.common.data.rw.dynamic.CountingDataSource}, which counts
+ * connections currently held by callers (incremented on acquire, decremented on
+ * close and on failed acquire). Ties keep the first slave in the configured order.
  *
  * @author Deng
  * @since 2025-12-16
