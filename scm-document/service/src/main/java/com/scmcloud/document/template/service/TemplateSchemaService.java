@@ -20,7 +20,7 @@ public class TemplateSchemaService extends ServiceImpl<DocTemplateSchemaMapper, 
     public List<DocTemplateSchema> listByTemplate(String templateId) {
         return lambdaQuery()
                 .eq(DocTemplateSchema::getTemplateId, templateId)
-                .eq(DocTemplateSchema::getTenantId, TenantContextHolder.getRequiredTenantId().toString())
+                .eq(DocTemplateSchema::getTenantId, currentTenantId())
                 .orderByAsc(DocTemplateSchema::getCreateTime)
                 .list();
     }
@@ -35,7 +35,7 @@ public class TemplateSchemaService extends ServiceImpl<DocTemplateSchemaMapper, 
         validateVariables(schema.getVariables());
         if (StringUtils.hasText(schema.getId())) {
             DocTemplateSchema existing = getById(schema.getId());
-            String tenantId = TenantContextHolder.getRequiredTenantId().toString();
+            String tenantId = currentTenantId();
             if (existing == null
                     || !templateId.equals(existing.getTemplateId())
                     || !tenantId.equals(existing.getTenantId())) {
@@ -57,7 +57,7 @@ public class TemplateSchemaService extends ServiceImpl<DocTemplateSchemaMapper, 
         if (!StringUtils.hasText(schema.getStatus())) {
             schema.setStatus("DRAFT");
         }
-        schema.setTenantId(TenantContextHolder.getRequiredTenantId().toString());
+        schema.setTenantId(currentTenantId());
         schema.setCreateTime(new Date());
         save(schema);
         return schema;
@@ -79,5 +79,9 @@ public class TemplateSchemaService extends ServiceImpl<DocTemplateSchemaMapper, 
         } catch (Exception e) {
             throw new IllegalArgumentException("variables must be a valid JSON array");
         }
+    }
+
+    private String currentTenantId() {
+        return TenantContextHolder.getRequiredTenantId().toString();
     }
 }

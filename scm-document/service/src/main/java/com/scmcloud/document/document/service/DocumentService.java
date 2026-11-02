@@ -60,7 +60,7 @@ public class DocumentService extends ServiceImpl<DocDocumentMapper, DocDocument>
      */
     @Transactional
     public DocDocument createDocument(DocDocument document) {
-        document.setTenantId(TenantContextHolder.getRequiredTenantId().toString());
+        document.setTenantId(currentTenantId());
         if (!StringUtils.hasText(document.getStatus())) {
             document.setStatus("GENERATED");
         }

@@ -83,7 +83,7 @@ public class TemplateService extends ServiceImpl<DocTemplateMapper, DocTemplate>
      */
     @Transactional
     public DocTemplate createTemplate(DocTemplate template) {
-        template.setTenantId(TenantContextHolder.getRequiredTenantId().toString());
+        template.setTenantId(currentTenantId());
         if (!StringUtils.hasText(template.getStatus())) {
             template.setStatus("DRAFT");
         }
@@ -127,7 +127,7 @@ public class TemplateService extends ServiceImpl<DocTemplateMapper, DocTemplate>
         version.setSchemaId(request.getSchemaId());
         version.setChecksum(request.getChecksum());
         version.setStatus("DRAFT");
-        version.setTenantId(TenantContextHolder.getRequiredTenantId().toString());
+        version.setTenantId(currentTenantId());
         version.setCreateTime(new Date());
         versionMapper.insert(version);
         return version;
