@@ -5,6 +5,7 @@ import com.scmcloud.fulfillment.service.ITrackingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,7 +28,7 @@ public class TrackingController {
 
     @Operation(summary = "记录跟踪事件", description = "登记一条履约轨迹事件，用于形成物流跟踪记录。")
     @PostMapping("/tracking")
-    public Tracking recordEvent(@RequestBody Tracking tracking) {
+    public Tracking recordEvent(@Valid @RequestBody Tracking tracking) {
         log.info("[API] Record tracking event: fulfillmentNo={}, status={}",
                 (tracking.getFulfillmentNo() + "").replace("\r", "_").replace("\n", "_"), (tracking.getStatus() + "").replace("\r", "_").replace("\n", "_"));
         return trackingService.recordEvent(tracking);
