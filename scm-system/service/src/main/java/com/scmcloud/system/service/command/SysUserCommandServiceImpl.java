@@ -147,7 +147,7 @@ public class SysUserCommandServiceImpl implements ISysUserCommandService {
             cacheEvictor.evictUserDetails(userDTO.getUsername());
         }
         if (userDTO.getDeptId() != null && !userDTO.getDeptId().equals(user.getDeptId())) {
-            cacheEvictor.evictUserDept(user.getId());
+            cacheEvictor.evictUserDeptId(user.getId());
         }
 
         SysUser updated = userMapper.selectById(user.getId());
