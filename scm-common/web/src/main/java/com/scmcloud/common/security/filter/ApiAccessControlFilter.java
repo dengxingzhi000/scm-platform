@@ -1,6 +1,7 @@
 package com.scmcloud.common.security.filter;
 
 import com.scmcloud.common.security.PermissionService;
+import com.scmcloud.common.security.PermissionService.PermissionServiceException;
 import com.scmcloud.common.log.enums.SecurityEventType;
 import com.scmcloud.common.log.service.ISysAuditLogService;
 import com.scmcloud.common.security.config.ApiAccessControlProperties;
@@ -83,16 +84,28 @@ public class ApiAccessControlFilter extends OncePerRequestFilter {
             return;
         }
 
-        // Permission lookup is protected by Sentinel in FeignPermissionAccess
-        // If circuit is open, exception will be thrown and handled by SecurityRestExceptionHandler
-        List<String> requiredPermissions = permissionService.findPermissionsByUrl(requestUri, method);
+        // Permission lookup is fail-closed. A discovery/transport failure answers 503 here
+        // because exceptions raised in the filter chain bypass @RestControllerAdvice.
+        List<String> requiredPermissions;
+        try {
+            requiredPermissions = permissionService.findPermissionsByUrl(requestUri, method);
+        } catch (PermissionServiceException ex) {
+            writePermissionServiceUnavailable(request, response, requestUri, method, ex);
+            return;
+        }
 
         if (requiredPermissions.isEmpty()) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        Set<String> userPermissions = permissionService.findAllPermissionsByUserId(userId);
+        Set<String> userPermissions;
+        try {
+            userPermissions = permissionService.findAllPermissionsByUserId(userId);
+        } catch (PermissionServiceException ex) {
+            writePermissionServiceUnavailable(request, response, requestUri, method, ex);
+            return;
+        }
 
         boolean hasPermission = requiredPermissions.stream()
                 .anyMatch(userPermissions::contains);
@@ -169,5 +182,21 @@ public class ApiAccessControlFilter extends OncePerRequestFilter {
 
     private void markBypass(HttpServletResponse response, String reason) {
         response.setHeader("X-Security-Bypass", reason);
+    }
+
+    private void writePermissionServiceUnavailable(HttpServletRequest request, HttpServletResponse response,
+                                                    String requestUri, String method, PermissionServiceException ex)
+            throws IOException {
+        securityMetrics.increment("security.access.permission_service_unavailable");
+        log.error("Permission service unavailable: traceId={}, uri={}, method={}, reason={}",
+                sanitize(request.getHeader("X-Request-ID")), sanitize(requestUri), sanitize(method),
+                sanitize(ex.getMessage()));
+        SecurityErrorResponseWriter.write(request, response, HttpServletResponse.SC_SERVICE_UNAVAILABLE,
+                "PERMISSION_SERVICE_UNAVAILABLE",
+                "Permission service is temporarily unavailable; access denied as a safety measure");
+    }
+
+    private static String sanitize(String value) {
+        return (value + "").replace("\r", "_").replace("\n", "_");
     }
 }
