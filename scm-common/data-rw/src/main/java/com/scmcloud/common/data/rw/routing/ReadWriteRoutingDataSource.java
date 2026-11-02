@@ -1,17 +1,25 @@
 package com.scmcloud.common.data.rw.routing;
 
+import com.scmcloud.common.data.rw.circuitbreaker.SlaveCircuitBreaker;
 import com.scmcloud.common.data.rw.config.ReadWriteProperties;
 import com.scmcloud.common.data.rw.loadbalance.SlaveLoadBalancer;
-import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.FunctionCounter;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.datasource.lookup.AbstractRoutingDataSource;
 
 import javax.sql.DataSource;
-import java.util.*;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.LongAdder;
 
 /**
  * Read-write separation routing datasource.
@@ -23,6 +31,10 @@ import java.util.concurrent.atomic.AtomicReference;
  * - Read-write consistency
  * - Slave fault retry
  * - Runtime hot-switch load balance strategy
+ * <p>
+ * The lookup key is only consulted when a <i>new</i> connection is requested. Inside
+ * a Spring transaction the connection is bound to the transaction, so the routing
+ * decision of the outermost transactional method is final for that transaction.
  *
  * @author Deng
  * @since 2025-12-16
@@ -33,22 +45,25 @@ public class ReadWriteRoutingDataSource extends AbstractRoutingDataSource {
 
     private final String groupName;
     private final ReadWriteProperties properties;
+    private final DataSource masterDataSource;
+    private final SlaveCircuitBreaker circuitBreaker;
 
     private final AtomicReference<SlaveLoadBalancer> loadBalancerRef;
 
     @Setter
-    private List<SlaveLoadBalancer.SlaveInfo> slaveInfos;
+    private volatile List<SlaveLoadBalancer.SlaveInfo> slaveInfos;
 
     private final Map<String, Boolean> slaveAvailability = new ConcurrentHashMap<>();
     private final Map<String, DataSource> slaveDataSourceMap = new ConcurrentHashMap<>();
     private final Map<String, Long> lastValidationTime = new ConcurrentHashMap<>();
     private static final long VALIDATION_CACHE_MS = 5000; // 5s cache
 
-    // Metrics
-    private Counter masterRouteCounter;
-    private Counter slaveRouteCounter;
-    private Counter fallbackCounter;
-    private Counter retryCounter;
+    // Route counters. They are the single source of truth for both the actuator
+    // endpoint and the micrometer counters.
+    private final LongAdder masterRouteCount = new LongAdder();
+    private final LongAdder slaveRouteCount = new LongAdder();
+    private final LongAdder fallbackCount = new LongAdder();
+    private final LongAdder retryCount = new LongAdder();
 
     public ReadWriteRoutingDataSource(String groupName,
                                        DataSource masterDataSource,
@@ -56,8 +71,20 @@ public class ReadWriteRoutingDataSource extends AbstractRoutingDataSource {
                                        ReadWriteProperties properties,
                                        SlaveLoadBalancer loadBalancer,
                                        MeterRegistry meterRegistry) {
+        this(groupName, masterDataSource, slaveDataSources, properties, loadBalancer, meterRegistry, null);
+    }
+
+    public ReadWriteRoutingDataSource(String groupName,
+                                       DataSource masterDataSource,
+                                       Map<String, DataSource> slaveDataSources,
+                                       ReadWriteProperties properties,
+                                       SlaveLoadBalancer loadBalancer,
+                                       MeterRegistry meterRegistry,
+                                       SlaveCircuitBreaker circuitBreaker) {
         this.groupName = groupName;
         this.properties = properties;
+        this.masterDataSource = masterDataSource;
+        this.circuitBreaker = circuitBreaker;
         this.loadBalancerRef = new AtomicReference<>(loadBalancer);
 
         Map<Object, Object> targetDataSources = new ConcurrentHashMap<>();
@@ -72,30 +99,36 @@ public class ReadWriteRoutingDataSource extends AbstractRoutingDataSource {
             slaveDataSourceMap.put(name, ds);
         });
 
+        if (slaveDataSources.isEmpty()) {
+            log.info("[RW-Routing] Group [{}] has no slave configured; every read routes to MASTER. "
+                    + "Configure spring.datasource.rw.groups.{}.slaves to enable read splitting.",
+                    groupName, groupName);
+        }
+
         if (meterRegistry != null) {
             initMetrics(meterRegistry);
         }
     }
 
     private void initMetrics(MeterRegistry meterRegistry) {
-        this.masterRouteCounter = Counter.builder("datasource.rw.route")
+        FunctionCounter.builder("datasource.rw.route", masterRouteCount, adder -> (double) adder.sum())
                 .tag("group", groupName)
                 .tag("target", "master")
                 .description("Number of routes to master")
                 .register(meterRegistry);
 
-        this.slaveRouteCounter = Counter.builder("datasource.rw.route")
+        FunctionCounter.builder("datasource.rw.route", slaveRouteCount, adder -> (double) adder.sum())
                 .tag("group", groupName)
                 .tag("target", "slave")
                 .description("Number of routes to slave")
                 .register(meterRegistry);
 
-        this.fallbackCounter = Counter.builder("datasource.rw.fallback")
+        FunctionCounter.builder("datasource.rw.fallback", fallbackCount, adder -> (double) adder.sum())
                 .tag("group", groupName)
                 .description("Number of fallbacks to master")
                 .register(meterRegistry);
 
-        this.retryCounter = Counter.builder("datasource.rw.retry")
+        FunctionCounter.builder("datasource.rw.retry", retryCount, adder -> (double) adder.sum())
                 .tag("group", groupName)
                 .description("Number of slave retries")
                 .register(meterRegistry);
@@ -103,58 +136,140 @@ public class ReadWriteRoutingDataSource extends AbstractRoutingDataSource {
 
     @Override
     protected Object determineCurrentLookupKey() {
-        // 1. Check if should use master
-        long readMasterAfterWriteMs = properties.getReadMasterAfterWrite().toMillis();
-        if (ReadWriteRoutingContext.shouldUseMaster(readMasterAfterWriteMs)) {
+        // 1. Read-after-write window / forced master
+        if (ReadWriteRoutingContext.shouldUseMaster(properties.getReadMasterAfterWrite().toMillis())) {
             log.debug("[RW-Routing] Group [{}] routing to MASTER", groupName);
-            incrementMasterCounter();
-            return MASTER_KEY;
+            return master();
         }
 
-        // 2. Check routing type
         ReadWriteRoutingContext.RoutingType routingType = ReadWriteRoutingContext.current();
 
         if (routingType == ReadWriteRoutingContext.RoutingType.MASTER) {
             log.debug("[RW-Routing] Group [{}] routing to MASTER (explicit)", groupName);
-            incrementMasterCounter();
-            return MASTER_KEY;
+            return master();
         }
 
-        // 3. Try routing to slave (with retry)
-        if (routingType == ReadWriteRoutingContext.RoutingType.SLAVE ||
-                routingType == ReadWriteRoutingContext.RoutingType.AUTO) {
-
-            // Check if specific slave is specified
-            String specifiedSlave = ReadWriteRoutingContext.getSpecifiedSlave();
-            if (specifiedSlave != null && slaveAvailability.getOrDefault(specifiedSlave, false)) {
-                log.debug("[RW-Routing] Group [{}] routing to SLAVE [{}] (specified)",
-                        groupName, specifiedSlave);
-                incrementSlaveCounter();
-                return specifiedSlave;
-            }
-
-            // Use retry mechanism to select slave
-            String selectedSlave = selectSlaveWithRetry();
-            if (selectedSlave != null) {
-                log.debug("[RW-Routing] Group [{}] routing to SLAVE [{}]",
-                        groupName, selectedSlave);
-                incrementSlaveCounter();
-                return selectedSlave;
-            }
-
-            // No available slave, fallback to master
-            if (slaveInfos == null || slaveInfos.isEmpty()) {
-                // 该 group 未配置从库（单机部署）。注解语义仍然生效，所有读落到主库，
-                // 但这是预期状态，不应每次查询都告警。
-                log.debug("[RW-Routing] Group [{}] has no slave configured, routing to MASTER", groupName);
-            } else {
-                log.warn("[RW-Routing] Group [{}] no available slave, fallback to MASTER", groupName);
-            }
-            incrementFallbackCounter();
+        if (routingType == ReadWriteRoutingContext.RoutingType.AUTO
+                && properties.getDefaultTarget() == ReadWriteProperties.RoutingTarget.MASTER) {
+            // Safe default: AUTO never reaches a replica, including threads that lost
+            // their routing context (async pools, scheduled jobs, startup).
+            log.debug("[RW-Routing] Group [{}] routing to MASTER (auto default)", groupName);
+            return master();
         }
 
-        incrementMasterCounter();
+        // 2. @Slave (or AUTO with default-target=SLAVE)
+        String specifiedSlave = ReadWriteRoutingContext.getSpecifiedSlave();
+        if (specifiedSlave != null && isSlaveUsable(specifiedSlave)) {
+            log.debug("[RW-Routing] Group [{}] routing to SLAVE [{}] (specified)", groupName, specifiedSlave);
+            return slave(specifiedSlave);
+        }
+        if (specifiedSlave != null) {
+            log.debug("[RW-Routing] Group [{}] specified slave [{}] is unavailable", groupName, specifiedSlave);
+            if (!ReadWriteRoutingContext.isFallbackToMaster()) {
+                throw new ReadWriteRoutingException("Slave [" + specifiedSlave + "] of group [" + groupName
+                        + "] is unavailable and fallbackToMaster=false");
+            }
+            return fallback(specifiedSlave);
+        }
+
+        String selectedSlave = selectSlaveWithRetry();
+        if (selectedSlave != null) {
+            log.debug("[RW-Routing] Group [{}] routing to SLAVE [{}]", groupName, selectedSlave);
+            return slave(selectedSlave);
+        }
+
+        if (!ReadWriteRoutingContext.isFallbackToMaster()) {
+            throw new ReadWriteRoutingException("No available slave in group [" + groupName
+                    + "] and fallbackToMaster=false");
+        }
+
+        if (slaveInfos == null || slaveInfos.isEmpty()) {
+            // 该 group 未配置从库（单机部署）。注解语义仍然生效，所有读落到主库，
+            // 但这是预期状态，不应每次查询都告警（启动时已打过一次 INFO）。
+            log.debug("[RW-Routing] Group [{}] has no slave configured, routing to MASTER", groupName);
+        } else {
+            log.debug("[RW-Routing] Group [{}] no available slave, fallback to MASTER", groupName);
+        }
+        return fallback(null);
+    }
+
+    private Object master() {
+        masterRouteCount.increment();
+        ReadWriteRoutingContext.recordRoute(MASTER_KEY, null, false);
         return MASTER_KEY;
+    }
+
+    private Object slave(String slaveName) {
+        slaveRouteCount.increment();
+        ReadWriteRoutingContext.recordRoute(slaveName, slaveName, false);
+        return slaveName;
+    }
+
+    private Object fallback(String slaveName) {
+        fallbackCount.increment();
+        ReadWriteRoutingContext.recordRoute(MASTER_KEY, slaveName, true);
+        return MASTER_KEY;
+    }
+
+    private boolean isSlaveUsable(String slaveName) {
+        return slaveAvailability.getOrDefault(slaveName, false)
+                && !isCircuitOpen(slaveName)
+                && isSlaveConnectionValid(slaveName);
+    }
+
+    private boolean isCircuitOpen(String slaveName) {
+        return circuitBreaker != null && circuitBreaker.isOpen(groupName, slaveName);
+    }
+
+    @Override
+    public Connection getConnection() throws SQLException {
+        return acquire(DataSource::getConnection);
+    }
+
+    @Override
+    public Connection getConnection(String username, String password) throws SQLException {
+        return acquire(dataSource -> dataSource.getConnection(username, password));
+    }
+
+    /**
+     * Resolve the target once and guard slave connections with the circuit breaker.
+     * When the circuit is open the caller gets a master connection instead of a
+     * failure, and {@code datasource.rw.fallback} is incremented.
+     */
+    private Connection acquire(ConnectionFactory factory) throws SQLException {
+        Object key = determineCurrentLookupKey();
+        DataSource target = resolveTarget(key);
+
+        if (circuitBreaker == null || MASTER_KEY.equals(key) || key == null) {
+            return factory.get(target);
+        }
+
+        String slaveName = key.toString();
+        Connection connection = circuitBreaker.connect(groupName, slaveName, () -> factory.get(target));
+        if (connection != null) {
+            return connection;
+        }
+
+        log.warn("[RW-Routing] Group [{}] slave [{}] circuit is open, using MASTER", groupName, slaveName);
+        fallbackCount.increment();
+        ReadWriteRoutingContext.recordRoute(MASTER_KEY, slaveName, true);
+        return factory.get(masterDataSource);
+    }
+
+    private DataSource resolveTarget(Object key) {
+        if (key == null || MASTER_KEY.equals(key)) {
+            return masterDataSource;
+        }
+        DataSource target = slaveDataSourceMap.get(key.toString());
+        if (target == null) {
+            throw new IllegalStateException("Cannot determine target DataSource for lookup key [" + key + "]");
+        }
+        return target;
+    }
+
+    @FunctionalInterface
+    private interface ConnectionFactory {
+        Connection get(DataSource dataSource) throws SQLException;
     }
 
     /**
@@ -163,12 +278,15 @@ public class ReadWriteRoutingDataSource extends AbstractRoutingDataSource {
      * When selected slave is unavailable, automatically try other slaves.
      */
     private String selectSlaveWithRetry() {
-        if (slaveInfos == null || slaveInfos.isEmpty()) {
+        List<SlaveLoadBalancer.SlaveInfo> infos = slaveInfos;
+        if (infos == null || infos.isEmpty()) {
             return null;
         }
 
-        List<SlaveLoadBalancer.SlaveInfo> availableSlaves = slaveInfos.stream()
+        List<SlaveLoadBalancer.SlaveInfo> availableSlaves = infos.stream()
                 .filter(s -> slaveAvailability.getOrDefault(s.name(), false))
+                .filter(s -> !isCircuitOpen(s.name()))
+                .map(this::withLiveActiveConnections)
                 .toList();
 
         if (availableSlaves.isEmpty()) {
@@ -194,7 +312,7 @@ public class ReadWriteRoutingDataSource extends AbstractRoutingDataSource {
 
             if (isSlaveConnectionValid(selected)) {
                 if (i > 0) {
-                    incrementRetryCounter();
+                    retryCount.increment();
                     log.info("[RW-Routing] Group [{}] retry succeeded with slave [{}] after {} attempts",
                             groupName, selected, i + 1);
                 }
@@ -210,7 +328,25 @@ public class ReadWriteRoutingDataSource extends AbstractRoutingDataSource {
     }
 
     /**
+     * Least-connections needs live data: {@code SlaveInfo} is built once at startup,
+     * so the count is refreshed from the counting datasource wrapper on every selection.
+     */
+    private SlaveLoadBalancer.SlaveInfo withLiveActiveConnections(SlaveLoadBalancer.SlaveInfo info) {
+        DataSource dataSource = slaveDataSourceMap.get(info.name());
+        if (dataSource instanceof com.scmcloud.common.data.rw.dynamic.CountingDataSource counting) {
+            return new SlaveLoadBalancer.SlaveInfo(info.name(), info.weight(),
+                    counting.getActiveConnections(), info.available());
+        }
+        return info;
+    }
+
+    /**
      * Check slave connection validity (with cache).
+     * <p>
+     * A failed probe marks the slave unavailable immediately (when
+     * {@code fail-fast-on-slave-connection-failure} is true) so the next request
+     * falls back to master instead of repeatedly hitting a dead replica. The
+     * periodic {@code SlaveHealthChecker} restores the slave.
      */
     private boolean isSlaveConnectionValid(String slaveName) {
         Long lastCheck = lastValidationTime.get(slaveName);
@@ -224,31 +360,53 @@ public class ReadWriteRoutingDataSource extends AbstractRoutingDataSource {
         }
 
         try (var connection = dataSource.getConnection()) {
-            boolean valid = connection.isValid(3);
+            boolean valid = connection.isValid(properties.getValidationTimeoutSeconds());
             lastValidationTime.put(slaveName, System.currentTimeMillis());
+            if (!valid && properties.isFailFastOnSlaveConnectionFailure()) {
+                markSlaveUnavailable(slaveName);
+            }
             return valid;
         } catch (Exception e) {
+            lastValidationTime.put(slaveName, System.currentTimeMillis());
+            if (properties.isFailFastOnSlaveConnectionFailure()) {
+                markSlaveUnavailable(slaveName);
+            }
             log.debug("[RW-Routing] Group [{}] slave [{}] connection check failed: {}",
                     groupName, slaveName, e.getMessage());
-            lastValidationTime.put(slaveName, System.currentTimeMillis());
             return false;
         }
     }
 
     public void markSlaveUnavailable(String slaveName) {
-        slaveAvailability.put(slaveName, false);
-        log.warn("[RW-Routing] Group [{}] slave [{}] marked as UNAVAILABLE",
-                groupName, slaveName);
+        Boolean previous = slaveAvailability.put(slaveName, false);
+        if (previous == null || previous) {
+            log.error("[RW-Routing] Group [{}] slave [{}] marked as UNAVAILABLE, reads fall back to MASTER",
+                    groupName, slaveName);
+        }
     }
 
     public void markSlaveAvailable(String slaveName) {
-        slaveAvailability.put(slaveName, true);
-        log.info("[RW-Routing] Group [{}] slave [{}] marked as AVAILABLE",
-                groupName, slaveName);
+        Boolean previous = slaveAvailability.put(slaveName, true);
+        if (previous == null || !previous) {
+            log.info("[RW-Routing] Group [{}] slave [{}] marked as AVAILABLE", groupName, slaveName);
+        }
+        lastValidationTime.remove(slaveName);
     }
 
     public Map<String, Boolean> getSlaveAvailability() {
         return Map.copyOf(slaveAvailability);
+    }
+
+    /**
+     * Route counters since startup, also exported as {@code datasource.rw.*} metrics.
+     */
+    public Map<String, Long> getRouteCounts() {
+        Map<String, Long> counts = new LinkedHashMap<>();
+        counts.put("master", masterRouteCount.sum());
+        counts.put("slave", slaveRouteCount.sum());
+        counts.put("fallback", fallbackCount.sum());
+        counts.put("retry", retryCount.sum());
+        return counts;
     }
 
     /**
@@ -266,29 +424,5 @@ public class ReadWriteRoutingDataSource extends AbstractRoutingDataSource {
 
     public String getCurrentLoadBalancerName() {
         return loadBalancerRef.get().getClass().getSimpleName();
-    }
-
-    private void incrementMasterCounter() {
-        if (masterRouteCounter != null) {
-            masterRouteCounter.increment();
-        }
-    }
-
-    private void incrementSlaveCounter() {
-        if (slaveRouteCounter != null) {
-            slaveRouteCounter.increment();
-        }
-    }
-
-    private void incrementFallbackCounter() {
-        if (fallbackCounter != null) {
-            fallbackCounter.increment();
-        }
-    }
-
-    private void incrementRetryCounter() {
-        if (retryCounter != null) {
-            retryCounter.increment();
-        }
     }
 }
