@@ -56,30 +56,16 @@ public class InvReservationController {
         (request.getSkuId() + "").replace("\r", "_").replace("\n", "_"), (request.getWarehouseId() + "").replace("\r", "_").replace("\n", "_"),
         (request.getQuantity() + "").replace("\r", "_").replace("\n", "_"), (request.getBusinessKey() + "").replace("\r", "_").replace("\n", "_"));
 
-    try {
-      boolean success = reservationService.reserveInventory(request);
+    boolean success = reservationService.reserveInventory(request);
 
-      if (success) {
-        log.info("✅[API] 库存预占成功: businessKey={}, quantity={}",
-            (request.getBusinessKey() + "").replace("\r", "_").replace("\n", "_"), (request.getQuantity() + "").replace("\r", "_").replace("\n", "_"));
-      } else {
-        log.warn("⚠️  [API] 库存预占失败: businessKey={}", (request.getBusinessKey() + "").replace("\r", "_").replace("\n", "_"));
-      }
-
-      return success;
-
-    } catch (IllegalArgumentException e) {
-      log.error("❌[API] 库存预占失败（参数错误）: {}", (e.getMessage() + "").replace("\r", "_").replace("\n", "_"));
-      throw e;
-    } catch (RuntimeException e) {
-      log.error("❌[API] 库存预占失败（业务异常）: businessKey={}, error={}",
-          (request.getBusinessKey() + "").replace("\r", "_").replace("\n", "_"), (e.getMessage() + "").replace("\r", "_").replace("\n", "_"));
-      throw e;
-    } catch (Exception e) {
-      log.error("❌[API] 库存预占异常: businessKey={}, error={}",
-          (request.getBusinessKey() + "").replace("\r", "_").replace("\n", "_"), (e.getMessage() + "").replace("\r", "_").replace("\n", "_"), e);
-      throw new RuntimeException("库存预占失败: " + e.getMessage(), e);
+    if (success) {
+      log.info("✅[API] 库存预占成功: businessKey={}, quantity={}",
+          (request.getBusinessKey() + "").replace("\r", "_").replace("\n", "_"), (request.getQuantity() + "").replace("\r", "_").replace("\n", "_"));
+    } else {
+      log.warn("⚠️  [API] 库存预占失败: businessKey={}", (request.getBusinessKey() + "").replace("\r", "_").replace("\n", "_"));
     }
+
+    return success;
   }
 
   /**
@@ -92,27 +78,16 @@ public class InvReservationController {
 
     log.info("🟢 [API] 确认预占: businessKey={}", (businessKey + "").replace("\r", "_").replace("\n", "_"));
 
-    try {
-      boolean success = reservationService.confirmReservation(businessKey);
+    boolean success = reservationService.confirmReservation(businessKey);
 
-      if (success) {
-        log.info("🟢[API] 预占确认成功: businessKey={}", (businessKey + "").replace("\r", "_").replace("\n", "_"));
-      } else {
-        log.warn("⚠️  [API] 预占确认失败（预占不存在或已过期）: businessKey={}",
-            businessKey == null ? null : businessKey.replace("\r", "_").replace("\n", "_"));
-      }
-
-      return success;
-
-    } catch (RuntimeException e) {
-      log.error("❌[API] 预占确认失败: businessKey={}, error={}",
-          (businessKey + "").replace("\r", "_").replace("\n", "_"), (e.getMessage() + "").replace("\r", "_").replace("\n", "_"));
-      throw e;
-    } catch (Exception e) {
-      log.error("❌[API] 预占确认异常: businessKey={}, error={}",
-          (businessKey + "").replace("\r", "_").replace("\n", "_"), (e.getMessage() + "").replace("\r", "_").replace("\n", "_"), e);
-      throw new RuntimeException("预占确认失败: " + e.getMessage(), e);
+    if (success) {
+      log.info("🟢[API] 预占确认成功: businessKey={}", (businessKey + "").replace("\r", "_").replace("\n", "_"));
+    } else {
+      log.warn("⚠️  [API] 预占确认失败（预占不存在或已过期）: businessKey={}",
+          businessKey == null ? null : businessKey.replace("\r", "_").replace("\n", "_"));
     }
+
+    return success;
   }
 
   /**
@@ -125,27 +100,16 @@ public class InvReservationController {
 
     log.info("🔴 [API] 释放预占: businessKey={}", (businessKey + "").replace("\r", "_").replace("\n", "_"));
 
-    try {
-      boolean success = reservationService.releaseReservation(businessKey);
+    boolean success = reservationService.releaseReservation(businessKey);
 
-      if (success) {
-        log.info("🟢[API] 预占释放成功: businessKey={}", (businessKey + "").replace("\r", "_").replace("\n", "_"));
-      } else {
-        log.warn("⚠️  [API] 预占释放失败（预占不存在）: businessKey={}",
-            businessKey == null ? null : businessKey.replace("\r", "_").replace("\n", "_"));
-      }
-
-      return success;
-
-    } catch (RuntimeException e) {
-      log.error("❌[API] 预占释放失败: businessKey={}, error={}",
-          (businessKey + "").replace("\r", "_").replace("\n", "_"), (e.getMessage() + "").replace("\r", "_").replace("\n", "_"));
-      throw e;
-    } catch (Exception e) {
-      log.error("❌[API] 预占释放异常: businessKey={}, error={}",
-          (businessKey + "").replace("\r", "_").replace("\n", "_"), (e.getMessage() + "").replace("\r", "_").replace("\n", "_"), e);
-      throw new RuntimeException("预占释放失败: " + e.getMessage(), e);
+    if (success) {
+      log.info("🟢[API] 预占释放成功: businessKey={}", (businessKey + "").replace("\r", "_").replace("\n", "_"));
+    } else {
+      log.warn("⚠️  [API] 预占释放失败（预占不存在）: businessKey={}",
+          businessKey == null ? null : businessKey.replace("\r", "_").replace("\n", "_"));
     }
+
+    return success;
   }
 
   /**
