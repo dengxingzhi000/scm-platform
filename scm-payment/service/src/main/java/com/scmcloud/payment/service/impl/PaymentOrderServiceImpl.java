@@ -7,6 +7,7 @@ import com.scmcloud.payment.callback.PaymentCallbackException;
 import com.scmcloud.payment.domain.entity.PaymentOrder;
 import com.scmcloud.payment.mapper.PaymentOrderMapper;
 import com.scmcloud.payment.service.IPaymentOrderService;
+import com.scmcloud.common.log.util.LogUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -68,7 +69,8 @@ public class PaymentOrderServiceImpl extends ServiceImpl<PaymentOrderMapper, Pay
                 throw new IllegalStateException("Pending payment amount mismatch, existing="
                         + existing.getAmount() + ", requested=" + amount);
             }
-            log.info("Reusing pending payment: paymentNo={}, orderNo={}", existing.getPaymentNo(), orderNo);
+            log.info("Reusing pending payment: paymentNo={}, orderNo={}",
+                    existing.getPaymentNo(), LogUtils.sanitizeForLog(orderNo));
             return existing;
         }
 
@@ -153,7 +155,7 @@ public class PaymentOrderServiceImpl extends ServiceImpl<PaymentOrderMapper, Pay
         if (payment.getStatus() != null && payment.getStatus() == STATUS_PAID) {
             // Payment gateways retry callbacks; an already-paid order is a no-op.
             log.info("Ignoring duplicate payment callback: paymentNo={}, transactionId={}",
-                    payment.getPaymentNo(), transactionId);
+                    payment.getPaymentNo(), LogUtils.sanitizeForLog(transactionId));
             return;
         }
         if (payment.getStatus() == null || payment.getStatus() != STATUS_PENDING) {

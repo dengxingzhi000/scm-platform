@@ -73,7 +73,7 @@ public class OcrService {
     /**
      * 提取发票信息。
      *
-     * @param inputStream 发票图片流
+     * @param file 发票图片文件
      * @return 发票信息
      */
     public InvoiceInfo extractInvoiceInfo(MultipartFile file) {
@@ -92,7 +92,7 @@ public class OcrService {
     /**
      * 提取合同关键信息。
      *
-     * @param inputStream 合同图片流
+     * @param file 合同图片文件
      * @return 合同信息
      */
     public ContractInfo extractContractInfo(MultipartFile file) {

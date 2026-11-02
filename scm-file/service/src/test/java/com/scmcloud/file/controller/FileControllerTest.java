@@ -84,7 +84,6 @@ class FileControllerTest {
 
     @Test
     void updateShouldKeep404ForMissingFile() {
-        FileUpdateRequest request = new FileUpdateRequest();
         when(fileManagementService.update("file-1", "contract.pdf", "CONTRACT", "order-1"))
                 .thenThrow(new FileNotFoundException("file-1"));
 

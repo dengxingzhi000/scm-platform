@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
+import com.scmcloud.common.log.util.LogUtils;
 import com.scmcloud.promotion.domain.entity.Coupon;
 import com.scmcloud.promotion.domain.entity.CouponTemplate;
 import com.scmcloud.promotion.mapper.CouponMapper;
@@ -129,7 +130,8 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
         if (coupon.getStatus() != null && coupon.getStatus() == COUPON_USED) {
             // Idempotent replay for the same order; a different order is a conflict.
             if (orderNo.equals(coupon.getOrderNo())) {
-                log.info("Coupon already used by the same order: couponCode={}, orderNo={}", couponCode, orderNo);
+                log.info("Coupon already used by the same order: couponCode={}, orderNo={}",
+                        LogUtils.sanitizeForLog(couponCode), LogUtils.sanitizeForLog(orderNo));
                 return;
             }
             throw new IllegalStateException("Coupon already used by order: " + coupon.getOrderNo());
