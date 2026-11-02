@@ -62,8 +62,7 @@ public class SysDeptController {
             riskLevel = 3
     )
     public ApiResponse<Void> update(@Parameter(description = "部门 ID") @PathVariable UUID id, @Validated @RequestBody DeptDTO deptDTO) {
-        deptDTO.setId(id);
-        deptService.updateDept(deptDTO);
+        deptService.updateDept(id, deptDTO);
 
         return ApiResponse.success();
     }

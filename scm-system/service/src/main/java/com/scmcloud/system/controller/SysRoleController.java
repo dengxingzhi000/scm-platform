@@ -86,8 +86,7 @@ public class SysRoleController {
             riskLevel = 4
     )
     public ApiResponse<Void> update(@Parameter(description = "角色 ID") @PathVariable UUID id, @Validated @RequestBody RoleDTO roleDTO) {
-        roleDTO.setId(id);
-        roleService.updateRole(roleDTO);
+        roleService.updateRole(id, roleDTO);
 
         return ApiResponse.success();
     }

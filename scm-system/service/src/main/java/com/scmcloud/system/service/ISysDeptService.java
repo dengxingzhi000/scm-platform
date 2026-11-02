@@ -44,7 +44,7 @@ public interface ISysDeptService extends IService<SysDept> {
      *
      * @param deptDTO 閮ㄩ棬淇℃伅
      */
-    void updateDept(DeptDTO deptDTO);
+    void updateDept(UUID id, DeptDTO deptDTO);
 
     /**
      * 鍒犻櫎閮ㄩ棬锟?

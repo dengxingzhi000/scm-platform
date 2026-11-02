@@ -73,8 +73,7 @@ public class SysPermissionController {
     )
     public ApiResponse<Void> update(@Parameter(description = "权限 ID") @PathVariable UUID id,
                                    @Validated @RequestBody PermissionDTO permissionDTO) {
-        permissionDTO.setId(id);
-        permissionService.updatePermission(permissionDTO);
+        permissionService.updatePermission(id, permissionDTO);
 
         return ApiResponse.success();
     }

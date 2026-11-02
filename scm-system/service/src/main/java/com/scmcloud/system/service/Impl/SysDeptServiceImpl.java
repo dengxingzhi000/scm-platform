@@ -172,7 +172,8 @@ public class SysDeptServiceImpl extends ServiceImpl<SysDeptMapper, SysDept> impl
     @Override
     @DSTransactional
     @CacheEvict(value = {"deptTree", "deptChildren"}, allEntries = true)
-    public void updateDept(DeptDTO deptDTO) {
+    public void updateDept(UUID id, DeptDTO deptDTO) {
+        deptDTO.setId(id);
         // 1. 验证租户上下
         UUID tenantId = TenantValidationUtil.getRequiredTenantId();
 

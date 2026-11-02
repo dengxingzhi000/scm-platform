@@ -12,7 +12,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/system/dicts")
@@ -41,7 +40,6 @@ public class SysDictController {
     @PostMapping("/types")
     @PreAuthorize("hasAuthority('system:dict:add')")
     public ApiResponse<Void> createType(@RequestBody SysDictType entity) {
-        entity.setId(UUID.randomUUID().toString());
         dictService.createDictType(entity);
         return ApiResponse.success(null);
     }
@@ -72,7 +70,6 @@ public class SysDictController {
     @PostMapping("/items")
     @PreAuthorize("hasAuthority('system:dict:add')")
     public ApiResponse<Void> createItem(@RequestBody SysDictItem entity) {
-        entity.setId(UUID.randomUUID().toString());
         dictService.createDictItem(entity);
         return ApiResponse.success(null);
     }

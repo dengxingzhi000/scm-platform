@@ -165,7 +165,8 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     @CacheEvict(value = {"role", "roles", "userRoles", "userPermissions"}, allEntries = true)
-    public void updateRole(RoleDTO roleDTO) {
+    public void updateRole(UUID id, RoleDTO roleDTO) {
+        roleDTO.setId(id);
         UUID operatorId = SecurityUtils.getCurrentUserUuid().orElse(null);
         permissionChecker.requirePermission(operatorId, "role:update");
 
