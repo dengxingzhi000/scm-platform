@@ -8,8 +8,16 @@ vi.mock("next-intl", () => ({
   useTranslations: (ns: string) => (key: string) => `${ns}.${key}`,
 }));
 
+// next/image 在 jsdom 里没有图片优化器;只保留断言需要的 src / alt。
+vi.mock("next/image", () => ({
+  default: ({ src, alt }: { src: string; alt: string }) => (
+    // eslint-disable-next-line @next/next/no-img-element -- next/image 的测试替身
+    <img src={src} alt={alt} />
+  ),
+}));
+
 describe("AuthShell", () => {
-  it("renders the brand mark and both header actions", () => {
+  it("renders the brand wordmark, hero card and legal copy", () => {
     render(
       <AuthShell>
         <p>content</p>
@@ -17,21 +25,23 @@ describe("AuthShell", () => {
     );
 
     expect(screen.getByText("login.brandName")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "login.header.contactSales" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "login.header.tryPlatform" })).toBeInTheDocument();
+    expect(screen.getByText("login.hero.title")).toBeInTheDocument();
+    expect(screen.getByText("login.hero.feature1")).toBeInTheDocument();
+    expect(screen.getByText("login.hero.feature2")).toBeInTheDocument();
+    expect(screen.getByText("login.hero.feature3")).toBeInTheDocument();
+    expect(screen.getByText("login.legal")).toBeInTheDocument();
   });
 
-  it("scopes the Claude accent to the login experience only", () => {
+  it("scopes the shadcn variables to the fixed-light auth palette", () => {
     const { container } = render(<AuthShell>content</AuthShell>);
     const root = container.firstElementChild as HTMLElement;
-    expect(root.style.getPropertyValue("--primary")).toBe("var(--color-brand-accent)");
-    expect(root.style.getPropertyValue("--ring")).toBe("var(--color-brand-accent)");
-    // --accent 覆写成桃色底,--accent-foreground 必须一起覆写 ——
-    // 否则 globals.css 里的 var(--color-primary)(靛蓝)会落在桃色底上。
-    expect(root.style.getPropertyValue("--accent-foreground")).toBe("var(--auth-ink)");
+    expect(root.style.getPropertyValue("--background")).toBe("var(--auth-bg)");
+    expect(root.style.getPropertyValue("--foreground")).toBe("var(--auth-ink)");
+    expect(root.style.getPropertyValue("--primary")).toBe("var(--auth-btn)");
+    expect(root.style.getPropertyValue("--ring")).toBe("var(--auth-focus)");
   });
 
-  it("renders the children in the left column and the hero image in the right column", () => {
+  it("renders the children in the left column and the cover image in the right column", () => {
     render(
       <AuthShell>
         <p>content</p>
@@ -39,7 +49,7 @@ describe("AuthShell", () => {
     );
 
     expect(screen.getByText("content")).toBeInTheDocument();
-    const hero = screen.getByRole("img", { name: "login.heroAlt" });
-    expect(hero).toHaveAttribute("src", "/auth-hero.svg");
+    const cover = screen.getByRole("img", { name: "login.heroAlt" });
+    expect(cover).toHaveAttribute("src", "/auth/cover.jpg");
   });
 });

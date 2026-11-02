@@ -10,6 +10,7 @@ import { Form, FormField, FormItem } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 
 /** next-intl 的 t:key 进、文案出。三个 schema 工厂共用。 */
 type Translator = (key: string) => string;
@@ -48,11 +49,14 @@ interface ForgotPasswordFormProps {
 
 /** 三个步骤共用的主按钮样式,免得同一串令牌重复四遍。 */
 const primaryButtonClass =
-  "h-12 w-full rounded-lg bg-[var(--auth-btn)] text-[var(--auth-btn-fg)] hover:bg-[var(--auth-ink-soft)]";
+  "h-9 w-full rounded-lg bg-[var(--auth-btn)] text-[var(--auth-btn-fg)] hover:bg-[var(--auth-btn-hover)] focus-visible:ring-[3px] focus-visible:ring-[var(--auth-focus-ring)]";
 
 /** 「上一步」按钮:次要样式,不能跟主 CTA 一样重。 */
 const backButtonClass =
-  "h-11 w-full rounded-lg border-[var(--auth-line-strong)] bg-transparent text-[var(--auth-ink)] hover:bg-[var(--auth-btn-soft-hover)] hover:text-[var(--auth-ink)]";
+  "h-9 w-full rounded-lg border-[var(--auth-line-strong)] bg-transparent text-[var(--auth-ink)] hover:bg-[var(--auth-bg-soft)] hover:text-[var(--auth-ink)]";
+
+const inputClass =
+  "h-9 rounded-lg border-[var(--auth-line)] bg-transparent px-3 text-sm text-[var(--auth-ink)] placeholder:text-[var(--auth-ink-soft)] hover:border-[var(--auth-line-strong)] focus-visible:border-[var(--auth-focus)] focus-visible:bg-white focus-visible:ring-[3px] focus-visible:ring-[var(--auth-focus-ring)]";
 
 export function ForgotPasswordForm({ onDone }: ForgotPasswordFormProps) {
   const t = useTranslations("forgot");
@@ -111,7 +115,7 @@ export function ForgotPasswordForm({ onDone }: ForgotPasswordFormProps) {
                 aria-hidden="true"
                 className={
                   isCurrent
-                    ? "h-1.5 w-1.5 rounded-full bg-[var(--color-brand-accent)]"
+                    ? "h-1.5 w-1.5 rounded-full bg-[var(--auth-btn)]"
                     : "h-1.5 w-1.5 rounded-full bg-[var(--auth-ink-soft)]"
                 }
               />
@@ -147,7 +151,7 @@ export function ForgotPasswordForm({ onDone }: ForgotPasswordFormProps) {
                     type="email"
                     autoComplete="email"
                     placeholder={t("emailPlaceholder")}
-                    className="h-12 rounded-lg bg-transparent"
+                    className={inputClass}
                     {...field}
                     // 邮箱是跨步骤存活的:输入时就同步到 state,回到这一步时内容还在。
                     value={email}
@@ -191,7 +195,7 @@ export function ForgotPasswordForm({ onDone }: ForgotPasswordFormProps) {
                     autoComplete="one-time-code"
                     maxLength={6}
                     placeholder={t("codePlaceholder")}
-                    className="h-12 rounded-lg bg-transparent text-center text-lg tracking-[0.5em]"
+                    className={cn(inputClass, "text-center text-lg tracking-[0.5em]")}
                     {...field}
                   />
                   {codeForm.formState.errors.code && (
@@ -230,7 +234,7 @@ export function ForgotPasswordForm({ onDone }: ForgotPasswordFormProps) {
                     type="password"
                     autoComplete="new-password"
                     placeholder={t("newPasswordPlaceholder")}
-                    className="h-12 rounded-lg bg-transparent"
+                    className={inputClass}
                     {...field}
                   />
                   {passwordForm.formState.errors.password && (
@@ -252,7 +256,7 @@ export function ForgotPasswordForm({ onDone }: ForgotPasswordFormProps) {
                     type="password"
                     autoComplete="new-password"
                     placeholder={t("confirmPasswordPlaceholder")}
-                    className="h-12 rounded-lg bg-transparent"
+                    className={inputClass}
                     {...field}
                   />
                   {passwordForm.formState.errors.confirmPassword && (

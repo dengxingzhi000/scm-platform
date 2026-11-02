@@ -124,8 +124,8 @@
 
 /*
  * Type hierarchy: the app shell is a data console, so every heading is sans,
- * semibold and tightly tracked. Serif is reserved for the auth-screen brand
- * wordmark — see `auth-brand-card.tsx`.
+ * semibold and tightly tracked. Serif is reserved for the auth brand wordmark
+ * and auth headings — see `.auth-serif-heading`.
  *
  * This block is deliberately NOT inside `@layer base`: Ant Design injects its
  * styles at runtime as unlayered CSS, and unlayered rules outrank any layer —
@@ -156,6 +156,19 @@ html [data-slot='card-title'] {
   font-weight: 600;
   letter-spacing: -0.015em;
   line-height: 1.3;
+}
+
+/*
+ * Auth headings are the one place the app uses serif. The unlayered heading
+ * rule above outranks Tailwind's layered `font-serif` / `font-normal`
+ * utilities (unlayered CSS always beats a cascade layer), so the serif has to
+ * be reinstated here, outside any layer.
+ */
+html .auth-serif-heading {
+  font-family: var(--font-family-serif);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
 }
 
 /*
