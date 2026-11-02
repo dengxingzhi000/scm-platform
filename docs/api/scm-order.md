@@ -1,6 +1,6 @@
 # scm-order — OpenAPI 文档摘要
 
-- 来源: `http://192.168.0.125:8203/api/public/v3/api-docs`
+- 来源: `http://192.168.0.132:8203/api/public/v3/api-docs`
 - 标题: SCM Platform API - scm-order (1.0.0)
 - 认证: Bearer JWT (Authorization header)
 
@@ -129,6 +129,12 @@
 - 参数: `id`(path,必填: string)
 - 响应: `ApiResponseListOrderItemResponse`
 
+### GET /api/v1/orders/dashboard/summary
+- 说明: 查询订单看板聚合
+- 描述: 按时间范围聚合营收、订单量、日趋势、状态分布与待处理计数，支持环比/同比。
+- 参数: `range`(query: string) `compare`(query: string)
+- 响应: `ApiResponseOrderDashboardSummaryResponse`
+
 ## OrderItem
 
 ### POST /api/v1/order-items/query
@@ -199,4 +205,9 @@
 - **ApiResponseListRefundResponse** — `code`: integer, `message`: string, `data`: RefundResponse[], `timestamp`: integer
 - **ApiResponseListPaymentResponse** — `code`: integer, `message`: string, `data`: PaymentResponse[], `timestamp`: integer
 - **ApiResponseListOrderItemResponse** — `code`: integer, `message`: string, `data`: OrderItemResponse[], `timestamp`: integer
+- **ApiResponseOrderDashboardSummaryResponse** — `code`: integer, `message`: string, `data`: OrderDashboardSummaryResponse, `timestamp`: integer
+- **Attention** — `pendingPayment`: integer, `pendingShip`: integer, `refunding`: integer
+- **OrderDashboardSummaryResponse** — `range`: string, `compareMode`: string, `granularity`: string, `rangeStart`: string, `rangeEnd`: string, `comparisonStartDate`: string, `comparisonEndDate`: string, `generatedAt`: string, `currentRevenue`: number, `comparisonRevenue`: number, `currentOrders`: integer, `comparisonOrders`: integer, `totalOrders`: integer, `points`: TrendPoint[], `statusCounts`: StatusCount[], `attention`: Attention
+- **StatusCount** — `status`: string, `count`: integer
+- **TrendPoint** — `startTime`: string, `endTime`: string, `revenue`: number, `orders`: integer
 - **ApiResponseOrderItemResponse** — `code`: integer, `message`: string, `data`: OrderItemResponse, `timestamp`: integer

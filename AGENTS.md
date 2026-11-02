@@ -182,21 +182,73 @@ New YAML must keep using `frog.*`.
    It clears the context in a `finally`.
 2. `TenantContextHolder` is a plain `ThreadLocal<UUID>`. Prefer
    `getRequiredTenantId()` — `getTenantId()` returns `null` silently.
-3. `TenantInterceptor` (MyBatis) rewrites every SELECT/UPDATE/DELETE/INSERT to
-   add `tenant_id = ?`. It skips the `tenant`, `tenant_package`,
-   `tenant_subscription`, `tenant_resource_quota`, `tenant_config`,
-   `tenant_feature` and `tenant_operation_log` tables. With
-   `scm.tenant.fail-on-parse-error=true` (default), SQL it cannot parse throws
-   `TenantParseException` instead of silently running unfiltered — `UNION` /
-   `INTERSECT` / `EXCEPT` queries are handled, but anything else exotic will
-   fail loudly.
+3. `TenantInterceptor` (MyBatis) rewrites every SELECT/UPDATE/DELETE to append
+   `<alias_or_table>.tenant_id = '<uuid>'`. It is registered by
+   `TenantMybatisAutoConfiguration` (listed in `scm-common/core`'s
+   `AutoConfiguration.imports`) and can be switched off per service with
+   `scm.tenant.sql-isolation=false`. Details that matter when you touch it:
+   - **Ordering is load-bearing.** `MybatisPlusConfig.mybatisPlusInterceptor`
+     carries `@Order(0)` and the tenant plugin `@Order(LOWEST_PRECEDENCE)`;
+     MyBatis wraps plugins in registration order, so the tenant rewrite must be
+     *outermost* — that is what makes the pagination `*_mpCount` SQL carry the
+     predicate too (verified on the dev VM).
+   - The column is qualified with the FROM alias, and statements without a
+     `FROM` table (`SELECT 1`, derived tables) are skipped instead of failing.
+   - INSERT is deliberately not rewritten: `AuditMetaObjectHandler` fills the
+     `tenantId` field on the entity.
+   - Skipped tables = the tenant registry plus the framework tables whose schema
+     the platform does not own (`undo_log`, `flyway_schema_history`, `qrtz_*`,
+     `xxl_job_*`, `act_*`, `flw_*`). Add to that set with
+     `scm.tenant.exclude-tables` (a trailing `*` matches a prefix).
+   - Known holes: only the driving table of a JOIN gets the predicate (it logs a
+     warning), and a subquery in `FROM` is not filtered.
+   - The two `db_audit` log tables are filtered: they carry `tenant_id` via
+     Track A (`028_add_tenant_id_columns.sql`, also applied to `db_audit` by
+     `init-all-databases.sh`) and Track B (inline in `005_db_audit.sql`), and
+     both entities declare a `fill = FieldFill.INSERT` `TenantId` field. An
+     existing `db_audit` must have Track A applied, or every audit read fails
+     with `column "tenant_id" does not exist`.
+   - A service only enforces this after it is rebuilt against the current
+     `scm-common/core`; verified live on `scm-order` and `scm-audit`.
 4. `AsyncTenantAutoConfiguration` publishes a `tenantAwareTaskExecutor` bean
    that propagates the tenant context into `@Async` threads. Any other executor
    loses it — wrap work in `TenantContextHolder.executeInTenantContext(...)`.
 
-Defaults (`failOnParseError=true`, `required=true`,
-`excludePaths=/actuator/**,/v3/api-docs/**`) live in that auto-configuration;
+`TenantProperties` is constructor-bound: with the extra convenience constructor
+it must keep `@ConstructorBinding` on the canonical one, or every service fails
+at startup with *"No default constructor found"*. Defaults
+(`failOnParseError=true`, `required=true`,
+`excludePaths=/actuator/**,/v3/api-docs/**`) live in that record;
 no service overrides them.
+
+### Audit trail
+
+- `@AuditLog` (scm-common/web) is intercepted by the shared `SysAuditLogAspect`,
+  registered by `AuditLogAutoConfiguration` — not by component scanning, so it
+  also applies to services that only scan their own package (scm-auth). Every
+  service except scm-audit delivers through `SysAuditServiceClient`
+  (`POST /sys-audit-log`, Nacos name `scm-audit`); the RestClient interceptor
+  forwards `X-Tenant-Id` and the caller's JWT, so the row lands in the caller's
+  tenant. scm-audit persists directly.
+- Records with `riskLevel >= 3` (password reset, role/permission grant, delete,
+  lock, force logout) are additionally mirrored into
+  `sys_sensitive_operation_log` by `SysAuditLogServiceImpl.record()`; that table
+  has no other producer, so without this it stays empty. A mirror is skipped
+  when the record has no `userId` (`user_id` is NOT NULL) and never loses the
+  general audit row.
+- **Delivery is best-effort.** `RemoteSysAuditLogService` logs and swallows any
+  failure, and the aspect swallows the sink's exceptions in `finally`. A
+  committed high-risk operation can therefore have no audit row when scm-audit is
+  unreachable, and login/logout audits have no (or a revoked) token to forward.
+  Fail-closed pre-writing or routing through the outbox is an open decision, not
+  existing behaviour.
+- `AuditMetaObjectHandler` only fills properties the entity actually declares
+  (`tenantId`, `createTime`, `updateTime`, `createBy`, `updateBy`, `deleted` are
+  all optional) — append-only tables like the two audit logs and the join tables
+  rely on that; `TenantId`/`String`/`UUID` tenant fields are each handled.
+- `SysSensitiveOperationLog.realName` / `.deptName` are
+  `@TableField(exist = false)`: `db_audit` has no such columns, and mapping them
+  broke every read of that table.
 
 ### Datasource routing (`@DS`)
 
@@ -213,7 +265,11 @@ pointing at its own `db_<service>`.
 `@Master` / `@Slave` live in `scm-common/data-rw`
 (`com.scmcloud.common.data.rw.annotation`); `scm-common/data-rw-stub` is a
 no-op variant for editions without replicas. Query services → `@Slave`, command
-services → `@Master`.
+services → `@Master`. **The whole auto-configuration is gated on
+`spring.datasource.rw.enabled=true`, which no service sets**, so the annotations
+are inert and everything hits the single `spring.datasource.url` until a service
+opts in via a profile — see `docs/guides/READ_WRITE_SEPARATION_GUIDE.md`
+(`scm-order` ships `application-readwrite.yml` as the template).
 
 ### CQRS
 
@@ -330,16 +386,41 @@ The `.bat` creates 17 databases (including `db_tenant`, `db_promotion` and
 migrations.
 
 **The `.bat` is behind the `.sh` on tenant_id.** `028_add_tenant_id_columns.sql`
-(adds `tenant_id` to the 32 business tables) is only invoked by the `.sh`,
+(adds `tenant_id` to the 34 business tables) is only invoked by the `.sh`,
 which applies it to `db_product`, `db_inventory`, `db_order`, `db_warehouse`,
-`db_logistics` and `db_supplier`. The `.bat` skips it, and the base scripts it
-does run declare `tenant_id` inline only for `db_product`/`db_finance`/
+`db_logistics`, `db_supplier` and `db_audit`. The `.bat` skips it, and the base
+scripts it does run declare `tenant_id` inline only for `db_product`/`db_finance`/
 `db_purchase` — so a Windows-initialised `db_order`, `db_inventory`,
-`db_warehouse`, `db_logistics` or `db_supplier` has **no `tenant_id` column** on
-its business tables. `TenantInterceptor` then injects `tenant_id = ?` into
-queries against a non-existent column, and `scripts/db/ci_validate_tenant_id.sql`
-fails. After running the `.bat`, apply `028` by hand to those five databases
-(or use the `.sh` under WSL/Git Bash).
+`db_warehouse`, `db_logistics`, `db_supplier` or `db_audit` has **no `tenant_id`
+column** on its business tables. `scripts/db/ci_validate_tenant_id.sql` fails,
+and because `TenantInterceptor` is now registered (see Multi-tenant isolation)
+every read of those tables fails at runtime too, with
+`column "tenant_id" does not exist` — so a Windows-initialised database must not
+be used until the columns are added. After running the `.bat`, apply `028` by
+hand to those six databases (or use the `.sh` under WSL/Git Bash).
+
+### Local-development seed data
+
+`scripts/db/seed/` holds fixed-UUID seed SQL for the screens that now consume
+real APIs. It is idempotent (upsert / delete-then-insert), creates the current
+month's partitions for `ord_order` and `pur_order`, and adds missing
+`tenant_id` / `deleted` columns so Windows-initialised databases work too.
+
+```bash
+# Windows
+set PGPASSWORD=admin123 && cd scripts\db\seed && seed-all.bat
+
+# Linux/macOS / Git Bash
+export PGPASSWORD=admin123 && cd scripts/db/seed && ./seed-all.sh
+```
+
+The seed uses tenant `019a0aee-0000-7000-8000-000000000002` (`default`), which
+is the value already in `scm-web/.env.local`; point
+`NEXT_PUBLIC_DEFAULT_TENANT_ID` at it. It covers tenant, product (7 SPUs /
+8 SKUs), inventory (normal/low/out), orders (20 orders over 14 days with all
+10 statuses), suppliers, warehouses + inbound/outbound, logistics
+waybills/tracking, finance settlements/invoices, purchase orders and the
+notification feed.
 
 ### Bootstrap SQL vs Flyway
 
@@ -351,8 +432,14 @@ fails. After running the `.bat`, apply `028` by hand to those five databases
   (`V1__*.sql`). Flyway is enabled with `validate-on-migrate: true` and
   `out-of-order: false` — put new schema changes here, not in `scripts/db/`.
   Present for analytics, document, file, fulfillment, mall, member, message,
-  order-center, payment and promotion; the older services have empty dirs.
-  `scm-analytics` also has `resources/clickhouse/V1__*.sql`.
+  order-center, payment, promotion and supplier; the older services have empty
+  dirs. `scm-analytics` also has `resources/clickhouse/V1__*.sql`.
+- **Spring Boot 4 split Flyway auto-configuration into `spring-boot-flyway`.**
+  A module that declares only `flyway-core` has no auto-configuration and will
+  silently never run its migrations (the schema exists but
+  `flyway_schema_history` is absent). Declare
+  `org.springframework.boot:spring-boot-starter-flyway` as well — `scm-supplier`
+  does.
 
 ### Partition / retention / quality
 
@@ -416,10 +503,11 @@ npm run test:e2e     # Playwright
   are errors outside their wrappers (`src/components/charts`,
   `src/components/data-grid`, `src/lib/charts`). AG Grid CSS is imported
   statically in `src/app/layout.tsx`.
-- Dashboard is a Server Component doing `prefetchQuery` + `HydrationBoundary`;
-  its client half lives in `dashboard-client.tsx`. `dashboardService` is a local
-  mock, so prefetch runs on the server today — when it calls the gateway, the
-  prefetch must forward the auth/tenant cookies.
+- Dashboard is a client-rendered page (`dashboard-client.tsx`) whose service
+  aggregates real gateway data: orders (up to 5 x 200 rows), inventory stats,
+  low/out-of-stock rows, the SKU catalog and the supplier page total. The old
+  server-side `prefetchQuery` was removed because it could not forward the
+  auth/tenant cookies to the gateway.
 - Lint uses the **flat config** `eslint.config.mjs` (ESLint 10 dropped
   `.eslintrc`); `eslint-config-next@16` ships native flat-config arrays.
   `eslint-config-next/typescript` is deliberately not enabled — see the
@@ -431,10 +519,15 @@ npm run test:e2e     # Playwright
   hard-fails on the TS 7 API. ESLint and Next's build-time check use the TS 6
   API; `npm run typecheck` is the TS 7 gate. Do not run `npx tsc` directly —
   npm's `.bin/tsc` may point at the TS 6 shim.
-- API base URL: `NEXT_PUBLIC_API_BASE_URL` (`scm-web/.env.local` →
-  `http://localhost:8761`), consumed by `src/lib/api/client.ts`. Gateway routes
-  strip their first segment: auth is `/auth/api/auth/**` → `/api/auth/**`,
-  system is `/system/api/system/**` → `/api/system/**`.
+- API base URL: `NEXT_PUBLIC_API_BASE_URL`, consumed by
+  `src/lib/api/client.ts`. Gateway routes strip their first segment: auth is
+  `/auth/api/auth/**` → `/api/auth/**`, system is `/system/api/system/**` →
+  `/api/system/**`. The local `.env.local` leaves the variable empty so axios
+  calls the Next origin and the rewrites in `next.config.ts` proxy each
+  `/scm-<service>/**` prefix to its `API_<SERVICE>_TARGET`. Point it at the
+  gateway (`http://localhost:8761`) to bypass the rewrites. Supplier, purchase,
+  warehouse, logistics, finance, notify and analytics have their own targets;
+  the defaults are the ports in the Ports table.
 - Feature code lives in `src/features/<domain>/`; pages in
   `src/app/[locale]/(app)/<domain>/`.
 - See `scm-web/README.md` for the stack contract and migration checklist.
@@ -452,7 +545,7 @@ npm run test:e2e     # Playwright
   default (`springdoc.swagger-ui.enabled=false`), so there is no HTML page —
   only the JSON.
   ```bash
-  node scripts/api/fetch-openapi.mjs <host> --out docs/api   # 5 live services
+  node scripts/api/fetch-openapi.mjs <host> --out docs/api   # 16 live services
   cd scm-web && npm run generate:api                         # TS clients
   ```
   The fetch script normalises two things the deployed services get wrong: the
@@ -468,7 +561,44 @@ npm run test:e2e     # Playwright
   (`StripPrefix=1`), everything else is reached through the Nacos discovery
   locator as `/scm-<service>/**`. So the frontend calls
   `/auth/api/auth/**`, `/system/api/system/**`,
-  `/scm-order/api/v1/**`, `/scm-inventory/api/v1/**`.
+  `/scm-order/api/v1/**`, `/scm-inventory/api/v1/**`,
+  `/scm-supplier/api/v1/**`, `/scm-purchase/api/v1/**`,
+  `/scm-logistics/api/v1/**`, `/scm-warehouse/wms-*/**`,
+  `/scm-finance/**`, `/scm-notify/**`, `/scm-approval/**`,
+  `/scm-audit/**`, `/scm-tenant/**`, `/scm-document/api/v1/**`,
+  `/scm-file/**` and `/scm-analytics/api/v1/**`.
+- The business screens are all wired to real gateway APIs now. Dashboard,
+  finance, logistics, supplier, notification, purchase and warehouse no longer
+  ship in-file mock arrays; their feature services map backend DTOs in
+  `src/features/<domain>/lib/mappers.ts`. Tenant, approval and audit pages use
+  the backend DTOs directly.
+- **Backend gaps the new screens work around:** scm-document and scm-file only
+  publish create/get-by-id (no list or page endpoints), so there is no document
+  or file list page; scm-finance has no reconciliation list endpoint, so
+  `/finance/reconciliation` is an ID-based workbench fed by the create
+  response. scm-message publishes no OpenAPI document at all.
+- `scm-purchase` gained `/api/v1/pur-order/{page,{id},{id}/items}`; the header
+  is a read-only projection of `pur_order`. `scm-notify` gained
+  `sys_user_notification` (Flyway `V1__sys_user_notification.sql`) and
+  `/sys-user-notification/{page,unread-count,{id}/read,read-all}` for the
+  message center. `scm-finance` `/invoice/page` now accepts an optional
+  `partyId` so the UI can list every invoice in the tenant.
+- `scm-order` gained
+  `GET /api/v1/orders/dashboard/summary?range=TODAY|LAST_7_DAYS|LAST_30_DAYS&compare=NONE|PREVIOUS_PERIOD|YEAR_OVER_YEAR`
+  (`OrdOrderDashboardQueryService`). It aggregates revenue/orders per day
+  (per hour for `TODAY`), status counts and the all-time backlog in
+  PostgreSQL, so the dashboard no longer pages through orders in the browser;
+  each trend point carries `startTime`/`endTime` for drill-down into
+  `/order?startTime=&endTime=`. The order list reads `status`, `startTime` and
+  `endTime` from the URL and mirrors filter changes back into it.
+- **`ord_order.create_time` is `timestamptz`** (the deployed schema, not the
+  `TIMESTAMP` in `scripts/db/microservices/012_db_order.sql`) while the Postgres
+  session runs UTC and the containers run `TZ=Asia/Shanghai`. Binding a bare
+  `LocalDateTime` lets the session zone pick the instant, so day/hour buckets
+  and range filters shift by 8 hours. Use `com.scmcloud.order.util.SqlTime`:
+  bucket with `create_time at time zone <zone>` and filter with
+  `create_time >= ({0}::timestamptz)` bound from `SqlTime.absolute(...)`;
+  `OrdOrderDashboardQueryServiceTest` and `TenantInterceptorTest` pin this.
 - Order and inventory do **not** return `PageResult`. `POST .../query` takes
   `pageNum`/`pageSize` (or `page`/`size` for inventory) in the body and returns
   the raw MyBatis-Plus `Page` echo (`records/total/size/current`), normalized by
@@ -476,9 +606,13 @@ npm run test:e2e     # Playwright
   `ApiResponse` is `@JsonInclude(NON_NULL)`; the inventory reservation
   controller returns bare literals, not an envelope.
 - scm-order exposes no fuzzy search (only exact `orderNo`/`userId`), never
-  embeds line items, and has no `customerPhone`. scm-inventory has **no**
-  alert or movement-history API (`InvAlertController` is an empty stub), so the
-  warnings screen derives `LOW_STOCK` / `OUT_OF_STOCK` rows from the stock query.
+  embeds line items, and has no `customerPhone`. scm-inventory does have alert
+  and snapshot APIs: `/api/v1/inventory/alerts/{query,stats,{id}/resolve,scan}`
+  and `/api/v1/inventory/snapshots/{query,trend,generate}` back the warnings
+  screen and the daily snapshot job; it still has no movement-history API.
+- scm-document and scm-file gained the list endpoints their pages need:
+  `/api/v1/templates/page`, `/api/v1/documents/page`,
+  `/api/v1/document-files/page` and `/api/v1/files/page`.
 - Business APIs are fail-closed without `scm-system`: `ApiAccessControlFilter`
   asks `PermissionService.findPermissionsByUrl`, whose HTTP client throws
   `AccessDeniedException` when the lookup fails. Start `scm-system` (or send a
@@ -556,7 +690,8 @@ order-center, fulfillment, search, analytics). Helm charts live in
   (`db_user`, `db_org`, `db_permission`, `db_product`, `db_inventory`,
   `db_order`, `db_warehouse`, `db_logistics`, `db_supplier`, `db_purchase`,
   `db_finance`, `db_audit`, `db_notify`, `db_approval`). The SQL file expects
-  41 tables to carry `tenant_id`; `db_document` and `db_analytics` are **not**
+  43 tables to carry `tenant_id` (including `sys_audit_log` and
+  `sys_sensitive_operation_log`); `db_document` and `db_analytics` are **not**
   in the CI loop even though the SQL lists `doc_*` tables.
 - Docker images are built for 15 services only (not member/promotion/payment/
   search/mall/…); deploy jobs roll only auth, gateway and system images (dev
