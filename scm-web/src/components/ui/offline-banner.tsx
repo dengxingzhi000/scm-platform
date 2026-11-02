@@ -1,25 +1,23 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useSyncExternalStore } from 'react'
 import { Alert } from 'antd'
 
+function subscribe(onChange: () => void) {
+  window.addEventListener('online', onChange)
+  window.addEventListener('offline', onChange)
+  return () => {
+    window.removeEventListener('online', onChange)
+    window.removeEventListener('offline', onChange)
+  }
+}
+
+const getSnapshot = () => navigator.onLine
+// SSR 阶段没有 navigator，先按在线渲染，水合后切换到真实状态。
+const getServerSnapshot = () => true
+
 export default function OfflineBanner() {
-  const [isOnline, setIsOnline] = useState(true)
-
-  useEffect(() => {
-    setIsOnline(navigator.onLine)
-
-    const handleOnline = () => setIsOnline(true)
-    const handleOffline = () => setIsOnline(false)
-
-    window.addEventListener('online', handleOnline)
-    window.addEventListener('offline', handleOffline)
-
-    return () => {
-      window.removeEventListener('online', handleOnline)
-      window.removeEventListener('offline', handleOffline)
-    }
-  }, [])
+  const isOnline = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 
   if (isOnline) return null
 
