@@ -78,7 +78,7 @@ public class SupSupplierBankAccountServiceImpl
         save(account);
         syncDefaultAccount(supplierId);
         log.info("新增供应商银行账户 supplierId={}, accountId={}",
-                LogUtils.sanitizeForLog(supplierId), account.getId());
+                LogUtils.sanitizeForLog(supplierId), LogUtils.sanitizeForLog(account.getId()));
         return account;
     }
 

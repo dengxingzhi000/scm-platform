@@ -107,7 +107,7 @@ public class SupSupplierEvaluationServiceImpl
         save(evaluation);
         refreshSupplierScorecard(evaluation.getSupplierId());
         log.info("创建供应商评价 id={}, supplierId={}, period={}",
-                evaluation.getId(),
+                LogUtils.sanitizeForLog(evaluation.getId()),
                 LogUtils.sanitizeForLog(evaluation.getSupplierId()),
                 LogUtils.sanitizeForLog(evaluation.getEvaluationPeriod()));
         return evaluation;

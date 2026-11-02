@@ -80,7 +80,7 @@ public class SupSupplierContactServiceImpl
         save(contact);
         syncPrimaryContact(supplierId);
         log.info("新增供应商联系人 supplierId={}, contactId={}",
-                LogUtils.sanitizeForLog(supplierId), contact.getId());
+                LogUtils.sanitizeForLog(supplierId), LogUtils.sanitizeForLog(contact.getId()));
         return contact;
     }
 

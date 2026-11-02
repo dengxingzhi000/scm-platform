@@ -68,7 +68,7 @@ public class SupSupplierCertificateServiceImpl
         certificate.setUpdateTime(LocalDateTime.now());
         save(certificate);
         log.info("新增供应商资质 supplierId={}, certificateId={}",
-                LogUtils.sanitizeForLog(supplierId), certificate.getId());
+                LogUtils.sanitizeForLog(supplierId), LogUtils.sanitizeForLog(certificate.getId()));
         return certificate;
     }
 
