@@ -138,10 +138,10 @@ public class SysUserCommandServiceImpl implements ISysUserCommandService {
                     }
                 });
 
-        // 始终清理资料与授权缓存：资料变更需要资料缓存失效，角色变更还需要授权缓存失效。
-        // 不按 userDTO.getRoleIds() 的用户可控条件分支，避免安全相关缓存被条件跳过。
+        // 始终清理资料与授权缓存：evictUserAuthorization 已包含 evictUserProfile 的
+        // user / userInfo / userDetails。不按 userDTO.getRoleIds() 的用户可控条件分支，
+        // 避免安全相关缓存被条件跳过，也不重复失效同一个 tenant 键。
         cacheEvictor.evictUserAuthorization(user.getId(), user.getUsername());
-        cacheEvictor.evictUserProfile(user.getId(), user.getUsername());
         if (userDTO.getUsername() != null && !userDTO.getUsername().equals(user.getUsername())) {
             // 用户名被修改时，新 username 可能也存在缓存项（getUserByUsername 会缓存 null），一并失效。
             cacheEvictor.evictUserDetails(userDTO.getUsername());
