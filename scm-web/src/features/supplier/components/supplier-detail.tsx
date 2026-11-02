@@ -1,55 +1,48 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Pencil } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { useSupplierDetail } from "../hooks";
-import RatingStars from "./rating-stars";
+import { useSupplierPerformance, useSupplierProfile } from "../hooks";
+import {
+  AUDIT_STATUSES,
+  COOPERATION_STATUSES,
+  RISK_LEVELS,
+  SUPPLIER_LEVELS,
+  labelOf,
+  variantOf,
+} from "../lib/constants";
+import type { BadgeVariant } from "../lib/constants";
+import SupplierOverviewPanel from "./supplier-overview-panel";
 
 interface SupplierDetailProps {
   id: string;
 }
 
-function DetailField({
-  label,
-  children,
-  className,
-}: {
-  label: string;
-  children: ReactNode;
-  className?: string;
-}) {
-  return (
-    <div className={cn("min-w-0", className)}>
-      <div className="text-muted-foreground text-[10px] font-medium tracking-[0.12em] uppercase">
-        {label}
-      </div>
-      <div className="mt-1.5 text-[13px] leading-5 break-words">
-        {children}
-      </div>
-    </div>
-  );
-}
+/** 左栏分区 —— 顺序即页面上从上到下的顺序。 */
+type SectionKey =
+  | "overview"
+  | "categories"
+  | "contacts"
+  | "bankAccounts"
+  | "certificates"
+  | "performance"
+  | "changeLogs";
 
 export default function SupplierDetail({ id }: SupplierDetailProps) {
   const router = useRouter();
-  const { data: supplier, isLoading } = useSupplierDetail(id);
+  const [section, setSection] = useState<SectionKey>("overview");
 
-  if (isLoading && !supplier) {
+  const { data: profile, isLoading } = useSupplierProfile(id);
+  const { data: performance } = useSupplierPerformance(id);
+
+  if (isLoading && !profile) {
     return (
       <div className="space-y-4">
         <div className="space-y-2">
@@ -57,57 +50,76 @@ export default function SupplierDetail({ id }: SupplierDetailProps) {
           <Skeleton className="h-7 w-56" />
           <Skeleton className="h-3 w-80" />
         </div>
-        <Skeleton className="h-24 w-full rounded-lg" />
-        <div className="grid gap-4 lg:grid-cols-3">
-          <Skeleton className="h-64 rounded-lg lg:col-span-2" />
-          <Skeleton className="h-64 rounded-lg" />
+        <div className="flex gap-4">
+          <Skeleton className="h-64 w-[122px] shrink-0" />
+          <Skeleton className="h-64 flex-1" />
         </div>
       </div>
     );
   }
 
-  if (!supplier) {
+  if (!profile) {
     return (
-      <div className="space-y-4">
-        <PageHeader
-          eyebrow="供应商档案"
-          title="供应商不存在"
-          description="该供应商可能已被移除，或链接已失效"
-          actions={
-            <Button variant="outline" onClick={() => router.push("/supplier")}>
-              <ArrowLeft />
-              返回列表
-            </Button>
-          }
-        />
-      </div>
+      <PageHeader
+        eyebrow="供应商档案"
+        title="供应商不存在"
+        description="该供应商可能已被移除，或链接已失效"
+        actions={
+          <Button variant="outline" onClick={() => router.push("/supplier")}>
+            <ArrowLeft />
+            返回列表
+          </Button>
+        }
+      />
     );
   }
 
-  const active = supplier.status === "active";
+  const supplier = profile.supplier;
 
-  const metrics = [
+  const badges: { label: string; value: string; variant: BadgeVariant }[] = [
+    {
+      label: "分级",
+      value: labelOf(SUPPLIER_LEVELS, supplier.supplierLevel),
+      variant: variantOf(SUPPLIER_LEVELS, supplier.supplierLevel),
+    },
     {
       label: "准入状态",
-      value: (
-        <Badge variant={active ? "success" : "destructive"}>
-          {active ? "启用" : "禁用"}
-        </Badge>
-      ),
+      value: labelOf(AUDIT_STATUSES, supplier.auditStatus),
+      variant: variantOf(AUDIT_STATUSES, supplier.auditStatus),
     },
     {
-      label: "综合评级",
-      value: <RatingStars value={supplier.rating} showValue />,
+      label: "风险等级",
+      value: labelOf(RISK_LEVELS, supplier.riskLevel),
+      variant: variantOf(RISK_LEVELS, supplier.riskLevel),
     },
     {
-      label: "联系人",
-      value: supplier.contactPerson || "-",
+      label: "黑名单",
+      value: supplier.blacklisted ? "已列入" : "未列入",
+      variant: supplier.blacklisted ? "destructive" : "outline",
     },
     {
-      label: "合作起始",
-      value: supplier.createdAt,
+      label: "合作状态",
+      value: labelOf(COOPERATION_STATUSES, supplier.cooperationStatus),
+      variant: variantOf(COOPERATION_STATUSES, supplier.cooperationStatus),
+    },
+    {
+      label: "启用状态",
+      value: supplier.status === "active" ? "启用" : "禁用",
+      variant: supplier.status === "active" ? "success" : "destructive",
     },
   ];
+
+  const sections: { key: SectionKey; label: string; count?: number }[] = [
+    { key: "overview", label: "概览" },
+    { key: "categories", label: "分类", count: profile.categories.length },
+    { key: "contacts", label: "联系人", count: profile.contacts.length },
+    { key: "bankAccounts", label: "银行账户", count: profile.bankAccounts.length },
+    { key: "certificates", label: "资质证照", count: profile.certificates.length },
+    { key: "performance", label: "绩效评价", count: performance?.evaluationCount },
+    { key: "changeLogs", label: "变更留痕", count: profile.changeLogs.length },
+  ];
+
+  const activeSection = sections.find((item) => item.key === section);
 
   return (
     <div className="space-y-4">
@@ -116,87 +128,61 @@ export default function SupplierDetail({ id }: SupplierDetailProps) {
         title={supplier.name}
         description={`供应商编码 ${supplier.code} · 创建于 ${supplier.createdAt}`}
         actions={
-          <Button variant="outline" onClick={() => router.push("/supplier")}>
-            <ArrowLeft />
-            返回列表
-          </Button>
+          <>
+            <Button variant="outline" onClick={() => router.push("/supplier")}>
+              <ArrowLeft />
+              返回列表
+            </Button>
+            <Button onClick={() => router.push(`/supplier/${id}/edit`)}>
+              <Pencil />
+              编辑
+            </Button>
+          </>
         }
       />
 
-      <Card className="gap-0 overflow-hidden py-0">
-        <div className="grid grid-cols-2 md:grid-cols-4">
-          {metrics.map((metric, index) => (
-            <div
-              key={metric.label}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        {badges.map((badge) => (
+          <div key={badge.label} className="flex items-center gap-1.5">
+            <span className="text-muted-foreground text-[11px]">
+              {badge.label}
+            </span>
+            <Badge variant={badge.variant}>{badge.value}</Badge>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex gap-4">
+        <nav className="w-[122px] shrink-0 border-r border-[var(--color-border-secondary)] pr-2">
+          {sections.map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              onClick={() => setSection(item.key)}
               className={cn(
-                "border-[var(--color-border-secondary)] px-5 py-4",
-                index % 2 === 1 && "border-l",
-                index < 2 && "border-b md:border-b-0",
-                index > 0 && "md:border-l",
+                "flex w-full items-center justify-between gap-1 rounded-md px-2 py-1.5 text-left text-[12px] transition-colors",
+                section === item.key
+                  ? "bg-[var(--color-primary-soft)] text-[var(--color-primary-text)] font-semibold"
+                  : "text-muted-foreground hover:bg-[var(--color-primary-soft)] hover:text-[var(--color-primary-text)]",
               )}
             >
-              <div className="text-muted-foreground text-[10px] font-medium tracking-[0.12em] uppercase">
-                {metric.label}
-              </div>
-              <div className="mt-2 text-[13px] font-medium">
-                {metric.value}
-              </div>
-            </div>
-          ))}
-        </div>
-      </Card>
-
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>联系信息</CardTitle>
-            <CardDescription>主要联系人与履约联络方式</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2">
-              <DetailField label="联系人">
-                {supplier.contactPerson || "-"}
-              </DetailField>
-              <DetailField label="联系电话">
-                <span className="font-mono">{supplier.contactPhone || "-"}</span>
-              </DetailField>
-              <DetailField label="电子邮箱">
-                {supplier.email || "-"}
-              </DetailField>
-              <DetailField label="联系地址" className="sm:col-span-2">
-                {supplier.address || "-"}
-              </DetailField>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>档案信息</CardTitle>
-            <CardDescription>编码、创建时间与备注</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            <DetailField label="供应商编码">
-              <span className="font-mono">{supplier.code}</span>
-            </DetailField>
-            <DetailField label="创建时间">
-              {supplier.createdAt}
-            </DetailField>
-            <DetailField label="备注">
-              {supplier.remark ? (
-                supplier.remark
-              ) : (
-                <span className="text-muted-foreground">暂无备注信息</span>
+              <span>{item.label}</span>
+              {item.count !== undefined && (
+                <span className="text-[10px] tabular-nums">{item.count}</span>
               )}
-            </DetailField>
+            </button>
+          ))}
+        </nav>
 
-            <Separator />
-
-            <p className="text-muted-foreground text-[11px] leading-5">
-              档案信息以供应商主数据为准，状态与评级变更需走准入审核流程。
+        <div className="min-w-0 flex-1">
+          {section === "overview" ? (
+            <SupplierOverviewPanel profile={profile} performance={performance} />
+          ) : (
+            <p className="text-muted-foreground text-xs">
+              {`${activeSection?.label ?? ""}分区正在建设中。`}
             </p>
-          </CardContent>
-        </Card>
+          )}
+        </div>
       </div>
     </div>
   );
