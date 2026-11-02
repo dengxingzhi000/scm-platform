@@ -3,6 +3,7 @@ package com.scmcloud.payment.service.impl;
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
+import com.scmcloud.payment.callback.PaymentCallbackException;
 import com.scmcloud.payment.domain.entity.PaymentOrder;
 import com.scmcloud.payment.mapper.PaymentOrderMapper;
 import org.apache.ibatis.builder.MapperBuilderAssistant;
@@ -102,6 +103,54 @@ class PaymentOrderServiceImplTest {
 
         assertThrows(IllegalStateException.class,
                 () -> paymentService.handlePaymentCallback("PAY-1", "TXN-1"));
+    }
+
+    @Test
+    void verifiedCallbackRejectsAmountMismatch() {
+        when(paymentOrderMapper.selectOne(any(Wrapper.class), eq(true))).thenReturn(pendingPayment());
+
+        assertThrows(PaymentCallbackException.class, () -> paymentService.handleVerifiedPaymentCallback(
+                "PAY-1", "TXN-1", new BigDecimal("9.99"), "alipay"));
+        verify(paymentOrderMapper, never()).updateById(any(PaymentOrder.class));
+    }
+
+    @Test
+    void verifiedCallbackRejectsChannelMismatch() {
+        when(paymentOrderMapper.selectOne(any(Wrapper.class), eq(true))).thenReturn(pendingPayment());
+
+        assertThrows(PaymentCallbackException.class, () -> paymentService.handleVerifiedPaymentCallback(
+                "PAY-1", "TXN-1", new BigDecimal("10.00"), "wechat"));
+        verify(paymentOrderMapper, never()).updateById(any(PaymentOrder.class));
+    }
+
+    @Test
+    void verifiedCallbackIsIdempotentForPaidPayment() {
+        when(paymentOrderMapper.selectOne(any(Wrapper.class), eq(true)))
+                .thenReturn(pendingPayment().setStatus(2));
+
+        paymentService.handleVerifiedPaymentCallback(
+                "PAY-1", "TXN-2", new BigDecimal("10.00"), "alipay");
+
+        verify(paymentOrderMapper, never()).updateById(any(PaymentOrder.class));
+    }
+
+    @Test
+    void createPaymentRejectsAmountAboveMaximum() {
+        assertThrows(IllegalArgumentException.class, () -> paymentService.createPayment(
+                "ORD-1", "user-1", new BigDecimal("100000000.00"), "ALIPAY"));
+        verify(paymentOrderMapper, never()).selectOne(any(Wrapper.class), eq(true));
+    }
+
+    @Test
+    void pageQueryRejectsInvalidPage() {
+        assertThrows(IllegalArgumentException.class,
+                () -> paymentService.pageQuery(0, 20, null, null, null, null));
+    }
+
+    @Test
+    void pageQueryRejectsOversizedPageSize() {
+        assertThrows(IllegalArgumentException.class,
+                () -> paymentService.pageQuery(1, 101, null, null, null, null));
     }
 
     private PaymentOrder pendingPayment() {

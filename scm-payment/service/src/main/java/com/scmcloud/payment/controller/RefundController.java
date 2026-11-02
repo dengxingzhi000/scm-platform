@@ -8,6 +8,8 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -37,8 +39,8 @@ public class RefundController {
     @Operation(summary = "分页查询退款", description = "按支付单号、订单号、用户与状态分页查询退款申请。")
     @GetMapping("/page")
     public Page<Refund> page(
-            @Parameter(description = "页码，默认 1") @RequestParam(defaultValue = "1") int page,
-            @Parameter(description = "每页数量，默认 20") @RequestParam(defaultValue = "20") int size,
+            @Parameter(description = "页码，默认 1") @RequestParam(defaultValue = "1") @Min(1) int page,
+            @Parameter(description = "每页数量，默认 20，最大 100") @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
             @Parameter(description = "支付单号（模糊）") @RequestParam(required = false) String paymentNo,
             @Parameter(description = "订单号（模糊）") @RequestParam(required = false) String orderNo,
             @Parameter(description = "用户 ID") @RequestParam(required = false) String userId,

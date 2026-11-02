@@ -45,8 +45,8 @@ public class PaymentController {
     @Operation(summary = "分页查询支付单", description = "按订单号、用户、渠道与状态分页查询支付单。")
     @GetMapping("/page")
     public Page<PaymentOrder> page(
-            @Parameter(description = "页码，默认 1") @RequestParam(defaultValue = "1") int page,
-            @Parameter(description = "每页数量，默认 20") @RequestParam(defaultValue = "20") int size,
+            @Parameter(description = "页码，默认 1") @RequestParam(defaultValue = "1") @Min(1) int page,
+            @Parameter(description = "每页数量，默认 20，最大 100") @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
             @Parameter(description = "订单号（模糊）") @RequestParam(required = false) String orderNo,
             @Parameter(description = "用户 ID") @RequestParam(required = false) String userId,
             @Parameter(description = "支付渠道") @RequestParam(required = false) String paymentChannel,
@@ -171,6 +171,7 @@ public class PaymentController {
 
         @NotNull(message = "支付金额不能为空")
         @DecimalMin(value = "0.01", message = "支付金额必须大于 0")
+        @DecimalMax(value = "99999999.99", message = "支付金额超出上限")
         private BigDecimal amount;
 
         @NotBlank(message = "支付渠道不能为空")

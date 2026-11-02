@@ -121,6 +121,18 @@ class RefundServiceImplTest {
         assertThrows(IllegalStateException.class, () -> refundService.approveRefund("RF-1"));
     }
 
+    @Test
+    void pageQueryRejectsInvalidPage() {
+        assertThrows(IllegalArgumentException.class,
+                () -> refundService.pageQuery(0, 20, null, null, null, null));
+    }
+
+    @Test
+    void pageQueryRejectsOversizedPageSize() {
+        assertThrows(IllegalArgumentException.class,
+                () -> refundService.pageQuery(1, 101, null, null, null, null));
+    }
+
     private PaymentOrder paidPayment() {
         return new PaymentOrder()
                 .setPaymentNo("PAY-1")

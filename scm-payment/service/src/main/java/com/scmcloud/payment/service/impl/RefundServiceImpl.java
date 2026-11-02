@@ -27,6 +27,7 @@ public class RefundServiceImpl extends ServiceImpl<RefundMapper, Refund> impleme
     private static final int REFUND_SUCCESS = 2;
     private static final int REFUND_REJECTED = 3;
     private static final int PAYMENT_PAID = 2;
+    private static final int MAX_PAGE_SIZE = 100;
 
     private final IPaymentOrderService paymentOrderService;
 
@@ -142,6 +143,7 @@ public class RefundServiceImpl extends ServiceImpl<RefundMapper, Refund> impleme
     @Override
     public Page<Refund> pageQuery(int page, int size, String paymentNo, String orderNo,
                                   String userId, Integer status) {
+        validatePage(page, size);
         LambdaQueryWrapper<Refund> wrapper = new LambdaQueryWrapper<>();
         wrapper.like(StringUtils.hasText(paymentNo), Refund::getPaymentNo, paymentNo)
                 .like(StringUtils.hasText(orderNo), Refund::getOrderNo, orderNo)
@@ -149,6 +151,15 @@ public class RefundServiceImpl extends ServiceImpl<RefundMapper, Refund> impleme
                 .eq(status != null, Refund::getStatus, status)
                 .orderByDesc(Refund::getCreatedAt);
         return page(new Page<>(page, size), wrapper);
+    }
+
+    private void validatePage(int page, int size) {
+        if (page < 1) {
+            throw new IllegalArgumentException("page must be greater than or equal to 1");
+        }
+        if (size < 1 || size > MAX_PAGE_SIZE) {
+            throw new IllegalArgumentException("size must be between 1 and " + MAX_PAGE_SIZE);
+        }
     }
 
     private Refund requirePending(String refundNo) {

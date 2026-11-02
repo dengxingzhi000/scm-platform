@@ -25,6 +25,8 @@ public class PaymentOrderServiceImpl extends ServiceImpl<PaymentOrderMapper, Pay
     private static final int STATUS_PENDING = 1;
     private static final int STATUS_PAID = 2;
     private static final int STATUS_CANCELLED = 4;
+    private static final BigDecimal MAX_PAYMENT_AMOUNT = new BigDecimal("99999999.99");
+    private static final int MAX_PAGE_SIZE = 100;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -43,6 +45,9 @@ public class PaymentOrderServiceImpl extends ServiceImpl<PaymentOrderMapper, Pay
         }
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("payment amount must be greater than zero");
+        }
+        if (amount.compareTo(MAX_PAYMENT_AMOUNT) > 0) {
+            throw new IllegalArgumentException("payment amount exceeds the supported maximum");
         }
         if (!StringUtils.hasText(paymentChannel)) {
             throw new IllegalArgumentException("paymentChannel is required");
@@ -161,13 +166,14 @@ public class PaymentOrderServiceImpl extends ServiceImpl<PaymentOrderMapper, Pay
         payment.setUpdatedAt(LocalDateTime.now());
         updateById(payment);
         log.info("Payment callback handled: paymentNo={}, transactionId={}",
-                (paymentNo + "").replace("\r", "_").replace("\n", "_"),
+                (payment.getPaymentNo() + "").replace("\r", "_").replace("\n", "_"),
                 (transactionId + "").replace("\r", "_").replace("\n", "_"));
     }
 
     @Override
     public Page<PaymentOrder> pageQuery(int page, int size, String orderNo, String userId,
                                         String paymentChannel, Integer status) {
+        validatePage(page, size);
         LambdaQueryWrapper<PaymentOrder> wrapper = new LambdaQueryWrapper<>();
         wrapper.like(StringUtils.hasText(orderNo), PaymentOrder::getOrderNo, orderNo)
                 .eq(StringUtils.hasText(userId), PaymentOrder::getUserId, userId)
@@ -175,5 +181,14 @@ public class PaymentOrderServiceImpl extends ServiceImpl<PaymentOrderMapper, Pay
                 .eq(status != null, PaymentOrder::getStatus, status)
                 .orderByDesc(PaymentOrder::getCreatedAt);
         return page(new Page<>(page, size), wrapper);
+    }
+
+    private void validatePage(int page, int size) {
+        if (page < 1) {
+            throw new IllegalArgumentException("page must be greater than or equal to 1");
+        }
+        if (size < 1 || size > MAX_PAGE_SIZE) {
+            throw new IllegalArgumentException("size must be between 1 and " + MAX_PAGE_SIZE);
+        }
     }
 }
