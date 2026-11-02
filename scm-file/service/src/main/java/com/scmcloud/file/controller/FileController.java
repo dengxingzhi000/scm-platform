@@ -121,7 +121,8 @@ public class FileController {
         } catch (FileValidationException e) {
             return ApiResponse.fail(400, e.getMessage());
         } catch (Exception e) {
-            log.error("Failed to upload file {}", file.getOriginalFilename(), e);
+            log.error("Failed to upload file {}",
+                    (file.getOriginalFilename() + "").replace("\r", "_").replace("\n", "_"), e);
             return ApiResponse.fail(500, "Upload failed");
         }
     }
@@ -136,7 +137,8 @@ public class FileController {
                     .<ApiResponse<FileMetadataDTO>>map(ApiResponse::success)
                     .orElseGet(ApiResponse::success);
         } catch (Exception e) {
-            log.error("Failed to check file existence for md5 {}", md5, e);
+            log.error("Failed to check file existence for md5 {}",
+                    (md5 + "").replace("\r", "_").replace("\n", "_"), e);
             return ApiResponse.fail(500, "Check failed");
         }
     }

@@ -7,7 +7,6 @@ import com.scmcloud.file.service.metadata.FileMetadataService;
 import com.scmcloud.file.service.storage.StorageEngine;
 import com.scmcloud.file.service.storage.StorageFactory;
 import com.scmcloud.file.config.StorageConfig;
-import com.scmcloud.file.service.storage.StorageException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

@@ -1,8 +1,11 @@
 package com.scmcloud.common.data.rw.endpoint;
 
+import com.scmcloud.common.data.rw.circuitbreaker.SlaveCircuitBreaker;
 import com.scmcloud.common.data.rw.config.ReadWriteAutoConfiguration;
+import com.scmcloud.common.data.rw.config.ReadWriteProperties;
 import com.scmcloud.common.data.rw.health.SlaveHealthChecker;
 import com.scmcloud.common.data.rw.loadbalance.*;
+import com.scmcloud.common.data.rw.routing.ReadWriteRoutingContext;
 import com.scmcloud.common.data.rw.routing.ReadWriteRoutingDataSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,6 +15,7 @@ import org.springframework.boot.actuate.endpoint.annotation.Selector;
 import org.springframework.boot.actuate.endpoint.annotation.WriteOperation;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -19,7 +23,8 @@ import java.util.Set;
  * Read-write separation management endpoint.
  * <p>
  * Provides runtime management capabilities:
- * - View slave status
+ * - View slave status and route counters
+ * - View the routing context of the calling thread
  * - Manually remove/restore slaves
  * - View health information
  * - Switch load balance strategy
@@ -37,6 +42,9 @@ import java.util.Set;
 public class ReadWriteEndpoint {
     private final ReadWriteAutoConfiguration.ReadWriteDataSourceProvider dataSourceProvider;
     private final SlaveHealthChecker healthChecker;
+    private final ReadWriteProperties properties;
+    private final SlaveCircuitBreaker circuitBreaker;
+    private final SlaveWarmupManager warmupManager;
 
     /**
      * Get all read-write separation status.
@@ -45,7 +53,14 @@ public class ReadWriteEndpoint {
      */
     @ReadOperation
     public Map<String, Object> status() {
-        Map<String, Object> result = new HashMap<>();
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("enabled", properties.isEnabled());
+        result.put("defaultTarget", properties.getDefaultTarget().name());
+        result.put("readMasterAfterWrite", properties.getReadMasterAfterWrite().toString());
+        result.put("replicationLagTolerance", properties.getReplicationLagTolerance().toString());
+        result.put("currentThread", ReadWriteRoutingContext.describe());
+        result.put("circuitBreaker", circuitBreaker.getSnapshot());
+        result.put("warmup", warmupManager.getSnapshot());
 
         Set<String> groups = dataSourceProvider.getGroupNames();
         result.put("groups", groups);
@@ -66,7 +81,7 @@ public class ReadWriteEndpoint {
      */
     @ReadOperation
     public Map<String, Object> statusByGroup(@Selector String groupName) {
-        Map<String, Object> result = new HashMap<>();
+        Map<String, Object> result = new LinkedHashMap<>();
 
         try {
             result.put("group", groupName);
@@ -98,10 +113,11 @@ public class ReadWriteEndpoint {
     }
 
     private Map<String, Object> buildGroupInfo(String groupName) {
-        Map<String, Object> groupInfo = new HashMap<>();
+        Map<String, Object> groupInfo = new LinkedHashMap<>();
 
         ReadWriteRoutingDataSource ds = dataSourceProvider.getDataSource(groupName);
         groupInfo.put("slaveAvailability", ds.getSlaveAvailability());
+        groupInfo.put("routeCounts", ds.getRouteCounts());
         groupInfo.put("healthStatus", buildHealthDetails(groupName));
         groupInfo.put("loadBalancer", ds.getCurrentLoadBalancerName());
 
@@ -173,6 +189,7 @@ public class ReadWriteEndpoint {
 
         try {
             ReadWriteRoutingDataSource ds = dataSourceProvider.getDataSource(groupName);
+            String previous = ds.getCurrentLoadBalancerName();
             SlaveLoadBalancer newLoadBalancer = createLoadBalancer(strategy);
             ds.switchLoadBalancer(newLoadBalancer);
 
@@ -180,7 +197,7 @@ public class ReadWriteEndpoint {
 
             result.put("success", true);
             result.put("message", String.format("Load balancer switched to %s", strategy));
-            result.put("previousStrategy", ds.getCurrentLoadBalancerName());
+            result.put("previousStrategy", previous);
         } catch (Exception e) {
             result.put("success", false);
             result.put("error", e.getMessage());

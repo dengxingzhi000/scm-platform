@@ -130,9 +130,11 @@ public class SlaveHealthChecker {
                 return;
             }
 
-            // Health check passed, reset counter
-            if (failureCounter.get() > 0) {
-                failureCounter.set(0);
+            // Health check passed. Reset the failure counter and also restore a slave
+            // that was marked unavailable by the route-level fail-fast probe (its
+            // counter can still be zero if the replica recovered between probes).
+            boolean wasFailing = failureCounter.getAndSet(0) > 0;
+            if (wasFailing || !isMarkedAvailable(groupName, slaveName)) {
                 markSlaveAvailable(groupName, slaveName);
             }
 
@@ -183,6 +185,12 @@ public class SlaveHealthChecker {
         if (failures >= properties.getFailureThreshold()) {
             markSlaveUnavailable(groupName, slaveName);
         }
+    }
+
+    private boolean isMarkedAvailable(String groupName, String slaveName) {
+        ReadWriteRoutingDataSource routingDataSource = routingDataSources.get(groupName);
+        return routingDataSource == null
+                || routingDataSource.getSlaveAvailability().getOrDefault(slaveName, true);
     }
 
     private void markSlaveUnavailable(String groupName, String slaveName) {

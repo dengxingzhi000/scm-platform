@@ -1,6 +1,7 @@
 package com.scmcloud.finance.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.MybatisConfiguration;
+import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.scmcloud.finance.domain.dto.CreateInvoiceRequest;
 import com.scmcloud.finance.domain.dto.UpdateInvoiceRequest;
@@ -8,209 +9,288 @@ import com.scmcloud.finance.domain.entity.Invoice;
 import com.scmcloud.finance.domain.enums.InvoiceStatus;
 import com.scmcloud.finance.mapper.InvoiceMapper;
 import com.scmcloud.finance.service.impl.InvoiceServiceImpl;
-import org.junit.jupiter.api.Disabled;
+import org.apache.ibatis.builder.MapperBuilderAssistant;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
-import java.util.Optional;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-@Disabled("Pre-existing: MyBatis-Plus mock issues with InvoiceMapper")
 class InvoiceServiceTest {
 
     @Mock
     private InvoiceMapper invoiceMapper;
 
-    @InjectMocks
     private InvoiceServiceImpl invoiceService;
+
+    @BeforeEach
+    void setUp() {
+        MapperBuilderAssistant assistant = new MapperBuilderAssistant(new MybatisConfiguration(), "");
+        TableInfoHelper.initTableInfo(assistant, Invoice.class);
+        invoiceService = new InvoiceServiceImpl();
+        // MyBatis-Plus ServiceImpl 的 baseMapper 位于父类 CrudRepository，
+        // Mockito @InjectMocks 不会注入该字段，因此按仓库既有模式显式挂载。
+        ReflectionTestUtils.setField(invoiceService, "baseMapper", invoiceMapper);
+    }
 
     @Test
     void shouldCreateInvoice() {
-        // Given
         CreateInvoiceRequest request = new CreateInvoiceRequest();
         request.setInvoiceNo("INV-2026-001");
         request.setInvoiceType(1);
         request.setInvoiceKind(1);
         request.setPartyId("party-1");
+        request.setPartyName("Acme");
+        request.setAmount(new BigDecimal("100.00"));
 
-        // When
+        when(invoiceMapper.insert(any(Invoice.class))).thenReturn(1);
+
         Invoice result = invoiceService.create(request);
 
-        // Then
-        assertNotNull(result);
+        assertNotNull(result.getId());
         assertEquals("INV-2026-001", result.getInvoiceNo());
+        assertEquals(1, result.getInvoiceType());
+        assertEquals(1, result.getInvoiceKind());
+        assertEquals("party-1", result.getPartyId());
+        assertEquals("Acme", result.getPartyName());
+        assertEquals(new BigDecimal("100.00"), result.getAmount());
         assertEquals(InvoiceStatus.DRAFT.getCode(), result.getStatus());
         assertFalse(result.getDeleted());
-        verify(invoiceMapper).insert(any(Invoice.class));
+        assertNotNull(result.getCreateTime());
+        assertNotNull(result.getUpdateTime());
+        verify(invoiceMapper).insert(result);
     }
 
     @Test
     void shouldUpdateInvoice() {
-        // Given
-        String id = "invoice-1";
-        Invoice existing = new Invoice();
-        existing.setId(id);
+        Invoice existing = invoice("invoice-1", InvoiceStatus.DRAFT);
         existing.setInvoiceNo("INV-2026-001");
-        existing.setStatus(InvoiceStatus.DRAFT.getCode());
+        existing.setPartyName("Old Party");
+        existing.setAmount(new BigDecimal("100.00"));
 
         UpdateInvoiceRequest request = new UpdateInvoiceRequest();
         request.setInvoiceNo("INV-2026-001-UPDATED");
         request.setPartyName("New Party");
+        request.setAmount(new BigDecimal("120.00"));
 
-        when(invoiceMapper.selectById(id)).thenReturn(existing);
+        when(invoiceMapper.selectById("invoice-1")).thenReturn(existing);
         when(invoiceMapper.updateById(any(Invoice.class))).thenReturn(1);
 
-        // When
-        Invoice result = invoiceService.update(id, request);
+        Invoice result = invoiceService.update("invoice-1", request);
 
-        // Then
         assertEquals("INV-2026-001-UPDATED", result.getInvoiceNo());
         assertEquals("New Party", result.getPartyName());
-        verify(invoiceMapper).updateById(any(Invoice.class));
-    }
-
-    @Test
-    void shouldDeleteInvoice() {
-        // Given
-        String id = "invoice-1";
-        Invoice existing = new Invoice();
-        existing.setId(id);
-        existing.setDeleted(false);
-
-        when(invoiceMapper.selectById(id)).thenReturn(existing);
-        when(invoiceMapper.updateById(any(Invoice.class))).thenReturn(1);
-
-        // When
-        invoiceService.delete(id);
-
-        // Then
-        assertTrue(existing.getDeleted());
+        assertEquals(new BigDecimal("120.00"), result.getAmount());
+        assertNull(result.getPartyTaxNo());
+        assertNotNull(result.getUpdateTime());
         verify(invoiceMapper).updateById(existing);
     }
 
     @Test
-    void shouldIssueInvoice() {
-        // Given
-        String id = "invoice-1";
-        Invoice existing = new Invoice();
-        existing.setId(id);
-        existing.setStatus(InvoiceStatus.DRAFT.getCode());
+    void updateRejectsMissingInvoice() {
+        when(invoiceMapper.selectById("missing")).thenReturn(null);
 
-        when(invoiceMapper.selectById(id)).thenReturn(existing);
+        assertThrows(IllegalArgumentException.class,
+                () -> invoiceService.update("missing", new UpdateInvoiceRequest()));
+        verify(invoiceMapper, never()).updateById(any(Invoice.class));
+    }
+
+    @Test
+    void updateRejectsDeletedInvoice() {
+        Invoice existing = invoice("invoice-1", InvoiceStatus.DRAFT);
+        existing.setDeleted(true);
+        when(invoiceMapper.selectById("invoice-1")).thenReturn(existing);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> invoiceService.update("invoice-1", new UpdateInvoiceRequest()));
+        verify(invoiceMapper, never()).updateById(any(Invoice.class));
+    }
+
+    @Test
+    void shouldDeleteInvoice() {
+        Invoice existing = invoice("invoice-1", InvoiceStatus.DRAFT);
+
+        when(invoiceMapper.selectById("invoice-1")).thenReturn(existing);
         when(invoiceMapper.updateById(any(Invoice.class))).thenReturn(1);
 
-        // When
-        Invoice result = invoiceService.issueInvoice(id, "John");
+        invoiceService.delete("invoice-1");
 
-        // Then
+        assertTrue(existing.getDeleted());
+        assertNotNull(existing.getUpdateTime());
+        verify(invoiceMapper).updateById(existing);
+    }
+
+    @Test
+    void deleteRejectsMissingInvoice() {
+        when(invoiceMapper.selectById("missing")).thenReturn(null);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> invoiceService.delete("missing"));
+        verify(invoiceMapper, never()).updateById(any(Invoice.class));
+    }
+
+    @Test
+    void shouldIssueInvoice() {
+        Invoice existing = invoice("invoice-1", InvoiceStatus.DRAFT);
+
+        when(invoiceMapper.selectById("invoice-1")).thenReturn(existing);
+        when(invoiceMapper.updateById(any(Invoice.class))).thenReturn(1);
+
+        Invoice result = invoiceService.issueInvoice("invoice-1", "John");
+
         assertEquals(InvoiceStatus.ISSUED.getCode(), result.getStatus());
         assertEquals("John", result.getIssuerName());
-        assertNotNull(result.getIssueDate());
-        verify(invoiceMapper).updateById(any(Invoice.class));
+        assertEquals(LocalDate.now(), result.getIssueDate());
+        assertNotNull(result.getUpdateTime());
+        verify(invoiceMapper).updateById(existing);
     }
 
     @Test
     void shouldNotIssueNonDraftInvoice() {
-        // Given
-        String id = "invoice-1";
-        Invoice existing = new Invoice();
-        existing.setId(id);
-        existing.setStatus(InvoiceStatus.ISSUED.getCode());
+        Invoice existing = invoice("invoice-1", InvoiceStatus.ISSUED);
+        when(invoiceMapper.selectById("invoice-1")).thenReturn(existing);
 
-        when(invoiceMapper.selectById(id)).thenReturn(existing);
-
-        // When & Then
         assertThrows(IllegalStateException.class,
-                () -> invoiceService.issueInvoice(id, "John"));
+                () -> invoiceService.issueInvoice("invoice-1", "John"));
+        verify(invoiceMapper, never()).updateById(any(Invoice.class));
+    }
+
+    @Test
+    void shouldNotIssueMissingInvoice() {
+        when(invoiceMapper.selectById("missing")).thenReturn(null);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> invoiceService.issueInvoice("missing", "John"));
+        verify(invoiceMapper, never()).updateById(any(Invoice.class));
     }
 
     @Test
     void shouldVoidInvoice() {
-        // Given
-        String id = "invoice-1";
-        Invoice existing = new Invoice();
-        existing.setId(id);
-        existing.setStatus(InvoiceStatus.ISSUED.getCode());
+        Invoice existing = invoice("invoice-1", InvoiceStatus.ISSUED);
 
-        when(invoiceMapper.selectById(id)).thenReturn(existing);
+        when(invoiceMapper.selectById("invoice-1")).thenReturn(existing);
         when(invoiceMapper.updateById(any(Invoice.class))).thenReturn(1);
 
-        // When
-        Invoice result = invoiceService.voidInvoice(id);
+        Invoice result = invoiceService.voidInvoice("invoice-1");
 
-        // Then
         assertEquals(InvoiceStatus.VOIDED.getCode(), result.getStatus());
-        verify(invoiceMapper).updateById(any(Invoice.class));
+        assertNotNull(result.getUpdateTime());
+        verify(invoiceMapper).updateById(existing);
     }
 
     @Test
     void shouldNotVoidAlreadyVoidedInvoice() {
-        // Given
-        String id = "invoice-1";
-        Invoice existing = new Invoice();
-        existing.setId(id);
-        existing.setStatus(InvoiceStatus.VOIDED.getCode());
+        Invoice existing = invoice("invoice-1", InvoiceStatus.VOIDED);
+        when(invoiceMapper.selectById("invoice-1")).thenReturn(existing);
 
-        when(invoiceMapper.selectById(id)).thenReturn(existing);
-
-        // When & Then
         assertThrows(IllegalStateException.class,
-                () -> invoiceService.voidInvoice(id));
+                () -> invoiceService.voidInvoice("invoice-1"));
+        verify(invoiceMapper, never()).updateById(any(Invoice.class));
+    }
+
+    @Test
+    void shouldNotVoidRedFlushedInvoice() {
+        Invoice existing = invoice("invoice-1", InvoiceStatus.RED_FLUSHED);
+        when(invoiceMapper.selectById("invoice-1")).thenReturn(existing);
+
+        assertThrows(IllegalStateException.class,
+                () -> invoiceService.voidInvoice("invoice-1"));
+        verify(invoiceMapper, never()).updateById(any(Invoice.class));
     }
 
     @Test
     void shouldRedFlushInvoice() {
-        // Given
-        String id = "invoice-1";
-        Invoice existing = new Invoice();
-        existing.setId(id);
-        existing.setStatus(InvoiceStatus.ISSUED.getCode());
+        Invoice existing = invoice("invoice-1", InvoiceStatus.ISSUED);
 
-        when(invoiceMapper.selectById(id)).thenReturn(existing);
+        when(invoiceMapper.selectById("invoice-1")).thenReturn(existing);
         when(invoiceMapper.updateById(any(Invoice.class))).thenReturn(1);
 
-        // When
-        Invoice result = invoiceService.redFlushInvoice(id);
+        Invoice result = invoiceService.redFlushInvoice("invoice-1");
 
-        // Then
         assertEquals(InvoiceStatus.RED_FLUSHED.getCode(), result.getStatus());
-        verify(invoiceMapper).updateById(any(Invoice.class));
+        assertNotNull(result.getUpdateTime());
+        verify(invoiceMapper).updateById(existing);
+    }
+
+    @Test
+    void shouldRedFlushMailedInvoice() {
+        Invoice existing = invoice("invoice-1", InvoiceStatus.MAILED);
+
+        when(invoiceMapper.selectById("invoice-1")).thenReturn(existing);
+        when(invoiceMapper.updateById(any(Invoice.class))).thenReturn(1);
+
+        Invoice result = invoiceService.redFlushInvoice("invoice-1");
+
+        assertEquals(InvoiceStatus.RED_FLUSHED.getCode(), result.getStatus());
+        verify(invoiceMapper).updateById(existing);
     }
 
     @Test
     void shouldNotRedFlushDraftInvoice() {
-        // Given
-        String id = "invoice-1";
-        Invoice existing = new Invoice();
-        existing.setId(id);
-        existing.setStatus(InvoiceStatus.DRAFT.getCode());
+        Invoice existing = invoice("invoice-1", InvoiceStatus.DRAFT);
+        when(invoiceMapper.selectById("invoice-1")).thenReturn(existing);
 
-        when(invoiceMapper.selectById(id)).thenReturn(existing);
-
-        // When & Then
         assertThrows(IllegalStateException.class,
-                () -> invoiceService.redFlushInvoice(id));
+                () -> invoiceService.redFlushInvoice("invoice-1"));
+        verify(invoiceMapper, never()).updateById(any(Invoice.class));
     }
 
     @Test
-    void shouldPageByPartyId() {
-        // Given
-        String partyId = "party-1";
-        when(invoiceMapper.selectPage(any(), any(LambdaQueryWrapper.class)))
-                .thenReturn(new Page<>());
+    void shouldPageByPartyIdWithFilter() {
+        Page<Invoice> page = new Page<>(1, 10, 2);
+        page.setRecords(List.of(invoice("invoice-1", InvoiceStatus.DRAFT),
+                invoice("invoice-2", InvoiceStatus.ISSUED)));
+        when(invoiceMapper.selectPage(any(), any())).thenReturn(page);
 
-        // When
-        Page<Invoice> result = invoiceService.pageByPartyId(partyId, 1, 10);
+        Page<Invoice> result = invoiceService.pageByPartyId("party-1", 1, 10);
 
-        // Then
-        assertNotNull(result);
-        verify(invoiceMapper).selectPage(any(), any(LambdaQueryWrapper.class));
+        assertEquals(1, result.getCurrent());
+        assertEquals(10, result.getSize());
+        assertEquals(2, result.getTotal());
+        assertEquals(2, result.getRecords().size());
+        verify(invoiceMapper).selectPage(any(), argThat(wrapper ->
+                wrapper.getSqlSegment().contains("party_id")
+                        && wrapper.getSqlSegment().contains("invoice_date")));
+    }
+
+    @Test
+    void shouldPageWithoutPartyIdFilter() {
+        Page<Invoice> page = new Page<>(1, 10, 0);
+        page.setRecords(List.of());
+        when(invoiceMapper.selectPage(any(), any())).thenReturn(page);
+
+        Page<Invoice> result = invoiceService.pageByPartyId(null, 1, 10);
+
+        assertEquals(0, result.getTotal());
+        assertTrue(result.getRecords().isEmpty());
+        verify(invoiceMapper).selectPage(any(), argThat(wrapper ->
+                !wrapper.getSqlSegment().contains("party_id")
+                        && wrapper.getSqlSegment().contains("invoice_date")));
+    }
+
+    private Invoice invoice(String id, InvoiceStatus status) {
+        Invoice invoice = new Invoice();
+        invoice.setId(id);
+        invoice.setStatus(status.getCode());
+        invoice.setDeleted(false);
+        return invoice;
     }
 }

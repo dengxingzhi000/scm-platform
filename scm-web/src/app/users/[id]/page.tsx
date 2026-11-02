@@ -12,20 +12,24 @@ export default function UserFormPage() {
   const [loading, setLoading] = useState(false)
   const isEdit = params.id !== 'add'
 
-  const loadUser = async () => {
-    try {
-      const response = await client.get(`/users/${params.id}`)
-      form.setFieldsValue(response.data.data)
-    } catch (error) {
-      message.error('加载用户失败')
-    }
-  }
-
   useEffect(() => {
-    if (isEdit) {
-      loadUser()
+    if (params.id === 'add') return
+
+    let cancelled = false
+    const load = async () => {
+      try {
+        const response = await client.get(`/users/${params.id}`)
+        if (!cancelled) form.setFieldsValue(response.data.data)
+      } catch (error) {
+        if (!cancelled) message.error('加载用户失败')
+      }
     }
-  }, [params.id])
+
+    void load()
+    return () => {
+      cancelled = true
+    }
+  }, [params.id, form])
 
   const onFinish = async (values: any) => {
     setLoading(true)

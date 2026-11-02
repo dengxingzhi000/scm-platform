@@ -4,7 +4,6 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import org.slf4j.LoggerFactory;
-import com.scmcloud.file.config.StorageConfig;
 import com.scmcloud.file.entity.FileMetadata;
 import com.scmcloud.file.mapper.UploadTaskMapper;
 import com.scmcloud.file.service.metadata.FileMetadataService;
@@ -43,8 +42,6 @@ class UploadServiceTest {
     private FileUploadValidator fileUploadValidator;
     @Mock
     private FileVirusScanner virusScanner;
-    @Mock
-    private StorageConfig storageConfig;
     @Mock
     private StorageEngine storageEngine;
 

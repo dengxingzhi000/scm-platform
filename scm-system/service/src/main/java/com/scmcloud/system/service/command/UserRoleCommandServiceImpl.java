@@ -3,12 +3,12 @@ package com.scmcloud.system.service.command;
 import com.scmcloud.common.exception.BusinessException;
 import com.scmcloud.common.response.ResultCode;
 import com.scmcloud.common.web.util.SecurityUtils;
+import com.scmcloud.system.cache.UserAuthorizationCacheEvictor;
 import com.scmcloud.system.domain.entity.SysUser;
 import com.scmcloud.system.mapper.SysUserMapper;
 import com.scmcloud.system.service.query.UserCrossDatabaseQueryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,15 +26,13 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class UserRoleCommandServiceImpl implements IUserRoleCommandService {
 
-    private static final String KEY_GEN = "tenantAwareCacheKeyGenerator";
-
     private final SysUserMapper userMapper;
     private final UserCrossDatabaseQueryService userQueryService;
     private final UserRoleCrossDatabaseCommandService userRoleCommandService;
+    private final UserAuthorizationCacheEvictor cacheEvictor;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(value = {"user", "userDetails", "userInfo"}, keyGenerator = KEY_GEN)
     public void grantTemporaryRoles(UUID userId, List<UUID> roleIds,
                                     LocalDateTime effectiveTime, LocalDateTime expireTime) {
         SysUser user = userMapper.selectById(userId);
@@ -61,13 +59,14 @@ public class UserRoleCommandServiceImpl implements IUserRoleCommandService {
             log.debug("为用户 {} 授予 {} 个临时角色", user.getUsername(), inserted);
         }
 
+        cacheEvictor.evictUserAuthorization(userId, user.getUsername());
+
         log.info("Temporary roles granted to user: {}, roles: {}, expireTime: {}, by: {}",
                 (user.getUsername() + "").replace("\r", "_").replace("\n", "_"), (roleIds + "").replace("\r", "_").replace("\n", "_"), (expireTime + "").replace("\r", "_").replace("\n", "_"), (SecurityUtils.getCurrentUsername() + "").replace("\r", "_").replace("\n", "_"));
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(value = {"user", "userDetails", "userInfo"}, keyGenerator = KEY_GEN)
     public void extendTemporaryRole(UUID userId, UUID roleId, LocalDateTime newExpireTime) {
         if (!userQueryService.hasTemporaryRole(userId, roleId)) {
             throw new BusinessException("用户不存在该临时角色或已过期");
@@ -81,18 +80,23 @@ public class UserRoleCommandServiceImpl implements IUserRoleCommandService {
             throw new BusinessException("延长临时角色失败");
         }
 
+        SysUser user = userMapper.selectById(userId);
+        cacheEvictor.evictUserAuthorization(userId, user != null ? user.getUsername() : null);
+
         log.info("Temporary role extended: userId={}, roleId={}, newExpireTime={}, by={}",
                 userId, roleId, newExpireTime, SecurityUtils.getCurrentUsername());
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(value = {"user", "userDetails", "userInfo"}, keyGenerator = KEY_GEN)
     public void terminateTemporaryRole(UUID userId, UUID roleId) {
         int updated = userRoleCommandService.terminateTemporaryRole(userId, roleId);
         if (updated == 0) {
             throw new BusinessException("终止临时角色失败，可能该角色不存在或已过期");
         }
+
+        SysUser user = userMapper.selectById(userId);
+        cacheEvictor.evictUserAuthorization(userId, user != null ? user.getUsername() : null);
 
         log.info("Temporary role terminated: userId={}, roleId={}, by={}",
                 userId, roleId, SecurityUtils.getCurrentUsername());

@@ -19,6 +19,18 @@ spring:
         file-extension: yml
 
   # 数据源配置
+  #
+  # 读写分离（scm-common-data-rw）说明：
+  #   1. dynamic-datasource 显式关闭：rw 开启时由 ReadWriteAutoConfiguration 直接提供
+  #      DataSource，避免 baomidou 动态数据源再包一层（那会要求额外配置 primary）。
+  #   2. rw.enabled 关闭时，上面的 spring.datasource.* 仍是普通单库配置，行为不变。
+  #   3. 从库默认指向 DB_HOST（开发环境无真实备库），验证路由链路用；生产必须设置
+  #      DB_SLAVE_HOST / DB_SLAVE_PORT / DB_SLAVE_USERNAME / DB_SLAVE_PASSWORD，
+  #      并保证从库账号只有只读权限。
+  #   4. 启用后未注解的 SELECT 只在 Web 请求线程内走从库；异步线程、定时任务、
+  #      启动期 Flyway 都走主库（default-target=MASTER）。
+  #   5. 应用就绪后会异步预热从库连接并记录耗时（不阻塞启动）；Sentinel 熔断、
+  #      LEAST_CONNECTIONS 实时连接计数、@DS 启动期冲突校验均已接入。
   datasource:
     driver-class-name: org.postgresql.Driver
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/db_product?stringtype=unspecified
@@ -28,6 +40,59 @@ spring:
       maximum-pool-size: 20
       minimum-idle: 5
       connection-timeout: 30000
+
+    dynamic:
+      enabled: false
+
+    rw:
+      enabled: true
+      # 没有注解也没有 SQL 决策时的兜底目标。必须是主库：写后立刻读、异步任务、
+      # 定时任务都不允许读到复制延迟内的旧数据。
+      default-target: MASTER
+      # 同一线程写操作后该窗口内的读强制走主库（只能规避同一线程的写后读）
+      read-master-after-write: 2s
+      # 复制延迟超过该阈值的从库会被标记不可用并回退主库
+      replication-lag-tolerance: 1s
+      load-balance: ROUND_ROBIN
+      health-check-enabled: true
+      health-check-interval: 30s
+      slave-retry-count: 3
+      # 首次连接探测失败即熔断该从库（下一次请求直接回退主库）
+      fail-fast-on-slave-connection-failure: true
+      # 从库故障不回退整个服务健康状态，避免 K8s 误重启
+      slave-down-affects-health: false
+      # Sentinel 熔断：统计一次从库连接从获取到关闭的耗时/异常比例；
+      # 打开后窗口内直接走主库，窗口结束允许一次试探
+      circuit-breaker:
+        enabled: true
+        slow-rt-ms: 500
+        slow-ratio-threshold: 0.5
+        error-ratio: 0.5
+        time-window-seconds: 30
+        min-request-amount: 10
+        stat-interval-ms: 10000
+      groups:
+        product:
+          master:
+            url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/db_product?stringtype=unspecified
+            username: ${DB_USERNAME:admin}
+            password: ${DB_PASSWORD:changeme}
+            driver-class-name: org.postgresql.Driver
+            maximum-pool-size: ${DB_POOL_MAX_SIZE:20}
+            minimum-idle: ${DB_POOL_MIN_IDLE:5}
+            connection-timeout: 30s
+          slaves:
+            - name: slave1
+              url: jdbc:postgresql://${DB_SLAVE_HOST:${DB_HOST:localhost}}:${DB_SLAVE_PORT:${DB_PORT:5432}}/db_product?stringtype=unspecified
+              username: ${DB_SLAVE_USERNAME:${DB_USERNAME:admin}}
+              password: ${DB_SLAVE_PASSWORD:${DB_PASSWORD:changeme}}
+              driver-class-name: org.postgresql.Driver
+              maximum-pool-size: ${DB_SLAVE_POOL_MAX_SIZE:20}
+              minimum-idle: ${DB_SLAVE_POOL_MIN_IDLE:5}
+              # 从库连接探测要快失败，不能把请求线程挂在上面的 30s 默认值
+              connection-timeout: 5s
+              weight: 1
+              available: true
 
   data:
     redis:
@@ -120,7 +185,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus,seata
+        include: health,info,metrics,prometheus,seata,readwrite
   endpoint:
     health:
       show-details: always

@@ -14,28 +14,46 @@ interface Role {
   createdAt: string
 }
 
+async function fetchRoles(): Promise<Role[]> {
+  const response = await client.get('/roles')
+  return response.data.data.records || []
+}
+
 export default function RoleListPage() {
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [roles, setRoles] = useState<Role[]>([])
   const [modalVisible, setModalVisible] = useState(false)
   const [editingRole, setEditingRole] = useState<Role | null>(null)
   const [form] = Form.useForm()
 
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      try {
+        const records = await fetchRoles()
+        if (!cancelled) setRoles(records)
+      } catch (error) {
+        if (!cancelled) console.error('Failed to load roles:', error)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    void load()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const loadRoles = async () => {
     setLoading(true)
     try {
-      const response = await client.get('/roles')
-      setRoles(response.data.data.records || [])
+      setRoles(await fetchRoles())
     } catch (error) {
       console.error('Failed to load roles:', error)
     } finally {
       setLoading(false)
     }
   }
-
-  useEffect(() => {
-    loadRoles()
-  }, [])
 
   const columns = [
     {

@@ -2,233 +2,379 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCM Platform — Enterprise Supply Chain Platform</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&family=Noto+Serif+SC:wght@400;500;600&display=swap');
-:root {
-  --mono: 'JetBrains Mono', monospace;
-  --serif: 'Instrument Serif', 'Noto Serif SC', serif;
-  --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --bg: #fafaf8; --bg2: #f5f5f0; --bg-card: #ffffff;
-  --t1: #1a1a18; --t2: #5a5a56; --t3: #8a8a86;
-  --border: #e8e8e4; --border2: #d4d4d0;
-  --accent: #2563eb; --green: #16a34a; --red: #dc2626; --amber: #d97706;
-}
-.lang-switch { font-family: var(--mono); font-size: 10px; padding: 4px 10px; border-radius: 6px; color: var(--t3); text-decoration: none; border: .5px solid var(--border); transition: color .15s, background .15s; letter-spacing: .02em; margin-left: 8px; }
-.lang-switch:hover { color: var(--t1); background: var(--bg2); }
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: var(--sans); background: var(--bg); color: var(--t1); -webkit-font-smoothing: antialiased; }
-
-/* Header */
-.site-header { position: sticky; top: 0; z-index: 100; background: rgba(250,250,248,.85); backdrop-filter: blur(12px); border-bottom: .5px solid var(--border); }
-.site-header-inner { max-width: 960px; margin: 0 auto; padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; }
-.site-logo { font-family: var(--mono); font-size: 13px; font-weight: 500; color: var(--t1); text-decoration: none; }
-.site-nav { display: flex; gap: 4px; align-items: center; }
-.site-nav a { font-family: var(--mono); font-size: 11px; padding: 5px 12px; border-radius: 6px; color: var(--t3); text-decoration: none; transition: color .15s, background .15s; letter-spacing: .02em; }
-.site-nav a:hover, .site-nav a.active { color: var(--t1); background: var(--bg2); }
-.site-nav-cta { background: var(--t1) !important; color: var(--bg) !important; padding: 5px 14px !important; border-radius: 6px !important; }
-.site-nav-cta:hover { opacity: .85 !important; }
-
-/* Footer */
-.site-footer { border-top: .5px solid var(--border); padding: 32px 0; margin-top: 64px; }
-.site-footer-inner { max-width: 960px; margin: 0 auto; padding: 0 24px; display: flex; justify-content: space-between; align-items: center; }
-.site-footer-left { font-family: var(--mono); font-size: 11px; color: var(--t3); }
-.site-footer-right { font-family: var(--serif); font-size: 13px; font-style: italic; color: var(--t3); }
-
-/* Page */
-.site-page { max-width: 680px; margin: 0 auto; padding: 0 24px; }
-.site-hero { padding: 48px 0 32px; border-bottom: .5px solid var(--border); margin-bottom: 40px; }
-.site-hero-eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; color: var(--t3); text-transform: uppercase; margin-bottom: 16px; }
-.site-hero h1 { font-family: var(--serif); font-size: 34px; font-weight: 400; line-height: 1.15; color: var(--t1); margin-bottom: 16px; }
-.site-hero-sub { font-size: 15px; color: var(--t2); line-height: 1.65; max-width: 520px; }
-.site-section { margin-bottom: 48px; }
-.site-section-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: .5px solid var(--border); }
-.site-section-num { font-family: var(--mono); font-size: 11px; color: var(--t3); min-width: 20px; }
-.site-section-title { font-size: 15px; font-weight: 500; color: var(--t1); }
-.site-prose { font-size: 14px; line-height: 1.8; color: var(--t2); }
-.site-prose + .site-prose { margin-top: 12px; }
-.site-callout { border-left: 2px solid var(--border2); padding: 12px 16px; margin: 16px 0; font-family: var(--serif); font-size: 15px; font-style: italic; color: var(--t2); line-height: 1.6; }
-
-/* Pillar grid */
-.site-pillar-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
-.site-pillar-card { background: var(--bg-card); border: .5px solid var(--border); border-radius: 8px; padding: 14px 16px; }
-.site-pillar-label { font-family: var(--mono); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--t3); margin-bottom: 4px; }
-.site-pillar-title { font-size: 13px; font-weight: 500; color: var(--t1); margin-bottom: 4px; }
-.site-pillar-desc { font-size: 12px; color: var(--t2); line-height: 1.5; }
-
-/* Landing */
-.site-landing-hero { padding: 80px 0 48px; text-align: center; }
-.site-landing-hero h1 { font-family: var(--serif); font-size: 48px; font-weight: 400; line-height: 1.1; color: var(--t1); margin-bottom: 20px; }
-.site-landing-hero-sub { font-size: 16px; color: var(--t2); line-height: 1.7; max-width: 560px; margin: 0 auto 32px; }
-.site-landing-cta { display: inline-flex; gap: 12px; }
-.site-landing-cta a { font-family: var(--mono); font-size: 12px; padding: 10px 24px; border-radius: 8px; text-decoration: none; transition: opacity .15s; }
-.site-landing-cta-primary { background: var(--t1); color: var(--bg); }
-.site-landing-cta-secondary { background: var(--bg2); color: var(--t1); border: .5px solid var(--border); }
-
-/* Highlight grid */
-.site-highlight-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin: 32px 0; }
-.site-highlight-card { background: var(--bg-card); border: .5px solid var(--border); border-radius: 8px; padding: 20px 16px; }
-.site-highlight-icon { font-size: 20px; margin-bottom: 12px; }
-.site-highlight-title { font-size: 13px; font-weight: 500; color: var(--t1); margin-bottom: 6px; }
-.site-highlight-desc { font-size: 12px; color: var(--t2); line-height: 1.5; }
-
-/* Tech bar */
-.site-tech-bar { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 24px 0; }
-.site-tech-tag { font-family: var(--mono); font-size: 10px; padding: 4px 10px; border-radius: 99px; border: .5px solid var(--border); color: var(--t3); background: var(--bg-card); }
-
-/* SLO grid */
-.site-slo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 16px 0; }
-.site-slo-card { background: var(--bg2); border-radius: 8px; padding: 12px; border: .5px solid var(--border); }
-.site-slo-op { font-size: 11px; color: var(--t2); margin-bottom: 8px; line-height: 1.4; }
-.site-slo-vals { display: flex; gap: 4px; flex-wrap: wrap; }
-.site-slo-val { font-family: var(--mono); font-size: 10px; padding: 2px 5px; border-radius: 4px; background: var(--bg-card); border: .5px solid var(--border); color: var(--t2); }
-.site-slo-label { font-family: var(--mono); font-size: 9px; color: var(--t3); }
-
-/* Tech table */
-.site-tech-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 16px 0; }
-.site-tech-table th { font-family: var(--mono); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--t3); font-weight: 400; text-align: left; padding: 8px 12px 8px 0; border-bottom: .5px solid var(--border); }
-.site-tech-table td { padding: 10px 12px 10px 0; border-bottom: .5px solid var(--border); color: var(--t2); vertical-align: top; line-height: 1.5; }
-.site-tech-table td:first-child { color: var(--t1); font-weight: 500; white-space: nowrap; padding-right: 20px; }
-.site-tech-table tr:last-child td { border-bottom: none; }
-
-/* Flow steps */
-.site-flow { display: flex; flex-direction: column; gap: 0; margin: 16px 0; }
-.site-flow-step { display: grid; grid-template-columns: 40px 1fr; gap: 16px; padding: 16px 0; border-bottom: .5px solid var(--border); align-items: start; }
-.site-flow-step:last-child { border-bottom: none; }
-.site-flow-num { font-family: var(--mono); font-size: 11px; color: var(--t3); padding-top: 2px; }
-.site-flow-title { font-size: 13px; font-weight: 500; color: var(--t1); margin-bottom: 4px; }
-.site-flow-desc { font-size: 13px; color: var(--t2); line-height: 1.6; }
-
-/* Diagram */
-.site-diagram { background: var(--bg2); border-radius: 12px; border: .5px solid var(--border); padding: 20px; margin: 16px 0; overflow-x: auto; }
-.site-diagram svg { display: block; margin: 0 auto; }
-
-/* Code */
-.site-code { font-family: var(--mono); font-size: 12px; background: var(--bg2); padding: 1px 6px; border-radius: 4px; border: .5px solid var(--border); color: var(--t1); }
-.site-code-block { font-family: var(--mono); font-size: 12px; background: var(--bg2); padding: 16px 20px; border-radius: 8px; border: .5px solid var(--border); color: var(--t1); line-height: 1.6; overflow-x: auto; margin: 12px 0; white-space: pre; }
-
-@media (max-width: 640px) {
-  .site-pillar-grid, .site-highlight-grid, .site-slo-grid, .site-scale-grid { grid-template-columns: 1fr; }
-  .site-feature-row { grid-template-columns: 1fr; gap: 4px; }
-  .site-landing-hero h1 { font-size: 32px; }
-  .site-nav { display: none; }
-}
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SCM Platform — Multi-tenant supply chain management</title>
+<meta name="description" content="SCM Platform is a multi-tenant supply chain platform: 26 independently deployable backend services and a Next.js control tower covering procurement, inventory, warehousing, orders, fulfillment, logistics, finance, supplier SRM, documents and analytics.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%2308090a'/%3E%3Cpath d='M12 3 21 12 12 21 3 12Z' fill='none' stroke='%23cf9366' stroke-width='1.4'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/site.css">
+<script>document.documentElement.classList.add('js');</script>
 </head>
 <body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="progress" aria-hidden="true"><span></span></div>
 
-<!-- Header -->
 <header class="site-header">
-  <div class="site-header-inner">
-    <a href="index.html" class="site-logo">SCM Platform</a>
-    <nav class="site-nav">
-      <a href="index.html" class="active">Home</a>
+  <div class="header-inner">
+    <a class="brand" href="index.html" aria-label="SCM Platform home">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+          <path d="M12 2.2 21.8 12 12 21.8 2.2 12Z"/>
+          <path d="M12 7.2 16.8 12 12 16.8 7.2 12Z" fill="currentColor" fill-opacity=".35" stroke="none"/>
+        </svg>
+      </span>
+      <span class="brand-text">SCM<span class="slash">/</span><span class="light">PLATFORM</span></span>
+    </a>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="index.html" class="is-active" aria-current="page">Home</a>
       <a href="features.html">Features</a>
       <a href="architecture.html">Architecture</a>
       <a href="philosophy.html">Philosophy</a>
       <a href="tech-stack.html">Tech Stack</a>
-      <a href="../zh/index.html" class="lang-switch">中文</a>
     </nav>
+    <a class="lang-switch" href="../zh/index.html" hreflang="zh-CN" lang="zh-CN">中文</a>
   </div>
 </header>
 
-<main>
+<main id="main">
 
-<!-- Landing Hero -->
-<div style="max-width: 960px; margin: 0 auto; padding: 0 24px;">
-  <div class="site-landing-hero">
-    <div style="font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--t3);text-transform:uppercase;margin-bottom:16px;">enterprise supply chain management</div>
-    <h1>Supply Chain Management,<br>Redesigned</h1>
-    <div class="site-landing-hero-sub">
-      A cloud-native microservice supply chain platform built on Spring Boot 4 + Spring Cloud 2025. 22+ independent services, distributed transactions, real-time inventory, AI-driven decisions — designed for high-concurrency scenarios.
-    </div>
-    <div class="site-landing-cta">
-      <a href="architecture.html" class="site-landing-cta-primary">View Architecture</a>
-      <a href="features.html" class="site-landing-cta-secondary">Explore Features</a>
-    </div>
-  </div>
-</div>
+  <section class="wrap">
+    <div class="page-hero">
+      <div class="hero-grid">
+        <div class="intro">
+          <div class="eyebrow">multi-tenant supply chain · 26 services</div>
+          <h1>A supply chain<br>you can <em>audit</em>.</h1>
+          <p class="lede">
+            SCM Platform is a multi-tenant supply chain platform: 26 independently deployable backend services
+            plus a Next.js control tower. Procurement, inventory, warehousing, orders, fulfillment, logistics,
+            finance, supplier SRM, documents and analytics run inside one tenant boundary.
+          </p>
+          <div class="cta-row">
+            <a class="btn btn-primary" href="features.html">Capability map <span class="arrow">→</span></a>
+            <a class="btn" href="architecture.html">Architecture <span class="arrow">↗</span></a>
+          </div>
+        </div>
 
-<!-- Highlights -->
-<div style="max-width: 960px; margin: 0 auto; padding: 0 24px;">
-  <div class="site-landing-hero-eyebrow" style="font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--t3);text-align:center;margin-bottom:32px;">Core Capabilities</div>
-  <div class="site-highlight-grid">
-    <div class="site-highlight-card">
-      <div class="site-highlight-icon">🏗️</div>
-      <div class="site-highlight-title">Microservice Architecture</div>
-      <div class="site-highlight-desc">22+ independently deployable services, API gateway, service discovery, configuration center all-in-one</div>
+        <aside class="hero-meta" aria-label="Platform facts">
+          <div>
+            <div class="meta-label">services</div>
+            <div class="meta-value">26<small>deployable backend services</small></div>
+          </div>
+          <div>
+            <div class="meta-label">isolation</div>
+            <div class="meta-value">4 layers<small>request · thread · SQL · async</small></div>
+          </div>
+          <div>
+            <div class="meta-label">reservation</div>
+            <div class="meta-value">900s<small>default stock reservation</small></div>
+          </div>
+        </aside>
+      </div>
     </div>
-    <div class="site-highlight-card">
-      <div class="site-highlight-icon">🔐</div>
-      <div class="site-highlight-title">Enterprise Security</div>
-      <div class="site-highlight-desc">OAuth2 + JWT + WebAuthn passwordless authentication, RBAC fine-grained data access control</div>
-    </div>
-    <div class="site-highlight-card">
-      <div class="site-highlight-icon">💰</div>
-      <div class="site-highlight-title">Distributed Transactions</div>
-      <div class="site-highlight-desc">Seata AT/TCC/Saga modes, cross-service data consistency guarantee</div>
-    </div>
-    <div class="site-highlight-card">
-      <div class="site-highlight-icon">⚡</div>
-      <div class="site-highlight-title">High Performance</div>
-      <div class="site-highlight-desc">Redis Lua atomic stock deduction, read-write separation, database sharding</div>
-    </div>
-    <div class="site-highlight-card">
-      <div class="site-highlight-icon">🧠</div>
-      <div class="site-highlight-title">Decision Engine</div>
-      <div class="site-highlight-desc">E-commerce decision matrix with intelligent pricing, inventory prediction, and A/B testing</div>
-    </div>
-    <div class="site-highlight-card">
-      <div class="site-highlight-icon">📊</div>
-      <div class="site-highlight-title">Observability</div>
-      <div class="site-highlight-desc">Sentinel circuit breaking, SkyWalking tracing, Prometheus metrics, Grafana dashboards</div>
-    </div>
-  </div>
-</div>
+  </section>
 
-<!-- Tech bar -->
-<div style="max-width: 960px; margin: 0 auto; padding: 0 24px;">
-  <div style="font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--t3);text-align:center;margin-bottom:16px;">Tech Stack Overview</div>
-  <div class="site-tech-bar">
-    <span class="site-tech-tag">Spring Boot 4</span>
-    <span class="site-tech-tag">Java 21 VT</span>
-    <span class="site-tech-tag">PostgreSQL</span>
-    <span class="site-tech-tag">Redis</span>
-    <span class="site-tech-tag">Kafka</span>
-    <span class="site-tech-tag">Elasticsearch</span>
-    <span class="site-tech-tag">Next.js 15</span>
-    <span class="site-tech-tag">Docker</span>
-  </div>
-</div>
+  <section class="wrap section">
+    <div class="section-head" data-reveal>
+      <span class="idx">01</span>
+      <h2>Three differences</h2>
+      <span class="aside">Not feature count — boundary quality</span>
+    </div>
 
-<!-- Explore section -->
-<div style="max-width: 680px; margin: 48px auto; padding: 0 24px;">
-  <div class="site-section-header"><span class="site-section-num">→</span><span class="site-section-title">Learn More</span></div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-    <a href="architecture.html" style="text-decoration:none;">
-      <div class="site-pillar-card"><div class="site-pillar-label">Architecture</div><div class="site-pillar-title">System Architecture</div><div class="site-pillar-desc">Microservice topology, core patterns, SLO targets</div></div>
-    </a>
-    <a href="philosophy.html" style="text-decoration:none;">
-      <div class="site-pillar-card"><div class="site-pillar-label">Philosophy</div><div class="site-pillar-title">Design Philosophy</div><div class="site-pillar-desc">10 design principles, trade-off decision records</div></div>
-    </a>
-    <a href="features.html" style="text-decoration:none;">
-      <div class="site-pillar-card"><div class="site-pillar-label">Features</div><div class="site-pillar-title">Features</div><div class="site-pillar-desc">Full overview of 22+ business modules</div></div>
-    </a>
-    <a href="tech-stack.html" style="text-decoration:none;">
-      <div class="site-pillar-card"><div class="site-pillar-label">Tech Stack</div><div class="site-pillar-title">Technology Stack</div><div class="site-pillar-desc">Layer-by-layer selection details + key decisions</div></div>
-    </a>
-  </div>
-</div>
+    <article class="value" data-reveal>
+      <div class="value-num">01</div>
+      <div>
+        <h3>Isolation begins at the request, not in a config file</h3>
+        <p>
+          The tenant id is resolved at the front of the filter chain and written into the thread context.
+          A MyBatis interceptor then appends the predicate to every SELECT, UPDATE and DELETE. Async work
+          inherits the same context through a dedicated executor. Missing tenancy is rejected by default;
+          a service may switch SQL isolation off, but the boundary never disappears silently.
+        </p>
+        <div class="evidence">
+          <span>chain</span>
+          <code>TenantFilter</code><code>TenantContextHolder</code><code>TenantInterceptor</code><code>AsyncTenantAutoConfiguration</code>
+        </div>
+      </div>
+    </article>
+
+    <article class="value" data-reveal>
+      <div class="value-num">02</div>
+      <div>
+        <h3>The hot path trusts memory, not a round trip</h3>
+        <p>
+          Stock deduction, restock and flash-sale counters run in Redis Lua; the hot path never queries
+          PostgreSQL. Reservations last 900 seconds by default, convert to a real deduction after payment,
+          and release on cancel or timeout. Alerts and daily snapshots have their own endpoints and never
+          sit in front of the order path.
+        </p>
+        <div class="evidence">
+          <span>scripts</span>
+          <code>deduct_stock.lua</code><code>add_stock.lua</code><code>seckill.lua</code><span>·</span><code>900s</code>
+        </div>
+      </div>
+    </article>
+
+    <article class="value" data-reveal>
+      <div class="value-num">03</div>
+      <div>
+        <h3>Nothing is written before it is proven</h3>
+        <p>
+          Payment callbacks are verified before a payment changes: RSA2 for Alipay; signature header and
+          AES-GCM resource decryption for WeChat Pay v3; merchant id, channel and amount must match the
+          local payment. Audit writes only accept internal HMAC-SHA256 signed requests, and there is no
+          HTTP delete endpoint.
+        </p>
+        <div class="evidence">
+          <span>implementation</span>
+          <code>PaymentCallbackVerifier</code><code>AuditWriteRequestGuard</code><code>OrderStatus.canTransitionTo()</code>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <section class="wrap section">
+    <div class="section-head" data-reveal>
+      <span class="idx">02</span>
+      <h2>Capability map</h2>
+      <span class="aside">Nine entry points · ten domains in Features</span>
+    </div>
+
+    <div class="domains">
+      <a class="domain-card" href="features.html#supplier" data-reveal>
+        <div class="card-top"><span>01 / SRM</span><span class="card-arrow">→</span></div>
+        <h3>Supplier &amp; Procurement</h3>
+        <p class="card-problem">When admission, certificates, risk and performance live apart, the supplier has no single truth.</p>
+        <ul class="card-list">
+          <li>Admission, blacklist, cooperation state</li>
+          <li>Certificate validity and expiry</li>
+          <li>Scorecard written back to the profile</li>
+        </ul>
+      </a>
+
+      <a class="domain-card" href="features.html#inventory" data-reveal>
+        <div class="card-top"><span>02 / WMS</span><span class="card-arrow">→</span></div>
+        <h3>Inventory &amp; Warehousing</h3>
+        <p class="card-problem">Available-to-promise must answer instantly; the ledger must still reconcile.</p>
+        <ul class="card-list">
+          <li>Atomic Redis Lua deduction</li>
+          <li>Reserve, commit and timeout release</li>
+          <li>Water-level alerts and daily snapshots</li>
+        </ul>
+      </a>
+
+      <a class="domain-card" href="features.html#order" data-reveal>
+        <div class="card-top"><span>03 / ORDER</span><span class="card-arrow">→</span></div>
+        <h3>Orders &amp; Fulfillment</h3>
+        <p class="card-problem">With enough statuses, an illegal transition becomes a data incident.</p>
+        <ul class="card-list">
+          <li>Enum state machine inside the aggregate</li>
+          <li>Dashboard by day or hour</li>
+          <li>Pick-to-signoff fulfillment path</li>
+        </ul>
+      </a>
+
+      <a class="domain-card" href="features.html#logistics" data-reveal>
+        <div class="card-top"><span>04 / TMS</span><span class="card-arrow">→</span></div>
+        <h3>Logistics &amp; Delivery</h3>
+        <p class="card-problem">When waybills, tracking, routes and coverage live apart, fulfillment cannot be explained.</p>
+        <ul class="card-list">
+          <li>Waybills and status transitions</li>
+          <li>Tracking events and queries</li>
+          <li>Carrier delivery coverage checks</li>
+        </ul>
+      </a>
+
+      <a class="domain-card" href="features.html#finance" data-reveal>
+        <div class="card-top"><span>05 / FINANCE</span><span class="card-arrow">→</span></div>
+        <h3>Finance &amp; Money</h3>
+        <p class="card-problem">Between documents, payments, reconciliation and service fees, the difference must land on one row.</p>
+        <ul class="card-list">
+          <li>Reconcile, confirm, mark difference</li>
+          <li>Platform service fee bills</li>
+          <li>Callback verification and refunds</li>
+        </ul>
+      </a>
+
+      <a class="domain-card" href="features.html#governance" data-reveal>
+        <div class="card-top"><span>06 / GOVERNANCE</span><span class="card-arrow">→</span></div>
+        <h3>Platform Governance</h3>
+        <p class="card-problem">Permissions, approval, audit and notifications cannot each invent their own tenancy.</p>
+        <ul class="card-list">
+          <li>Tenant lifecycle and quotas</li>
+          <li>Flowable approval workflows</li>
+          <li>Signed, append-only audit trail</li>
+        </ul>
+      </a>
+
+      <a class="domain-card" href="features.html#document" data-reveal>
+        <div class="card-top"><span>07 / DOCUMENT</span><span class="card-arrow">→</span></div>
+        <h3>Documents &amp; Files</h3>
+        <p class="card-problem">After multiple versions, “current” and “who changed it” must have answers.</p>
+        <ul class="card-list">
+          <li>Template versions and variable schema</li>
+          <li>Document versions and audit trail</li>
+          <li>30-minute presigned access</li>
+        </ul>
+      </a>
+
+      <a class="domain-card" href="features.html#analytics" data-reveal>
+        <div class="card-top"><span>08 / OLAP</span><span class="card-arrow">→</span></div>
+        <h3>Data &amp; Analytics</h3>
+        <p class="card-problem">A transactional database is the wrong place for period aggregation, and reports must not press on orders.</p>
+        <ul class="card-list">
+          <li>ClickHouse ODS → ADS</li>
+          <li>Kafka ingest with raw payload</li>
+          <li>Metrics, lineage and quality</li>
+        </ul>
+      </a>
+
+      <a class="domain-card" href="features.html#commerce" data-reveal>
+        <div class="card-top"><span>09 / COMMERCE</span><span class="card-arrow">→</span></div>
+        <h3>Commerce &amp; Console</h3>
+        <p class="card-problem">Backend capability without a coherent path is capability nobody can use.</p>
+        <ul class="card-list">
+          <li>Members, promotions, mall, order center</li>
+          <li>50+ console routes</li>
+          <li>Lazy charts and data grids</li>
+        </ul>
+      </a>
+    </div>
+  </section>
+
+  <section class="wrap section">
+    <div class="section-head" data-reveal>
+      <span class="idx">03</span>
+      <h2>Recent hardening</h2>
+      <span class="aside">Make boundaries verifiable, not pages</span>
+    </div>
+
+    <div class="ledger">
+      <article class="ledger-item" data-reveal>
+        <span class="stamp">SRM</span>
+        <div>
+          <h3>Enterprise supplier profile</h3>
+          <p>Admission review, certificate validity, risk level, cooperation state, scorecard and change log converge on one profile; expiring certificates have their own query.</p>
+        </div>
+      </article>
+
+      <article class="ledger-item" data-reveal>
+        <span class="stamp">DOCUMENT</span>
+        <div>
+          <h3>Versions and trail</h3>
+          <p>Templates support version increments, publish-and-archive and variable schemas; documents expose version lists, sign/archive transitions and an audit trail for each action.</p>
+        </div>
+      </article>
+
+      <article class="ledger-item" data-reveal>
+        <span class="stamp">PAYMENT</span>
+        <div>
+          <h3>Callback verification</h3>
+          <p>Alipay RSA2 and WeChat Pay v3 signature/decryption; merchant, channel and amount are cross-checked; missing keys reject the callback, duplicates are idempotent.</p>
+        </div>
+      </article>
+
+      <article class="ledger-item" data-reveal>
+        <span class="stamp">ORDER</span>
+        <div>
+          <h3>Pagination and state machine</h3>
+          <p>Order center and fulfillment gained pagination and <code>@Valid</code>; order status only moves along the enum's legal paths, and terminal states stay terminal.</p>
+        </div>
+      </article>
+
+      <article class="ledger-item" data-reveal>
+        <span class="stamp">FINANCE</span>
+        <div>
+          <h3>Service fees and reconciliation</h3>
+          <p>Platform service fee bills expose pending lists and payment registration; reconciliation records support reconcile, confirm and difference marking on the same row.</p>
+        </div>
+      </article>
+
+      <article class="ledger-item" data-reveal>
+        <span class="stamp">INVENTORY</span>
+        <div>
+          <h3>Alerts and snapshots</h3>
+          <p>Stock alerts support scanning, statistics and resolution; daily snapshots support trend queries, and a repeat run for the same day skips existing rows.</p>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section class="wrap section">
+    <div class="section-head" data-reveal>
+      <span class="idx">04</span>
+      <h2>Version baseline</h2>
+      <span class="aside">From the parent POM and scm-web/package.json</span>
+    </div>
+    <div class="ribbon" data-reveal>
+      <span>Java 21</span>
+      <span>Spring Boot 4.1.2</span>
+      <span>Spring Cloud 2025.1.4</span>
+      <span>Spring Cloud Alibaba 2025.1.0.0</span>
+      <span>Dubbo 3.3.6</span>
+      <span>Seata 2.0.0</span>
+      <span>PostgreSQL 18</span>
+      <span>Redis 8</span>
+      <span>ClickHouse 26.10</span>
+      <span>Next.js 16.4.3</span>
+      <span>React 19.3.1</span>
+      <a class="btn" href="tech-stack.html" style="padding:6px 12px">Full stack →</a>
+    </div>
+  </section>
+
+  <section class="wrap">
+    <div class="closing">
+      <blockquote>Many systems work.<br>Few can be checked.</blockquote>
+      <div class="closing-foot">
+        <a href="features.html">Start with the capability map</a>
+        <a href="architecture.html">See how it runs</a>
+        <span>·</span>
+        <span>26 services / 10 domains / zh · en</span>
+      </div>
+    </div>
+  </section>
 
 </main>
 
 <footer class="site-footer">
-  <div class="site-footer-inner">
-    <div class="site-footer-left">SCM Platform &middot; Apache 2.0 License</div>
-    <div class="site-footer-right">Built for Enterprise Supply Chain</div>
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a class="brand" href="index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+              <path d="M12 2.2 21.8 12 12 21.8 2.2 12Z"/>
+              <path d="M12 7.2 16.8 12 12 16.8 7.2 12Z" fill="currentColor" fill-opacity=".35" stroke="none"/>
+            </svg>
+          </span>
+          <span class="brand-text">SCM<span class="slash">/</span><span class="light">PLATFORM</span></span>
+        </a>
+        <p>A multi-tenant supply chain platform. Procurement, inventory, orders, fulfillment, finance and governance inside one boundary.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Browse</h4>
+        <a href="index.html">Home</a>
+        <a href="features.html">Features</a>
+        <a href="architecture.html">Architecture</a>
+        <a href="philosophy.html">Philosophy</a>
+        <a href="tech-stack.html">Tech Stack</a>
+      </div>
+      <div class="footer-col">
+        <h4>Version</h4>
+        <div class="colophon">
+          Spring Boot 4.1.2<br>
+          Spring Cloud 2025.1.4<br>
+          PostgreSQL 18 · ClickHouse 26.10<br>
+          Next.js 16.4.3 · Apache 2.0
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>SCM Platform · 2026</span>
+      <span>26 services · zh-CN / en-US</span>
+      <a href="../index.html">Portal</a>
+    </div>
   </div>
 </footer>
 
+<script src="../assets/site.js" defer></script>
 </body>
 </html>

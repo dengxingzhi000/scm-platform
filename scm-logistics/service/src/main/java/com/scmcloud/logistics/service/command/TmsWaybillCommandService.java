@@ -1,7 +1,5 @@
 package com.scmcloud.logistics.service.command;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.scmcloud.common.data.rw.annotation.Master;
 import com.scmcloud.common.status.StatusValidator;
 import com.scmcloud.logistics.domain.entity.TmsWaybill;

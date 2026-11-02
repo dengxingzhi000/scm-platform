@@ -106,6 +106,7 @@ class OrdOrderDashboardQueryServiceTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void timePredicatesAndBucketsAreZoneExplicit() {
         OrdOrderDashboardQueryService service = new OrdOrderDashboardQueryService(ordOrderMapper);
 
@@ -125,9 +126,6 @@ class OrdOrderDashboardQueryServiceTest {
     }
 
     private static Map<String, Object> row(Object... keyValues) {
-        if (keyValues.length % 2 != 0) {
-            throw new IllegalArgumentException("keyValues must contain key/value pairs");
-        }
         Map<String, Object> row = new HashMap<>();
         for (int i = 0; i < keyValues.length; i += 2) {
             row.put((String) keyValues[i], keyValues[i + 1]);

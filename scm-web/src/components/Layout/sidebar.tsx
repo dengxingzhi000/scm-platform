@@ -1,9 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { Layout, Menu } from 'antd'
-import type { MenuProps } from 'antd'
 import { useUIStore } from '@/stores/ui-store'
 import { appMenuItems, getParentGroupKey, matchMenuKey, stripLocale } from './menu-config'
 
@@ -13,17 +12,27 @@ export default function AppSidebar() {
   const router = useRouter()
   const pathname = usePathname()
   const { sidebarCollapsed } = useUIStore()
-  const [openKeys, setOpenKeys] = useState<string[]>([])
 
   const getOpenKeys = () => {
     const groupKey = getParentGroupKey(pathname)
     return groupKey ? [groupKey] : []
   }
 
-  useEffect(() => {
+  const [openKeys, setOpenKeys] = useState<string[]>(getOpenKeys)
+  const [lastNavigation, setLastNavigation] = useState({
+    pathname,
+    sidebarCollapsed,
+  })
+
+  // 路由或展开状态变化时，把菜单展开项重置到当前路由所属分组。
+  // 在渲染期做条件同步，避免 effect 里同步 setState 多触发一次渲染。
+  if (
+    lastNavigation.pathname !== pathname ||
+    lastNavigation.sidebarCollapsed !== sidebarCollapsed
+  ) {
+    setLastNavigation({ pathname, sidebarCollapsed })
     if (!sidebarCollapsed) setOpenKeys(getOpenKeys())
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname, sidebarCollapsed])
+  }
 
   const handleOpenChange = (keys: string[]) => {
     setOpenKeys(keys.slice(-1))

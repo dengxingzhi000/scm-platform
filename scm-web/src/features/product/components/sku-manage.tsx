@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   createColumnHelper,
@@ -221,6 +221,15 @@ export default function SkuManage() {
     mode: "onBlur",
   });
 
+  const openDialog = useCallback(
+    (sku?: ProdSkuDTO) => {
+      setEditing(sku ?? null);
+      form.reset(sku ? toFormValues(sku) : { ...blankForm, spuId: spuId ?? "" });
+      setDialogOpen(true);
+    },
+    [form, spuId],
+  );
+
   const columns = useMemo(
     () =>
       columnHelper.columns([
@@ -315,7 +324,7 @@ export default function SkuManage() {
           ),
         }),
       ]),
-    [spuMap],
+    [spuMap, openDialog],
   );
 
   const skuTable = useTable({
@@ -326,12 +335,6 @@ export default function SkuManage() {
 
   const total = data?.total ?? 0;
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
-
-  const openDialog = (sku?: ProdSkuDTO) => {
-    setEditing(sku ?? null);
-    form.reset(sku ? toFormValues(sku) : { ...blankForm, spuId: spuId ?? "" });
-    setDialogOpen(true);
-  };
 
   const onSubmit = form.handleSubmit(async (values) => {
     const payload = toPayload(values);

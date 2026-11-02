@@ -163,7 +163,9 @@ apiClient.interceptors.response.use(
 
         useAuthStore.getState().logout()
         if (typeof window !== 'undefined') {
-          window.location.href = '/login'
+          // 拦截器里没有 router，刷新失败后需要整页跳到登录页；
+          // 用 replace 避免在历史记录里留下已登出的页面。
+          window.location.replace('/login')
         }
         return Promise.reject(refreshError)
       } finally {
