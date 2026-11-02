@@ -240,7 +240,13 @@ public class SupSupplierEvaluationServiceImpl
                 if (period.matches("\\d{4}Q[1-4]")) {
                     int year = Integer.parseInt(period.substring(0, 4));
                     int quarter = Integer.parseInt(period.substring(5));
-                    return LocalDate.of(year, (quarter - 1) * 3 + 1, 1);
+                    return switch (quarter) {
+                        case 1 -> LocalDate.of(year, 1, 1);
+                        case 2 -> LocalDate.of(year, 4, 1);
+                        case 3 -> LocalDate.of(year, 7, 1);
+                        case 4 -> LocalDate.of(year, 10, 1);
+                        default -> reference.withDayOfMonth(1);
+                    };
                 }
             } catch (RuntimeException e) {
                 log.warn("无法解析评价周期: {}", period);
