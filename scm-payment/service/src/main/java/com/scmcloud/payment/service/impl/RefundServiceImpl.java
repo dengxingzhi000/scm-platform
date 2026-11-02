@@ -1,6 +1,7 @@
 package com.scmcloud.payment.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.scmcloud.payment.domain.entity.PaymentOrder;
 import com.scmcloud.payment.domain.entity.Refund;
@@ -11,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -61,7 +63,13 @@ public class RefundServiceImpl extends ServiceImpl<RefundMapper, Refund> impleme
                 .stream()
                 .map(Refund::getRefundAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        if (alreadyRefunded.add(amount).compareTo(payment.getAmount()) > 0) {
+        BigDecimal pendingAmount = list(new LambdaQueryWrapper<Refund>()
+                .eq(Refund::getPaymentNo, paymentNo)
+                .eq(Refund::getStatus, REFUND_PENDING))
+                .stream()
+                .map(Refund::getRefundAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (alreadyRefunded.add(pendingAmount).add(amount).compareTo(payment.getAmount()) > 0) {
             throw new IllegalArgumentException("Refund amount exceeds remaining refundable balance");
         }
 
@@ -92,6 +100,23 @@ public class RefundServiceImpl extends ServiceImpl<RefundMapper, Refund> impleme
     @Transactional(rollbackFor = Exception.class)
     public Refund approveRefund(String refundNo) {
         Refund refund = requirePending(refundNo);
+
+        PaymentOrder payment = paymentOrderService.queryPayment(refund.getPaymentNo());
+        if (payment == null || payment.getStatus() == null || payment.getStatus() != PAYMENT_PAID) {
+            throw new IllegalStateException("Payment is not paid: " + refund.getPaymentNo());
+        }
+        BigDecimal approved = list(new LambdaQueryWrapper<Refund>()
+                .eq(Refund::getPaymentNo, refund.getPaymentNo())
+                .eq(Refund::getStatus, REFUND_SUCCESS)
+                .ne(Refund::getId, refund.getId()))
+                .stream()
+                .map(Refund::getRefundAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (approved.add(refund.getRefundAmount()).compareTo(payment.getAmount()) > 0) {
+            throw new IllegalStateException("Refund exceeds remaining refundable balance at approval: "
+                    + refundNo);
+        }
+
         LocalDateTime now = LocalDateTime.now();
         refund.setStatus(REFUND_SUCCESS);
         refund.setRefundedAt(now);
@@ -112,6 +137,18 @@ public class RefundServiceImpl extends ServiceImpl<RefundMapper, Refund> impleme
         updateById(refund);
         log.info("Refund rejected: refundNo={}, reason={}", (refundNo + "").replace("\r", "_").replace("\n", "_"), (reason + "").replace("\r", "_").replace("\n", "_"));
         return refund;
+    }
+
+    @Override
+    public Page<Refund> pageQuery(int page, int size, String paymentNo, String orderNo,
+                                  String userId, Integer status) {
+        LambdaQueryWrapper<Refund> wrapper = new LambdaQueryWrapper<>();
+        wrapper.like(StringUtils.hasText(paymentNo), Refund::getPaymentNo, paymentNo)
+                .like(StringUtils.hasText(orderNo), Refund::getOrderNo, orderNo)
+                .eq(StringUtils.hasText(userId), Refund::getUserId, userId)
+                .eq(status != null, Refund::getStatus, status)
+                .orderByDesc(Refund::getCreatedAt);
+        return page(new Page<>(page, size), wrapper);
     }
 
     private Refund requirePending(String refundNo) {

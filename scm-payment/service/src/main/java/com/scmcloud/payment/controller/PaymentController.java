@@ -1,5 +1,6 @@
 package com.scmcloud.payment.controller;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.scmcloud.payment.domain.entity.PaymentOrder;
@@ -7,9 +8,14 @@ import com.scmcloud.payment.service.IPaymentOrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -20,17 +26,30 @@ import java.util.Map;
 
 @RequiredArgsConstructor
 @Slf4j
+@Validated
 @RestController
 @RequestMapping("/api/v1/payments")
-@Tag(name = "支付管理", description = "提供支付单创建、查询、取消与支付渠道回调处理接口。")
+@Tag(name = "支付管理", description = "提供支付单创建、查询、分页、取消与支付渠道回调处理接口。")
 public class PaymentController {
 
     private final IPaymentOrderService paymentService;
     private final ObjectMapper objectMapper;
 
-    @Operation(summary = "创建支付单", description = "根据订单号、用户、金额与支付渠道创建支付单。")
+    @Operation(summary = "分页查询支付单", description = "按订单号、用户、渠道与状态分页查询支付单。")
+    @GetMapping("/page")
+    public Page<PaymentOrder> page(
+            @Parameter(description = "页码，默认 1") @RequestParam(defaultValue = "1") int page,
+            @Parameter(description = "每页数量，默认 20") @RequestParam(defaultValue = "20") int size,
+            @Parameter(description = "订单号（模糊）") @RequestParam(required = false) String orderNo,
+            @Parameter(description = "用户 ID") @RequestParam(required = false) String userId,
+            @Parameter(description = "支付渠道") @RequestParam(required = false) String paymentChannel,
+            @Parameter(description = "状态：1-待支付，2-已支付，3-失败，4-已取消") @RequestParam(required = false) Integer status) {
+        return paymentService.pageQuery(page, size, orderNo, userId, paymentChannel, status);
+    }
+
+    @Operation(summary = "创建支付单", description = "根据订单号、用户、金额与支付渠道创建支付单；同订单同渠道重复请求返回已有待支付单。")
     @PostMapping("/create")
-    public PaymentOrder createPayment(@RequestBody CreatePaymentRequest request) {
+    public PaymentOrder createPayment(@Valid @RequestBody CreatePaymentRequest request) {
         log.info("[API] Create payment: orderNo={}, amount={}", (request.getOrderNo() + "").replace("\r", "_").replace("\n", "_"), (request.getAmount() + "").replace("\r", "_").replace("\n", "_"));
         return paymentService.createPayment(request.getOrderNo(), request.getUserId(), request.getAmount(), request.getPaymentChannel());
     }
@@ -137,9 +156,17 @@ public class PaymentController {
 
     @Data
     public static class CreatePaymentRequest {
+        @NotBlank(message = "订单号不能为空")
         private String orderNo;
+
+        @NotBlank(message = "用户 ID 不能为空")
         private String userId;
+
+        @NotNull(message = "支付金额不能为空")
+        @DecimalMin(value = "0.01", message = "支付金额必须大于 0")
         private BigDecimal amount;
+
+        @NotBlank(message = "支付渠道不能为空")
         private String paymentChannel;
     }
 }

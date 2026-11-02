@@ -1,5 +1,6 @@
 package com.scmcloud.payment.service;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.IService;
 import com.scmcloud.payment.domain.entity.PaymentOrder;
 
@@ -14,4 +15,7 @@ public interface IPaymentOrderService extends IService<PaymentOrder> {
     void cancelPayment(String paymentNo);
 
     void handlePaymentCallback(String paymentNo, String transactionId);
+
+    Page<PaymentOrder> pageQuery(int page, int size, String orderNo, String userId,
+                                 String paymentChannel, Integer status);
 }

@@ -79,14 +79,38 @@ class RefundServiceImplTest {
 
     @Test
     void approvesPendingRefund() {
-        Refund pending = new Refund().setRefundNo("RF-1").setStatus(1);
+        Refund pending = new Refund()
+                .setRefundNo("RF-1")
+                .setPaymentNo("PAY-1")
+                .setRefundAmount(new BigDecimal("30.00"))
+                .setStatus(1);
         when(refundMapper.selectOne(any(Wrapper.class), eq(true))).thenReturn(pending);
+        when(paymentOrderService.queryPayment("PAY-1")).thenReturn(paidPayment());
+        when(refundMapper.selectList(any(Wrapper.class))).thenReturn(List.of());
         when(refundMapper.updateById(any(Refund.class))).thenReturn(1);
 
         Refund approved = refundService.approveRefund("RF-1");
 
         assertEquals(2, approved.getStatus());
         assertNotNull(approved.getRefundedAt());
+    }
+
+    @Test
+    void rejectsApprovalThatExceedsBalanceAtApprovalTime() {
+        Refund pending = new Refund()
+                .setRefundNo("RF-1")
+                .setPaymentNo("PAY-1")
+                .setRefundAmount(new BigDecimal("30.00"))
+                .setStatus(1);
+        Refund approvedBefore = new Refund()
+                .setRefundAmount(new BigDecimal("80.00"))
+                .setStatus(2);
+        when(refundMapper.selectOne(any(Wrapper.class), eq(true))).thenReturn(pending);
+        when(paymentOrderService.queryPayment("PAY-1")).thenReturn(paidPayment());
+        when(refundMapper.selectList(any(Wrapper.class))).thenReturn(List.of(approvedBefore));
+
+        assertThrows(IllegalStateException.class, () -> refundService.approveRefund("RF-1"));
+        verify(refundMapper, never()).updateById(any(Refund.class));
     }
 
     @Test

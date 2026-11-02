@@ -1,5 +1,6 @@
 package com.scmcloud.payment.service;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.IService;
 import com.scmcloud.payment.domain.entity.Refund;
 
@@ -14,4 +15,7 @@ public interface IRefundService extends IService<Refund> {
     Refund approveRefund(String refundNo);
 
     Refund rejectRefund(String refundNo, String reason);
+
+    Page<Refund> pageQuery(int page, int size, String paymentNo, String orderNo,
+                           String userId, Integer status);
 }
