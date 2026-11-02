@@ -1523,6 +1523,7 @@ git commit -m "feat(supplier): performance evaluation and change log sections"
 - Create: `src/app/[locale]/(app)/supplier/[id]/edit/page.tsx`
 - Modify: `src/features/supplier/hooks/index.ts`（导出新 hook）
 - Modify: `src/features/supplier/lib/query-keys.ts`（新增 `formDetail` key）
+- Modify: `src/features/supplier/lib/supplier-form-schema.ts`（导出 `CREDIT_RATINGS`）
 - Modify: `src/features/supplier/components/index.ts`（具名导出 `SupplierForm`）
 - Test: `src/features/supplier/components/supplier-form.test.tsx`
 
@@ -1594,9 +1595,15 @@ describe("SupplierForm", () => {
   `supplierKeys.formDetail(id)`，避免以后和 `detail` 的 UI 形状撞车。
 - 4 张 `Card`：基本信息 / 联系信息 / 结算信息 / 其他，栅格 `grid gap-4 md:grid-cols-2`
 - 字段与 `SupplierFormValues` 一一对应；`supplierType` 用 `Select`（`SUPPLIER_TYPES`），
-  `creditRating` 用 `Select`（空串选项 + 6 个等级），`registeredCapital` / `sortOrder` 用 `type="number"`，
+  `creditRating` 用 `Select`，`registeredCapital` / `sortOrder` 用 `type="number"`，
   `establishmentDate` 用 `type="date"`，`registeredCapital` 与 `sortOrder` 在表单里保持**字符串**，
   提交时由 `toSupplierPayload` 转数字
+- **两个 `Select` 都不能用空串作为 `SelectItem` 的 value** —— Radix 会直接抛
+  「A <Select.Item /> must have a value prop that is not an empty string」。用 `__none__`
+  哨兵表示「未选择」，`onValueChange` 时映射回 `""`（既有 `product-form.tsx` 的
+  `NO_BRAND = "__none__"` 是同一手法）。
+- `creditRating` 的 6 个等级从 `supplier-form-schema.ts` **导出的** `CREDIT_RATINGS` 读取
+  （把现有的私有常量改成 `export`），不要在表单里再抄一份。
 - 编辑模式下 `supplierCode` 的 `Input` 加 `disabled`
 - 顶部：错误提示块（`submitError` 样式）+ 「取消」`Button variant="outline"`（`router.push("/supplier")`）+ 「保存」`Button type="submit"`
 - 提交：`const payload = toSupplierPayload(values)`；`id ? update.mutateAsync({ id, data: payload }) : create.mutateAsync(payload)`；
@@ -1648,7 +1655,7 @@ Run: `npx vitest run src/features/supplier/components/supplier-form.test.tsx` �
 Run: `npm run typecheck` → 无错误
 
 ```bash
-git add src/features/supplier/components/supplier-form.tsx src/features/supplier/components/supplier-form.test.tsx src/features/supplier/components/index.ts src/features/supplier/hooks/use-supplier-form-detail.ts src/features/supplier/hooks/index.ts src/features/supplier/lib/query-keys.ts "src/app/[locale]/(app)/supplier/new/page.tsx" "src/app/[locale]/(app)/supplier/[id]/edit/page.tsx"
+git add src/features/supplier/components/supplier-form.tsx src/features/supplier/components/supplier-form.test.tsx src/features/supplier/components/index.ts src/features/supplier/hooks/use-supplier-form-detail.ts src/features/supplier/hooks/index.ts src/features/supplier/lib/query-keys.ts src/features/supplier/lib/supplier-form-schema.ts "src/app/[locale]/(app)/supplier/new/page.tsx" "src/app/[locale]/(app)/supplier/[id]/edit/page.tsx"
 git commit -m "feat(supplier): create and edit supplier master data form"
 ```
 
