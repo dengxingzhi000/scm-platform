@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class LogisticsCrudServiceImplTest {
 
@@ -148,6 +149,9 @@ class LogisticsCrudServiceImplTest {
         TmsWaybillMapper mapper = mock(TmsWaybillMapper.class);
         TmsWaybillServiceImpl service = new TmsWaybillServiceImpl(null);
         attach(service, mapper);
+        // save() reports failure when the insert affects no row, and
+        // createWaybill() turns that into an exception.
+        when(mapper.insert(any(TmsWaybill.class))).thenReturn(1);
 
         TmsWaybill waybill = new TmsWaybill();
         service.createWaybill(waybill);

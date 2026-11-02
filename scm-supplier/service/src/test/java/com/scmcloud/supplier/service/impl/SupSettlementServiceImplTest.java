@@ -38,7 +38,9 @@ class SupSettlementServiceImplTest {
         SupSettlement existing = new SupSettlement();
         existing.setId(id);
         existing.setStatus(0);
-        when(mapper.selectById(id)).thenReturn(existing);
+        // updateSettlement() reads through getById(String), so the mapper is
+        // called with the string form of the id, not the UUID.
+        when(mapper.selectById(id.toString())).thenReturn(existing);
         doThrow(new IllegalStateException("非法状态流转: SUPPLIER_SETTLEMENT DRAFT -> PARTIAL_PAID"))
                 .when(validator).validateTransition("SUPPLIER_SETTLEMENT", "DRAFT", "PARTIAL_PAID");
 
@@ -62,7 +64,9 @@ class SupSettlementServiceImplTest {
         SupSettlement reloaded = new SupSettlement();
         reloaded.setId(id);
         reloaded.setStatus(1);
-        when(mapper.selectById(id)).thenReturn(existing, reloaded);
+        // updateSettlement() reads through getById(String), so the mapper is
+        // called with the string form of the id, not the UUID.
+        when(mapper.selectById(id.toString())).thenReturn(existing, reloaded);
         doNothing().when(validator).validateTransition("SUPPLIER_SETTLEMENT", "DRAFT", "CONFIRMED");
 
         SupSettlement request = new SupSettlement();
@@ -84,7 +88,9 @@ class SupSettlementServiceImplTest {
         SupSettlement existing = new SupSettlement();
         existing.setId(id);
         existing.setStatus(1);
-        when(mapper.selectById(id)).thenReturn(existing, existing);
+        // updateSettlement() reads through getById(String), so the mapper is
+        // called with the string form of the id, not the UUID.
+        when(mapper.selectById(id.toString())).thenReturn(existing, existing);
 
         SupSettlement request = new SupSettlement();
         request.setRemark("only remark");
@@ -103,7 +109,9 @@ class SupSettlementServiceImplTest {
         SupSettlement existing = new SupSettlement();
         existing.setId(id);
         existing.setStatus(1);
-        when(mapper.selectById(id)).thenReturn(existing, existing);
+        // updateSettlement() reads through getById(String), so the mapper is
+        // called with the string form of the id, not the UUID.
+        when(mapper.selectById(id.toString())).thenReturn(existing, existing);
 
         SupSettlement request = new SupSettlement();
         request.setStatus(1);

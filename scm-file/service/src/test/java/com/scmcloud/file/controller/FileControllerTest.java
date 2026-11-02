@@ -215,7 +215,9 @@ class FileControllerTest {
         controller.download("file-1", response);
 
         assertEquals(404, response.getStatus());
-        assertTrue(response.getContentAsString().isEmpty());
+        // getContentAsString() throws a checked UnsupportedEncodingException,
+        // so read the bytes instead.
+        assertEquals(0, response.getContentAsByteArray().length);
     }
 
     private FileUpdateRequest requestWith(String name, String bizType, String bizId) {
