@@ -1012,8 +1012,6 @@ services:
       SPRING_APPLICATION_NAME: scm-file
       # dynamic-datasource 需要显式 master，否则启动时 CannotFindDataSourceException
       SPRING_DATASOURCE_DYNAMIC_DATASOURCE_MASTER_URL: jdbc:postgresql://postgres:5432/db_system?stringtype=unspecified
-      # 模块默认 8201 与 scm-product 冲突，容器里改成 8214
-      SERVER_PORT: 8214
     ports:
       - "8214:8214"
 

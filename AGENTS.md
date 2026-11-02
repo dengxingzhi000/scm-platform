@@ -127,8 +127,8 @@ Read from each module's `application.yml`.
 | Gateway | 8761 | Finance | 8208 |
 | Auth | 8106 | Message | 8209 ⚠ |
 | System | 8081 | Approval | 8209 ⚠ |
-| Product | 8201 ⚠ | Audit | 8210 |
-| File | 8201 ⚠ | Notify | 8211 |
+| Product | 8201 | Audit | 8210 |
+| File | 8214 | Notify | 8211 |
 | Inventory | 8202 | Tenant | 8212 |
 | Order | 8203 | Document | 8213 |
 | Warehouse | 8204 | Mall | 8301 |
@@ -143,7 +143,6 @@ Read from each module's `application.yml`.
 Real collisions in the checked-in config — override `server.port` before running
 both halves of a pair:
 
-- `scm-file` ↔ `scm-product` — both 8201
 - `scm-message` ↔ `scm-approval` — both 8209
 - Grafana ↔ `scm-web` dev server — both 3000 (`docker-compose.yml` maps `3000:3000`)
 - `schema-registry` ↔ `scm-system` — both 8081
