@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import type { ReactNode } from "react";
 import dayjs from "dayjs";
 import { CheckCircle2, Pencil, Plus, Trash2 } from "lucide-react";
 
@@ -25,7 +24,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -59,6 +57,7 @@ import {
 } from "../lib/constants";
 import { formatDate } from "../lib/mappers";
 import type { SupplierCertificate } from "../types";
+import SupplierField from "./supplier-field";
 
 interface SupplierCertificatePanelProps {
   supplierId: string;
@@ -85,32 +84,6 @@ const daysClassOf = (days: number | null): string => {
   if (days <= 30) return "text-[var(--color-warning-text)]";
   return "text-muted-foreground";
 };
-
-function Field({
-  label,
-  required,
-  htmlFor,
-  className,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  htmlFor: string;
-  className?: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className={className}>
-      <div className="mb-1.5 flex items-center gap-1">
-        <Label className="text-[12px]" htmlFor={htmlFor}>
-          {label}
-        </Label>
-        {required && <span className="text-destructive text-[12px]">*</span>}
-      </div>
-      {children}
-    </div>
-  );
-}
 
 interface CertificateFormDialogProps {
   open: boolean;
@@ -156,7 +129,6 @@ function CertificateFormDialog({
   const handleSubmit = async () => {
     if (!canSubmit) return;
     setError(null);
-    // 状态交给后端按有效期判定 —— 前端不代填，免得把审核结论覆盖掉。
     const data = {
       certificateType: form.certificateType.trim(),
       certificateName: form.certificateName.trim(),
@@ -165,6 +137,11 @@ function CertificateFormDialog({
       validFrom: form.validFrom || null,
       validTo: form.validTo || null,
       fileUrl: form.fileUrl.trim() || null,
+      // 更新时必须回传当前状态：SupSupplierCertificateServiceImpl.update 在请求不带
+      // status 时会按 validTo 重算（resolveStatus 只可能给出 1/2/3），从而把人工的
+      // 待审核(0) / 已驳回(4) 静默改写。回显当前状态即可保住审核结论；读路径
+      // fillDerivedFields 仍会按当天日期刷新 1/2/3，所以日期驱动的状态不会过期。
+      ...(certificate ? { status: certificate.status ?? undefined } : {}),
     };
     try {
       if (certificate) {
@@ -191,7 +168,7 @@ function CertificateFormDialog({
         </DialogHeader>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="证照类型" required htmlFor="certificate-type">
+          <SupplierField label="证照类型" required htmlFor="certificate-type">
             <Select
               value={form.certificateType}
               onValueChange={(value) => set("certificateType", value)}
@@ -207,16 +184,16 @@ function CertificateFormDialog({
                 ))}
               </SelectContent>
             </Select>
-          </Field>
-          <Field label="证照名称" required htmlFor="certificate-name">
+          </SupplierField>
+          <SupplierField label="证照名称" required htmlFor="certificate-name">
             <Input
               id="certificate-name"
               value={form.certificateName}
               onChange={(event) => set("certificateName", event.target.value)}
               placeholder="例如：食品生产许可证"
             />
-          </Field>
-          <Field label="证照编号" htmlFor="certificate-no">
+          </SupplierField>
+          <SupplierField label="证照编号" htmlFor="certificate-no">
             <Input
               id="certificate-no"
               value={form.certificateNo}
@@ -224,39 +201,39 @@ function CertificateFormDialog({
               placeholder="例如：SC12345678901234"
               className="font-mono"
             />
-          </Field>
-          <Field label="发证机关" htmlFor="certificate-authority">
+          </SupplierField>
+          <SupplierField label="发证机关" htmlFor="certificate-authority">
             <Input
               id="certificate-authority"
               value={form.issuingAuthority}
               onChange={(event) => set("issuingAuthority", event.target.value)}
               placeholder="例如：广东省市场监督管理局"
             />
-          </Field>
-          <Field label="有效期起" htmlFor="certificate-valid-from">
+          </SupplierField>
+          <SupplierField label="有效期起" htmlFor="certificate-valid-from">
             <Input
               id="certificate-valid-from"
               type="date"
               value={form.validFrom}
               onChange={(event) => set("validFrom", event.target.value)}
             />
-          </Field>
-          <Field label="有效期止" htmlFor="certificate-valid-to">
+          </SupplierField>
+          <SupplierField label="有效期止" htmlFor="certificate-valid-to">
             <Input
               id="certificate-valid-to"
               type="date"
               value={form.validTo}
               onChange={(event) => set("validTo", event.target.value)}
             />
-          </Field>
-          <Field label="文件地址" htmlFor="certificate-file" className="sm:col-span-2">
+          </SupplierField>
+          <SupplierField label="文件地址" htmlFor="certificate-file" className="sm:col-span-2">
             <Input
               id="certificate-file"
               value={form.fileUrl}
               onChange={(event) => set("fileUrl", event.target.value)}
               placeholder="例如：https://files.example.com/cert-1.pdf"
             />
-          </Field>
+          </SupplierField>
         </div>
 
         {error && <div className={ERROR_STRIP}>{error}</div>}
@@ -343,7 +320,7 @@ function CertificateVerifyDialog({
           </label>
         </div>
 
-        <Field label="审核备注" htmlFor="certificate-remark">
+        <SupplierField label="审核备注" htmlFor="certificate-remark">
           <Textarea
             id="certificate-remark"
             rows={3}
@@ -351,7 +328,7 @@ function CertificateVerifyDialog({
             onChange={(event) => setRemark(event.target.value)}
             placeholder="可填写审核意见"
           />
-        </Field>
+        </SupplierField>
 
         {error && <div className={ERROR_STRIP}>{error}</div>}
 

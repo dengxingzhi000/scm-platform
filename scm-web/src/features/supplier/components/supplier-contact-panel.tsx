@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import type { ReactNode } from "react";
 import { Pencil, Plus, Star, Trash2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +23,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -52,6 +50,7 @@ import {
 import { errorMessage } from "../lib/api-error";
 import { CONTACT_ROLES, labelOf } from "../lib/constants";
 import type { SupplierContact } from "../types";
+import SupplierField from "./supplier-field";
 
 interface SupplierContactPanelProps {
   supplierId: string;
@@ -66,32 +65,6 @@ const NO_ROLE = "__none__";
 /** 行内错误条。 */
 const ERROR_STRIP =
   "border-destructive/30 bg-destructive/10 text-destructive rounded-md border px-3 py-2 text-sm";
-
-function Field({
-  label,
-  required,
-  htmlFor,
-  className,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  htmlFor: string;
-  className?: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className={className}>
-      <div className="mb-1.5 flex items-center gap-1">
-        <Label className="text-[12px]" htmlFor={htmlFor}>
-          {label}
-        </Label>
-        {required && <span className="text-destructive text-[12px]">*</span>}
-      </div>
-      {children}
-    </div>
-  );
-}
 
 interface ContactFormDialogProps {
   open: boolean;
@@ -162,23 +135,23 @@ function ContactFormDialog({
         </DialogHeader>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="姓名" required htmlFor="contact-name">
+          <SupplierField label="姓名" required htmlFor="contact-name">
             <Input
               id="contact-name"
               value={form.contactName}
               onChange={(event) => set("contactName", event.target.value)}
               placeholder="例如：张伟"
             />
-          </Field>
-          <Field label="职务" htmlFor="contact-title">
+          </SupplierField>
+          <SupplierField label="职务" htmlFor="contact-title">
             <Input
               id="contact-title"
               value={form.contactTitle}
               onChange={(event) => set("contactTitle", event.target.value)}
               placeholder="例如：销售经理"
             />
-          </Field>
-          <Field label="角色" htmlFor="contact-role">
+          </SupplierField>
+          <SupplierField label="角色" htmlFor="contact-role">
             <Select
               value={form.contactRole}
               onValueChange={(value) => set("contactRole", value)}
@@ -195,16 +168,16 @@ function ContactFormDialog({
                 ))}
               </SelectContent>
             </Select>
-          </Field>
-          <Field label="电话" htmlFor="contact-phone">
+          </SupplierField>
+          <SupplierField label="电话" htmlFor="contact-phone">
             <Input
               id="contact-phone"
               value={form.contactPhone}
               onChange={(event) => set("contactPhone", event.target.value)}
               placeholder="例如：13800002210"
             />
-          </Field>
-          <Field label="邮箱" htmlFor="contact-email">
+          </SupplierField>
+          <SupplierField label="邮箱" htmlFor="contact-email">
             <Input
               id="contact-email"
               type="email"
@@ -212,15 +185,15 @@ function ContactFormDialog({
               onChange={(event) => set("contactEmail", event.target.value)}
               placeholder="例如：zhang@example.com"
             />
-          </Field>
-          <Field label="地址" htmlFor="contact-address" className="sm:col-span-2">
+          </SupplierField>
+          <SupplierField label="地址" htmlFor="contact-address" className="sm:col-span-2">
             <Textarea
               id="contact-address"
               rows={2}
               value={form.contactAddress}
               onChange={(event) => set("contactAddress", event.target.value)}
             />
-          </Field>
+          </SupplierField>
         </div>
 
         {error && <div className={ERROR_STRIP}>{error}</div>}

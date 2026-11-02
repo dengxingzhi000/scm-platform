@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import type { ReactNode } from "react";
 import { Eye, EyeOff, Pencil, Plus, Star, Trash2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +23,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -44,6 +42,7 @@ import {
 import { errorMessage } from "../lib/api-error";
 import { maskBankAccount } from "../lib/mappers";
 import type { SupplierBankAccount } from "../types";
+import SupplierField from "./supplier-field";
 
 interface SupplierBankAccountPanelProps {
   supplierId: string;
@@ -55,30 +54,6 @@ const MISSING = "-";
 /** 行内错误条。 */
 const ERROR_STRIP =
   "border-destructive/30 bg-destructive/10 text-destructive rounded-md border px-3 py-2 text-sm";
-
-function Field({
-  label,
-  required,
-  htmlFor,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  htmlFor: string;
-  children: ReactNode;
-}) {
-  return (
-    <div>
-      <div className="mb-1.5 flex items-center gap-1">
-        <Label className="text-[12px]" htmlFor={htmlFor}>
-          {label}
-        </Label>
-        {required && <span className="text-destructive text-[12px]">*</span>}
-      </div>
-      {children}
-    </div>
-  );
-}
 
 interface BankAccountFormDialogProps {
   open: boolean;
@@ -158,23 +133,23 @@ function BankAccountFormDialog({
         </DialogHeader>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="开户行" required htmlFor="bank-name">
+          <SupplierField label="开户行" required htmlFor="bank-name">
             <Input
               id="bank-name"
               value={form.bankName}
               onChange={(event) => set("bankName", event.target.value)}
               placeholder="例如：招商银行"
             />
-          </Field>
-          <Field label="支行" htmlFor="bank-branch">
+          </SupplierField>
+          <SupplierField label="支行" htmlFor="bank-branch">
             <Input
               id="bank-branch"
               value={form.bankBranch}
               onChange={(event) => set("bankBranch", event.target.value)}
               placeholder="例如：深圳分行科技园支行"
             />
-          </Field>
-          <Field label="账号" required htmlFor="bank-account">
+          </SupplierField>
+          <SupplierField label="账号" required htmlFor="bank-account">
             <Input
               id="bank-account"
               value={form.bankAccount}
@@ -182,16 +157,16 @@ function BankAccountFormDialog({
               placeholder="例如：6222021234567890"
               className="font-mono"
             />
-          </Field>
-          <Field label="账户名" required htmlFor="bank-account-name">
+          </SupplierField>
+          <SupplierField label="账户名" required htmlFor="bank-account-name">
             <Input
               id="bank-account-name"
               value={form.accountName}
               onChange={(event) => set("accountName", event.target.value)}
               placeholder="例如：深圳华强电子有限公司"
             />
-          </Field>
-          <Field label="币种" htmlFor="bank-currency">
+          </SupplierField>
+          <SupplierField label="币种" htmlFor="bank-currency">
             <Input
               id="bank-currency"
               value={form.currency}
@@ -199,8 +174,8 @@ function BankAccountFormDialog({
               placeholder="留空默认人民币，例如：CNY"
               className="font-mono"
             />
-          </Field>
-          <Field label="SWIFT" htmlFor="bank-swift">
+          </SupplierField>
+          <SupplierField label="SWIFT" htmlFor="bank-swift">
             <Input
               id="bank-swift"
               value={form.swiftCode}
@@ -208,7 +183,7 @@ function BankAccountFormDialog({
               placeholder="例如：CMBCCNBS"
               className="font-mono"
             />
-          </Field>
+          </SupplierField>
         </div>
 
         {error && <div className={ERROR_STRIP}>{error}</div>}

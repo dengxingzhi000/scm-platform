@@ -438,4 +438,47 @@ describe("supplier detail panels", () => {
       }),
     );
   });
+
+  // 后端 update 在请求不带 status 时会按 validTo 重算（只可能给出 1/2/3），
+  // 把人工的「已驳回(4)」静默改掉 —— 所以编辑时必须回显当前状态。
+  it("echoes the audited status back when a certificate is edited", async () => {
+    h.certificates = [{ ...pendingCertificate, status: 4 }];
+    render(<SupplierCertificatePanel supplierId="s-1" />);
+    await userEvent.click(
+      await screen.findByRole("button", { name: "编辑食品生产许可证" }),
+    );
+
+    const name = await screen.findByLabelText("证照名称");
+    await userEvent.clear(name);
+    await userEvent.type(name, "食品经营许可证");
+    await userEvent.click(screen.getByRole("button", { name: "保存" }));
+
+    await waitFor(() =>
+      expect(h.updateCertificate).toHaveBeenCalledWith({
+        supplierId: "s-1",
+        id: "cert-2",
+        data: expect.objectContaining({
+          certificateName: "食品经营许可证",
+          status: 4,
+        }),
+      }),
+    );
+  });
+
+  // 新增时状态由后端按有效期推导，前端不代填。
+  it("leaves the status out when a certificate is created", async () => {
+    render(<SupplierCertificatePanel supplierId="s-1" />);
+    await userEvent.click(
+      await screen.findByRole("button", { name: "新增资质证照" }),
+    );
+
+    await userEvent.click(await screen.findByLabelText("证照类型"));
+    await userEvent.click(await screen.findByRole("option", { name: "营业执照" }));
+    await userEvent.type(await screen.findByLabelText("证照名称"), "食品经营许可证");
+    await userEvent.click(screen.getByRole("button", { name: "保存" }));
+
+    await waitFor(() => expect(h.createCertificate).toHaveBeenCalled());
+    const [{ data }] = h.createCertificate.mock.calls[0];
+    expect(Object.keys(data)).not.toContain("status");
+  });
 });
