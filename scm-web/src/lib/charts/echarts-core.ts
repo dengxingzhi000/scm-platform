@@ -1,9 +1,16 @@
 import * as echarts from "echarts/core";
-import { BarChart, LineChart, PieChart } from "echarts/charts";
+import {
+  BarChart,
+  LineChart,
+  PieChart,
+  RadarChart,
+  ScatterChart,
+} from "echarts/charts";
 import {
   DatasetComponent,
   GridComponent,
   LegendComponent,
+  RadarComponent,
   TitleComponent,
   TooltipComponent,
   TransformComponent,
@@ -21,9 +28,12 @@ echarts.use([
   BarChart,
   LineChart,
   PieChart,
+  RadarChart,
+  ScatterChart,
   DatasetComponent,
   GridComponent,
   LegendComponent,
+  RadarComponent,
   TitleComponent,
   TooltipComponent,
   TransformComponent,
