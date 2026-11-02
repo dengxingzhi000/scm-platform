@@ -30,11 +30,13 @@ public final class OdsRowMapper {
         row.put("order_no", textOrNull(innerPayload, "orderNo"));
         row.put("order_id", textOrNull(innerPayload, "orderId"));
         row.put("user_id", textOrNull(innerPayload, "userId"));
-        // TODO: enrich order_status from OrderStatusChangedEvent (not present at ORDER_CREATED time).
-        row.put("order_status", null);
+        // ORDER_CREATED carries no status. Publishers that enrich the payload may
+        // include it; later ORDER_STATUS_CHANGED events are not merged here because
+        // ods_order is ReplacingMergeTree and a partial row would erase the amounts.
+        row.put("order_status", orderStatusOrNull(innerPayload));
         row.put("total_amount", decimalOrNull(innerPayload, "totalAmount"));
         row.put("pay_amount", decimalOrNull(innerPayload, "payableAmount"));
-        // TODO: enrich pay_time from a later payment event.
+        // pay_time is only known after a payment event; it is not part of ORDER_CREATED.
         row.put("pay_time", null);
         // Surface orderSource when the publisher includes it; null otherwise.
         row.put("order_source", textOrNull(innerPayload, "orderSource"));
@@ -80,6 +82,21 @@ public final class OdsRowMapper {
         if (node == null) return null;
         JsonNode v = node.get(field);
         return (v == null || v.isNull()) ? null : v.asText();
+    }
+
+    /**
+     * Order status key: prefers {@code orderStatus}, then {@code status} and
+     * {@code toStatus} (the field names used by the different publishers).
+     */
+    private static String orderStatusOrNull(JsonNode node) {
+        String status = textOrNull(node, "orderStatus");
+        if (status == null) {
+            status = textOrNull(node, "status");
+        }
+        if (status == null) {
+            status = textOrNull(node, "toStatus");
+        }
+        return status;
     }
 
     private static Integer intOrNull(JsonNode node, String field) {

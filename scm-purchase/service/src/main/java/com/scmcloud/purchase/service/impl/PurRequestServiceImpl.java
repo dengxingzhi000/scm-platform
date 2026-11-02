@@ -6,13 +6,11 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import com.scmcloud.purchase.domain.entity.PurRequest;
 import com.scmcloud.purchase.mapper.PurRequestMapper;
 import com.scmcloud.purchase.service.IPurRequestService;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Slf4j
@@ -56,94 +54,5 @@ public class PurRequestServiceImpl extends ServiceImpl<PurRequestMapper, PurRequ
                 .eq(PurRequest::getDeleted, false)
                 .orderByDesc(PurRequest::getCreateTime)
                 .list();
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public boolean submit(String id) {
-        PurRequest request = getById(id);
-        if (request == null || request.getDeleted()) {
-            throw new IllegalArgumentException("Purchase request not found: " + id);
-        }
-        if (request.getStatus() != 0) {
-            throw new IllegalStateException("Only draft requests can be submitted");
-        }
-        request.setStatus(1);
-        request.setSubmittedAt(LocalDateTime.now());
-        request.setUpdateTime(LocalDateTime.now());
-        return updateById(request);
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public boolean approve(String id, String approverId, String approverName) {
-        PurRequest request = getById(id);
-        if (request == null || request.getDeleted()) {
-            throw new IllegalArgumentException("Purchase request not found: " + id);
-        }
-        if (request.getStatus() != 1) {
-            throw new IllegalStateException("Only pending approval requests can be approved");
-        }
-        request.setStatus(2);
-        request.setCurrentApproverId(approverId);
-        request.setCurrentApproverName(approverName);
-        request.setApprovedAt(LocalDateTime.now());
-        request.setUpdateTime(LocalDateTime.now());
-        return updateById(request);
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public boolean reject(String id, String approverId, String approverName, String reason) {
-        PurRequest request = getById(id);
-        if (request == null || request.getDeleted()) {
-            throw new IllegalArgumentException("Purchase request not found: " + id);
-        }
-        if (request.getStatus() != 1) {
-            throw new IllegalStateException("Only pending approval requests can be rejected");
-        }
-        request.setStatus(3);
-        request.setCurrentApproverId(approverId);
-        request.setCurrentApproverName(approverName);
-        request.setRejectedAt(LocalDateTime.now());
-        request.setRejectReason(reason);
-        request.setUpdateTime(LocalDateTime.now());
-        return updateById(request);
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public boolean close(String id) {
-        PurRequest request = getById(id);
-        if (request == null || request.getDeleted()) {
-            throw new IllegalArgumentException("Purchase request not found: " + id);
-        }
-        if (request.getStatus() == 4) {
-            throw new IllegalStateException("Requests already converted to order cannot be closed");
-        }
-        request.setStatus(5);
-        request.setUpdateTime(LocalDateTime.now());
-        return updateById(request);
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public boolean convertToOrder(String id, String orderId, String orderNo) {
-        PurRequest request = getById(id);
-        if (request == null || request.getDeleted()) {
-            throw new IllegalArgumentException("Purchase request not found: " + id);
-        }
-        if (request.getStatus() != 2) {
-            throw new IllegalStateException("Only approved requests can be converted to purchase order");
-        }
-        if (Boolean.TRUE.equals(request.getConverted())) {
-            throw new IllegalStateException("璇ョ敵璇峰凡杞噰璐崟");
-        }
-        request.setStatus(4);
-        request.setConverted(true);
-        request.setPurchaseOrderId(orderId);
-        request.setPurchaseOrderNo(orderNo);
-        request.setUpdateTime(LocalDateTime.now());
-        return updateById(request);
     }
 }

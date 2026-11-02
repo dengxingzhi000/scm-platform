@@ -26,6 +26,8 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -174,9 +176,61 @@ class OrdOrderCommandServiceEventTest {
                         true, "ORDER", "PAID", "PENDING_SHIP", null));
         when(ordOrderMapper.updateById(any(OrdOrder.class))).thenReturn(0);
 
-        boolean updated = service.updateOrderStatus(java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"), OrderStatus.PENDING_SHIP.getCode());
+        OrdOrder updated = service.updateOrderStatus(java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"), OrderStatus.PENDING_SHIP.getCode());
 
-        assertEquals(false, updated);
+        assertNull(updated);
         verify(eventStore, never()).append(any());
+    }
+
+    @Test
+    void updateOrderStatusShouldReturnWrittenEntity() {
+        OrdOrder existing = order(OrderStatus.PAID.getCode());
+        when(ordOrderMapper.selectById(java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"))).thenReturn(existing);
+        when(statusMachine.canTransition("ORDER", "PAID", "PENDING_SHIP"))
+                .thenReturn(new StatusMachineDubboService.TransitionCheckDTO(
+                        true, "ORDER", "PAID", "PENDING_SHIP", null));
+        when(ordOrderMapper.updateById(any(OrdOrder.class))).thenReturn(1);
+
+        OrdOrder updated = service.updateOrderStatus(
+                java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"),
+                OrderStatus.PENDING_SHIP.getCode());
+
+        assertSame(existing, updated);
+        assertEquals(OrderStatus.PENDING_SHIP.getCode(), updated.getStatus());
+    }
+
+    @Test
+    void updateOrderStatusShouldReturnNullWhenOrderMissing() {
+        when(ordOrderMapper.selectById(java.util.UUID.fromString("00000000-0000-0000-0000-000000000002")))
+                .thenReturn(null);
+
+        assertNull(service.updateOrderStatus(
+                java.util.UUID.fromString("00000000-0000-0000-0000-000000000002"),
+                OrderStatus.PENDING_SHIP.getCode()));
+        verify(ordOrderMapper, never()).updateById(any(OrdOrder.class));
+    }
+
+    @Test
+    void cancelOrderShouldReturnCancelledEntity() {
+        OrdOrder existing = order(OrderStatus.PAID.getCode());
+        UUID orderId = java.util.UUID.fromString("00000000-0000-0000-0000-000000000001");
+        when(ordOrderMapper.selectById(orderId)).thenReturn(existing);
+        when(statusMachine.canTransition("ORDER", "PAID", "CANCELLED"))
+                .thenReturn(new StatusMachineDubboService.TransitionCheckDTO(
+                        true, "ORDER", "PAID", "CANCELLED", null));
+        when(ordOrderMapper.updateById(any(OrdOrder.class))).thenReturn(1);
+
+        OrdOrder cancelled = service.cancelOrder(orderId, "用户取消");
+
+        assertSame(existing, cancelled);
+        assertEquals(OrderStatus.CANCELLED.getCode(), cancelled.getStatus());
+    }
+
+    @Test
+    void cancelOrderShouldReturnNullWhenOrderMissing() {
+        UUID orderId = java.util.UUID.fromString("00000000-0000-0000-0000-000000000002");
+        when(ordOrderMapper.selectById(orderId)).thenReturn(null);
+
+        assertNull(service.cancelOrder(orderId, "用户取消"));
     }
 }

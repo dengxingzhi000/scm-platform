@@ -1,8 +1,10 @@
 package com.scmcloud.audit.domain.entity;
 
+import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.scmcloud.common.domain.TenantId;
 
 import java.io.Serial;
 import java.time.LocalDateTime;
@@ -30,6 +32,10 @@ public class SysSensitiveOperationLog implements Serializable {
 
     @TableId(value = "id", type = IdType.NONE)
     private String id;
+
+    /** Filled from the tenant context by {@code AuditMetaObjectHandler}. */
+    @TableField(value = "tenant_id", fill = FieldFill.INSERT)
+    private TenantId tenantId;
 
     @TableField("user_id")
     private String userId;
@@ -82,13 +88,13 @@ public class SysSensitiveOperationLog implements Serializable {
     @TableField("location")
     private String location;
 
-    @TableField("create_time")
+    @TableField(value = "create_time", fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 
-    @TableField("real_name")
+    @TableField(exist = false)
     private String realName;
 
-    @TableField("dept_name")
+    @TableField(exist = false)
     private String deptName;
 
 }

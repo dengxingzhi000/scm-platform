@@ -18,10 +18,14 @@ spring:
 
   # Datasource
   datasource:
-    driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:db_approval}
-    username: ${DB_USERNAME:admin}
-    password: ${DB_PASSWORD:changeme}
+    dynamic:
+      primary: master
+      datasource:
+        master:
+          driver-class-name: org.postgresql.Driver
+          url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:db_approval}?stringtype=unspecified
+          username: ${DB_USERNAME:admin}
+          password: ${DB_PASSWORD:changeme}
 
   flyway:
     enabled: true
@@ -120,3 +124,11 @@ frog:
       hsts-enabled: true
       hsts-max-age: 31536000
       hsts-include-subdomains: true
+
+# Shared Kafka producer from scm-common-integration, used to tell applicants about decisions.
+integration:
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+
+notify:
+  request-topic: ${NOTIFY_REQUEST_TOPIC:scm.notify.events}

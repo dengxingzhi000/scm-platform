@@ -172,6 +172,20 @@ frog:
       hsts-max-age: 31536000
       hsts-include-subdomains: true
 
+# Shared Kafka producer from scm-common-integration, used to hand stock alerts to scm-notify.
+integration:
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+
+notify:
+  request-topic: ${NOTIFY_REQUEST_TOPIC:scm.notify.events}
+
+scm:
+  inventory:
+    alert:
+      # Comma-separated user ids that receive stock alerts when the alert row names none.
+      notify-user-ids: ${INVENTORY_ALERT_NOTIFY_USER_IDS:}
+
 logging:
   level:
     root: INFO

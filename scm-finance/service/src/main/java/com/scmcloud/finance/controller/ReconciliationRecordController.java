@@ -1,11 +1,13 @@
 package com.scmcloud.finance.controller;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.scmcloud.common.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import com.scmcloud.finance.domain.entity.ReconciliationRecord;
 import com.scmcloud.finance.service.IReconciliationRecordService;
+import com.scmcloud.finance.service.query.ReconciliationRecordQueryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -17,6 +19,21 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @Tag(name = "对账记录", description = "管理双方对账记录的创建、对账、确认与差异标记。")
 public class ReconciliationRecordController {
     private final IReconciliationRecordService reconciliationRecordService;
+    private final ReconciliationRecordQueryService reconciliationRecordQueryService;
+
+    @Operation(summary = "分页查询对账记录", description = "按单号/往来单位关键字、账期、状态和差异标记分页查询对账记录。")
+    @GetMapping("/page")
+    public ApiResponse<Page<ReconciliationRecord>> page(
+            @Parameter(description = "页码，默认 1") @RequestParam(required = false) Integer page,
+            @Parameter(description = "每页数量，默认 20") @RequestParam(required = false) Integer size,
+            @Parameter(description = "单号或往来单位关键字") @RequestParam(required = false) String keyword,
+            @Parameter(description = "对账账期") @RequestParam(required = false) String reconciliationPeriod,
+            @Parameter(description = "状态") @RequestParam(required = false) Integer status,
+            @Parameter(description = "是否差异") @RequestParam(required = false) Boolean hasDiff) {
+        return ApiResponse.success(reconciliationRecordQueryService.pageQuery(
+                page == null ? 1 : page, size == null ? 20 : size,
+                keyword, reconciliationPeriod, status, hasDiff));
+    }
 
     @Operation(summary = "查询对账记录详情", description = "根据对账记录 ID 查询双方对账的完整信息。")
     @GetMapping("/{id}")

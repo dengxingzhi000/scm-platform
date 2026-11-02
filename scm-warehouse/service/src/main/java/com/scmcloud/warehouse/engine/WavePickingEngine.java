@@ -3,11 +3,13 @@ package com.scmcloud.warehouse.engine;
 import com.scmcloud.decision.engine.ClusteringEngine;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
+@Component
 @RequiredArgsConstructor
 public class WavePickingEngine implements ClusteringEngine<WaveInput, WaveOutput.Wave> {
 

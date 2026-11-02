@@ -18,10 +18,14 @@ spring:
 
   # Datasource
   datasource:
-    driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:db_audit}
-    username: ${DB_USERNAME:admin}
-    password: ${DB_PASSWORD:changeme}
+    dynamic:
+      primary: master
+      datasource:
+        master:
+          driver-class-name: org.postgresql.Driver
+          url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:db_audit}?stringtype=unspecified
+          username: ${DB_USERNAME:admin}
+          password: ${DB_PASSWORD:changeme}
 
   # Kafka
   kafka:

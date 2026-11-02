@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -23,10 +24,11 @@ public class SysUserNotificationServiceImpl
         implements ISysUserNotificationService {
 
     @Override
-    public Page<SysUserNotification> pageList(int page, int size, String type, Boolean isRead) {
+    public Page<SysUserNotification> pageList(int page, int size, String type, Boolean isRead,
+                                              String keyword, LocalDateTime startTime, LocalDateTime endTime) {
         String userId = currentUserId();
-        log.debug("分页查询站内通知 page={}, size={}, userId={}, type={}, isRead={}",
-                page, size, userId, type, isRead);
+        log.debug("分页查询站内通知 page={}, size={}, userId={}, type={}, isRead={}, keyword={}, startTime={}, endTime={}",
+                page, size, userId, type, isRead, keyword, startTime, endTime);
 
         LambdaQueryWrapper<SysUserNotification> wrapper = Wrappers.lambdaQuery();
         wrapper.eq(SysUserNotification::getTenantId, currentTenantId());
@@ -37,6 +39,17 @@ public class SysUserNotificationServiceImpl
         }
         if (isRead != null) {
             wrapper.eq(SysUserNotification::getIsRead, isRead);
+        }
+        if (StringUtils.hasText(keyword)) {
+            String like = keyword.trim();
+            wrapper.and(w -> w.like(SysUserNotification::getTitle, like)
+                    .or().like(SysUserNotification::getContent, like));
+        }
+        if (startTime != null) {
+            wrapper.ge(SysUserNotification::getCreateTime, startTime);
+        }
+        if (endTime != null) {
+            wrapper.le(SysUserNotification::getCreateTime, endTime);
         }
         wrapper.orderByAsc(SysUserNotification::getIsRead);
         wrapper.orderByDesc(SysUserNotification::getCreateTime);
@@ -92,6 +105,32 @@ public class SysUserNotificationServiceImpl
                 .set(SysUserNotification::getReadAt, LocalDateTime.now())
                 .set(SysUserNotification::getUpdateTime, LocalDateTime.now())
                 .update();
+    }
+
+    @Override
+    public boolean deleteNotification(String id) {
+        return lambdaUpdate()
+                .eq(SysUserNotification::getId, id)
+                .eq(SysUserNotification::getTenantId, currentTenantId())
+                .eq(SysUserNotification::getUserId, currentUserId())
+                .eq(SysUserNotification::getDeleted, false)
+                .set(SysUserNotification::getDeleted, true)
+                .set(SysUserNotification::getUpdateTime, LocalDateTime.now())
+                .update();
+    }
+
+    @Override
+    public int deleteNotifications(List<String> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return 0;
+        }
+        // delete(Wrapper) runs the global logic-delete update and returns the affected row count.
+        LambdaQueryWrapper<SysUserNotification> wrapper = Wrappers.lambdaQuery();
+        wrapper.in(SysUserNotification::getId, ids);
+        wrapper.eq(SysUserNotification::getTenantId, currentTenantId());
+        wrapper.eq(SysUserNotification::getUserId, currentUserId());
+        wrapper.eq(SysUserNotification::getDeleted, false);
+        return getBaseMapper().delete(wrapper);
     }
 
     private String currentUserId() {

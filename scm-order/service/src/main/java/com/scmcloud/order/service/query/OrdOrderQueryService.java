@@ -9,6 +9,7 @@ import com.scmcloud.order.domain.entity.OrdOrderItem;
 import com.scmcloud.order.dto.OrderQueryRequest;
 import com.scmcloud.order.mapper.OrdOrderItemMapper;
 import com.scmcloud.order.mapper.OrdOrderMapper;
+import com.scmcloud.order.util.SqlTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -83,10 +84,16 @@ public class OrdOrderQueryService {
                 .eq(request.getUserId() != null, OrdOrder::getUserId, request.getUserId())
                 .eq(statusCode != null, OrdOrder::getStatus, statusCode)
                 .eq(request.getOrderSource() != null, OrdOrder::getOrderSource, request.getOrderSource())
-                .ge(request.getStartTime() != null, OrdOrder::getCreateTime, request.getStartTime())
-                .le(request.getEndTime() != null, OrdOrder::getCreateTime, request.getEndTime())
                 .eq(OrdOrder::getDeleted, false)
                 .orderByDesc(OrdOrder::getCreateTime);
+        // create_time is timestamptz: bind the boundary through the service zone so a
+        // "today" filter sent as a local wall time is not read as UTC by the session.
+        if (request.getStartTime() != null) {
+            wrapper.apply("create_time >= ({0}::timestamptz)", SqlTime.absolute(request.getStartTime()));
+        }
+        if (request.getEndTime() != null) {
+            wrapper.apply("create_time <= ({0}::timestamptz)", SqlTime.absolute(request.getEndTime()));
+        }
         return ordOrderMapper.selectPage(
                 new Page<>(request.getPageNum(), request.getPageSize()), wrapper);
     }

@@ -8,7 +8,9 @@ import com.scmcloud.common.log.service.ISysAuditLogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import com.scmcloud.audit.domain.entity.SysAuditLog;
+import com.scmcloud.audit.domain.entity.SysSensitiveOperationLog;
 import com.scmcloud.audit.mapper.SysAuditLogMapper;
+import com.scmcloud.audit.service.command.SysSensitiveOperationLogCommandService;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -23,6 +25,11 @@ import java.util.UUID;
 public class SysAuditLogServiceImpl
         extends ServiceImpl<SysAuditLogMapper, SysAuditLog>
         implements ISysAuditLogService, com.scmcloud.audit.service.ISysAuditLogService {
+
+    /** Matches {@code @AuditLog.riskLevel} 3/4: password resets, grants, deletes, force logout. */
+    static final int SENSITIVE_RISK_THRESHOLD = 3;
+
+    private final SysSensitiveOperationLogCommandService sensitiveOperationLogCommandService;
 
     @Override
     public SysAuditLog createLog(SysAuditLog entity) {
@@ -201,5 +208,43 @@ public class SysAuditLogServiceImpl
                 .createTime(record.getCreateTime())
                 .build();
         createLog(entity);
+        recordSensitiveOperation(entity);
+    }
+
+    /**
+     * High-risk {@code @AuditLog} operations are mirrored into the sensitive-operation ledger, so
+     * that table is fed by the audit chain instead of only by hand-written API calls. A failure
+     * here must not lose the general audit row, which is already durable.
+     */
+    private void recordSensitiveOperation(SysAuditLog auditLog) {
+        Integer riskLevel = auditLog.getRiskLevel();
+        if (riskLevel == null || riskLevel < SENSITIVE_RISK_THRESHOLD) {
+            return;
+        }
+        if (!StringUtils.hasText(auditLog.getUserId())) {
+            log.warn("Sensitive operation has no actor and is not mirrored: type={}",
+                    auditLog.getOperationType());
+            return;
+        }
+        try {
+            SysSensitiveOperationLog sensitive = new SysSensitiveOperationLog()
+                    .setUserId(auditLog.getUserId())
+                    .setUsername(auditLog.getUsername())
+                    .setOperationType(auditLog.getOperationType())
+                    .setOperationModule(auditLog.getOperationModule())
+                    .setSensitiveDataType(StringUtils.hasText(auditLog.getBusinessType())
+                            ? auditLog.getBusinessType()
+                            : "AUDITED_OPERATION")
+                    .setAffectedCount(1)
+                    .setTargetTable(auditLog.getBusinessType())
+                    .setRiskScore(Math.min(riskLevel, 10))
+                    .setApprovalRequired(Boolean.FALSE)
+                    .setIpAddress(auditLog.getIpAddress())
+                    .setUserAgent(auditLog.getUserAgent())
+                    .setCreateTime(auditLog.getCreateTime());
+            sensitiveOperationLogCommandService.createLog(sensitive);
+        } catch (Exception e) {
+            log.error("Failed to mirror sensitive operation: type={}", auditLog.getOperationType(), e);
+        }
     }
 }

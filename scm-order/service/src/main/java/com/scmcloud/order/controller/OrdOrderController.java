@@ -8,11 +8,15 @@ import com.scmcloud.order.domain.entity.OrdOrderItem;
 import com.scmcloud.order.dto.OrderCancelRequest;
 import com.scmcloud.order.dto.OrderConverter;
 import com.scmcloud.order.dto.OrderCreateRequest;
+import com.scmcloud.order.dto.OrderDashboardCompare;
+import com.scmcloud.order.dto.OrderDashboardRange;
+import com.scmcloud.order.dto.OrderDashboardSummaryResponse;
 import com.scmcloud.order.dto.OrderItemResponse;
 import com.scmcloud.order.dto.OrderQueryRequest;
 import com.scmcloud.order.dto.OrderResponse;
 import com.scmcloud.order.dto.OrderStatusUpdateRequest;
 import com.scmcloud.order.service.command.OrdOrderCommandService;
+import com.scmcloud.order.service.query.OrdOrderDashboardQueryService;
 import com.scmcloud.order.service.query.OrdOrderQueryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -27,6 +31,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -38,9 +43,12 @@ import java.util.stream.Collectors;
  *
  * <p>按 CQRS 拆分职责：</p>
  * <ul>
- *   <li>读操作 → {@link OrdOrderQueryService}（自动 {@code @Slave} 路由到只读副本）</li>
- *   <li>写操作 → {@link OrdOrderCommandService}（自动 {@code @Master} + 事务 + 状态机校验 + 事件溯源）</li>
+ *   <li>读操作 → {@link OrdOrderQueryService}（{@code @Slave}，启用读写分离后路由到只读副本）</li>
+ *   <li>写操作 → {@link OrdOrderCommandService}（{@code @Master} + 事务 + 状态机校验 + 事件溯源）</li>
  * </ul>
+ *
+ * <p>命令接口直接返回写后实体，不再「写完立刻回查」：一旦 {@code @Slave} 真正路由到
+ * 只读副本，回查会因复制延迟读到旧状态。</p>
  *
  * <p>所有响应统一包装为 {@link ApiResponse}；领域实体不在响应中直接暴露。</p>
  *
@@ -63,6 +71,7 @@ import java.util.stream.Collectors;
 public class OrdOrderController {
     private final OrdOrderQueryService queryService;
     private final OrdOrderCommandService commandService;
+    private final OrdOrderDashboardQueryService dashboardQueryService;
 
     // ───────────────────────── Query Side ─────────────────────────
 
@@ -92,6 +101,20 @@ public class OrdOrderController {
         Page<OrderResponse> mapped = new Page<>(result.getCurrent(), result.getSize(), result.getTotal());
         mapped.setRecords(OrderConverter.toResponseList(result.getRecords()));
         return ApiResponse.success(mapped);
+    }
+
+    /**
+     * 查询订单看板聚合。
+     *
+     * <p>一次返回时间范围内的 KPI、日趋势、状态分布与当前待处理积压，
+     * 聚合在数据库侧完成，避免前端翻页扫描。</p>
+     */
+    @Operation(summary = "查询订单看板聚合", description = "按时间范围聚合营收、订单量、日趋势、状态分布与待处理计数，支持环比/同比。")
+    @GetMapping("/dashboard/summary")
+    public ApiResponse<OrderDashboardSummaryResponse> dashboardSummary(
+            @Parameter(description = "时间范围") @RequestParam(defaultValue = "LAST_7_DAYS") OrderDashboardRange range,
+            @Parameter(description = "对比基准") @RequestParam(defaultValue = "PREVIOUS_PERIOD") OrderDashboardCompare compare) {
+        return ApiResponse.success(dashboardQueryService.summary(range, compare));
     }
 
     /**
@@ -135,12 +158,11 @@ public class OrdOrderController {
         log.info("[API] 更新订单状态: id={}, target={}", id, request.getTargetStatus());
 
         OrderStatus target = request.getTargetStatus();
-        boolean updated = commandService.updateOrderStatus(id, target.getCode());
-        if (!updated) {
+        OrdOrder updated = commandService.updateOrderStatus(id, target.getCode());
+        if (updated == null) {
             return ApiResponse.fail(404, "订单不存在或状态未变更: id=" + id);
         }
-        OrdOrder order = queryService.getById(String.valueOf(id));
-        return ApiResponse.success(OrderConverter.toResponse(order));
+        return ApiResponse.success(OrderConverter.toResponse(updated));
     }
 
     /**
@@ -156,12 +178,11 @@ public class OrdOrderController {
                                              @RequestBody @Valid OrderCancelRequest request) {
         log.info("[API] 取消订单: id={}, reason={}", (id + "").replace("\r", "_").replace("\n", "_"), (request.getReason() + "").replace("\r", "_").replace("\n", "_"));
 
-        boolean cancelled = commandService.cancelOrder(id, request.getReason());
-        if (!cancelled) {
+        OrdOrder updated = commandService.cancelOrder(id, request.getReason());
+        if (updated == null) {
             return ApiResponse.fail(404, "订单不存在: id=" + id);
         }
 
-        OrdOrder updated = queryService.getById(String.valueOf(id));
         return ApiResponse.success(OrderConverter.toResponse(updated));
     }
 }

@@ -7,11 +7,13 @@ import com.scmcloud.decision.scoring.ScoringContext;
 import com.scmcloud.decision.scoring.Scorer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
+@Component
 @RequiredArgsConstructor
 public class PriceComparisonEngine implements RankingEngine<PriceComparisonInput, PriceComparisonOutput.SupplierRanking> {
 
