@@ -91,6 +91,7 @@ EXISTING_SCRIPTS=(
     "microservices/001_db_user.sql:db_user"
     "microservices/002_db_org.sql:db_org"
     "microservices/003_db_permission.sql:db_permission"
+    "microservices/022_decision_tables.sql:db_permission"
     "microservices/004_db_approval.sql:db_approval"
     "microservices/005_db_audit.sql:db_audit"
     "microservices/006_db_notify.sql:db_notify"
@@ -118,7 +119,7 @@ SCM_SCRIPTS=(
     "microservices/015_db_supplier.sql:db_supplier"
     "microservices/017_db_finance.sql:db_finance"
     "microservices/018_db_purchase.sql:db_purchase"
-    # 028 is the forward migration that adds tenant_id to the 32 business
+    # 028 is the forward migration that adds tenant_id to the 34 business
     # tables covered by scripts/db/ci_validate_tenant_id.sql. It is
     # idempotent (information_schema-guarded) so it is also safe to run
     # against freshly-initialized databases where Track B has already
@@ -126,13 +127,14 @@ SCM_SCRIPTS=(
     #
     # The script is per-database: it processes only tables that exist in
     # the current connection, so it must be applied to every database
-    # that hosts one of the 32 tables.
+    # that hosts one of the 34 tables.
     "microservices/028_add_tenant_id_columns.sql:db_product"
     "microservices/028_add_tenant_id_columns.sql:db_inventory"
     "microservices/028_add_tenant_id_columns.sql:db_order"
     "microservices/028_add_tenant_id_columns.sql:db_warehouse"
     "microservices/028_add_tenant_id_columns.sql:db_logistics"
     "microservices/028_add_tenant_id_columns.sql:db_supplier"
+    "microservices/028_add_tenant_id_columns.sql:db_audit"
 )
 
 for script_entry in "${SCM_SCRIPTS[@]}"; do

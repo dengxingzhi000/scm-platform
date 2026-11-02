@@ -64,6 +64,7 @@ for %%s in (
     "db_user:microservices\001_db_user.sql"
     "db_org:microservices\002_db_org.sql"
     "db_permission:microservices\003_db_permission.sql"
+    "db_permission:microservices\022_decision_tables.sql"
     "db_approval:microservices\004_db_approval.sql"
     "db_audit:microservices\005_db_audit.sql"
     "db_notify:microservices\006_db_notify.sql"

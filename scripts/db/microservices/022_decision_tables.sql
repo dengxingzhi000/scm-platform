@@ -1,6 +1,20 @@
+-- ======================================================================
+-- Decision matrix configuration tables (scm-system, db_permission)
+--
+-- sys_decision_rule / sys_weight_profile are read and written by
+-- com.scmcloud.system.repository.Mybatis*Repository via the "permission" datasource.
+-- The other three tables are declared for the experiment/feedback features, which
+-- are not wired to a repository yet.
+--
+-- tenant_id + deleted follow the db_permission convention: TenantInterceptor appends
+-- "<table>.tenant_id = ..." to every SELECT/UPDATE/DELETE, and MyBatis-Plus soft-deletes
+-- through @TableLogic on the entities.
+-- ======================================================================
+
 -- Decision rules (SpEL expressions)
 CREATE TABLE IF NOT EXISTS sys_decision_rule (
     id          VARCHAR(64) PRIMARY KEY,
+    tenant_id   UUID,
     engine_type VARCHAR(32) NOT NULL,
     scene       VARCHAR(64),
     rule_type   VARCHAR(16) NOT NULL,
@@ -9,27 +23,32 @@ CREATE TABLE IF NOT EXISTS sys_decision_rule (
     enabled     BOOLEAN DEFAULT TRUE,
     priority    INT DEFAULT 100,
     version     INT DEFAULT 1,
+    deleted     BOOLEAN NOT NULL DEFAULT FALSE,
     create_time TIMESTAMP DEFAULT NOW(),
     update_time TIMESTAMP DEFAULT NOW()
 );
 
-CREATE INDEX idx_rule_engine_type ON sys_decision_rule(engine_type);
-CREATE INDEX idx_rule_scene ON sys_decision_rule(scene);
+CREATE INDEX IF NOT EXISTS idx_rule_engine_type ON sys_decision_rule(engine_type);
+CREATE INDEX IF NOT EXISTS idx_rule_scene ON sys_decision_rule(scene);
+CREATE INDEX IF NOT EXISTS idx_rule_tenant ON sys_decision_rule(tenant_id) WHERE NOT deleted;
 
 -- Weight profiles (versioned)
 CREATE TABLE IF NOT EXISTS sys_weight_profile (
     id          VARCHAR(64) PRIMARY KEY,
+    tenant_id   UUID,
     engine_type VARCHAR(32) NOT NULL,
     scene       VARCHAR(64),
     version     INT NOT NULL,
     weights     JSONB NOT NULL,
     conditions  JSONB,
     active      BOOLEAN DEFAULT FALSE,
+    deleted     BOOLEAN NOT NULL DEFAULT FALSE,
     create_time TIMESTAMP DEFAULT NOW(),
-    UNIQUE(engine_type, scene, version)
+    CONSTRAINT uk_weight_profile UNIQUE (tenant_id, engine_type, scene, version)
 );
 
-CREATE INDEX idx_weight_active ON sys_weight_profile(engine_type, scene, active);
+CREATE INDEX IF NOT EXISTS idx_weight_active ON sys_weight_profile(engine_type, scene, active);
+CREATE INDEX IF NOT EXISTS idx_weight_tenant ON sys_weight_profile(tenant_id) WHERE NOT deleted;
 
 -- A/B experiments
 CREATE TABLE IF NOT EXISTS sys_decision_experiment (
@@ -64,5 +83,5 @@ CREATE TABLE IF NOT EXISTS sys_decision_feedback (
     create_time   TIMESTAMP DEFAULT NOW()
 );
 
-CREATE INDEX idx_feedback_engine ON sys_decision_feedback(engine_type);
-CREATE INDEX idx_feedback_decision ON sys_decision_feedback(decision_id);
+CREATE INDEX IF NOT EXISTS idx_feedback_engine ON sys_decision_feedback(engine_type);
+CREATE INDEX IF NOT EXISTS idx_feedback_decision ON sys_decision_feedback(decision_id);
