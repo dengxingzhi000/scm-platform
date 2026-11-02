@@ -15,4 +15,10 @@ public interface ISupSettlementService extends IService<SupSettlement> {
     boolean confirm(String id, String approverId, String approverName);
 
     boolean markAsPaid(String id, String updateBy);
+
+    SupSettlement createSettlement(SupSettlement settlement);
+
+    SupSettlement updateSettlement(String id, SupSettlement settlement);
+
+    boolean deleteSettlement(String id);
 }

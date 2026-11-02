@@ -11,7 +11,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -38,32 +37,19 @@ public class SupPurchaseOrderItemController {
     @Operation(summary = "创建采购单明细", description = "新增采购订单明细，未填写小计时按单价与数量自动计算。")
     @PostMapping
     public ApiResponse<SupPurchaseOrderItem> create(@RequestBody SupPurchaseOrderItem item) {
-        log.info("[API] 创建采购单明细 purchaseId={}, skuId={}", (item.getPurchaseId() + "").replace("\r", "_").replace("\n", "_"), (item.getSkuId() + "").replace("\r", "_").replace("\n", "_"));
-        item.setId(UUID.randomUUID());
-        item.setCreateTime(LocalDateTime.now());
-        if (item.getSubtotal() == null && item.getUnitPrice() != null && item.getQuantity() != null) {
-            item.setSubtotal(item.getUnitPrice().multiply(new java.math.BigDecimal(item.getQuantity())));
-        }
-        purchaseOrderItemService.save(item);
-        log.info("[API] 采购单明细创建成功 id={}", item.getId());
-        return ApiResponse.success(item);
+        SupPurchaseOrderItem created = purchaseOrderItemService.createItem(item);
+        return ApiResponse.success(created);
     }
 
     @Operation(summary = "更新采购单明细", description = "根据明细ID更新采购订单明细，并重新计算小计金额。")
     @PutMapping("/{id}")
     public ApiResponse<SupPurchaseOrderItem> update(@Parameter(description = "采购单明细ID") @PathVariable UUID id,
                                                     @RequestBody SupPurchaseOrderItem item) {
-        log.info("[API] 更新采购单明细 id={}", id);
-        SupPurchaseOrderItem existing = purchaseOrderItemService.getById(id);
-        if (existing == null) {
+        SupPurchaseOrderItem updated = purchaseOrderItemService.updateItem(id, item);
+        if (updated == null) {
             return ApiResponse.fail(404, "采购单明细不存在");
         }
-        item.setId(id);
-        if (item.getSubtotal() == null && item.getUnitPrice() != null && item.getQuantity() != null) {
-            item.setSubtotal(item.getUnitPrice().multiply(new java.math.BigDecimal(item.getQuantity())));
-        }
-        purchaseOrderItemService.updateById(item);
-        return ApiResponse.success(purchaseOrderItemService.getById(id));
+        return ApiResponse.success(updated);
     }
 
     @Operation(summary = "删除采购单明细", description = "根据明细ID删除采购订单明细。")
