@@ -20,6 +20,7 @@ public class TemplateSchemaService extends ServiceImpl<DocTemplateSchemaMapper, 
     public List<DocTemplateSchema> listByTemplate(String templateId) {
         return lambdaQuery()
                 .eq(DocTemplateSchema::getTemplateId, templateId)
+                .eq(DocTemplateSchema::getTenantId, TenantContextHolder.getRequiredTenantId().toString())
                 .orderByAsc(DocTemplateSchema::getCreateTime)
                 .list();
     }
@@ -34,7 +35,10 @@ public class TemplateSchemaService extends ServiceImpl<DocTemplateSchemaMapper, 
         validateVariables(schema.getVariables());
         if (StringUtils.hasText(schema.getId())) {
             DocTemplateSchema existing = getById(schema.getId());
-            if (existing == null || !templateId.equals(existing.getTemplateId())) {
+            String tenantId = TenantContextHolder.getRequiredTenantId().toString();
+            if (existing == null
+                    || !templateId.equals(existing.getTemplateId())
+                    || !tenantId.equals(existing.getTenantId())) {
                 throw new IllegalArgumentException("template schema not found: " + schema.getId());
             }
             lambdaUpdate()

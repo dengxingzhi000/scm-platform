@@ -18,6 +18,7 @@ import org.springframework.util.StringUtils;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 @Slf4j
@@ -38,11 +39,12 @@ public class DocumentService extends ServiceImpl<DocDocumentMapper, DocDocument>
     }
 
     /**
-     * 分页查询文档，支持按名称/编码关键字、业务类型和状态过滤。
+     * 分页查询当前租户的文档，支持按名称/编码关键字、业务类型和状态过滤。
      */
     public Page<DocDocument> pageQuery(int page, int size, String keyword,
                                        String businessType, String status) {
         LambdaQueryWrapper<DocDocument> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(DocDocument::getTenantId, currentTenantId());
         if (StringUtils.hasText(keyword)) {
             wrapper.and(w -> w.like(DocDocument::getDocName, keyword)
                     .or().like(DocDocument::getDocCode, keyword));
@@ -69,15 +71,40 @@ public class DocumentService extends ServiceImpl<DocDocumentMapper, DocDocument>
         return document;
     }
 
+    /**
+     * 按 ID 查询当前租户的文档；不存在或属于其他租户时返回空。
+     */
+    public Optional<DocDocument> findCurrentTenant(String id) {
+        DocDocument document = getById(id);
+        if (document == null || !currentTenantId().equals(document.getTenantId())) {
+            return Optional.empty();
+        }
+        return Optional.of(document);
+    }
+
+    /**
+     * 查询当前租户文档的版本列表；文档不存在或不属于当前租户时返回空列表。
+     */
     public List<DocDocumentVersion> listVersions(String documentId) {
+        if (findCurrentTenant(documentId).isEmpty()) {
+            return List.of();
+        }
         return versionMapper.selectList(new LambdaQueryWrapper<DocDocumentVersion>()
                 .eq(DocDocumentVersion::getDocumentId, documentId)
+                .eq(DocDocumentVersion::getTenantId, currentTenantId())
                 .orderByDesc(DocDocumentVersion::getVersion));
     }
 
+    /**
+     * 查询当前租户文档的审计轨迹；文档不存在或不属于当前租户时返回空列表。
+     */
     public List<DocDocumentAudit> listAudits(String documentId) {
+        if (findCurrentTenant(documentId).isEmpty()) {
+            return List.of();
+        }
         return auditMapper.selectList(new LambdaQueryWrapper<DocDocumentAudit>()
                 .eq(DocDocumentAudit::getDocumentId, documentId)
+                .eq(DocDocumentAudit::getTenantId, currentTenantId())
                 .orderByDesc(DocDocumentAudit::getCreateTime));
     }
 
@@ -87,10 +114,8 @@ public class DocumentService extends ServiceImpl<DocDocumentMapper, DocDocument>
     @Transactional
     public DocDocument changeStatus(String documentId, String targetStatus,
                                     String operatorId, String operatorName) {
-        DocDocument document = getById(documentId);
-        if (document == null) {
-            throw new IllegalArgumentException("document not found: " + documentId);
-        }
+        DocDocument document = findCurrentTenant(documentId)
+                .orElseThrow(() -> new IllegalArgumentException("document not found: " + documentId));
         String currentStatus = StringUtils.hasText(document.getStatus()) ? document.getStatus() : "GENERATED";
         Set<String> allowed = ALLOWED_TRANSITIONS.getOrDefault(currentStatus, Set.of());
         if (!allowed.contains(targetStatus)) {
@@ -111,7 +136,7 @@ public class DocumentService extends ServiceImpl<DocDocumentMapper, DocDocument>
         audit.setOperatorName(operatorName);
         audit.setBeforeVersion(beforeVersion);
         audit.setAfterVersion(beforeVersion);
-        audit.setTenantId(TenantContextHolder.getRequiredTenantId().toString());
+        audit.setTenantId(currentTenantId());
         audit.setCreateTime(new Date());
         auditMapper.insert(audit);
 
@@ -127,5 +152,9 @@ public class DocumentService extends ServiceImpl<DocDocumentMapper, DocDocument>
                 .set(DocDocument::getCurrentVersion, version.getVersion())
                 .update();
         return version;
+    }
+
+    private String currentTenantId() {
+        return TenantContextHolder.getRequiredTenantId().toString();
     }
 }
