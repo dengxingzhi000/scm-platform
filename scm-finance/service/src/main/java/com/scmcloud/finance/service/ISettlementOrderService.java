@@ -15,4 +15,8 @@ public interface ISettlementOrderService extends IService<SettlementOrder> {
     SettlementOrder recordPayment(String id, BigDecimal amount);
 
     Page<SettlementOrder> listByStatus(Integer status, int page, int size);
+
+    SettlementOrder updateSettlement(String id, SettlementOrder order);
+
+    void deleteSettlement(String id);
 }

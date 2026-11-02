@@ -1,7 +1,6 @@
 package com.scmcloud.finance.controller;
 
 import com.scmcloud.common.response.ApiResponse;
-import com.scmcloud.common.util.UUIDv7Util;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -12,7 +11,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @RequiredArgsConstructor
@@ -33,23 +31,15 @@ public class PlatformServiceFeeController {
     @Operation(summary = "创建服务费账单", description = "新增平台服务费账单，生成主键并将状态置为待支付。")
     @PostMapping
     public ApiResponse<PlatformServiceFee> create(@RequestBody PlatformServiceFee fee) {
-        fee.setId(UUIDv7Util.generateString());
-        fee.setStatus(0);
-        fee.setCreateTime(LocalDateTime.now());
-        fee.setUpdateTime(LocalDateTime.now());
-        platformServiceFeeService.save(fee);
-        log.info("Platform service fee created successfully: id={}, feeType={}", (fee.getId() + "").replace("\r", "_").replace("\n", "_"), (fee.getFeeType() + "").replace("\r", "_").replace("\n", "_"));
-        return ApiResponse.success(fee);
+        PlatformServiceFee created = platformServiceFeeService.createFee(fee);
+        return ApiResponse.success(created);
     }
 
     @Operation(summary = "更新服务费账单", description = "按账单 ID 更新平台服务费账单信息并刷新更新时间。")
     @PutMapping("/{id}")
     public ApiResponse<PlatformServiceFee> update(@Parameter(description = "平台服务费账单 ID") @PathVariable String id, @RequestBody PlatformServiceFee fee) {
-        fee.setId(id);
-        fee.setUpdateTime(LocalDateTime.now());
-        platformServiceFeeService.updateById(fee);
-        log.info("Platform service fee updated successfully: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
-        return ApiResponse.success(fee);
+        PlatformServiceFee updated = platformServiceFeeService.updateFee(id, fee);
+        return ApiResponse.success(updated);
     }
 
     @Operation(summary = "删除服务费账单", description = "按账单 ID 删除平台服务费账单。")

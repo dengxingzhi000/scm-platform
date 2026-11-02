@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Slf4j
@@ -73,6 +74,36 @@ public class FreightRuleServiceImpl extends ServiceImpl<FreightRuleMapper, Freig
         freight = freight.setScale(2, RoundingMode.HALF_UP);
         log.info("杩愯垂璁＄畻缁撴灉: ruleId={}, freight={}", (ruleId + "").replace("\r", "_").replace("\n", "_"), (freight + "").replace("\r", "_").replace("\n", "_"));
         return freight;
+    }
+
+    @Override
+    public FreightRule createRule(FreightRule rule) {
+        rule.setDeleted(false);
+        rule.setCreateTime(LocalDateTime.now());
+        rule.setUpdateTime(LocalDateTime.now());
+        save(rule);
+        log.info("运费规则创建成功: id={}", (rule.getId() + "").replace("\r", "_").replace("\n", "_"));
+        return rule;
+    }
+
+    @Override
+    public FreightRule updateRule(String id, FreightRule rule) {
+        rule.setId(id);
+        rule.setUpdateTime(LocalDateTime.now());
+        updateById(rule);
+        log.info("运费规则更新成功: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
+        return rule;
+    }
+
+    @Override
+    public void deleteRule(String id) {
+        FreightRule rule = getById(id);
+        if (rule != null) {
+            rule.setDeleted(true);
+            rule.setUpdateTime(LocalDateTime.now());
+            updateById(rule);
+            log.info("运费规则删除成功: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
+        }
     }
 
     private BigDecimal calculateByWeight(FreightRule rule, BigDecimal weight) {

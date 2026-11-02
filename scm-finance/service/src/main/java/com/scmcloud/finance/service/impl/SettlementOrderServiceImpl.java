@@ -111,6 +111,26 @@ public class SettlementOrderServiceImpl extends ServiceImpl<SettlementOrderMappe
     }
 
     @Override
+    public SettlementOrder updateSettlement(String id, SettlementOrder order) {
+        order.setId(id);
+        order.setUpdateTime(LocalDateTime.now());
+        updateById(order);
+        log.info("Settlement order updated successfully: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
+        return order;
+    }
+
+    @Override
+    public void deleteSettlement(String id) {
+        SettlementOrder order = getById(id);
+        if (order != null) {
+            order.setDeleted(true);
+            order.setUpdateTime(LocalDateTime.now());
+            updateById(order);
+            log.info("Settlement order deleted successfully: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
+        }
+    }
+
+    @Override
     public Page<SettlementOrder> listByStatus(Integer status, int page, int size) {
         log.debug("Query settlement orders by status: status={}, page={}, size={}", status, page, size);
         LambdaQueryWrapper<SettlementOrder> wrapper = Wrappers.lambdaQuery();

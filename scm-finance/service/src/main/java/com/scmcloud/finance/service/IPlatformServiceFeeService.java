@@ -11,4 +11,8 @@ public interface IPlatformServiceFeeService extends IService<PlatformServiceFee>
     List<PlatformServiceFee> listPendingFees();
 
     PlatformServiceFee recordPayment(String id, BigDecimal paidAmount);
+
+    PlatformServiceFee createFee(PlatformServiceFee fee);
+
+    PlatformServiceFee updateFee(String id, PlatformServiceFee fee);
 }

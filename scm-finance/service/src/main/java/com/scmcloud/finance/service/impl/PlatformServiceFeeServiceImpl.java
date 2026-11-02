@@ -2,6 +2,7 @@ package com.scmcloud.finance.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.scmcloud.common.util.UUIDv7Util;
 import com.scmcloud.finance.domain.entity.PlatformServiceFee;
 import com.scmcloud.finance.mapper.PlatformServiceFeeMapper;
 import com.scmcloud.finance.service.IPlatformServiceFeeService;
@@ -18,6 +19,26 @@ import java.util.List;
 @Service
 public class PlatformServiceFeeServiceImpl extends ServiceImpl<PlatformServiceFeeMapper, PlatformServiceFee>
         implements IPlatformServiceFeeService {
+
+    @Override
+    public PlatformServiceFee createFee(PlatformServiceFee fee) {
+        fee.setId(UUIDv7Util.generateString());
+        fee.setStatus(0);
+        fee.setCreateTime(LocalDateTime.now());
+        fee.setUpdateTime(LocalDateTime.now());
+        save(fee);
+        log.info("Platform service fee created successfully: id={}, feeType={}", (fee.getId() + "").replace("\r", "_").replace("\n", "_"), (fee.getFeeType() + "").replace("\r", "_").replace("\n", "_"));
+        return fee;
+    }
+
+    @Override
+    public PlatformServiceFee updateFee(String id, PlatformServiceFee fee) {
+        fee.setId(id);
+        fee.setUpdateTime(LocalDateTime.now());
+        updateById(fee);
+        log.info("Platform service fee updated successfully: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
+        return fee;
+    }
 
     @Override
     public List<PlatformServiceFee> listPendingFees() {
