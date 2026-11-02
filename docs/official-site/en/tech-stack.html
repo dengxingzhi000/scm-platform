@@ -2,157 +2,393 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCM Platform — Technology Stack</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&family=Noto+Serif+SC:wght@400;500;600&display=swap');
-:root {
-  --mono: 'JetBrains Mono', monospace;
-  --serif: 'Instrument Serif', 'Noto Serif SC', serif;
-  --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --bg: #fafaf8; --bg2: #f5f5f0; --bg-card: #ffffff;
-  --t1: #1a1a18; --t2: #5a5a56; --t3: #8a8a86;
-  --border: #e8e8e4; --border2: #d4d4d0;
-  --accent: #2563eb; --green: #16a34a; --red: #dc2626; --amber: #d97706;
-}
-.lang-switch { font-family: var(--mono); font-size: 10px; padding: 4px 10px; border-radius: 6px; color: var(--t3); text-decoration: none; border: .5px solid var(--border); transition: color .15s, background .15s; letter-spacing: .02em; margin-left: 8px; }
-.lang-switch:hover { color: var(--t1); background: var(--bg2); }
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: var(--sans); background: var(--bg); color: var(--t1); -webkit-font-smoothing: antialiased; }
-
-/* Header */
-.site-header { position: sticky; top: 0; z-index: 100; background: rgba(250,250,248,.85); backdrop-filter: blur(12px); border-bottom: .5px solid var(--border); }
-.site-header-inner { max-width: 960px; margin: 0 auto; padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; }
-.site-logo { font-family: var(--mono); font-size: 13px; font-weight: 500; color: var(--t1); text-decoration: none; }
-.site-nav { display: flex; gap: 4px; align-items: center; }
-.site-nav a { font-family: var(--mono); font-size: 11px; padding: 5px 12px; border-radius: 6px; color: var(--t3); text-decoration: none; transition: color .15s, background .15s; letter-spacing: .02em; }
-.site-nav a:hover, .site-nav a.active { color: var(--t1); background: var(--bg2); }
-.site-nav-cta { background: var(--t1) !important; color: var(--bg) !important; padding: 5px 14px !important; border-radius: 6px !important; }
-.site-nav-cta:hover { opacity: .85 !important; }
-
-/* Footer */
-.site-footer { border-top: .5px solid var(--border); padding: 32px 0; margin-top: 64px; }
-.site-footer-inner { max-width: 960px; margin: 0 auto; padding: 0 24px; display: flex; justify-content: space-between; align-items: center; }
-.site-footer-left { font-family: var(--mono); font-size: 11px; color: var(--t3); }
-.site-footer-right { font-family: var(--serif); font-size: 13px; font-style: italic; color: var(--t3); }
-
-/* Page */
-.site-page { max-width: 680px; margin: 0 auto; padding: 0 24px; }
-.site-hero { padding: 48px 0 32px; border-bottom: .5px solid var(--border); margin-bottom: 40px; }
-.site-hero-eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; color: var(--t3); text-transform: uppercase; margin-bottom: 16px; }
-.site-hero h1 { font-family: var(--serif); font-size: 34px; font-weight: 400; line-height: 1.15; color: var(--t1); margin-bottom: 16px; }
-.site-hero-sub { font-size: 15px; color: var(--t2); line-height: 1.65; max-width: 520px; }
-.site-section { margin-bottom: 48px; }
-.site-section-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: .5px solid var(--border); }
-.site-section-num { font-family: var(--mono); font-size: 11px; color: var(--t3); min-width: 20px; }
-.site-section-title { font-size: 15px; font-weight: 500; color: var(--t1); }
-
-/* Tech table */
-.site-tech-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 16px 0; }
-.site-tech-table th { font-family: var(--mono); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--t3); font-weight: 400; text-align: left; padding: 8px 12px 8px 0; border-bottom: .5px solid var(--border); }
-.site-tech-table td { padding: 10px 12px 10px 0; border-bottom: .5px solid var(--border); color: var(--t2); vertical-align: top; line-height: 1.5; }
-.site-tech-table td:first-child { color: var(--t1); font-weight: 500; white-space: nowrap; padding-right: 20px; }
-.site-tech-table tr:last-child td { border-bottom: none; }
-
-/* Flow steps */
-.site-flow { display: flex; flex-direction: column; gap: 0; margin: 16px 0; }
-.site-flow-step { display: grid; grid-template-columns: 40px 1fr; gap: 16px; padding: 16px 0; border-bottom: .5px solid var(--border); align-items: start; }
-.site-flow-step:last-child { border-bottom: none; }
-.site-flow-num { font-family: var(--mono); font-size: 11px; color: var(--t3); padding-top: 2px; }
-.site-flow-title { font-size: 13px; font-weight: 500; color: var(--t1); margin-bottom: 4px; }
-.site-flow-desc { font-size: 13px; color: var(--t2); line-height: 1.6; }
-
-.site-prose { font-size: 14px; line-height: 1.8; color: var(--t2); }
-.site-prose + .site-prose { margin-top: 12px; }
-
-@media (max-width: 640px) {
-  .site-nav { display: none; }
-}
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Technology Stack — SCM Platform</title>
+<meta name="description" content="The layered technology choices behind SCM Platform: Java 21, Spring Boot 4.1.2, Spring Cloud 2025.1.4, PostgreSQL 18, Redis 8, ClickHouse, Next.js 16.4.3, and the capabilities deliberately left off.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%2308090a'/%3E%3Cpath d='M12 3 21 12 12 21 3 12Z' fill='none' stroke='%23cf9366' stroke-width='1.4'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/site.css">
+<script>document.documentElement.classList.add('js');</script>
 </head>
 <body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="progress" aria-hidden="true"><span></span></div>
 
-<!-- Header -->
 <header class="site-header">
-  <div class="site-header-inner">
-    <a href="index.html" class="site-logo">SCM Platform</a>
-    <nav class="site-nav">
+  <div class="header-inner">
+    <a class="brand" href="index.html" aria-label="SCM Platform home">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+          <path d="M12 2.2 21.8 12 12 21.8 2.2 12Z"/>
+          <path d="M12 7.2 16.8 12 12 16.8 7.2 12Z" fill="currentColor" fill-opacity=".35" stroke="none"/>
+        </svg>
+      </span>
+      <span class="brand-text">SCM<span class="slash">/</span><span class="light">PLATFORM</span></span>
+    </a>
+    <nav class="site-nav" aria-label="Primary">
       <a href="index.html">Home</a>
       <a href="features.html">Features</a>
       <a href="architecture.html">Architecture</a>
       <a href="philosophy.html">Philosophy</a>
-      <a href="tech-stack.html" class="active">Tech Stack</a>
-      <a href="../zh/tech-stack.html" class="lang-switch">中文</a>
+      <a href="tech-stack.html" class="is-active" aria-current="page">Tech Stack</a>
     </nav>
+    <a class="lang-switch" href="../zh/tech-stack.html" hreflang="zh-CN" lang="zh-CN">中文</a>
   </div>
 </header>
 
-<main>
+<main id="main">
+  <div class="wrap narrow">
 
-<div class="site-page">
+    <div class="page-hero">
+      <div class="intro">
+        <div class="eyebrow">technology choices</div>
+        <h1>A choice is<br>an answer to a<br><em>problem</em>.</h1>
+        <p class="lede">
+          Versions come from the parent POM, each service POM and <code>scm-web/package.json</code>. Reasons
+          come from the boundaries actually used in code. This is not a logo wall; it says why each choice
+          exists and what it does not solve.
+        </p>
+      </div>
+    </div>
 
-<!-- Hero -->
-<div class="site-hero">
-  <div class="site-hero-eyebrow">technology choices</div>
-  <h1>Technology Stack</h1>
-  <div class="site-hero-sub">Every technology choice at each layer is carefully considered — not chasing the latest trends, but selecting the right tool for the problem.</div>
-</div>
+    <div class="ribbon" style="margin-bottom:8px" data-reveal>
+      <span>Java 21</span>
+      <span>Spring Boot 4.1.2</span>
+      <span>Spring Cloud 2025.1.4</span>
+      <span>Spring Cloud Alibaba 2025.1.0.0</span>
+      <span>Next.js 16.4.3</span>
+      <span>PostgreSQL 18</span>
+      <span>Redis 8</span>
+      <span>ClickHouse 26.10</span>
+    </div>
 
-<!-- Tech Stack Table -->
-<div class="site-section">
-  <table class="site-tech-table">
-    <tr><th>Layer</th><th>Components</th></tr>
-    <tr><td>Backend</td><td>Java 21 (Virtual Threads), Spring Boot 4.0.6, Spring Cloud 2025.1.1</td></tr>
-    <tr><td>Alibaba Ecosystem</td><td>Spring Cloud Alibaba 2025.1.0.0 (Nacos, Sentinel, Seata)</td></tr>
-    <tr><td>Database</td><td>PostgreSQL, MyBatis-Plus 3.5.15, ShardingSphere 5.5.1</td></tr>
-    <tr><td>Cache</td><td>Redis (distributed cache, Lua scripts for atomic operations)</td></tr>
-    <tr><td>Search</td><td>Elasticsearch 8.11.4, Canal 1.1.7 (binlog sync)</td></tr>
-    <tr><td>Messaging</td><td>Kafka (event streaming), RabbitMQ (reliable queue)</td></tr>
-    <tr><td>RPC</td><td>Apache Dubbo 3.3.6 (internal service calls)</td></tr>
-    <tr><td>Scheduling</td><td>XXL-Job 3.3.1 (distributed task scheduling)</td></tr>
-    <tr><td>Monitoring</td><td>Sentinel, SkyWalking 9.3.0, Micrometer + Prometheus</td></tr>
-    <tr><td>Frontend</td><td>Next.js 15 (App Router), React 19, Ant Design 5, Zustand 5, TanStack Query 5</td></tr>
-    <tr><td>DevOps</td><td>Docker, GitHub Actions, SonarCloud, OWASP Dependency Check</td></tr>
-  </table>
-</div>
+    <section class="stack-layer">
+      <div class="stack-head" data-reveal>
+        <span class="roman">01</span>
+        <div>
+          <h2>Runtime &amp; framework</h2>
+          <p>Twenty-six services share one runtime and one version policy. Upgrades happen together; debugging does not start with “which stack is this?”.</p>
+        </div>
+      </div>
+      <div class="stack-grid">
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Java 21</b><span class="ver">21</span></div>
+          <p>One runtime; records, pattern matching and the standard concurrency library. Hot-path performance comes from Redis Lua and async orchestration, not from a thread model.</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Spring Boot</b><span class="ver">4.1.2</span></div>
+          <p>Web, validation, Actuator and auto-configuration in one baseline. The parent POM owns versions; services declare only what they use.</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Spring Cloud</b><span class="ver">2025.1.4</span></div>
+          <p>Foundation for gateway, configuration and discovery. Services register with Nacos; the gateway routes by service name.</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Spring Cloud Alibaba</b><span class="ver">2025.1.0.0</span></div>
+          <p>Nacos 3.2.4 as discovery and configuration; Seata and Sentinel join through the same ecosystem instead of a self-built control plane.</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Apache Dubbo</b><span class="ver">3.3.6</span></div>
+          <p>Internal synchronous calls use RPC contracts; interfaces and DTOs live in each module's <code>api/</code>. Browsers still use REST through the gateway, never RPC.</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Jakarta Servlet</b><span class="ver">6.x</span></div>
+          <p>Only <code>jakarta.servlet</code>; maven-enforcer rejects <code>javax.servlet</code> so Boot 4 cannot inherit a silent incompatibility.</p>
+        </article>
+      </div>
+    </section>
 
-<!-- Key Decisions -->
-<div class="site-section">
-  <div class="site-section-header"><span class="site-section-num">→</span><span class="site-section-title">Key Technology Decisions</span></div>
-  <div class="site-flow">
-    <div class="site-flow-step">
-      <div class="site-flow-num">01</div>
-      <div><div class="site-flow-title">Java 21 Virtual Threads</div><div class="site-flow-desc">One virtual thread per request, no thread pool tuning needed. I/O-bound throughput improves by 3-5x.</div></div>
+    <section class="stack-layer">
+      <div class="stack-head" data-reveal>
+        <span class="roman">02</span>
+        <div>
+          <h2>Data &amp; storage</h2>
+          <p>Each store has one role: ledger, speed, analysis, retrieval, files. Crossing roles shows up immediately as a consistency or latency cost.</p>
+        </div>
+      </div>
+      <div class="stack-grid">
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>PostgreSQL</b><span class="ver">18</span></div>
+          <p>One <code>db_*</code> per service. <code>ord_order</code>, <code>inv_reservation</code> and <code>sup_purchase_order</code> are partitioned monthly and kept 24 months. No cross-database JOIN.</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>MyBatis-Plus</b><span class="ver">3.5.17</span></div>
+          <p>Explicit SQL is easier to audit and tune. The tenant predicate is injected by an interceptor; soft delete is a global <code>deleted</code> field.</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Redis</b><span class="ver">8</span></div>
+          <p>Lua handles deduction, restock and flash sale; reservation index and short-TTL cache. The two-level cache (Caffeine L1 + Redis L2) is off unless a service opts in.</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>ClickHouse</b><span class="ver">26.10</span></div>
+          <p>Analysis only: ODS → DWD → DWS → ADS, ordered by <code>tenant_id</code> and partitioned by <code>toYYYYMM</code>. It never sits on the transaction path.</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Elasticsearch</b><span class="ver">9.5.5</span></div>
+          <p>Product search, similar products and recommendations; single/batch indexing and full rebuild. It is not a ledger; the index can be rebuilt.</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Kafka</b><span class="ver">cp-kafka 8.4.0</span></div>
+          <p>Event backbone with at-least-once delivery and idempotent consumers. Serialization uses <code>JacksonJsonSerializer</code>, never the removed JsonSerializer.</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>RabbitMQ</b><span class="ver">5.37.0 client</span></div>
+          <p>Reliable queues; <code>RabbitAdmin</code> declares queues at startup. Kafka carries event streams, RabbitMQ carries point-to-point delivery.</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>MinIO / S3</b><span class="ver">client</span></div>
+          <p>Object storage compatible with S3/OSS. Downloads use 30-minute presigned URLs; metadata stays in PostgreSQL.</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Flyway</b><span class="ver">13.11.1</span></div>
+          <p>One version line per service; <code>validate-on-migrate=true</code>, <code>out-of-order=false</code>. Boot 4 moved auto-configuration into a starter — see the limits below.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="stack-layer">
+      <div class="stack-head" data-reveal>
+        <span class="roman">03</span>
+        <div>
+          <h2>Consistency &amp; scheduling</h2>
+          <p>Strong consistency only inside an aggregate. Cross-service consistency is designed compensation, not a framework wish.</p>
+        </div>
+      </div>
+      <div class="stack-grid">
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Seata</b><span class="ver">2.0.0 client</span></div>
+          <p>AT mode for cross-service transactions; every database needs <code>undo_log</code>. Order and inventory reservations also have explicit TCC confirm/cancel branches.</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Saga</b><span class="ver">in-house</span></div>
+          <p>A lightweight Saga orchestrator in <code>scm-common/integration</code> for long-running compensation; no separate orchestration engine.</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>XXL-Job</b><span class="ver">3.5.0</span></div>
+          <p>Scheduled work: expired reservation release, stock snapshots, tenant fee calculation. An empty admin address refuses to start, so it never “looks like it is running”.</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Flowable</b><span class="ver">BPMN</span></div>
+          <p>Approval engine; the platform exposes start, approve, reject, pending tasks and process status, while process models are defined in BPMN.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="stack-layer">
+      <div class="stack-head" data-reveal>
+        <span class="roman">04</span>
+        <div>
+          <h2>Observability</h2>
+          <p>Metrics, traces and logs are not three systems. They are three views of the same request.</p>
+        </div>
+      </div>
+      <div class="stack-grid">
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Sentinel</b><span class="ver">2025.0.0.0</span></div>
+          <p>Circuit breaking and rate limiting; rules can come from Nacos. It is a stability boundary, not an optional plugin.</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>SkyWalking</b><span class="ver">agent 9.3.0</span></div>
+          <p>Distributed tracing; OAP and UI use the 10.4.0 image. A cross-service call shows both the Dubbo and HTTP segments.</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Micrometer + Prometheus</b><span class="ver">1.17.2</span></div>
+          <p>Metric collection. Each service exposes Actuator endpoints; Prometheus scrapes and Grafana displays.</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Actuator</b><span class="ver">Boot 4</span></div>
+          <p><code>/actuator/health</code> is the shared health endpoint. The tenant filter excludes it; otherwise probes would be rejected.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="stack-layer">
+      <div class="stack-head" data-reveal>
+        <span class="roman">05</span>
+        <div>
+          <h2>Frontend</h2>
+          <p>The target stack is decided; the migration is still running. New pages enter shadcn/ui only; legacy Ant Design pages are replaced domain by domain.</p>
+        </div>
+      </div>
+      <div class="stack-grid">
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Next.js</b><span class="ver">16.4.3</span></div>
+          <p>App Router. <code>proxy.ts</code> handles locale prefixes and redirects unauthenticated users. Next 16 renamed the middleware convention to proxy.</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>React</b><span class="ver">19.3.1</span></div>
+          <p>The dashboard is a client-rendered page aggregating gateway data directly; the old server-side prefetch could not forward auth and tenant cookies.</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>TypeScript</b><span class="ver">7 + 6</span></div>
+          <p><code>typecheck</code> runs TypeScript 7 via <code>@typescript/native</code>; ESLint and the Next build still use TS 6 because typescript-eslint does not yet support the TS 7 API.</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Tailwind CSS</b><span class="ver">4.3.3</span></div>
+          <p>CSS-first configuration. <code>design-tokens.css</code> is the single palette source for Ant Design, Tailwind and canvas charts.</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>shadcn/ui</b><span class="ver">vendored</span></div>
+          <p>Component source lives in <code>src/components/ui</code> and is editable. No second CSS-in-JS layer.</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Ant Design</b><span class="ver">6.6.7</span></div>
+          <p>Legacy pages only. No new AntD pages: when a domain migrates, its AntD dependency goes with it.</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>TanStack Query</b><span class="ver">5.104.5</span></div>
+          <p>Server state with a single <code>QueryClient</code>. Query data is never wrapped in <code>'use cache'</code>; caching policy is explicit at the Query layer.</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>TanStack Table / AG Grid</b><span class="ver">9.3.1 / 36.2</span></div>
+          <p>TanStack Table is the default. AG Grid enters only through the lazy <code>DataGrid</code> wrapper, keeping heavy grids out of the first paint.</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Zustand</b><span class="ver">5.0.16</span></div>
+          <p>UI state only (sidebar, theme, filter context). Server data never enters the store.</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>React Hook Form + Zod</b><span class="ver">7.91 / 4.6</span></div>
+          <p>Long forms use <code>zodResolver</code> and a shared FormField; validation rules mirror backend constraints.</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Recharts / ECharts / G6</b><span class="ver">3.10 / 6.1 / 5.1</span></div>
+          <p>Recharts for KPIs, ECharts for complex figures, G6 for topology. All lazy-loaded; ECharts imports only <code>echarts/core</code>.</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Vitest + Playwright</b><span class="ver">5.0.5 / 1.64.1</span></div>
+          <p>Vitest for data transforms and pure logic; Playwright for core ledger paths across Chromium, Firefox and WebKit.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="stack-layer">
+      <div class="stack-head" data-reveal>
+        <span class="roman">06</span>
+        <div>
+          <h2>Delivery &amp; verification</h2>
+          <p>Build and release are not the last step. They decide whether every earlier choice can be verified.</p>
+        </div>
+      </div>
+      <div class="stack-grid">
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Maven multi-module</b><span class="ver">3.9.x</span></div>
+          <p>There is no root <code>pom.xml</code>. Every command needs <code>-f com.scm.parent/pom.xml</code>; modules reference <code>../scm-*</code>.</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>GitHub Actions</b><span class="ver">CI</span></div>
+          <p>PRs run backend <code>test-compile test</code> and frontend typecheck/lint/test/build; pushes run <code>verify</code> and upload to Codecov.</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>Docker Compose</b><span class="ver">infra</span></div>
+          <p>The default profile starts Nacos, PostgreSQL, Redis, Kafka, RabbitMQ, Elasticsearch and ClickHouse; core services run as JVM processes.</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>SonarCloud</b><span class="ver">optional</span></div>
+          <p>Runs only when <code>SONAR_ORG</code> is set. An external quality platform is not a hard gate.</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>OWASP Dependency Check</b><span class="ver">advisory</span></div>
+          <p><code>continue-on-error</code>: dependency findings are reported, but they do not decide for the team whether a release is blocked.</p>
+        </article>
+        <article class="stack-item" data-reveal>
+          <div class="name"><b>JaCoCo</b><span class="ver">off by default</span></div>
+          <p>The parent POM sets <code>jacoco.skip=true</code>; coverage gates run only with <code>-Djacoco.skip=false</code>.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="stack-layer">
+      <div class="stack-head" data-reveal>
+        <span class="roman">07</span>
+        <div>
+          <h2>Boundaries &amp; capabilities left off</h2>
+          <p>A stack table that only lists “what we use” hides what is not actually running. Here is the current state.</p>
+        </div>
+      </div>
+      <div class="limits">
+        <div class="limit" data-reveal>
+          <div class="limit-key">Read-write split</div>
+          <div class="limit-text"><code>@Master</code>/<code>@Slave</code> annotations and auto-configuration exist, but the whole capability is gated on <code>spring.datasource.rw.enabled=true</code>. No service enables it today; single-database reads and writes are the default.</div>
+        </div>
+        <div class="limit" data-reveal>
+          <div class="limit-key">Optional subsystems</div>
+          <div class="limit-text">The OAuth2 authorization server (<code>security.uaa.enabled</code>) is enabled only in scm-auth; mTLS, PKCE, two-level cache and data sync are off by default and require an explicit opt-in.</div>
+        </div>
+        <div class="limit" data-reveal>
+          <div class="limit-key">Flyway auto-config</div>
+          <div class="limit-text">Boot 4 moved Flyway auto-configuration into <code>spring-boot-starter-flyway</code>; only scm-supplier declares it today. Services with just <code>flyway-core</code> may not run migrations automatically.</div>
+        </div>
+        <div class="limit" data-reveal>
+          <div class="limit-key">Integration tests</div>
+          <div class="limit-text">Tests tagged <code>@Tag("integration")</code> are excluded by surefire; CI never boots a Spring context and runs Mockito units plus frontend gates. Docker/Testcontainers verification must be enabled locally.</div>
+        </div>
+        <div class="limit" data-reveal>
+          <div class="limit-key">Canal / ShardingSphere</div>
+          <div class="limit-text">Neither is in the running path: the Canal client dependency is commented out in the parent POM, and ShardingSphere is not a dependency. Search sync is handled by scm-search's index endpoints; database sharding is not enabled.</div>
+        </div>
+        <div class="limit" data-reveal>
+          <div class="limit-key">Frontend migration</div>
+          <div class="limit-text">Ant Design 6 still appears on legacy pages; new pages use shadcn/ui only. Migration is per domain, without a one-time-rewrite milestone.</div>
+        </div>
+        <div class="limit" data-reveal>
+          <div class="limit-key">Commerce tests</div>
+          <div class="limit-text">payment and promotion have unit tests; member, mall and search have thinner coverage. “It has endpoints” is not the same as “it has been verified”.</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="closing">
+      <blockquote>A stack is not a side.<br>It is a set of costs you accept.</blockquote>
+      <div class="closing-foot">
+        <a href="architecture.html">See how it connects</a>
+        <a href="philosophy.html">Read the principles</a>
+      </div>
     </div>
-    <div class="site-flow-step">
-      <div class="site-flow-num">02</div>
-      <div><div class="site-flow-title">Seata Distributed Transactions</div><div class="site-flow-desc">AT mode zero-invasion, TCC mode high performance, Saga mode long-running transactions. Choose the mode per scenario.</div></div>
-    </div>
-    <div class="site-flow-step">
-      <div class="site-flow-num">03</div>
-      <div><div class="site-flow-title">Redis Lua Atomic Operations</div><div class="site-flow-desc">Stock deduction executes atomically in Redis single-threaded mode. No race conditions, no database locks. Hot path latency &lt;2ms.</div></div>
-    </div>
-    <div class="site-flow-step">
-      <div class="site-flow-num">04</div>
-      <div><div class="site-flow-title">Canal Binlog Sync</div><div class="site-flow-desc">Listens to MySQL/PostgreSQL binlog, syncs to Elasticsearch in real time. Zero invasion to business code.</div></div>
-    </div>
-    <div class="site-flow-step">
-      <div class="site-flow-num">05</div>
-      <div><div class="site-flow-title">Next.js 15 App Router</div><div class="site-flow-desc">Server components reduce client-side JS size. Streaming rendering improves first-paint performance. Built-in i18n support.</div></div>
-    </div>
+
   </div>
-</div>
-
-</div>
-
 </main>
 
 <footer class="site-footer">
-  <div class="site-footer-inner">
-    <div class="site-footer-left">SCM Platform &middot; Apache 2.0 License</div>
-    <div class="site-footer-right">Built for Enterprise Supply Chain</div>
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a class="brand" href="index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+              <path d="M12 2.2 21.8 12 12 21.8 2.2 12Z"/>
+              <path d="M12 7.2 16.8 12 12 16.8 7.2 12Z" fill="currentColor" fill-opacity=".35" stroke="none"/>
+            </svg>
+          </span>
+          <span class="brand-text">SCM<span class="slash">/</span><span class="light">PLATFORM</span></span>
+        </a>
+        <p>A multi-tenant supply chain platform. Procurement, inventory, orders, fulfillment, finance and governance inside one boundary.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Browse</h4>
+        <a href="index.html">Home</a>
+        <a href="features.html">Features</a>
+        <a href="architecture.html">Architecture</a>
+        <a href="philosophy.html">Philosophy</a>
+        <a href="tech-stack.html">Tech Stack</a>
+      </div>
+      <div class="footer-col">
+        <h4>Version</h4>
+        <div class="colophon">
+          Spring Boot 4.1.2<br>
+          Spring Cloud 2025.1.4<br>
+          PostgreSQL 18 · ClickHouse 26.10<br>
+          Next.js 16.4.3 · Apache 2.0
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>SCM Platform · 2026</span>
+      <span>26 services · zh-CN / en-US</span>
+      <a href="../index.html">Portal</a>
+    </div>
   </div>
 </footer>
 
+<script src="../assets/site.js" defer></script>
 </body>
 </html>
