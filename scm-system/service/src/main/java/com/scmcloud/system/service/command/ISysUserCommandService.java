@@ -16,17 +16,21 @@ public interface ISysUserCommandService {
 
     void addUser(UserDTO userDTO);
 
-    void updateUser(UserDTO userDTO);
+    void updateUser(UUID id, UserDTO userDTO);
 
     void deleteUser(UUID id);
 
     String resetPassword(UUID id);
 
-    void changePassword(UUID userId, String oldPassword, String newPassword);
+    void changePassword(String oldPassword, String newPassword);
 
     void grantRoles(UUID userId, List<UUID> roleIds);
 
     void lockUser(UUID id, Boolean lock);
+
+    void forceLogout(UUID id, String reason);
+
+    void updateLastLogin(UUID userId, String ipAddress);
 
     void updateLastLogin(UUID userId, String ipAddress, LocalDateTime loginTime);
 }

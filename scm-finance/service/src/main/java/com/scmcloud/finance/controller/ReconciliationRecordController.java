@@ -52,23 +52,14 @@ public class ReconciliationRecordController {
     @Operation(summary = "更新对账记录", description = "按对账记录 ID 更新对账信息并刷新更新时间。")
     @PutMapping("/{id}")
     public ApiResponse<ReconciliationRecord> update(@Parameter(description = "对账记录 ID") @PathVariable String id, @RequestBody ReconciliationRecord record) {
-        record.setId(id);
-        record.setUpdateTime(java.time.LocalDateTime.now());
-        reconciliationRecordService.updateById(record);
-        log.info("对账记录更新成功: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
-        return ApiResponse.success(record);
+        ReconciliationRecord updated = reconciliationRecordService.updateReconciliation(id, record);
+        return ApiResponse.success(updated);
     }
 
     @Operation(summary = "删除对账记录", description = "按对账记录 ID 对对账记录执行逻辑删除。")
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@Parameter(description = "对账记录 ID") @PathVariable String id) {
-        ReconciliationRecord record = reconciliationRecordService.getById(id);
-        if (record != null) {
-            record.setDeleted(true);
-            record.setUpdateTime(java.time.LocalDateTime.now());
-            reconciliationRecordService.updateById(record);
-            log.info("对账记录删除成功: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
-        }
+        reconciliationRecordService.deleteReconciliation(id);
         return ApiResponse.success();
     }
 

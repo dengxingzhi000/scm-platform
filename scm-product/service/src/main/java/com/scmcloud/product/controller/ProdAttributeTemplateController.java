@@ -12,9 +12,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 
 @Slf4j
 @RestController
@@ -32,12 +30,7 @@ public class ProdAttributeTemplateController {
             @Parameter(description = "商品分类ID，可选，用于筛选该分类下的属性模板")
             @RequestParam(required = false) String categoryId) {
 
-        Page<ProdAttributeTemplate> result = attributeTemplateService.lambdaQuery()
-                .eq(categoryId != null, ProdAttributeTemplate::getCategoryId, categoryId)
-                .eq(ProdAttributeTemplate::getDeleted, false)
-                .orderByDesc(ProdAttributeTemplate::getCreateTime)
-                .page(new Page<>(page, size));
-
+        Page<ProdAttributeTemplate> result = attributeTemplateService.pageByCategoryId(categoryId, page, size);
         return ApiResponse.success(PageResult.of(result));
     }
 
@@ -58,31 +51,21 @@ public class ProdAttributeTemplateController {
     @Operation(summary = "创建属性模板", description = "新增属性模板，自动生成ID并初始化创建与更新时间。")
     @PostMapping
     public ApiResponse<Void> create(@RequestBody ProdAttributeTemplate template) {
-        template.setId(UUID.randomUUID().toString());
-        template.setCreateTime(LocalDateTime.now());
-        template.setUpdateTime(LocalDateTime.now());
-        template.setDeleted(false);
-        attributeTemplateService.save(template);
+        attributeTemplateService.createTemplate(template);
         return ApiResponse.success();
     }
 
     @Operation(summary = "更新属性模板", description = "根据模板ID更新属性模板内容并刷新更新时间。")
     @PutMapping("/{id}")
     public ApiResponse<Void> update(@Parameter(description = "属性模板ID") @PathVariable String id, @RequestBody ProdAttributeTemplate template) {
-        template.setId(id);
-        template.setUpdateTime(LocalDateTime.now());
-        attributeTemplateService.updateById(template);
+        attributeTemplateService.updateTemplate(id, template);
         return ApiResponse.success();
     }
 
     @Operation(summary = "删除属性模板", description = "根据模板ID逻辑删除属性模板。")
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@Parameter(description = "属性模板ID") @PathVariable String id) {
-        attributeTemplateService.lambdaUpdate()
-                .eq(ProdAttributeTemplate::getId, id)
-                .set(ProdAttributeTemplate::getDeleted, true)
-                .set(ProdAttributeTemplate::getUpdateTime, LocalDateTime.now())
-                .update();
+        attributeTemplateService.deleteTemplate(id);
         return ApiResponse.success();
     }
 }

@@ -11,7 +11,9 @@ import com.scmcloud.logistics.domain.entity.TmsDeliveryArea;
 import com.scmcloud.logistics.mapper.TmsDeliveryAreaMapper;
 import com.scmcloud.logistics.service.ITmsDeliveryAreaService;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -64,5 +66,35 @@ public class TmsDeliveryAreaServiceImpl extends ServiceImpl<TmsDeliveryAreaMappe
         }
 
         return count(wrapper) > 0;
+    }
+
+    @Override
+    public TmsDeliveryArea createArea(TmsDeliveryArea area) {
+        log.info("Create delivery area: areaCode={}, areaName={}", (area.getAreaCode() + "").replace("\r", "_").replace("\n", "_"), (area.getAreaName() + "").replace("\r", "_").replace("\n", "_"));
+        area.setId(UUID.randomUUID().toString());
+        area.setDeleted(false);
+        area.setCreateTime(LocalDateTime.now());
+        area.setUpdateTime(LocalDateTime.now());
+        save(area);
+        return area;
+    }
+
+    @Override
+    public TmsDeliveryArea updateArea(String id, TmsDeliveryArea area) {
+        log.info("Update delivery area: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
+        area.setId(id);
+        area.setUpdateTime(LocalDateTime.now());
+        updateById(area);
+        return area;
+    }
+
+    @Override
+    public void deleteArea(String id) {
+        log.info("Delete delivery area: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
+        TmsDeliveryArea area = new TmsDeliveryArea();
+        area.setId(id);
+        area.setDeleted(true);
+        area.setUpdateTime(LocalDateTime.now());
+        updateById(area);
     }
 }

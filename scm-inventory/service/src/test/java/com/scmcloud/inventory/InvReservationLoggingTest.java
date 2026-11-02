@@ -66,7 +66,7 @@ class InvReservationLoggingTest {
     }
 
     @Test
-    void releaseFailureSanitizesExceptionMessageAndPreservesException() {
+    void releaseFailurePropagatesWithoutControllerWrapping() {
         String key = "order\r\nforged-entry";
         RuntimeException failure = new IllegalStateException("invalid\r\npayload");
         when(service.releaseReservation(key)).thenThrow(failure);
@@ -74,14 +74,16 @@ class InvReservationLoggingTest {
         assertSame(failure, assertThrows(IllegalStateException.class,
                 () -> controller.releaseReservation(key)));
 
+        verify(service).releaseReservation(key);
+        // 控制器不再捕获异常，只保留进入方法时的单行日志，异常交给 GlobalExceptionHandler。
+        assertEquals(1, appender.list.size());
         assertSingleLineMessages("order__forged-entry");
-        assertTrue(appender.list.getLast().getFormattedMessage().contains("invalid__payload"));
     }
 
     @Test
-    void reserveValidationFailureSanitizesExceptionMessage() {
+    void reserveValidationFailurePropagatesWithoutReshaping() {
         InventoryReservationRequest request = new InventoryReservationRequest();
-        request.setBusinessKey("order-1");
+        request.setBusinessKey("order\r\nforged-entry");
         request.setQuantity(1);
         IllegalArgumentException failure = new IllegalArgumentException("invalid\r\npayload");
         when(service.reserveInventory(request)).thenThrow(failure);
@@ -89,10 +91,9 @@ class InvReservationLoggingTest {
         assertSame(failure, assertThrows(IllegalArgumentException.class,
                 () -> controller.reserveInventory(request)));
 
-        String message = appender.list.getLast().getFormattedMessage();
-        assertTrue(message.contains("invalid__payload"));
-        assertFalse(message.contains("\r"));
-        assertFalse(message.contains("\n"));
+        verify(service).reserveInventory(request);
+        assertEquals(1, appender.list.size());
+        assertSingleLineMessages("order__forged-entry");
     }
 
     private void assertSingleLineMessages(String expectedKey) {

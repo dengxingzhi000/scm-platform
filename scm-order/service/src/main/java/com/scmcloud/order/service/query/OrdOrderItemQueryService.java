@@ -2,8 +2,12 @@ package com.scmcloud.order.service.query;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.scmcloud.common.data.rw.annotation.Slave;
 import com.scmcloud.order.domain.entity.OrdOrderItem;
+import com.scmcloud.order.dto.OrderConverter;
+import com.scmcloud.order.dto.OrderItemResponse;
+import com.scmcloud.order.dto.OrdOrderItemQueryRequest;
 import com.scmcloud.order.mapper.OrdOrderItemMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,11 +36,24 @@ public class OrdOrderItemQueryService {
     }
 
     @Slave
-    public com.baomidou.mybatisplus.extension.plugins.pagination.Page<OrdOrderItem>
-            pageByOrderId(com.baomidou.mybatisplus.extension.plugins.pagination.Page<OrdOrderItem> page, UUID orderId) {
+    public Page<OrdOrderItem> pageByOrderId(Page<OrdOrderItem> page, UUID orderId) {
         LambdaQueryWrapper<OrdOrderItem> wrapper = Wrappers.lambdaQuery();
         wrapper.eq(OrdOrderItem::getOrderId, orderId)
                 .orderByAsc(OrdOrderItem::getCreateTime);
         return ordOrderItemMapper.selectPage(page, wrapper);
+    }
+
+    @Slave
+    public OrderItemResponse getResponseById(String id) {
+        return OrderConverter.toItemResponse(getById(id));
+    }
+
+    @Slave
+    public Page<OrderItemResponse> pageResponses(OrdOrderItemQueryRequest request) {
+        Page<OrdOrderItem> page = pageByOrderId(
+                new Page<>(request.getPageNum(), request.getPageSize()), request.getOrderId());
+        Page<OrderItemResponse> mapped = new Page<>(page.getCurrent(), page.getSize(), page.getTotal());
+        mapped.setRecords(OrderConverter.toItemResponseList(page.getRecords()));
+        return mapped;
     }
 }

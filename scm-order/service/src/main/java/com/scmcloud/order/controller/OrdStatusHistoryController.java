@@ -1,7 +1,6 @@
 package com.scmcloud.order.controller;
 
 import com.scmcloud.common.response.ApiResponse;
-import com.scmcloud.order.dto.OrderConverter;
 import com.scmcloud.order.dto.StatusHistoryResponse;
 import com.scmcloud.order.service.query.OrdStatusHistoryQueryService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -38,15 +37,13 @@ public class OrdStatusHistoryController {
     @GetMapping("/{id}")
     public ApiResponse<StatusHistoryResponse> getById(@Parameter(description = "状态历史 ID") @PathVariable UUID id) {
         log.info("[API] Query status history: id={}", id);
-        return ApiResponse.success(
-                OrderConverter.toStatusHistoryResponse(queryService.getById(id.toString())));
+        return ApiResponse.success(queryService.getResponseById(id.toString()));
     }
 
     @Operation(summary = "按订单查询状态历史", description = "根据订单 ID 查询该订单的全部状态变更记录。")
     @GetMapping("/order/{orderId}")
     public ApiResponse<List<StatusHistoryResponse>> listByOrderId(@Parameter(description = "订单 ID") @PathVariable UUID orderId) {
         log.info("[API] Query order status history: orderId={}", orderId);
-        return ApiResponse.success(
-                OrderConverter.toStatusHistoryResponseList(queryService.listByOrderId(orderId)));
+        return ApiResponse.success(queryService.listResponsesByOrderId(orderId));
     }
 }

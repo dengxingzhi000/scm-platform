@@ -1,7 +1,5 @@
 package com.scmcloud.file.controller;
 
-import java.io.IOException;
-
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -38,8 +36,8 @@ public class OcrController {
      */
     @Operation(summary = "识别图片文字", description = "识别上传图片中的文字并返回识别结果。")
     @PostMapping("/recognize")
-    public ApiResponse<String> recognizeText(@Parameter(description = "待识别的图片文件") @RequestParam("file") MultipartFile file) throws IOException {
-        return ApiResponse.success(ocrService.recognizeText(file.getInputStream()));
+    public ApiResponse<String> recognizeText(@Parameter(description = "待识别的图片文件") @RequestParam("file") MultipartFile file) {
+        return ApiResponse.success(ocrService.recognizeText(file));
     }
 
     /**
@@ -50,8 +48,8 @@ public class OcrController {
      */
     @Operation(summary = "提取发票信息", description = "识别发票图片并提取结构化发票信息。")
     @PostMapping("/invoice")
-    public ApiResponse<InvoiceInfo> extractInvoice(@Parameter(description = "发票图片文件") @RequestParam("file") MultipartFile file) throws IOException {
-        return ApiResponse.success(ocrService.extractInvoiceInfo(file.getInputStream()));
+    public ApiResponse<InvoiceInfo> extractInvoice(@Parameter(description = "发票图片文件") @RequestParam("file") MultipartFile file) {
+        return ApiResponse.success(ocrService.extractInvoiceInfo(file));
     }
 
     /**
@@ -62,7 +60,7 @@ public class OcrController {
      */
     @Operation(summary = "提取合同信息", description = "识别合同图片并提取结构化合同信息。")
     @PostMapping("/contract")
-    public ApiResponse<ContractInfo> extractContract(@Parameter(description = "合同图片文件") @RequestParam("file") MultipartFile file) throws IOException {
-        return ApiResponse.success(ocrService.extractContractInfo(file.getInputStream()));
+    public ApiResponse<ContractInfo> extractContract(@Parameter(description = "合同图片文件") @RequestParam("file") MultipartFile file) {
+        return ApiResponse.success(ocrService.extractContractInfo(file));
     }
 }

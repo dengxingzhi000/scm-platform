@@ -11,9 +11,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -62,46 +60,28 @@ public class TmsCarrierController {
     @Operation(summary = "新增承运商", description = "创建新的承运商档案并返回保存后的承运商信息。")
     @PostMapping
     public ApiResponse<TmsCarrier> create(@RequestBody TmsCarrier carrier) {
-        log.info("Create carrier: carrierCode={}, carrierName={}", (carrier.getCarrierCode() + "").replace("\r", "_").replace("\n", "_"), (carrier.getCarrierName() + "").replace("\r", "_").replace("\n", "_"));
-        carrier.setId(UUID.randomUUID().toString());
-        carrier.setDeleted(false);
-        carrier.setCreateTime(LocalDateTime.now());
-        carrier.setUpdateTime(LocalDateTime.now());
-        carrierService.save(carrier);
-        return ApiResponse.success(carrier);
+        TmsCarrier created = carrierService.createCarrier(carrier);
+        return ApiResponse.success(created);
     }
 
     @Operation(summary = "更新承运商", description = "根据主键 ID 更新承运商信息并返回更新后的数据。")
     @PutMapping("/{id}")
     public ApiResponse<TmsCarrier> update(@Parameter(description = "承运商主键 ID") @PathVariable String id, @RequestBody TmsCarrier carrier) {
-        log.info("Update carrier: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
-        carrier.setId(id);
-        carrier.setUpdateTime(LocalDateTime.now());
-        carrierService.updateById(carrier);
-        return ApiResponse.success(carrier);
+        TmsCarrier updated = carrierService.updateCarrier(id, carrier);
+        return ApiResponse.success(updated);
     }
 
     @Operation(summary = "删除承运商", description = "根据主键 ID 逻辑删除指定承运商。")
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@Parameter(description = "承运商主键 ID") @PathVariable String id) {
-        log.info("Delete carrier: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
-        TmsCarrier carrier = new TmsCarrier();
-        carrier.setId(id);
-        carrier.setDeleted(true);
-        carrier.setUpdateTime(LocalDateTime.now());
-        carrierService.updateById(carrier);
+        carrierService.deleteCarrier(id);
         return ApiResponse.success();
     }
 
     @Operation(summary = "启用或停用承运商", description = "根据传入的启用标识切换指定承运商的启用状态。")
     @PutMapping("/{id}/enable")
     public ApiResponse<Void> toggleEnabled(@Parameter(description = "承运商主键 ID") @PathVariable String id, @Parameter(description = "是否启用，true 为启用、false 为停用") @RequestParam boolean enabled) {
-        log.info("Toggle carrier enabled: id={}, enabled={}", (id + "").replace("\r", "_").replace("\n", "_"), (enabled + "").replace("\r", "_").replace("\n", "_"));
-        TmsCarrier carrier = new TmsCarrier();
-        carrier.setId(id);
-        carrier.setEnabled(enabled);
-        carrier.setUpdateTime(LocalDateTime.now());
-        carrierService.updateById(carrier);
+        carrierService.toggleEnabled(id, enabled);
         return ApiResponse.success();
     }
 }

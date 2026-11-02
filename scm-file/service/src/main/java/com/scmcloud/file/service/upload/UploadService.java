@@ -1,5 +1,6 @@
 package com.scmcloud.file.service.upload;
 
+import com.scmcloud.common.tenant.TenantContextHolder;
 import com.scmcloud.file.api.enums.UploadTaskStatus;
 import com.scmcloud.file.config.StorageConfig;
 import com.scmcloud.file.entity.FileMetadata;
@@ -32,6 +33,15 @@ public class UploadService {
     private final FileUploadValidator fileUploadValidator;
     private final FileVirusScanner virusScanner;
     private final StorageConfig storageConfig;
+
+    /**
+     * Web 入口：上传文件到当前租户。
+     */
+    public FileMetadata upload(MultipartFile file, String fileName, String contentType,
+                               String bizType, String bizId) {
+        return upload(file, fileName, contentType, bizType, bizId,
+                TenantContextHolder.getRequiredTenantId().toString());
+    }
 
     public FileMetadata upload(MultipartFile file, String fileName, String contentType,
                                String bizType, String bizId, String tenantId) {

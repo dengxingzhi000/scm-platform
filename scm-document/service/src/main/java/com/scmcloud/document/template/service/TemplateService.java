@@ -16,6 +16,7 @@ import org.springframework.util.StringUtils;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -28,21 +29,44 @@ public class TemplateService extends ServiceImpl<DocTemplateMapper, DocTemplate>
     }
 
     public DocTemplateVersion getVersion(String id) {
-        return versionMapper.selectById(id);
+        DocTemplateVersion version = versionMapper.selectById(id);
+        if (version == null || !currentTenantId().equals(version.getTenantId())) {
+            return null;
+        }
+        return version;
     }
 
+    /**
+     * 按 ID 查询当前租户的模板；不存在或属于其他租户时返回空。
+     */
+    public Optional<DocTemplate> findCurrentTenant(String id) {
+        DocTemplate template = getById(id);
+        if (template == null || !currentTenantId().equals(template.getTenantId())) {
+            return Optional.empty();
+        }
+        return Optional.of(template);
+    }
+
+    /**
+     * 查询当前租户模板的版本列表；模板不存在或不属于当前租户时返回空列表。
+     */
     public List<DocTemplateVersion> listVersions(String templateId) {
+        if (findCurrentTenant(templateId).isEmpty()) {
+            return List.of();
+        }
         return versionMapper.selectList(new LambdaQueryWrapper<DocTemplateVersion>()
                 .eq(DocTemplateVersion::getTemplateId, templateId)
+                .eq(DocTemplateVersion::getTenantId, currentTenantId())
                 .orderByDesc(DocTemplateVersion::getVersion));
     }
 
     /**
-     * 分页查询模板，支持按名称/编码关键字、类型、分类和状态过滤。
+     * 分页查询当前租户的模板，支持按名称/编码关键字、类型、分类和状态过滤。
      */
     public Page<DocTemplate> pageQuery(int page, int size, String keyword,
                                        String templateType, String category, String status) {
         LambdaQueryWrapper<DocTemplate> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(DocTemplate::getTenantId, currentTenantId());
         if (StringUtils.hasText(keyword)) {
             wrapper.and(w -> w.like(DocTemplate::getTemplateName, keyword)
                     .or().like(DocTemplate::getTemplateCode, keyword));
@@ -75,10 +99,8 @@ public class TemplateService extends ServiceImpl<DocTemplateMapper, DocTemplate>
      */
     @Transactional
     public DocTemplate updateTemplate(String id, DocTemplate patch) {
-        DocTemplate existing = getById(id);
-        if (existing == null) {
-            throw new IllegalArgumentException("document template not found: " + id);
-        }
+        findCurrentTenant(id)
+                .orElseThrow(() -> new IllegalArgumentException("document template not found: " + id));
         lambdaUpdate()
                 .eq(DocTemplate::getId, id)
                 .set(patch.getTemplateName() != null, DocTemplate::getTemplateName, patch.getTemplateName())
@@ -96,10 +118,8 @@ public class TemplateService extends ServiceImpl<DocTemplateMapper, DocTemplate>
      */
     @Transactional
     public DocTemplateVersion createVersion(String templateId, DocTemplateVersion request) {
-        DocTemplate template = getById(templateId);
-        if (template == null) {
-            throw new IllegalArgumentException("document template not found: " + templateId);
-        }
+        findCurrentTenant(templateId)
+                .orElseThrow(() -> new IllegalArgumentException("document template not found: " + templateId));
         DocTemplateVersion version = new DocTemplateVersion();
         version.setTemplateId(templateId);
         version.setVersion(nextVersionNo(templateId));
@@ -126,8 +146,12 @@ public class TemplateService extends ServiceImpl<DocTemplateMapper, DocTemplate>
      */
     @Transactional
     public DocTemplateVersion publishVersion(String templateId, String versionId) {
+        findCurrentTenant(templateId)
+                .orElseThrow(() -> new IllegalArgumentException("document template not found: " + templateId));
         DocTemplateVersion version = versionMapper.selectById(versionId);
-        if (version == null || !templateId.equals(version.getTemplateId())) {
+        if (version == null
+                || !templateId.equals(version.getTemplateId())
+                || !currentTenantId().equals(version.getTenantId())) {
             throw new IllegalArgumentException("template version not found: " + versionId);
         }
         if (!StringUtils.hasText(version.getFileId())) {
@@ -147,5 +171,9 @@ public class TemplateService extends ServiceImpl<DocTemplateMapper, DocTemplate>
                 .set(DocTemplate::getStatus, "PUBLISHED")
                 .update();
         return version;
+    }
+
+    private String currentTenantId() {
+        return TenantContextHolder.getRequiredTenantId().toString();
     }
 }

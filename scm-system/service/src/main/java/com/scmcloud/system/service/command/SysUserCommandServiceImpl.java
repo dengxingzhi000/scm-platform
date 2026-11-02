@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.scmcloud.common.dto.user.UserDTO;
 import com.scmcloud.common.exception.BusinessException;
 import com.scmcloud.common.response.ResultCode;
+import com.scmcloud.common.rest.client.SysAuthServiceClient;
 import com.scmcloud.common.security.PermissionChecker;
 import com.scmcloud.common.status.StatusValidator;
 import com.scmcloud.common.tenant.TenantValidationUtil;
@@ -58,6 +59,7 @@ public class SysUserCommandServiceImpl implements ISysUserCommandService {
     private final PermissionChecker permissionChecker;
     private final StatusValidator statusValidator;
     private final UserCommandTemplate commandTemplate;
+    private final SysAuthServiceClient authServiceClient;
 
     @Value("${app.security.admin-user-id:019a0aee-3b74-7bfc-b34f-48b5428d4875}")
     private String adminUserId;
@@ -111,7 +113,8 @@ public class SysUserCommandServiceImpl implements ISysUserCommandService {
     @Override
     @DSTransactional
     @CacheEvict(value = {"user", "userDetails", "userInfo"}, keyGenerator = KEY_GEN)
-    public void updateUser(UserDTO userDTO) {
+    public void updateUser(UUID id, UserDTO userDTO) {
+        userDTO.setId(id);
         SysUser user = commandTemplate.execute("UPDATE", "user:update", userDTO.getId(),
                 (loaded, op) -> {
                     validateRoleAssignment(op, userDTO.getRoleIds());
@@ -192,7 +195,11 @@ public class SysUserCommandServiceImpl implements ISysUserCommandService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     @CacheEvict(value = {"user", "userDetails"}, keyGenerator = KEY_GEN)
-    public void changePassword(UUID userId, String oldPassword, String newPassword) {
+    public void changePassword(String oldPassword, String newPassword) {
+        doChangePassword(SecurityUtils.getCurrentUserUuid().orElse(null), oldPassword, newPassword);
+    }
+
+    private void doChangePassword(UUID userId, String oldPassword, String newPassword) {
         SysUser user = userMapper.selectById(userId);
         if (user == null) {
             throw new BusinessException(ResultCode.USER_NOT_FOUND.getCode(),
@@ -283,6 +290,17 @@ public class SysUserCommandServiceImpl implements ISysUserCommandService {
         log.info("User {} {}, by: {}",
                 user.getUsername(), lock ? "locked" : "unlocked",
                 SecurityUtils.getCurrentUsername());
+    }
+
+    @Override
+    public void forceLogout(UUID id, String reason) {
+        log.info("强制用户下线: userId={}, operator={}", id, SecurityUtils.getCurrentUsername());
+        authServiceClient.forceLogout(id, reason);
+    }
+
+    @Override
+    public void updateLastLogin(UUID userId, String ipAddress) {
+        updateLastLogin(userId, ipAddress, LocalDateTime.now());
     }
 
     @Override

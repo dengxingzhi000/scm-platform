@@ -92,6 +92,13 @@ public final class OrderConverter {
         return r;
     }
 
+    public static List<OrderItemResponse> toItemResponseList(List<OrdOrderItem> items) {
+        if (items == null || items.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return items.stream().map(OrderConverter::toItemResponse).collect(Collectors.toList());
+    }
+
     private static BigDecimal moneyToBigDecimal(Money money) {
         return money == null ? null : money.getAmount();
     }

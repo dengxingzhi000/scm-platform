@@ -76,6 +76,20 @@ public class ProductSearchService {
     }
 
     /**
+     * 快速搜索（由查询参数组装搜索请求）
+     */
+    public Page<ProductSearchResponse> quickSearch(String keyword, Integer page, Integer size,
+                                                   String sortBy, String sortOrder) {
+        ProductSearchRequest request = new ProductSearchRequest();
+        request.setKeyword(keyword);
+        request.setPage(page);
+        request.setSize(size);
+        request.setSortBy(sortBy);
+        request.setSortOrder(sortOrder);
+        return search(request);
+    }
+
+    /**
      * 热门商品（按销量排序）
      *
      * @param page 页码（从 1 开始）

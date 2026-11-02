@@ -1,7 +1,6 @@
 package com.scmcloud.finance.controller;
 
 import com.scmcloud.common.response.ApiResponse;
-import com.scmcloud.common.util.UUIDv7Util;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -11,7 +10,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @RequiredArgsConstructor
@@ -32,20 +30,15 @@ public class SettlementItemController {
     @Operation(summary = "创建结算明细", description = "新增一条结算明细并生成主键与创建时间。")
     @PostMapping
     public ApiResponse<SettlementItem> create(@RequestBody SettlementItem item) {
-        item.setId(UUIDv7Util.generateString());
-        item.setCreateTime(LocalDateTime.now());
-        settlementItemService.save(item);
-        log.info("结算明细创建成功: id={}, settlementId={}", (item.getId() + "").replace("\r", "_").replace("\n", "_"), (item.getSettlementId() + "").replace("\r", "_").replace("\n", "_"));
-        return ApiResponse.success(item);
+        SettlementItem created = settlementItemService.createItem(item);
+        return ApiResponse.success(created);
     }
 
     @Operation(summary = "更新结算明细", description = "按明细 ID 更新结算明细信息。")
     @PutMapping("/{id}")
     public ApiResponse<SettlementItem> update(@Parameter(description = "结算明细 ID") @PathVariable String id, @RequestBody SettlementItem item) {
-        item.setId(id);
-        settlementItemService.updateById(item);
-        log.info("结算明细更新成功: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
-        return ApiResponse.success(item);
+        SettlementItem updated = settlementItemService.updateItem(id, item);
+        return ApiResponse.success(updated);
     }
 
     @Operation(summary = "删除结算明细", description = "按明细 ID 删除结算明细。")

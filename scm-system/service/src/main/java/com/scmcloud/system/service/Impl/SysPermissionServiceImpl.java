@@ -151,7 +151,8 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
     @Override
     @Transactional(rollbackFor = Exception.class)
     @CacheEvict(value = {"permission", "permissionTree", "userPermissions", "userInfo"}, allEntries = true)
-    public void updatePermission(PermissionDTO permissionDTO) {
+    public void updatePermission(UUID id, PermissionDTO permissionDTO) {
+        permissionDTO.setId(id);
         UUID operatorId = SecurityUtils.getCurrentUserUuid().orElse(null);
         permissionChecker.requirePermission(operatorId, "permission:update");
 

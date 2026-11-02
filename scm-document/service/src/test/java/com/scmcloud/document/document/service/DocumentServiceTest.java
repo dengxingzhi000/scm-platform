@@ -121,4 +121,18 @@ class DocumentServiceTest {
 
         assertEquals("document not found: doc-1", error.getMessage());
     }
+
+    @Test
+    void changeStatusShouldRejectDocumentFromAnotherTenant() {
+        DocDocument foreign = document("GENERATED");
+        foreign.setTenantId("019a0aee-0000-7000-8000-0000000000ff");
+        when(documentMapper.selectById("doc-1")).thenReturn(foreign);
+
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> service.changeStatus("doc-1", "SIGNED", "user-1", "张三"));
+
+        assertEquals("document not found: doc-1", error.getMessage());
+        verify(auditMapper, never()).insert(any(DocDocumentAudit.class));
+        verify(documentMapper, never()).update(any(), any());
+    }
 }

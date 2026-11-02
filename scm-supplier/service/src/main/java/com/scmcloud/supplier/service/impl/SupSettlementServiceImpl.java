@@ -17,6 +17,7 @@ import org.springframework.util.StringUtils;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -60,6 +61,65 @@ public class SupSettlementServiceImpl extends ServiceImpl<SupSettlementMapper, S
                 .eq(SupSettlement::getDeleted, false)
                 .orderByDesc(SupSettlement::getCreateTime)
                 .list();
+    }
+
+    @Override
+    public SupSettlement createSettlement(SupSettlement settlement) {
+        log.info("[API] 创建对账单 supplierId={}", (settlement.getSupplierId() + "").replace("\r", "_").replace("\n", "_"));
+        settlement.setId(UUID.randomUUID());
+        settlement.setStatus(0);
+        settlement.setDeleted(false);
+        settlement.setCreateTime(LocalDateTime.now());
+        settlement.setUpdateTime(LocalDateTime.now());
+        save(settlement);
+        log.info("[API] 对账单创建成功 id={}", settlement.getId());
+        return settlement;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public SupSettlement updateSettlement(String id, SupSettlement settlement) {
+        log.info("[API] 更新对账单 id={}", (id + "").replace("\r", "_").replace("\n", "_"));
+        SupSettlement existing = getById(id);
+        if (existing == null || Boolean.TRUE.equals(existing.getDeleted())) {
+            return null;
+        }
+        if (settlement.getStatus() != null && !settlement.getStatus().equals(existing.getStatus())) {
+            statusValidator.validateTransition("SUPPLIER_SETTLEMENT",
+                    resolveStatusName(existing.getStatus()), resolveStatusName(settlement.getStatus()));
+        }
+        settlement.setId(UUID.fromString(id));
+        settlement.setUpdateTime(LocalDateTime.now());
+        updateById(settlement);
+        return getById(id);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean deleteSettlement(String id) {
+        log.info("[API] 删除对账单 id={}", (id + "").replace("\r", "_").replace("\n", "_"));
+        SupSettlement existing = getById(id);
+        if (existing == null || Boolean.TRUE.equals(existing.getDeleted())) {
+            return false;
+        }
+        existing.setDeleted(true);
+        existing.setUpdateTime(LocalDateTime.now());
+        updateById(existing);
+        return true;
+    }
+
+    private String resolveStatusName(Integer status) {
+        if (status == null) {
+            return null;
+        }
+        return switch (status) {
+            case 0 -> "DRAFT";
+            case 1 -> "CONFIRMED";
+            case 2 -> "PARTIAL_PAID";
+            case 3 -> "FULLY_PAID";
+            case 4 -> "CLOSED";
+            default -> throw new IllegalArgumentException("未知的对账单状态: " + status);
+        };
     }
 
     @Override

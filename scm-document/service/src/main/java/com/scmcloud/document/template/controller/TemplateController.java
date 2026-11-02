@@ -43,10 +43,12 @@ public class TemplateController {
                 page == null ? 1 : page, size == null ? 20 : size, keyword, templateType, category, status));
     }
 
-    @Operation(summary = "查询模板", description = "根据模板 ID 查询文档模板详情。")
+    @Operation(summary = "查询模板", description = "根据模板 ID 查询当前租户的文档模板详情。")
     @GetMapping("/{id}")
     public ApiResponse<DocTemplate> getById(@Parameter(description = "模板 ID") @PathVariable String id) {
-        return ApiResponse.success(templateService.getById(id));
+        return templateService.findCurrentTenant(id)
+                .<ApiResponse<DocTemplate>>map(ApiResponse::success)
+                .orElseGet(ApiResponse::success);
     }
 
     @Operation(summary = "查询模板版本", description = "根据模板 ID 查询该模板的历史版本列表。")

@@ -3,6 +3,9 @@ package com.scmcloud.order.service.command;
 import com.scmcloud.common.data.rw.annotation.Master;
 import com.scmcloud.order.domain.entity.OrdPayment;
 import com.scmcloud.order.domain.entity.PaymentStatus;
+import com.scmcloud.order.dto.OrderConverter;
+import com.scmcloud.order.dto.PaymentCreateRequest;
+import com.scmcloud.order.dto.PaymentResponse;
 import com.scmcloud.order.mapper.OrdPaymentMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,6 +50,12 @@ public class OrdPaymentCommandService {
             throw new RuntimeException("创建支付记录失败");
         }
         return payment;
+    }
+
+    @Master(reason = "创建支付记录")
+    @Transactional(rollbackFor = Exception.class)
+    public PaymentResponse createPayment(PaymentCreateRequest request) {
+        return OrderConverter.toPaymentResponse(createPayment(OrderConverter.toPaymentEntity(request)));
     }
 
     @Master(reason = "更新支付状态")

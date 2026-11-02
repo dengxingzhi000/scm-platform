@@ -2,8 +2,6 @@ package com.scmcloud.order.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.scmcloud.common.response.ApiResponse;
-import com.scmcloud.order.domain.entity.OrdOrderItem;
-import com.scmcloud.order.dto.OrderConverter;
 import com.scmcloud.order.dto.OrderItemResponse;
 import com.scmcloud.order.dto.OrdOrderItemQueryRequest;
 import com.scmcloud.order.service.query.OrdOrderItemQueryService;
@@ -48,8 +46,7 @@ public class OrdOrderItemController {
     @GetMapping("/{id}")
     public ApiResponse<OrderItemResponse> getById(@Parameter(description = "订单明细 ID") @PathVariable UUID id) {
         log.info("[API] Query order item: id={}", id);
-        OrdOrderItem item = queryService.getById(id.toString());
-        return ApiResponse.success(OrderConverter.toItemResponse(item));
+        return ApiResponse.success(queryService.getResponseById(id.toString()));
     }
 
     /**
@@ -61,15 +58,6 @@ public class OrdOrderItemController {
         log.info("[API] Query order items: orderId={}, page={}/{}",
                 request.getOrderId(), request.getPageNum(), request.getPageSize());
 
-        Page<OrdOrderItem> page = queryService.pageByOrderId(
-                new Page<>(request.getPageNum(), request.getPageSize()),
-                request.getOrderId());
-        Page<OrderItemResponse> mapped = new Page<>(page.getCurrent(), page.getSize(), page.getTotal());
-        java.util.List<OrderItemResponse> items = new java.util.ArrayList<>();
-        for (OrdOrderItem item : page.getRecords()) {
-            items.add(OrderConverter.toItemResponse(item));
-        }
-        mapped.setRecords(items);
-        return ApiResponse.success(mapped);
+        return ApiResponse.success(queryService.pageResponses(request));
     }
 }

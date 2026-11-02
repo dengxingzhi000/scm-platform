@@ -2,7 +2,6 @@ package com.scmcloud.document.file.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.scmcloud.common.response.ApiResponse;
-import com.scmcloud.common.tenant.TenantContextHolder;
 import com.scmcloud.document.file.domain.entity.DocumentFile;
 import com.scmcloud.document.file.service.DocumentFileService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -32,16 +31,14 @@ public class DocumentFileController {
             @Parameter(description = "文件名称关键字") @RequestParam(required = false) String keyword,
             @Parameter(description = "来源类型：TEMPLATE_SOURCE / RENDERED_OUTPUT") @RequestParam(required = false) String sourceType,
             @Parameter(description = "关联业务 ID") @RequestParam(required = false) String refId) {
-        String tenantId = TenantContextHolder.getRequiredTenantId().toString();
-        return ApiResponse.success(documentFileService.pageQuery(
-                page == null ? 1 : page, size == null ? 20 : size, tenantId, keyword, sourceType, refId));
+        return ApiResponse.success(documentFileService.pageCurrentTenant(
+                page == null ? 1 : page, size == null ? 20 : size, keyword, sourceType, refId));
     }
 
     @Operation(summary = "查询文档文件", description = "根据文件 ID 查询当前租户下的文档文件元数据。")
     @GetMapping("/{id}")
     public ApiResponse<DocumentFile> getById(@Parameter(description = "文档文件 ID") @PathVariable String id) {
-        String tenantId = TenantContextHolder.getRequiredTenantId().toString();
-        return documentFileService.findById(id, tenantId)
+        return documentFileService.findCurrentTenant(id)
                 .<ApiResponse<DocumentFile>>map(ApiResponse::success)
                 .orElseGet(ApiResponse::success);
     }
@@ -49,12 +46,11 @@ public class DocumentFileController {
     @Operation(summary = "获取文件访问地址", description = "根据文件 ID 生成文档文件的临时预签名访问地址。")
     @GetMapping("/{id}/url")
     public ApiResponse<Map<String, String>> presignedUrl(@Parameter(description = "文档文件 ID") @PathVariable String id) {
-        String tenantId = TenantContextHolder.getRequiredTenantId().toString();
-        Optional<DocumentFile> file = documentFileService.findById(id, tenantId);
+        Optional<DocumentFile> file = documentFileService.findCurrentTenant(id);
         if (file.isEmpty()) {
             return ApiResponse.fail(404, "document file not found");
         }
-        return documentFileService.presignedUrl(file.get().getFileRef(), tenantId)
+        return documentFileService.presignedUrlCurrentTenant(file.get().getFileRef())
                 .map(url -> ApiResponse.success(Map.of("url", url)))
                 .orElseGet(() -> ApiResponse.fail(404, "storage file not found"));
     }
@@ -62,16 +58,13 @@ public class DocumentFileController {
     @Operation(summary = "创建文档文件", description = "保存文档文件元数据并绑定当前租户。")
     @PostMapping
     public ApiResponse<DocumentFile> create(@RequestBody DocumentFile file) {
-        String tenantId = TenantContextHolder.getRequiredTenantId().toString();
-        file.setTenantId(tenantId);
-        documentFileService.save(file);
-        return ApiResponse.success(file);
+        return ApiResponse.success(documentFileService.createCurrentTenant(file));
     }
 
-    @Operation(summary = "删除文档文件", description = "根据文件 ID 删除文档文件记录。")
+    @Operation(summary = "删除文档文件", description = "根据文件 ID 删除当前租户的文档文件记录。")
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@Parameter(description = "文档文件 ID") @PathVariable String id) {
-        documentFileService.removeById(id);
+        documentFileService.deleteCurrentTenant(id);
         return ApiResponse.success();
     }
 }

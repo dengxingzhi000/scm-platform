@@ -116,6 +116,26 @@ public class ReconciliationRecordServiceImpl extends ServiceImpl<ReconciliationR
         return record;
     }
 
+    @Override
+    public ReconciliationRecord updateReconciliation(String id, ReconciliationRecord record) {
+        record.setId(id);
+        record.setUpdateTime(LocalDateTime.now());
+        updateById(record);
+        log.info("对账记录更新成功: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
+        return record;
+    }
+
+    @Override
+    public void deleteReconciliation(String id) {
+        ReconciliationRecord record = getById(id);
+        if (record != null) {
+            record.setDeleted(true);
+            record.setUpdateTime(LocalDateTime.now());
+            updateById(record);
+            log.info("对账记录删除成功: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
+        }
+    }
+
     private String generateReconciliationNo() {
         return "RCN" + System.currentTimeMillis();
     }

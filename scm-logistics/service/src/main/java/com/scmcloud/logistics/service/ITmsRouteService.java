@@ -14,4 +14,8 @@ public interface ITmsRouteService extends IService<TmsRoute> {
     List<TmsRoute> listByCourierId(String courierId);
 
     TmsRoute getByRouteNo(String routeNo);
+
+    TmsRoute createRoute(TmsRoute route);
+
+    TmsRoute updateRoute(String id, TmsRoute route);
 }

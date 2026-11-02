@@ -13,4 +13,10 @@ public interface ITmsDeliveryAreaService extends IService<TmsDeliveryArea> {
     List<TmsDeliveryArea> listByCarrier(String carrierId);
 
     boolean checkCoverage(String carrierId, String province, String city, String district);
+
+    TmsDeliveryArea createArea(TmsDeliveryArea area);
+
+    TmsDeliveryArea updateArea(String id, TmsDeliveryArea area);
+
+    void deleteArea(String id);
 }

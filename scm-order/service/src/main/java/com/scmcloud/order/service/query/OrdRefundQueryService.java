@@ -5,7 +5,11 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.scmcloud.common.data.rw.annotation.Slave;
 import com.scmcloud.order.domain.entity.OrdRefund;
+import com.scmcloud.order.domain.entity.OrdRefundItem;
 import com.scmcloud.order.domain.entity.RefundStatus;
+import com.scmcloud.order.dto.OrderConverter;
+import com.scmcloud.order.dto.RefundQueryRequest;
+import com.scmcloud.order.dto.RefundResponse;
 import com.scmcloud.order.mapper.OrdRefundMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +31,7 @@ import java.util.UUID;
 public class OrdRefundQueryService {
 
     private final OrdRefundMapper ordRefundMapper;
+    private final OrdRefundItemQueryService refundItemQueryService;
 
     @Slave
     public OrdRefund getById(UUID id) {
@@ -65,5 +70,31 @@ public class OrdRefundQueryService {
                 .le(endTime != null, OrdRefund::getCreateTime, endTime)
                 .orderByDesc(OrdRefund::getCreateTime);
         return ordRefundMapper.selectPage(page, wrapper);
+    }
+
+    @Slave
+    public RefundResponse getResponseById(UUID id) {
+        RefundResponse response = OrderConverter.toRefundResponse(getById(id));
+        if (response != null) {
+            List<OrdRefundItem> items = refundItemQueryService.listByRefundId(id);
+            response.setItems(OrderConverter.toRefundItemResponseList(items));
+        }
+        return response;
+    }
+
+    @Slave
+    public List<RefundResponse> listResponsesByOrderId(UUID orderId) {
+        return OrderConverter.toRefundResponseList(listByOrderId(orderId));
+    }
+
+    @Slave
+    public Page<RefundResponse> pageResponses(RefundQueryRequest request) {
+        Page<OrdRefund> page = pageWithWrapper(
+                new Page<>(request.getPageNum(), request.getPageSize()),
+                request.getRefundNo(), request.getOrderId(), request.getUserId(),
+                request.getStatus(), request.getStartTime(), request.getEndTime());
+        Page<RefundResponse> mapped = new Page<>(page.getCurrent(), page.getSize(), page.getTotal());
+        mapped.setRecords(OrderConverter.toRefundResponseList(page.getRecords()));
+        return mapped;
     }
 }

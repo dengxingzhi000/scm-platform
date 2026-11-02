@@ -3,8 +3,6 @@ package com.scmcloud.order.controller;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.scmcloud.common.response.ApiResponse;
 import com.scmcloud.common.response.ResultCode;
-import com.scmcloud.order.domain.entity.OrdPayment;
-import com.scmcloud.order.dto.OrderConverter;
 import com.scmcloud.order.dto.PaymentCreateRequest;
 import com.scmcloud.order.dto.PaymentQueryRequest;
 import com.scmcloud.order.dto.PaymentResponse;
@@ -59,7 +57,7 @@ public class OrdPaymentController {
     @GetMapping("/{id}")
     public ApiResponse<PaymentResponse> getById(@Parameter(description = "支付记录 ID") @PathVariable UUID id) {
         log.info("[API] Query payment: id={}", id);
-        return ApiResponse.success(OrderConverter.toPaymentResponse(queryService.getById(id)));
+        return ApiResponse.success(queryService.getResponseById(id));
     }
 
     /**
@@ -69,7 +67,7 @@ public class OrdPaymentController {
     @GetMapping("/order/{orderId}")
     public ApiResponse<List<PaymentResponse>> listByOrderId(@Parameter(description = "订单 ID") @PathVariable UUID orderId) {
         log.info("[API] Query payments by order: orderId={}", orderId);
-        return ApiResponse.success(OrderConverter.toPaymentResponseList(queryService.listByOrderId(orderId)));
+        return ApiResponse.success(queryService.listResponsesByOrderId(orderId));
     }
 
     /**
@@ -80,17 +78,7 @@ public class OrdPaymentController {
     public ApiResponse<Page<PaymentResponse>> query(@RequestBody @Valid PaymentQueryRequest request) {
         log.info("[API] Query payments: {}", (request + "").replace("\r", "_").replace("\n", "_"));
 
-        Page<OrdPayment> page = queryService.pageWithWrapper(
-                new Page<>(request.getPageNum(), request.getPageSize()),
-                request.getPaymentNo(), request.getOrderId(), request.getUserId(),
-                request.getStatus(), request.getStartTime(), request.getEndTime());
-        Page<PaymentResponse> mapped = new Page<>(page.getCurrent(), page.getSize(), page.getTotal());
-        java.util.List<PaymentResponse> items = new java.util.ArrayList<>();
-        for (OrdPayment p : page.getRecords()) {
-            items.add(OrderConverter.toPaymentResponse(p));
-        }
-        mapped.setRecords(items);
-        return ApiResponse.success(mapped);
+        return ApiResponse.success(queryService.pageResponses(request));
     }
 
     /**
@@ -101,12 +89,11 @@ public class OrdPaymentController {
     public ApiResponse<PaymentResponse> createPayment(@RequestBody @Valid PaymentCreateRequest request) {
         log.info("[API] Create payment: paymentNo={}, orderId={}", (request.getPaymentNo() + "").replace("\r", "_").replace("\n", "_"), (request.getOrderId() + "").replace("\r", "_").replace("\n", "_"));
 
-        OrdPayment payment = OrderConverter.toPaymentEntity(request);
-        OrdPayment created = commandService.createPayment(payment);
+        PaymentResponse created = commandService.createPayment(request);
         if (created == null) {
             return ApiResponse.fail(ResultCode.SERVER_ERROR.getCode(), "创建支付记录失败");
         }
-        return ApiResponse.success(OrderConverter.toPaymentResponse(created));
+        return ApiResponse.success(created);
     }
 
     /**
@@ -123,6 +110,6 @@ public class OrdPaymentController {
         if (!updated) {
             return ApiResponse.fail(ResultCode.NOT_FOUND.getCode(), "支付记录不存在或状态未变更");
         }
-        return ApiResponse.success(OrderConverter.toPaymentResponse(queryService.getById(id)));
+        return ApiResponse.success(queryService.getResponseById(id));
     }
 }

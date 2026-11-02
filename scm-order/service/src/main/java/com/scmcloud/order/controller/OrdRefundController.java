@@ -2,9 +2,6 @@ package com.scmcloud.order.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.scmcloud.common.response.ApiResponse;
-import com.scmcloud.order.domain.entity.OrdRefund;
-import com.scmcloud.order.domain.entity.OrdRefundItem;
-import com.scmcloud.order.dto.OrderConverter;
 import com.scmcloud.order.dto.RefundApproveRequest;
 import com.scmcloud.order.dto.RefundCreateRequest;
 import com.scmcloud.order.dto.RefundItemResponse;
@@ -67,27 +64,21 @@ public class OrdRefundController {
     @GetMapping("/{id}")
     public ApiResponse<RefundResponse> getById(@Parameter(description = "退款单 ID") @PathVariable UUID id) {
         log.info("[API] Query refund: id={}", id);
-        RefundResponse r = OrderConverter.toRefundResponse(queryService.getById(id));
-        if (r != null) {
-            List<OrdRefundItem> items = refundItemQueryService.listByRefundId(id);
-            r.setItems(OrderConverter.toRefundItemResponseList(items));
-        }
-        return ApiResponse.success(r);
+        return ApiResponse.success(queryService.getResponseById(id));
     }
 
     @Operation(summary = "查询退款明细", description = "根据退款单 ID 查询退款明细列表。")
     @GetMapping("/{id}/items")
     public ApiResponse<List<RefundItemResponse>> listItems(@Parameter(description = "退款单 ID") @PathVariable UUID id) {
         log.info("[API] Query refund items: refundId={}", id);
-        return ApiResponse.success(
-                OrderConverter.toRefundItemResponseList(refundItemQueryService.listByRefundId(id)));
+        return ApiResponse.success(refundItemQueryService.listResponsesByRefundId(id));
     }
 
     @Operation(summary = "按订单查询退款单", description = "根据订单 ID 查询该订单关联的退款单列表。")
     @GetMapping("/order/{orderId}")
     public ApiResponse<List<RefundResponse>> listByOrderId(@Parameter(description = "订单 ID") @PathVariable UUID orderId) {
         log.info("[API] Query refunds by order: orderId={}", orderId);
-        return ApiResponse.success(OrderConverter.toRefundResponseList(queryService.listByOrderId(orderId)));
+        return ApiResponse.success(queryService.listResponsesByOrderId(orderId));
     }
 
     /**
@@ -98,17 +89,7 @@ public class OrdRefundController {
     public ApiResponse<Page<RefundResponse>> query(@RequestBody @Valid RefundQueryRequest request) {
         log.info("[API] Query refunds: {}", (request + "").replace("\r", "_").replace("\n", "_"));
 
-        Page<OrdRefund> page = queryService.pageWithWrapper(
-                new Page<>(request.getPageNum(), request.getPageSize()),
-                request.getRefundNo(), request.getOrderId(), request.getUserId(),
-                request.getStatus(), request.getStartTime(), request.getEndTime());
-        Page<RefundResponse> mapped = new Page<>(page.getCurrent(), page.getSize(), page.getTotal());
-        java.util.List<RefundResponse> items = new java.util.ArrayList<>();
-        for (OrdRefund r : page.getRecords()) {
-            items.add(OrderConverter.toRefundResponse(r));
-        }
-        mapped.setRecords(items);
-        return ApiResponse.success(mapped);
+        return ApiResponse.success(queryService.pageResponses(request));
     }
 
     /**
@@ -119,15 +100,7 @@ public class OrdRefundController {
     public ApiResponse<RefundResponse> createRefund(@RequestBody @Valid RefundCreateRequest request) {
         log.info("[API] Create refund: refundNo={}, orderId={}", (request.getRefundNo() + "").replace("\r", "_").replace("\n", "_"), (request.getOrderId() + "").replace("\r", "_").replace("\n", "_"));
 
-        OrdRefund refund = OrderConverter.toRefundEntity(request);
-        java.util.List<OrdRefundItem> items = new java.util.ArrayList<>();
-        for (var ri : request.getItems()) {
-            items.add(OrderConverter.toRefundItemEntity(ri));
-        }
-        refund.setItems(items);
-
-        OrdRefund created = commandService.createRefund(refund);
-        return ApiResponse.success(OrderConverter.toRefundResponse(created));
+        return ApiResponse.success(commandService.createRefund(request));
     }
 
     /**
@@ -140,11 +113,7 @@ public class OrdRefundController {
             @RequestBody @Valid RefundApproveRequest request) {
         log.info("[API] Approve refund: id={}, handler={}", (id + "").replace("\r", "_").replace("\n", "_"), (request.getHandlerId() + "").replace("\r", "_").replace("\n", "_"));
         commandService.approveRefund(id, request.getHandlerId(), request.getHandlerName(), request.getHandlerRemark());
-        RefundResponse r = OrderConverter.toRefundResponse(queryService.getById(id));
-        if (r != null) {
-            r.setItems(OrderConverter.toRefundItemResponseList(refundItemQueryService.listByRefundId(id)));
-        }
-        return ApiResponse.success(r);
+        return ApiResponse.success(queryService.getResponseById(id));
     }
 
     /**
@@ -157,11 +126,7 @@ public class OrdRefundController {
             @RequestBody @Valid RefundRejectRequest request) {
         log.info("[API] Reject refund: id={}, handler={}", (id + "").replace("\r", "_").replace("\n", "_"), (request.getHandlerId() + "").replace("\r", "_").replace("\n", "_"));
         commandService.rejectRefund(id, request.getHandlerId(), request.getHandlerName(), request.getHandlerRemark());
-        RefundResponse r = OrderConverter.toRefundResponse(queryService.getById(id));
-        if (r != null) {
-            r.setItems(OrderConverter.toRefundItemResponseList(refundItemQueryService.listByRefundId(id)));
-        }
-        return ApiResponse.success(r);
+        return ApiResponse.success(queryService.getResponseById(id));
     }
 
     /**
@@ -172,10 +137,6 @@ public class OrdRefundController {
     public ApiResponse<RefundResponse> complete(@Parameter(description = "退款单 ID") @PathVariable UUID id) {
         log.info("[API] Complete refund: id={}", id);
         commandService.completeRefund(id);
-        RefundResponse r = OrderConverter.toRefundResponse(queryService.getById(id));
-        if (r != null) {
-            r.setItems(OrderConverter.toRefundItemResponseList(refundItemQueryService.listByRefundId(id)));
-        }
-        return ApiResponse.success(r);
+        return ApiResponse.success(queryService.getResponseById(id));
     }
 }

@@ -100,7 +100,7 @@ public interface ISysPermissionService extends IService<SysPermission> {
      *
      * @param permissionDTO 鏉冮檺淇℃伅
      */
-    void updatePermission(PermissionDTO permissionDTO);
+    void updatePermission(UUID id, PermissionDTO permissionDTO);
 
     /**
      * 鍒犻櫎鏉冮檺锟?

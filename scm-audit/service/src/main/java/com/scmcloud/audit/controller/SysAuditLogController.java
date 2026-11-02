@@ -16,11 +16,11 @@ import java.util.List;
 @Slf4j
 @RestController
 @RequestMapping("/sys-audit-log")
-@Tag(name = "审计日志", description = "审计日志的创建、查询、删除与分页检索接口。")
+@Tag(name = "审计日志", description = "审计日志的服务间写入与只读查询接口；不提供 HTTP 删除入口。")
 public class SysAuditLogController {
     private final ISysAuditLogService auditLogService;
 
-    @Operation(summary = "创建审计日志", description = "写入一条审计日志记录。")
+    @Operation(summary = "写入审计日志", description = "供内部服务经签名校验后写入一条审计日志记录；登录用户不能直接调用。")
     @PostMapping
     public SysAuditLog create(@RequestBody SysAuditLog entity) {
         log.info("[API] 创建审计日志: userId={}, operationType={}, module={}",
@@ -33,13 +33,6 @@ public class SysAuditLogController {
     public SysAuditLog getById(@Parameter(description = "审计日志 ID") @PathVariable String id) {
         log.info("[API] 查询审计日志: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         return auditLogService.getById(id);
-    }
-
-    @Operation(summary = "删除审计日志", description = "根据日志 ID 删除审计日志记录。")
-    @DeleteMapping("/{id}")
-    public boolean deleteById(@Parameter(description = "审计日志 ID") @PathVariable String id) {
-        log.info("[API] 删除审计日志: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
-        return auditLogService.deleteById(id);
     }
 
     @Operation(summary = "按用户查询审计日志", description = "查询指定用户产生的全部审计日志。")
