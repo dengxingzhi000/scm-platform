@@ -56,28 +56,33 @@
     "disabled": "Disabled"
   },
   "login": {
-    "title": "Make your supply chain flow",
-    "subtitle": "Procurement, inventory, fulfillment and finance in one place",
+    "title": "Log in to SCM",
+    "subtitle": "Continue with a provider or your account",
     "username": "Username",
-    "usernamePlaceholder": "Enter your username",
+    "usernamePlaceholder": "Username",
     "password": "Password",
-    "passwordPlaceholder": "Enter your password",
+    "passwordPlaceholder": "Password",
     "remember": "Remember me",
     "forgotPassword": "Forgot password?",
     "submit": "Log in",
     "success": "Signed in",
     "failed": "Sign-in failed",
-    "brandName": "SCM Supply Chain Platform",
-    "heroAlt": "Supply chain collaboration",
-    "header": {
-      "contactSales": "Contact sales",
-      "tryPlatform": "Try the platform"
+    "brandName": "SCM Platform",
+    "heroAlt": "Abstract blue gradient cover",
+    "hero": {
+      "title": "SCM Platform Insights",
+      "feature1": "Procure-to-pay in one platform",
+      "feature2": "Real-time inventory insights",
+      "feature3": "Multi-tenant access control"
     },
-    "legalPrefix": "By continuing you agree to our",
-    "legalMiddle": "and",
-    "terms": "Terms of Service",
-    "privacy": "Privacy Policy",
-    "legalSuffix": ", and consent to receive product updates.",
+    "providers": {
+      "google": "Google",
+      "microsoft": "Microsoft",
+      "lastUsed": "Last used",
+      "unavailable": "Third-party sign-in isn't available yet. Use your username and password."
+    },
+    "divider": "Or",
+    "legal": "By continuing, you agree to our Terms of Service and Privacy Policy.",
     "errors": {
       "usernameRequired": "Username is required",
       "passwordRequired": "Password is required",

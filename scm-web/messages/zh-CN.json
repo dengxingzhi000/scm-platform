@@ -56,28 +56,33 @@
     "disabled": "禁用"
   },
   "login": {
-    "title": "让供应链运转如丝",
-    "subtitle": "采购、库存、履约与结算,一个平台贯通",
+    "title": "登录 SCM 平台",
+    "subtitle": "使用受信任的服务商或账号密码继续",
     "username": "用户名",
-    "usernamePlaceholder": "请输入用户名",
+    "usernamePlaceholder": "用户名",
     "password": "密码",
-    "passwordPlaceholder": "请输入密码",
+    "passwordPlaceholder": "密码",
     "remember": "记住我",
     "forgotPassword": "忘记密码?",
     "submit": "登录",
     "success": "登录成功",
     "failed": "登录失败",
-    "brandName": "SCM 供应链管理平台",
-    "heroAlt": "供应链协同",
-    "header": {
-      "contactSales": "联系销售",
-      "tryPlatform": "试用平台"
+    "brandName": "SCM Platform",
+    "heroAlt": "蓝色流体渐变封面",
+    "hero": {
+      "title": "SCM 平台能力",
+      "feature1": "采购到结算全链路贯通",
+      "feature2": "实时库存与履约看板",
+      "feature3": "多租户与细粒度权限"
     },
-    "legalPrefix": "继续即表示您同意",
-    "legalMiddle": "与",
-    "terms": "服务条款",
-    "privacy": "隐私政策",
-    "legalSuffix": ",并同意接收产品通知。",
+    "providers": {
+      "google": "Google",
+      "microsoft": "Microsoft",
+      "lastUsed": "最近使用",
+      "unavailable": "第三方登录暂未开通,请使用账号密码登录。"
+    },
+    "divider": "或",
+    "legal": "继续即表示您同意我们的服务条款与隐私政策。",
     "errors": {
       "usernameRequired": "请输入用户名",
       "passwordRequired": "请输入密码",

@@ -15,6 +15,10 @@ import {
   ApartmentOutlined,
   GlobalOutlined,
   BarChartOutlined,
+  AuditOutlined,
+  SafetyCertificateOutlined,
+  FolderOpenOutlined,
+  CloudUploadOutlined,
 } from '@ant-design/icons'
 
 type MenuItem = Required<MenuProps>['items'][number]
@@ -54,6 +58,7 @@ export const appMenuItems: MenuItem[] = [
     getItem('拣货波次', '/warehouse/wave-picking'),
   ]),
   getItem('采购管理', 'group-purchase', <FileTextOutlined />, [
+    getItem('采购申请', '/purchase/request'),
     getItem('采购订单', '/purchase'),
     getItem('询价管理', '/purchase/rfq'),
     getItem('报价管理', '/purchase/quotation'),
@@ -69,7 +74,12 @@ export const appMenuItems: MenuItem[] = [
     getItem('发票管理', '/finance/invoice'),
     getItem('对账管理', '/finance/reconciliation'),
   ]),
-  getItem('租户管理', '/tenant', <GlobalOutlined />),
+  getItem('文档中心', '/document', <FolderOpenOutlined />),
+  getItem('文件中心', '/file', <CloudUploadOutlined />),
+  getItem('租户管理', 'group-tenant', <GlobalOutlined />, [
+    getItem('租户列表', '/tenant'),
+    getItem('套餐管理', '/tenant/package'),
+  ]),
   getItem('系统管理', '/system', <SettingOutlined />, [
     getItem('用户管理', '/system/user', <UserOutlined />),
     getItem('角色管理', '/system/role', <SafetyOutlined />),
@@ -80,6 +90,8 @@ export const appMenuItems: MenuItem[] = [
     getItem('决策矩阵', '/system/decision'),
   ]),
   getItem('通知管理', '/notification', <NotificationOutlined />),
+  getItem('审批中心', '/approval', <AuditOutlined />),
+  getItem('审计日志', '/audit', <SafetyCertificateOutlined />),
 ]
 
 const labelMap: Record<string, string> = {}
@@ -146,6 +158,12 @@ export function getBreadcrumb(pathname: string): { key: string; title: string }[
 
   if (!matched) return trail
   const segments = matched.split('/').filter(Boolean)
+  const groupKey = parentGroupMap[matched]
+  if (groupKey && segments.length > 1) {
+    trail.push({ key: groupKey, title: getMenuLabel(groupKey) })
+    trail.push({ key: matched, title: getMenuLabel(matched) })
+    return trail
+  }
   let current = ''
   for (const seg of segments) {
     current += `/${seg}`
