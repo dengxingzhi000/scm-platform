@@ -1,6 +1,7 @@
 package com.scmcloud.file.service.metadata;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.scmcloud.file.api.dto.FileStatsDTO;
 import com.scmcloud.file.entity.FileMetadata;
 import com.scmcloud.file.mapper.FileMetadataMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -58,5 +59,32 @@ class FileMetadataServiceTest {
         // Then
         assertTrue(result.isPresent());
         assertEquals(md5, result.get().getMd5());
+    }
+
+    @Test
+    void shouldComputeStatsAndOtherBucket() {
+        FileStatsDTO stats = new FileStatsDTO();
+        stats.setTotalFiles(10L);
+        stats.setTotalSize(1024L);
+        stats.setImageFiles(3L);
+        stats.setDocumentFiles(4L);
+        when(mapper.selectStats("tenant-1")).thenReturn(stats);
+
+        FileStatsDTO result = service.getStats("tenant-1");
+
+        assertEquals(10L, result.getTotalFiles());
+        assertEquals(3L, result.getOtherFiles());
+        verify(mapper).selectStats("tenant-1");
+    }
+
+    @Test
+    void shouldReturnZeroStatsWhenQueryReturnsNothing() {
+        when(mapper.selectStats("tenant-1")).thenReturn(null);
+
+        FileStatsDTO result = service.getStats("tenant-1");
+
+        assertEquals(0L, result.getTotalFiles());
+        assertEquals(0L, result.getTotalSize());
+        assertEquals(0L, result.getOtherFiles());
     }
 }
