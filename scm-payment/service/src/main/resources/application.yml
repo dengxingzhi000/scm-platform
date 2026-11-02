@@ -42,6 +42,34 @@ spring:
       password: ${REDIS_PASSWORD:}
       database: 0
 
+payment:
+  alipay:
+    # RSA2 验签公钥（支付宝开放平台应用公钥，PEM 或裸 Base64）。未配置时回调一律拒绝。
+    public-key: ${ALIPAY_PUBLIC_KEY:}
+    # 本平台在支付宝开放平台登记的 app_id；用于校验回调归属。
+    app-id: ${ALIPAY_APP_ID:}
+    # 可选的 seller_id；配置后回调中的 seller_id 必须一致。
+    seller-id: ${ALIPAY_SELLER_ID:}
+    charset: UTF-8
+  wechat:
+    # 微信支付 v3 平台证书（PEM，也接受平台公钥）。未配置时回调一律拒绝。
+    platform-certificate: ${WECHAT_PAY_PLATFORM_CERT:}
+    # 可选的 Wechatpay-Serial；配置后必须与请求头一致。
+    platform-certificate-serial: ${WECHAT_PAY_PLATFORM_CERT_SERIAL:}
+    # API v3 密钥，必须是 32 字节；用于解密 resource.ciphertext。
+    api-v3-key: ${WECHAT_PAY_API_V3_KEY:}
+    # 本平台在微信支付登记的商户号；用于校验回调归属。
+    mch-id: ${WECHAT_PAY_MCH_ID:}
+
+# 支付渠道回调不带平台租户头，验签由渠道完成；放行回调路径的租户校验，
+# 其余接口仍要求 X-Tenant-Id。
+scm:
+  tenant:
+    exclude-paths:
+      - /actuator/**
+      - /v3/api-docs/**
+      - /api/v1/payments/callback/**
+
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true

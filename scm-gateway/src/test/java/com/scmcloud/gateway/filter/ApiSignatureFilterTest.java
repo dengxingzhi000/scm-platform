@@ -125,6 +125,26 @@ class ApiSignatureFilterTest {
     }
 
     @Test
+    void bypassesPaymentCallbackPathsThatAreVerifiedDownstream() {
+        properties.setWhitelist(List.of("/scm-payment/api/v1/payments/callback/**"));
+        MockServerHttpRequest request = MockServerHttpRequest
+                .post("/scm-payment/api/v1/payments/callback/alipay")
+                .build();
+        MockServerWebExchange exchange = MockServerWebExchange.from(request);
+        AtomicBoolean proceeded = new AtomicBoolean(false);
+        GatewayFilterChain chain = ex -> {
+            proceeded.set(true);
+            return Mono.empty();
+        };
+
+        new ApiSignatureFilter(redisTemplate, registry, properties, meterRegistry)
+                .filter(exchange, chain)
+                .block();
+
+        assertTrue(proceeded.get(), "Payment callbacks rely on channel signatures");
+    }
+
+    @Test
     void blocksUnknownAppId() {
         String timestamp = String.valueOf(System.currentTimeMillis());
         MockServerHttpRequest request = MockServerHttpRequest.post("/secure/api")

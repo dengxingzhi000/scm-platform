@@ -3,6 +3,7 @@ package com.scmcloud.payment.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
+import com.scmcloud.payment.callback.PaymentCallbackException;
 import com.scmcloud.payment.domain.entity.PaymentOrder;
 import com.scmcloud.payment.mapper.PaymentOrderMapper;
 import com.scmcloud.payment.service.IPaymentOrderService;
@@ -109,17 +110,48 @@ public class PaymentOrderServiceImpl extends ServiceImpl<PaymentOrderMapper, Pay
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void handlePaymentCallback(String paymentNo, String transactionId) {
+        PaymentOrder payment = requirePayment(paymentNo);
+        applyPaid(payment, transactionId);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void handleVerifiedPaymentCallback(String paymentNo, String transactionId,
+                                              BigDecimal paidAmount, String paymentChannel) {
+        PaymentOrder payment = requirePayment(paymentNo);
+        if (!StringUtils.hasText(paymentChannel)
+                || !paymentChannel.equalsIgnoreCase(payment.getPaymentChannel())) {
+            throw new PaymentCallbackException("callback payment channel does not match the local payment");
+        }
+        if (paidAmount == null || payment.getAmount() == null
+                || paidAmount.compareTo(payment.getAmount()) != 0) {
+            throw new PaymentCallbackException("callback amount does not match the local payment amount");
+        }
+        applyPaid(payment, transactionId);
+    }
+
+    private PaymentOrder requirePayment(String paymentNo) {
+        if (!StringUtils.hasText(paymentNo)) {
+            throw new IllegalArgumentException("paymentNo is required");
+        }
         PaymentOrder payment = queryPayment(paymentNo);
         if (payment == null) {
             throw new IllegalArgumentException("Payment not found: " + paymentNo);
         }
-        if (payment.getStatus() == STATUS_PAID) {
+        return payment;
+    }
+
+    private void applyPaid(PaymentOrder payment, String transactionId) {
+        if (!StringUtils.hasText(transactionId)) {
+            throw new PaymentCallbackException("callback has no transaction id");
+        }
+        if (payment.getStatus() != null && payment.getStatus() == STATUS_PAID) {
             // Payment gateways retry callbacks; an already-paid order is a no-op.
             log.info("Ignoring duplicate payment callback: paymentNo={}, transactionId={}",
-                    paymentNo, transactionId);
+                    payment.getPaymentNo(), transactionId);
             return;
         }
-        if (payment.getStatus() != STATUS_PENDING) {
+        if (payment.getStatus() == null || payment.getStatus() != STATUS_PENDING) {
             throw new IllegalStateException("Payment is not payable, status: " + payment.getStatus());
         }
 

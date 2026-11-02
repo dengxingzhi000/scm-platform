@@ -16,6 +16,13 @@ public interface IPaymentOrderService extends IService<PaymentOrder> {
 
     void handlePaymentCallback(String paymentNo, String transactionId);
 
+    /**
+     * Applies a channel callback after its signature was verified, additionally
+     * checking that the channel and paid amount match the local payment order.
+     */
+    void handleVerifiedPaymentCallback(String paymentNo, String transactionId,
+                                       BigDecimal paidAmount, String paymentChannel);
+
     Page<PaymentOrder> pageQuery(int page, int size, String orderNo, String userId,
                                  String paymentChannel, Integer status);
 }
