@@ -1,25 +1,25 @@
-version: '3.8'
-
 services:
   etcd-0:
-    image: quay.io/coreos/etcd:v3.5.12
+    image: quay.io/coreos/etcd:v3.7.3
     command: etcd --name etcd-0 --listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://etcd-0:2379 --listen-peer-urls http://0.0.0.0:2380 --initial-advertise-peer-urls http://etcd-0:2380 --initial-cluster-token etcd-cluster --initial-cluster etcd-0=http://etcd-0:2380,etcd-1=http://etcd-1:2380,etcd-2=http://etcd-2:2380 --initial-cluster-state new
     ports:
       - "2379:2379"
 
   etcd-1:
-    image: quay.io/coreos/etcd:v3.5.12
+    image: quay.io/coreos/etcd:v3.7.3
     command: etcd --name etcd-1 --listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://etcd-1:2379 --listen-peer-urls http://0.0.0.0:2380 --initial-advertise-peer-urls http://etcd-1:2380 --initial-cluster-token etcd-cluster --initial-cluster etcd-0=http://etcd-0:2380,etcd-1=http://etcd-1:2380,etcd-2=http://etcd-2:2380 --initial-cluster-state new
 
   etcd-2:
-    image: quay.io/coreos/etcd:v3.5.12
+    image: quay.io/coreos/etcd:v3.7.3
     command: etcd --name etcd-2 --listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://etcd-2:2379 --listen-peer-urls http://0.0.0.0:2380 --initial-advertise-peer-urls http://etcd-2:2380 --initial-cluster-token etcd-cluster --initial-cluster etcd-0=http://etcd-0:2380,etcd-1=http://etcd-1:2380,etcd-2=http://etcd-2:2380 --initial-cluster-state new
 
   postgresql-0:
-    image: postgres:16-alpine
+    # 不用 alpine 变体：musl 版在部分宿主机上 initdb 写 postmaster.pid 会 EPERM
+    image: postgres:18
     environment:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: admin123
+      PGDATA: /data/postgresql
     volumes:
       - postgresql-0:/data/postgresql
       - ./deploy/postgresql/ha/patroni.yml:/etc/patroni/patroni.yml
@@ -28,19 +28,21 @@ services:
       - "8008:8008"
 
   postgresql-1:
-    image: postgres:16-alpine
+    image: postgres:18
     environment:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: admin123
+      PGDATA: /data/postgresql
     volumes:
       - postgresql-1:/data/postgresql
       - ./deploy/postgresql/ha/patroni.yml:/etc/patroni/patroni.yml
 
   postgresql-2:
-    image: postgres:16-alpine
+    image: postgres:18
     environment:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: admin123
+      PGDATA: /data/postgresql
     volumes:
       - postgresql-2:/data/postgresql
       - ./deploy/postgresql/ha/patroni.yml:/etc/patroni/patroni.yml
