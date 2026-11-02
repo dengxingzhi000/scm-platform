@@ -58,4 +58,44 @@ public class TmsCarrierServiceImpl extends ServiceImpl<TmsCarrierMapper, TmsCarr
                 .eq(TmsCarrier::getDeleted, false)
                 .one();
     }
+
+    @Override
+    public TmsCarrier createCarrier(TmsCarrier carrier) {
+        log.info("Create carrier: carrierCode={}, carrierName={}", (carrier.getCarrierCode() + "").replace("\r", "_").replace("\n", "_"), (carrier.getCarrierName() + "").replace("\r", "_").replace("\n", "_"));
+        carrier.setId(UUID.randomUUID().toString());
+        carrier.setDeleted(false);
+        carrier.setCreateTime(LocalDateTime.now());
+        carrier.setUpdateTime(LocalDateTime.now());
+        save(carrier);
+        return carrier;
+    }
+
+    @Override
+    public TmsCarrier updateCarrier(String id, TmsCarrier carrier) {
+        log.info("Update carrier: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
+        carrier.setId(id);
+        carrier.setUpdateTime(LocalDateTime.now());
+        updateById(carrier);
+        return carrier;
+    }
+
+    @Override
+    public void deleteCarrier(String id) {
+        log.info("Delete carrier: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
+        TmsCarrier carrier = new TmsCarrier();
+        carrier.setId(id);
+        carrier.setDeleted(true);
+        carrier.setUpdateTime(LocalDateTime.now());
+        updateById(carrier);
+    }
+
+    @Override
+    public void toggleEnabled(String id, boolean enabled) {
+        log.info("Toggle carrier enabled: id={}, enabled={}", (id + "").replace("\r", "_").replace("\n", "_"), (enabled + "").replace("\r", "_").replace("\n", "_"));
+        TmsCarrier carrier = new TmsCarrier();
+        carrier.setId(id);
+        carrier.setEnabled(enabled);
+        carrier.setUpdateTime(LocalDateTime.now());
+        updateById(carrier);
+    }
 }

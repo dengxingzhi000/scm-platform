@@ -21,4 +21,6 @@ public interface ITmsWaybillService extends IService<TmsWaybill> {
     boolean updateStatus(String waybillId, Integer status, String operator);
 
     boolean cancelWaybill(String waybillId, String reason, String operator);
+
+    void deleteWaybill(String id);
 }
