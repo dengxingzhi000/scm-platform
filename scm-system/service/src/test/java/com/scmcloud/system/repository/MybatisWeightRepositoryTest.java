@@ -117,6 +117,7 @@ class MybatisWeightRepositoryTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void activateClearsSiblingsOfTheSameSceneThenActivatesTheTarget() {
         WeightProfileEntity target = new WeightProfileEntity();
         target.setId("weight-2");

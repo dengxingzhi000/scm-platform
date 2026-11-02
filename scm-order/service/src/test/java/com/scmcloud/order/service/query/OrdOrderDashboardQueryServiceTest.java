@@ -106,6 +106,7 @@ class OrdOrderDashboardQueryServiceTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void timePredicatesAndBucketsAreZoneExplicit() {
         OrdOrderDashboardQueryService service = new OrdOrderDashboardQueryService(ordOrderMapper);
 

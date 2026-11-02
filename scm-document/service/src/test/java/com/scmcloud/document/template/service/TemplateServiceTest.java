@@ -12,7 +12,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -22,6 +21,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
@@ -107,14 +107,21 @@ class TemplateServiceTest {
         verify(versionMapper, never()).insert(any(DocTemplateVersion.class));
     }
 
-    @Test
-    void publishVersionShouldArchivePreviousAndSwitchTemplate() {
+    private DocTemplateVersion version(String templateId) {
         DocTemplateVersion version = new DocTemplateVersion();
         version.setId("ver-1");
-        version.setTemplateId("tpl-1");
+        version.setTemplateId(templateId);
         version.setVersion(2);
-        version.setFileId("file-1");
+        version.setTenantId(TENANT_ID.toString());
         version.setStatus("DRAFT");
+        return version;
+    }
+
+    @Test
+    void publishVersionShouldArchivePreviousAndSwitchTemplate() {
+        DocTemplateVersion version = version("tpl-1");
+        version.setFileId("file-1");
+        when(templateMapper.selectById("tpl-1")).thenReturn(template());
         when(versionMapper.selectById("ver-1")).thenReturn(version);
         when(versionMapper.updateById(version)).thenReturn(1);
         when(templateMapper.update(any(), any())).thenReturn(1);
@@ -129,11 +136,8 @@ class TemplateServiceTest {
 
     @Test
     void publishVersionShouldRejectVersionWithoutSourceFile() {
-        DocTemplateVersion version = new DocTemplateVersion();
-        version.setId("ver-1");
-        version.setTemplateId("tpl-1");
-        version.setStatus("DRAFT");
-        when(versionMapper.selectById("ver-1")).thenReturn(version);
+        when(templateMapper.selectById("tpl-1")).thenReturn(template());
+        when(versionMapper.selectById("ver-1")).thenReturn(version("tpl-1"));
 
         IllegalStateException error = assertThrows(IllegalStateException.class,
                 () -> service.publishVersion("tpl-1", "ver-1"));
@@ -144,13 +148,32 @@ class TemplateServiceTest {
 
     @Test
     void publishVersionShouldRejectVersionFromAnotherTemplate() {
-        DocTemplateVersion version = new DocTemplateVersion();
-        version.setId("ver-1");
-        version.setTemplateId("tpl-2");
+        DocTemplateVersion version = version("tpl-2");
         version.setFileId("file-1");
+        when(templateMapper.selectById("tpl-1")).thenReturn(template());
         when(versionMapper.selectById("ver-1")).thenReturn(version);
 
         assertThrows(IllegalArgumentException.class, () -> service.publishVersion("tpl-1", "ver-1"));
         verify(versionMapper, never()).updateById(any(DocTemplateVersion.class));
+    }
+
+    @Test
+    void publishVersionShouldRejectVersionFromAnotherTenant() {
+        DocTemplateVersion version = version("tpl-1");
+        version.setFileId("file-1");
+        version.setTenantId("019a0aee-0000-7000-8000-0000000000ff");
+        when(templateMapper.selectById("tpl-1")).thenReturn(template());
+        when(versionMapper.selectById("ver-1")).thenReturn(version);
+
+        assertThrows(IllegalArgumentException.class, () -> service.publishVersion("tpl-1", "ver-1"));
+        verify(versionMapper, never()).updateById(any(DocTemplateVersion.class));
+    }
+
+    @Test
+    void listVersionsShouldReturnEmptyForUnknownTemplate() {
+        when(templateMapper.selectById("tpl-missing")).thenReturn(null);
+
+        assertTrue(service.listVersions("tpl-missing").isEmpty());
+        verify(versionMapper, never()).selectList(any());
     }
 }

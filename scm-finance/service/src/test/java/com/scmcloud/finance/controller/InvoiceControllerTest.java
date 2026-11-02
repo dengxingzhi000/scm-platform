@@ -1,12 +1,13 @@
 package com.scmcloud.finance.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.scmcloud.common.exception.GlobalExceptionHandler;
 import com.scmcloud.finance.domain.dto.CreateInvoiceRequest;
 import com.scmcloud.finance.domain.dto.UpdateInvoiceRequest;
 import com.scmcloud.finance.domain.entity.Invoice;
 import com.scmcloud.finance.domain.enums.InvoiceStatus;
 import com.scmcloud.finance.service.IInvoiceService;
-import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -16,16 +17,21 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.util.Arrays;
 import java.util.List;
 
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(MockitoExtension.class)
-@Disabled("Pre-existing: controller test setup incomplete")
 class InvoiceControllerTest {
 
     @Mock
@@ -36,13 +42,15 @@ class InvoiceControllerTest {
 
     private MockMvc mockMvc;
 
+    @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(invoiceController).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(invoiceController)
+                .setControllerAdvice(new GlobalExceptionHandler())
+                .build();
     }
 
     @Test
     void shouldGetById() throws Exception {
-        // Given
         String id = "invoice-1";
         Invoice invoice = new Invoice();
         invoice.setId(id);
@@ -50,92 +58,86 @@ class InvoiceControllerTest {
 
         when(invoiceService.getById(id)).thenReturn(invoice);
 
-        // When & Then
         mockMvc.perform(get("/invoice/{id}", id))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(id))
-                .andExpect(jsonPath("$.invoiceNo").value("INV-2026-001"));
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.id").value(id))
+                .andExpect(jsonPath("$.data.invoiceNo").value("INV-2026-001"));
+
+        verify(invoiceService).getById(id);
     }
 
     @Test
     void shouldCreate() throws Exception {
-        // Given
-        CreateInvoiceRequest request = new CreateInvoiceRequest();
-        request.setInvoiceNo("INV-2026-001");
-        request.setInvoiceType(1);
-        request.setInvoiceKind(1);
-        request.setPartyId("party-1");
-
         Invoice created = new Invoice();
         created.setId("new-id");
         created.setInvoiceNo("INV-2026-001");
 
         when(invoiceService.create(any(CreateInvoiceRequest.class))).thenReturn(created);
 
-        // When & Then
         mockMvc.perform(post("/invoice")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"invoiceNo\":\"INV-2026-001\",\"invoiceType\":1,\"invoiceKind\":1,\"partyId\":\"party-1\"}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value("new-id"))
-                .andExpect(jsonPath("$.invoiceNo").value("INV-2026-001"));
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.id").value("new-id"))
+                .andExpect(jsonPath("$.data.invoiceNo").value("INV-2026-001"));
+
+        verify(invoiceService).create(any(CreateInvoiceRequest.class));
     }
 
     @Test
     void shouldUpdate() throws Exception {
-        // Given
         String id = "invoice-1";
-        UpdateInvoiceRequest request = new UpdateInvoiceRequest();
-        request.setInvoiceNo("INV-2026-001-UPDATED");
-
         Invoice updated = new Invoice();
         updated.setId(id);
         updated.setInvoiceNo("INV-2026-001-UPDATED");
 
         when(invoiceService.update(eq(id), any(UpdateInvoiceRequest.class))).thenReturn(updated);
 
-        // When & Then
         mockMvc.perform(put("/invoice/{id}", id)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"invoiceNo\":\"INV-2026-001-UPDATED\"}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.invoiceNo").value("INV-2026-001-UPDATED"));
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.invoiceNo").value("INV-2026-001-UPDATED"));
+
+        verify(invoiceService).update(eq(id), any(UpdateInvoiceRequest.class));
     }
 
     @Test
     void shouldDelete() throws Exception {
-        // Given
         String id = "invoice-1";
-        doNothing().when(invoiceService).delete(id);
 
-        // When & Then
         mockMvc.perform(delete("/invoice/{id}", id))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+
         verify(invoiceService).delete(id);
     }
 
     @Test
     void shouldPageByPartyId() throws Exception {
-        // Given
         String partyId = "party-1";
-        Page<Invoice> page = new Page<>();
-        page.setRecords(Arrays.asList(new Invoice(), new Invoice()));
-        page.setTotal(2);
+        Page<Invoice> page = new Page<>(1, 10, 2);
+        page.setRecords(List.of(new Invoice(), new Invoice()));
 
-        when(invoiceService.pageByPartyId(eq(partyId), anyInt(), anyInt())).thenReturn(page);
+        when(invoiceService.pageByPartyId(eq(partyId), eq(1), eq(10))).thenReturn(page);
 
-        // When & Then
         mockMvc.perform(get("/invoice/page")
                         .param("partyId", partyId)
                         .param("pageNum", "1")
                         .param("pageSize", "10"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.total").value(2));
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.total").value(2))
+                .andExpect(jsonPath("$.data.records.length()").value(2));
+
+        verify(invoiceService).pageByPartyId(eq(partyId), eq(1), eq(10));
     }
 
     @Test
     void shouldIssue() throws Exception {
-        // Given
         String id = "invoice-1";
         String issuerName = "John";
 
@@ -145,16 +147,17 @@ class InvoiceControllerTest {
 
         when(invoiceService.issueInvoice(id, issuerName)).thenReturn(issued);
 
-        // When & Then
         mockMvc.perform(post("/invoice/{id}/issue", id)
                         .param("issuerName", issuerName))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value(InvoiceStatus.ISSUED.getCode()));
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.status").value(InvoiceStatus.ISSUED.getCode()));
+
+        verify(invoiceService).issueInvoice(id, issuerName);
     }
 
     @Test
     void shouldVoidInvoice() throws Exception {
-        // Given
         String id = "invoice-1";
 
         Invoice voided = new Invoice();
@@ -163,15 +166,16 @@ class InvoiceControllerTest {
 
         when(invoiceService.voidInvoice(id)).thenReturn(voided);
 
-        // When & Then
         mockMvc.perform(post("/invoice/{id}/void", id))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value(InvoiceStatus.VOIDED.getCode()));
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.status").value(InvoiceStatus.VOIDED.getCode()));
+
+        verify(invoiceService).voidInvoice(id);
     }
 
     @Test
     void shouldRedFlush() throws Exception {
-        // Given
         String id = "invoice-1";
 
         Invoice redFlushed = new Invoice();
@@ -180,9 +184,38 @@ class InvoiceControllerTest {
 
         when(invoiceService.redFlushInvoice(id)).thenReturn(redFlushed);
 
-        // When & Then
         mockMvc.perform(post("/invoice/{id}/red-flush", id))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value(InvoiceStatus.RED_FLUSHED.getCode()));
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.status").value(InvoiceStatus.RED_FLUSHED.getCode()));
+
+        verify(invoiceService).redFlushInvoice(id);
+    }
+
+    @Test
+    void createRejectsMissingRequiredFields() throws Exception {
+        mockMvc.perform(post("/invoice")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"invoiceType\":1}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.data.invoiceNo").value("发票号码不能为空"))
+                .andExpect(jsonPath("$.data.invoiceKind").value("发票种类不能为空"))
+                .andExpect(jsonPath("$.data.partyId").value("往来方ID不能为空"));
+
+        verifyNoInteractions(invoiceService);
+    }
+
+    @Test
+    void getByIdReturnsBadRequestWhenInvoiceMissing() throws Exception {
+        when(invoiceService.getById("missing"))
+                .thenThrow(new IllegalArgumentException("Invoice not found: missing"));
+
+        mockMvc.perform(get("/invoice/{id}", "missing"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.message").value("Invalid argument"));
+
+        verify(invoiceService).getById("missing");
     }
 }
