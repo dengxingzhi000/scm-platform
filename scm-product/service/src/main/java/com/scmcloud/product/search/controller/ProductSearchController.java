@@ -162,14 +162,7 @@ public class ProductSearchController {
         log.debug("📥 [API] 快速搜索 keyword={}, page={}, size={}, sortBy={}, sortOrder={}",
                 (keyword + "").replace("\r", "_").replace("\n", "_"), (page + "").replace("\r", "_").replace("\n", "_"), (size + "").replace("\r", "_").replace("\n", "_"), (sortBy + "").replace("\r", "_").replace("\n", "_"), (sortOrder + "").replace("\r", "_").replace("\n", "_"));
 
-        ProductSearchRequest request = new ProductSearchRequest();
-        request.setKeyword(keyword);
-        request.setPage(page);
-        request.setSize(size);
-        request.setSortBy(sortBy);
-        request.setSortOrder(sortOrder);
-
-        Page<ProductSearchResponse> result = productSearchService.search(request);
+        Page<ProductSearchResponse> result = productSearchService.quickSearch(keyword, page, size, sortBy, sortOrder);
 
         log.debug("📤 [API] 返回快速搜索结果 总数={}", result.getTotalElements());
 

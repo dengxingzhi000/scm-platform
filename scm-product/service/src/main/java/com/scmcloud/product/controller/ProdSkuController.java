@@ -12,9 +12,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 
 @Slf4j
 @RestController
@@ -32,13 +30,7 @@ public class ProdSkuController {
             @Parameter(description = "所属SPU ID，可选，用于筛选该SPU下的SKU")
             @RequestParam(required = false) String spuId) {
 
-        Page<ProdSku> result = skuService.lambdaQuery()
-                .eq(spuId != null, ProdSku::getSpuId, spuId)
-                .eq(ProdSku::getDeleted, false)
-                .ne(ProdSku::getStatus, 3)
-                .orderByDesc(ProdSku::getCreateTime)
-                .page(new Page<>(page, size));
-
+        Page<ProdSku> result = skuService.pageBySpuId(spuId, page, size);
         return ApiResponse.success(PageResult.of(result));
     }
 
@@ -59,35 +51,21 @@ public class ProdSkuController {
     @Operation(summary = "创建 SKU", description = "新增SKU，自动生成ID与时间字段，未指定状态时默认为启用。")
     @PostMapping
     public ApiResponse<Void> create(@RequestBody ProdSku sku) {
-        sku.setId(UUID.randomUUID().toString());
-        sku.setCreateTime(LocalDateTime.now());
-        sku.setUpdateTime(LocalDateTime.now());
-        sku.setDeleted(false);
-        if (sku.getStatus() == null) {
-            sku.setStatus(1);
-        }
-        skuService.save(sku);
+        skuService.createSku(sku);
         return ApiResponse.success();
     }
 
     @Operation(summary = "更新 SKU", description = "根据SKU ID更新SKU信息并刷新更新时间。")
     @PutMapping("/{id}")
     public ApiResponse<Void> update(@Parameter(description = "SKU ID") @PathVariable String id, @RequestBody ProdSku sku) {
-        sku.setId(id);
-        sku.setUpdateTime(LocalDateTime.now());
-        skuService.updateById(sku);
+        skuService.updateSku(id, sku);
         return ApiResponse.success();
     }
 
     @Operation(summary = "删除 SKU", description = "根据SKU ID逻辑删除SKU并将其状态置为删除。")
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@Parameter(description = "SKU ID") @PathVariable String id) {
-        skuService.lambdaUpdate()
-                .eq(ProdSku::getId, id)
-                .set(ProdSku::getDeleted, true)
-                .set(ProdSku::getStatus, 3)
-                .set(ProdSku::getUpdateTime, LocalDateTime.now())
-                .update();
+        skuService.deleteSku(id);
         return ApiResponse.success();
     }
 }

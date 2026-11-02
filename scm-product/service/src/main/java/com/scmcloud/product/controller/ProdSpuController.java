@@ -12,9 +12,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 
 @Slf4j
 @RestController
@@ -66,35 +64,21 @@ public class ProdSpuController {
     @Operation(summary = "创建 SPU", description = "新增商品SPU，自动生成ID与时间字段，未指定状态时默认为草稿。")
     @PostMapping
     public ApiResponse<Void> create(@RequestBody ProdSpu spu) {
-        spu.setId(UUID.randomUUID().toString());
-        spu.setCreateTime(LocalDateTime.now());
-        spu.setUpdateTime(LocalDateTime.now());
-        spu.setDeleted(false);
-        if (spu.getStatus() == null) {
-            spu.setStatus(0);
-        }
-        spuService.save(spu);
+        spuService.createSpu(spu);
         return ApiResponse.success();
     }
 
     @Operation(summary = "更新 SPU", description = "根据SPU ID更新商品SPU信息并刷新更新时间。")
     @PutMapping("/{id}")
     public ApiResponse<Void> update(@Parameter(description = "SPU ID") @PathVariable String id, @RequestBody ProdSpu spu) {
-        spu.setId(id);
-        spu.setUpdateTime(LocalDateTime.now());
-        spuService.updateById(spu);
+        spuService.updateSpu(id, spu);
         return ApiResponse.success();
     }
 
     @Operation(summary = "删除 SPU", description = "根据SPU ID逻辑删除商品SPU并将其状态置为删除。")
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@Parameter(description = "SPU ID") @PathVariable String id) {
-        spuService.lambdaUpdate()
-                .eq(ProdSpu::getId, id)
-                .set(ProdSpu::getDeleted, true)
-                .set(ProdSpu::getStatus, 3)
-                .set(ProdSpu::getUpdateTime, LocalDateTime.now())
-                .update();
+        spuService.deleteSpu(id);
         return ApiResponse.success();
     }
 }

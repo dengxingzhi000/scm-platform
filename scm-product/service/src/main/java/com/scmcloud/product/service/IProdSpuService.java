@@ -14,4 +14,10 @@ public interface IProdSpuService extends IService<ProdSpu> {
 
     Page<ProdSpu> search(String keyword, String categoryId, String brandId, Integer status,
                          Integer page, Integer size);
+
+    ProdSpu createSpu(ProdSpu spu);
+
+    void updateSpu(String id, ProdSpu spu);
+
+    void deleteSpu(String id);
 }
