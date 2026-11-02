@@ -10,6 +10,7 @@ import com.scmcloud.common.util.UUIDv7Util;
 import com.scmcloud.common.dto.permission.ApiPermissionDTO;
 import com.scmcloud.common.dto.permission.PermissionDTO;
 import com.scmcloud.common.web.util.SecurityUtils;
+import com.scmcloud.system.cache.UserAuthorizationCacheEvictor;
 import com.scmcloud.system.domain.entity.SysPermission;
 import com.scmcloud.system.mapper.SysPermissionMapper;
 import com.scmcloud.system.mapper.SysRolePermissionMapper;
@@ -18,7 +19,6 @@ import com.scmcloud.system.service.ISysPermissionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,6 +41,7 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
     private final SysTempPermissionMapper tempPermissionMapper;
     private final SysRolePermissionMapper rolePermissionMapper;
     private final PermissionChecker permissionChecker;
+    private final UserAuthorizationCacheEvictor cacheEvictor;
 
     private static final int PERMISSION_TYPE_API = 4;
 
@@ -122,7 +123,6 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(value = {"permission", "permissionTree", "userPermissions", "userInfo"}, allEntries = true)
     public void addPermission(PermissionDTO permissionDTO) {
         UUID operatorId = SecurityUtils.getCurrentUserUuid().orElse(null);
         permissionChecker.requirePermission(operatorId, "permission:add");
@@ -142,6 +142,8 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
 
         getBaseMapper().insert(permission);
 
+        cacheEvictor.evictPermissionDefinition(permission.getId());
+
         logTenantOperation("CREATE", permission.getId(), tenantId);
 
         log.info("权限创建成功: {} ({}), 操作 {}", permission.getPermissionCode(),
@@ -150,7 +152,6 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(value = {"permission", "permissionTree", "userPermissions", "userInfo"}, allEntries = true)
     public void updatePermission(UUID id, PermissionDTO permissionDTO) {
         permissionDTO.setId(id);
         UUID operatorId = SecurityUtils.getCurrentUserUuid().orElse(null);
@@ -174,6 +175,8 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
 
         getBaseMapper().updateById(permission);
 
+        cacheEvictor.evictPermissionDefinitionWithUserImpact(id);
+
         logTenantOperation("UPDATE", permissionDTO.getId(), existPermission.getTenantId());
 
         log.info("权限更新成功: {} ({}), 操作 {}", permission.getPermissionCode(),
@@ -182,7 +185,6 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(value = {"permission", "permissionTree", "userPermissions", "userInfo"}, allEntries = true)
     public void deletePermission(UUID id) {
         UUID operatorId = SecurityUtils.getCurrentUserUuid().orElse(null);
         permissionChecker.requirePermission(operatorId, "permission:delete");
@@ -212,6 +214,8 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
         }
 
         getBaseMapper().deleteById(id);
+
+        cacheEvictor.evictPermissionDefinition(id);
 
         logTenantOperation("DELETE", id, permission.getTenantId());
 
