@@ -2,11 +2,7 @@ package com.scmcloud.order.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.scmcloud.common.response.ApiResponse;
-import com.scmcloud.order.domain.entity.OrderStatus;
-import com.scmcloud.order.domain.entity.OrdOrder;
-import com.scmcloud.order.domain.entity.OrdOrderItem;
 import com.scmcloud.order.dto.OrderCancelRequest;
-import com.scmcloud.order.dto.OrderConverter;
 import com.scmcloud.order.dto.OrderCreateRequest;
 import com.scmcloud.order.dto.OrderDashboardCompare;
 import com.scmcloud.order.dto.OrderDashboardRange;
@@ -36,7 +32,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 /**
  * 订单管理控制器。
@@ -82,8 +77,7 @@ public class OrdOrderController {
     @GetMapping("/{id}")
     public ApiResponse<OrderResponse> getById(@Parameter(description = "订单 ID") @PathVariable UUID id) {
         log.info("[API] 查询订单: id={}", id);
-        OrdOrder order = queryService.getById(String.valueOf(id));
-        return ApiResponse.success(OrderConverter.toResponse(order));
+        return ApiResponse.success(queryService.getResponseById(String.valueOf(id)));
     }
 
     /**
@@ -97,10 +91,7 @@ public class OrdOrderController {
     public ApiResponse<Page<OrderResponse>> query(@RequestBody @Valid OrderQueryRequest request) {
         log.info("[API] 分页查询订单: {}", (request + "").replace("\r", "_").replace("\n", "_"));
 
-        Page<OrdOrder> result = queryService.query(request);
-        Page<OrderResponse> mapped = new Page<>(result.getCurrent(), result.getSize(), result.getTotal());
-        mapped.setRecords(OrderConverter.toResponseList(result.getRecords()));
-        return ApiResponse.success(mapped);
+        return ApiResponse.success(queryService.queryPage(request));
     }
 
     /**
@@ -124,10 +115,7 @@ public class OrdOrderController {
     @GetMapping("/{id}/items")
     public ApiResponse<List<OrderItemResponse>> getItems(@Parameter(description = "订单 ID") @PathVariable UUID id) {
         log.info("[API] 查询订单明细: id={}", id);
-        List<OrdOrderItem> items = queryService.listItemsByOrderId(id);
-        return ApiResponse.success(items.stream()
-                .map(OrderConverter::toItemResponse)
-                .collect(Collectors.toList()));
+        return ApiResponse.success(queryService.listItemResponses(id));
     }
 
     // ───────────────────────── Command Side ─────────────────────────
@@ -140,9 +128,7 @@ public class OrdOrderController {
     public ApiResponse<OrderResponse> createOrder(@RequestBody @Valid OrderCreateRequest request) {
         log.info("[API] 创建订单: orderNo={}, userId={}", (request.getOrderNo() + "").replace("\r", "_").replace("\n", "_"), (request.getUserId() + "").replace("\r", "_").replace("\n", "_"));
 
-        OrderConverter.OrderDraft draft = OrderConverter.toOrderEntity(request);
-        OrdOrder created = commandService.createOrder(draft.order(), draft.items());
-        return ApiResponse.success(OrderConverter.toResponse(created));
+        return ApiResponse.success(commandService.createOrder(request));
     }
 
     /**
@@ -157,12 +143,11 @@ public class OrdOrderController {
                                                    @RequestBody @Valid OrderStatusUpdateRequest request) {
         log.info("[API] 更新订单状态: id={}, target={}", id, request.getTargetStatus());
 
-        OrderStatus target = request.getTargetStatus();
-        OrdOrder updated = commandService.updateOrderStatus(id, target.getCode());
+        OrderResponse updated = commandService.updateOrderStatus(id, request.getTargetStatus());
         if (updated == null) {
             return ApiResponse.fail(404, "订单不存在或状态未变更: id=" + id);
         }
-        return ApiResponse.success(OrderConverter.toResponse(updated));
+        return ApiResponse.success(updated);
     }
 
     /**
@@ -178,11 +163,11 @@ public class OrdOrderController {
                                              @RequestBody @Valid OrderCancelRequest request) {
         log.info("[API] 取消订单: id={}, reason={}", (id + "").replace("\r", "_").replace("\n", "_"), (request.getReason() + "").replace("\r", "_").replace("\n", "_"));
 
-        OrdOrder updated = commandService.cancelOrder(id, request.getReason());
+        OrderResponse updated = commandService.cancelOrderResponse(id, request.getReason());
         if (updated == null) {
             return ApiResponse.fail(404, "订单不存在: id=" + id);
         }
 
-        return ApiResponse.success(OrderConverter.toResponse(updated));
+        return ApiResponse.success(updated);
     }
 }

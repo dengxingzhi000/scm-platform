@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.scmcloud.common.data.rw.annotation.Slave;
 import com.scmcloud.order.domain.entity.OrdStatusHistory;
+import com.scmcloud.order.dto.OrderConverter;
+import com.scmcloud.order.dto.StatusHistoryResponse;
 import com.scmcloud.order.mapper.OrdStatusHistoryMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,5 +31,15 @@ public class OrdStatusHistoryQueryService {
         wrapper.eq(OrdStatusHistory::getOrderId, orderId)
                 .orderByDesc(OrdStatusHistory::getTransitionedAt);
         return ordStatusHistoryMapper.selectList(wrapper);
+    }
+
+    @Slave
+    public StatusHistoryResponse getResponseById(String id) {
+        return OrderConverter.toStatusHistoryResponse(getById(id));
+    }
+
+    @Slave
+    public List<StatusHistoryResponse> listResponsesByOrderId(UUID orderId) {
+        return OrderConverter.toStatusHistoryResponseList(listByOrderId(orderId));
     }
 }

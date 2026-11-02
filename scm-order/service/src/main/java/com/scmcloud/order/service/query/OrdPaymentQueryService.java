@@ -6,6 +6,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.scmcloud.common.data.rw.annotation.Slave;
 import com.scmcloud.order.domain.entity.OrdPayment;
 import com.scmcloud.order.domain.entity.PaymentStatus;
+import com.scmcloud.order.dto.OrderConverter;
+import com.scmcloud.order.dto.PaymentQueryRequest;
+import com.scmcloud.order.dto.PaymentResponse;
 import com.scmcloud.order.mapper.OrdPaymentMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -65,5 +68,26 @@ public class OrdPaymentQueryService {
                 .le(endTime != null, OrdPayment::getInitiatedAt, endTime)
                 .orderByDesc(OrdPayment::getCreateTime);
         return ordPaymentMapper.selectPage(page, wrapper);
+    }
+
+    @Slave
+    public PaymentResponse getResponseById(UUID id) {
+        return OrderConverter.toPaymentResponse(getById(id));
+    }
+
+    @Slave
+    public List<PaymentResponse> listResponsesByOrderId(UUID orderId) {
+        return OrderConverter.toPaymentResponseList(listByOrderId(orderId));
+    }
+
+    @Slave
+    public Page<PaymentResponse> pageResponses(PaymentQueryRequest request) {
+        Page<OrdPayment> page = pageWithWrapper(
+                new Page<>(request.getPageNum(), request.getPageSize()),
+                request.getPaymentNo(), request.getOrderId(), request.getUserId(),
+                request.getStatus(), request.getStartTime(), request.getEndTime());
+        Page<PaymentResponse> mapped = new Page<>(page.getCurrent(), page.getSize(), page.getTotal());
+        mapped.setRecords(OrderConverter.toPaymentResponseList(page.getRecords()));
+        return mapped;
     }
 }

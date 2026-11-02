@@ -7,6 +7,9 @@ import com.scmcloud.order.domain.entity.OrderStatus;
 import com.scmcloud.order.domain.entity.OrdOrder;
 import com.scmcloud.order.domain.entity.OrdOrderItem;
 import com.scmcloud.order.domain.entity.OrdStatusHistory;
+import com.scmcloud.order.dto.OrderConverter;
+import com.scmcloud.order.dto.OrderCreateRequest;
+import com.scmcloud.order.dto.OrderResponse;
 import com.scmcloud.order.event.OrderCreatedEvent;
 import com.scmcloud.order.event.OrderEventStore;
 import com.scmcloud.order.event.OrderStatusChangedEvent;
@@ -130,6 +133,13 @@ public class OrdOrderCommandService {
         return order;
     }
 
+    @Master(reason = "创建订单")
+    @Transactional(rollbackFor = Exception.class)
+    public OrderResponse createOrder(OrderCreateRequest request) {
+        OrderConverter.OrderDraft draft = OrderConverter.toOrderEntity(request);
+        return OrderConverter.toResponse(createOrder(draft.order(), draft.items()));
+    }
+
     @Master(reason = "保存订单")
     @Transactional(rollbackFor = Exception.class)
     public int save(OrdOrder order) {
@@ -203,6 +213,12 @@ public class OrdOrderCommandService {
         }
 
         return null;
+    }
+
+    @Master(reason = "更新订单状态")
+    @Transactional(rollbackFor = Exception.class)
+    public OrderResponse updateOrderStatus(UUID orderId, OrderStatus target) {
+        return OrderConverter.toResponse(updateOrderStatus(orderId, target.getCode()));
     }
 
     @Master(reason = "删除订单")
@@ -283,6 +299,12 @@ public class OrdOrderCommandService {
 
         log.info("订单已取消: orderNo={}, id={}", existing.getOrderNo(), existing.getId());
         return existing;
+    }
+
+    @Master(reason = "取消订单")
+    @Transactional(rollbackFor = Exception.class)
+    public OrderResponse cancelOrderResponse(UUID orderId, String reason) {
+        return OrderConverter.toResponse(cancelOrder(orderId, reason));
     }
 
     @Master(reason = "创建订单")

@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.scmcloud.common.data.rw.annotation.Slave;
 import com.scmcloud.order.domain.entity.OrdRefundItem;
+import com.scmcloud.order.dto.OrderConverter;
+import com.scmcloud.order.dto.RefundItemResponse;
 import com.scmcloud.order.mapper.OrdRefundItemMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,5 +39,10 @@ public class OrdRefundItemQueryService {
         wrapper.eq(OrdRefundItem::getRefundId, refundId)
                 .orderByAsc(OrdRefundItem::getId);
         return ordRefundItemMapper.selectList(wrapper);
+    }
+
+    @Slave
+    public List<RefundItemResponse> listResponsesByRefundId(UUID refundId) {
+        return OrderConverter.toRefundItemResponseList(listByRefundId(refundId));
     }
 }
