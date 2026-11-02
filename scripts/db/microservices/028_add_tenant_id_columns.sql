@@ -25,7 +25,7 @@
 --   ci_validate_tenant_id.sql so both stay in sync.
 --
 -- Scope
---   32 tables across 6 service databases. inv_tcc_reservation is already
+--   34 tables across 7 service databases. inv_tcc_reservation is already
 --   covered by 021_inventory_tcc.sql and is left untouched.
 --
 -- Idempotency
@@ -57,7 +57,9 @@ DECLARE
         'tms_carrier', 'tms_waybill', 'tms_tracking', 'tms_route', 'tms_delivery_area',
         -- Supplier
         'sup_supplier', 'sup_purchase_order', 'sup_purchase_order_item',
-        'sup_supplier_evaluation', 'sup_settlement'
+        'sup_supplier_evaluation', 'sup_settlement',
+        -- Audit (db_audit) — without these the audit trail is shared across tenants
+        'sys_audit_log', 'sys_sensitive_operation_log'
     ];
 BEGIN
     FOREACH t IN ARRAY expected_tables LOOP
@@ -75,7 +77,7 @@ BEGIN
             );
             -- Index naming matches the convention in the original per-DB
             -- sections: prod_* → strip "prod_"; everything else → strip
-            -- first 4 chars (inv_ / ord_ / wms_ / tms_ / sup_).
+            -- first 4 chars (inv_ / ord_ / wms_ / tms_ / sup_ / sys_).
             IF t LIKE 'prod\_%' THEN
                 idx_name := 'idx_' || replace(t, 'prod_', '') || '_tenant';
             ELSE

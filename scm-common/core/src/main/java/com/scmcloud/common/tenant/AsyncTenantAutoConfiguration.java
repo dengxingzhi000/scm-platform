@@ -1,13 +1,11 @@
 package com.scmcloud.common.tenant;
 
 import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
-import java.util.List;
 import java.util.concurrent.Executor;
 
 /**
@@ -16,15 +14,8 @@ import java.util.concurrent.Executor;
  */
 @AutoConfiguration
 @EnableAsync
-@EnableConfigurationProperties
+@EnableConfigurationProperties(TenantProperties.class)
 public class AsyncTenantAutoConfiguration {
-
-    @Bean
-    @ConfigurationProperties(prefix = "scm.tenant")
-    public TenantProperties tenantProperties() {
-        return new TenantProperties(true, true,
-                List.of("/actuator/**", "/v3/api-docs/**"));
-    }
 
     @Bean(name = "tenantAwareTaskExecutor")
     public Executor tenantAwareTaskExecutor() {

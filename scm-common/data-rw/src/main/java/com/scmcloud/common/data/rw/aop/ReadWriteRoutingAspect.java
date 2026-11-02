@@ -58,7 +58,13 @@ public class ReadWriteRoutingAspect {
 
         ReadWriteRoutingContext.push(ReadWriteRoutingContext.RoutingType.MASTER);
         try {
-            return joinPoint.proceed();
+            Object result = joinPoint.proceed();
+            // 命令方法成功后写入时间戳，使同一线程随后的读操作在
+            // read-master-after-write 窗口内仍走主库（read-your-writes）。
+            // aroundTransactional 在该场景下会因 current() != AUTO 提前返回，
+            // 标记只能由本切面负责。
+            ReadWriteRoutingContext.markWrite();
+            return result;
         } finally {
             ReadWriteRoutingContext.pop();
         }

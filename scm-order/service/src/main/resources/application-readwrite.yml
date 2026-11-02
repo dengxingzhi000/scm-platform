@@ -1,0 +1,55 @@
+# 主从读写分离配置（可选 profile，默认不激活）
+#
+# 激活方式：
+#   java -jar app.jar --spring.profiles.active=readwrite
+#   或 SPRING_PROFILES_ACTIVE=readwrite
+#
+# 设计见 docs/guides/READ_WRITE_SEPARATION_GUIDE.md。
+#
+# 说明：
+#   - `order` 是 ReadWriteRoutingDataSource 的 group 名，通过
+#     ReadWriteAutoConfiguration#readWriteDynamicDataSourceProvider 注册到
+#     dynamic-datasource；primary 指过去后，全部 MyBatis 调用都经过读写路由。
+#   - DB_SLAVE_HOST 未设置时默认指向主库。这会走完整的路由链路（连接池、
+#     健康检查、复制延迟检查、指标），但读写命中同一个库——用于在没有真实
+#     备库时验证接线是否正常。接入真实备库只需设置 DB_SLAVE_HOST/DB_SLAVE_PORT。
+#   - read-master-after-write：同一线程写操作后该时间窗口内的读强制走主库，
+#     用于规避复制延迟。窗口外不做保证。
+
+spring:
+  datasource:
+    dynamic:
+      primary: order
+
+    rw:
+      enabled: true
+
+      # 写后读一致性窗口
+      read-master-after-write: 2s
+      # 复制延迟告警阈值，超过则标记该从库不可用并回退主库
+      replication-lag-tolerance: 1s
+      load-balance: ROUND_ROBIN
+      health-check-enabled: true
+      health-check-interval: 30s
+      slave-retry-count: 3
+
+      groups:
+        order:
+          master:
+            url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/db_order?stringtype=unspecified
+            username: ${DB_USERNAME:admin}
+            password: ${DB_PASSWORD:changeme}
+            driver-class-name: org.postgresql.Driver
+            maximum-pool-size: ${DB_POOL_MAX_SIZE:20}
+            minimum-idle: ${DB_POOL_MIN_IDLE:5}
+
+          slaves:
+            - name: slave1
+              url: jdbc:postgresql://${DB_SLAVE_HOST:${DB_HOST:localhost}}:${DB_SLAVE_PORT:${DB_PORT:5432}}/db_order?stringtype=unspecified
+              username: ${DB_SLAVE_USERNAME:${DB_USERNAME:admin}}
+              password: ${DB_SLAVE_PASSWORD:${DB_PASSWORD:changeme}}
+              driver-class-name: org.postgresql.Driver
+              maximum-pool-size: ${DB_SLAVE_POOL_MAX_SIZE:20}
+              minimum-idle: ${DB_SLAVE_POOL_MIN_IDLE:5}
+              weight: 1
+              available: true

@@ -31,9 +31,7 @@ import org.apache.ibatis.reflection.SystemMetaObject;
 
 import java.sql.Connection;
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.HashSet;
-import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
 
@@ -49,10 +47,18 @@ public class TenantInterceptor implements Interceptor {
 
     private static final String TENANT_COLUMN = "tenant_id";
 
-    private static final Set<String> EXCLUDE_TABLES = new HashSet<>(Arrays.asList(
+    /**
+     * Tables that must never carry a tenant predicate: the tenant registry itself, plus the
+     * framework tables whose schema the platform does not own (Seata undo log, Flyway history,
+     * XXL-Job/Quartz schedules, Flowable engine).
+     * <p>A trailing {@code *} matches a prefix.
+     */
+    private static final Set<String> BUILT_IN_EXCLUDES = Set.of(
             "tenant", "tenant_package", "tenant_subscription",
-            "tenant_resource_quota", "tenant_config", "tenant_feature", "tenant_operation_log"
-    ));
+            "tenant_resource_quota", "tenant_config", "tenant_feature", "tenant_operation_log",
+            "undo_log", "flyway_schema_history", "qrtz_*", "xxl_job_*", "act_*", "flw_*");
+
+    private final Set<String> excludeTables;
 
     private final TenantProperties properties;
 
@@ -63,6 +69,14 @@ public class TenantInterceptor implements Interceptor {
 
     public TenantInterceptor(TenantProperties properties) {
         this.properties = properties;
+        Set<String> merged = new HashSet<>(BUILT_IN_EXCLUDES);
+        if (properties != null) {
+            properties.excludeTables().stream()
+                    .filter(name -> name != null && !name.isBlank())
+                    .map(name -> name.trim().toLowerCase())
+                    .forEach(merged::add);
+        }
+        this.excludeTables = Set.copyOf(merged);
     }
 
     @Override
@@ -143,63 +157,69 @@ public class TenantInterceptor implements Interceptor {
     }
 
     private void injectIntoPlainSelect(PlainSelect plainSelect, UUID tenantId) {
-        String tableName = plainSelect.getFromItem().toString();
-        if (isExcludeTable(tableName)) {
-            log.debug("Table {} is excluded from tenant filter", tableName);
+        if (!(plainSelect.getFromItem() instanceof Table table)) {
+            // Derived tables, VALUES lists and function calls have no tenant_id to qualify.
             return;
         }
-        EqualsTo condition = buildTenantCondition(tenantId);
-        Expression where = plainSelect.getWhere();
-        if (where == null) {
-            plainSelect.setWhere(condition);
-        } else {
-            plainSelect.setWhere(new AndExpression(where, condition));
+        if (isExcludeTable(table.getName())) {
+            log.debug("Table {} is excluded from tenant filter", table.getName());
+            return;
         }
+        if (plainSelect.getJoins() != null && !plainSelect.getJoins().isEmpty()) {
+            log.warn("Table {} is joined: only the driving table gets the tenant predicate",
+                    table.getName());
+        }
+        // Qualified with the alias: a bare tenant_id is ambiguous as soon as the statement
+        // gains a join, and silently wrong if the alias hides another table's column.
+        String qualifier = table.getAlias() != null ? table.getAlias().getName() : table.getName();
+        EqualsTo condition = buildTenantCondition(tenantId, qualifier);
+        Expression where = plainSelect.getWhere();
+        plainSelect.setWhere(where == null ? condition : new AndExpression(where, condition));
     }
 
     private void handleUpdate(Update update, UUID tenantId) {
         Table table = update.getTable();
-        if (table != null && isExcludeTable(table.toString())) {
+        if (table == null || isExcludeTable(table.getName())) {
             return;
         }
-        EqualsTo condition = buildTenantCondition(tenantId);
+        EqualsTo condition = buildTenantCondition(tenantId, table.getName());
         Expression where = update.getWhere();
-        if (where == null) {
-            update.setWhere(condition);
-        } else {
-            update.setWhere(new AndExpression(where, condition));
-        }
+        update.setWhere(where == null ? condition : new AndExpression(where, condition));
     }
 
     private void handleDelete(Delete delete, UUID tenantId) {
         Table table = delete.getTable();
-        if (table != null && isExcludeTable(table.toString())) {
+        if (table == null || isExcludeTable(table.getName())) {
             return;
         }
-        EqualsTo condition = buildTenantCondition(tenantId);
+        EqualsTo condition = buildTenantCondition(tenantId, table.getName());
         Expression where = delete.getWhere();
-        if (where == null) {
-            delete.setWhere(condition);
-        } else {
-            delete.setWhere(new AndExpression(where, condition));
-        }
+        delete.setWhere(where == null ? condition : new AndExpression(where, condition));
     }
 
-    private EqualsTo buildTenantCondition(UUID tenantId) {
+    private EqualsTo buildTenantCondition(UUID tenantId, String qualifier) {
         EqualsTo condition = new EqualsTo();
-        condition.setLeftExpression(new Column(TENANT_COLUMN));
+        condition.setLeftExpression(new Column(qualifier + "." + TENANT_COLUMN));
         condition.setRightExpression(new StringValue(tenantId.toString()));
         return condition;
     }
 
     private boolean isExcludeTable(String tableName) {
-        String actual = tableName.contains(" ")
-                ? tableName.substring(0, tableName.indexOf(" ")).trim()
-                : tableName.trim();
+        String actual = tableName == null ? "" : tableName.trim();
         if (actual.contains(".")) {
-            actual = actual.substring(actual.indexOf(".") + 1);
+            actual = actual.substring(actual.lastIndexOf('.') + 1);
         }
-        return EXCLUDE_TABLES.contains(actual.toLowerCase());
+        actual = actual.toLowerCase();
+        for (String pattern : excludeTables) {
+            if (pattern.endsWith("*")) {
+                if (actual.startsWith(pattern.substring(0, pattern.length() - 1))) {
+                    return true;
+                }
+            } else if (pattern.equals(actual)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
@@ -208,15 +228,5 @@ public class TenantInterceptor implements Interceptor {
             return Plugin.wrap(target, this);
         }
         return target;
-    }
-
-    @Override
-    public void setProperties(Properties properties) {
-        String excludeTables = properties.getProperty("excludeTables");
-        if (excludeTables != null && !excludeTables.trim().isEmpty()) {
-            for (String t : excludeTables.split(",")) {
-                EXCLUDE_TABLES.add(t.trim().toLowerCase());
-            }
-        }
     }
 }
