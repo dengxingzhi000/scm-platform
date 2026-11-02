@@ -1,5 +1,6 @@
 package com.scmcloud.supplier.controller;
 
+import com.scmcloud.common.log.util.LogUtils;
 import com.scmcloud.common.response.ApiResponse;
 import com.scmcloud.supplier.domain.entity.SupSupplierCertificate;
 import com.scmcloud.supplier.service.ISupSupplierCertificateService;
@@ -41,14 +42,13 @@ public class SupSupplierCertificateController {
     public ApiResponse<SupSupplierCertificate> create(
             @Parameter(description = "供应商ID") @PathVariable String supplierId,
             @RequestBody SupSupplierCertificate certificate) {
-        log.info("[API] 新增供应商资质 supplierId={}", supplierId);
+        log.info("[API] 新增供应商资质 supplierId={}", LogUtils.sanitizeForLog(supplierId));
         return ApiResponse.success(certificateService.create(supplierId, certificate));
     }
 
     @Operation(summary = "更新资质证照", description = "更新资质证照；有效期变化时重新判定有效/临期/过期。")
     @PutMapping("/{id}")
     public ApiResponse<SupSupplierCertificate> update(
-            @Parameter(description = "供应商ID") @PathVariable String supplierId,
             @Parameter(description = "资质ID") @PathVariable String id,
             @RequestBody SupSupplierCertificate certificate) {
         return ApiResponse.success(certificateService.update(id, certificate));
@@ -57,20 +57,17 @@ public class SupSupplierCertificateController {
     @Operation(summary = "审核资质证照", description = "审核通过后按有效期标记有效/临期/过期；驳回标记为已驳回。")
     @PutMapping("/{id}/verify")
     public ApiResponse<Void> verify(
-            @Parameter(description = "供应商ID") @PathVariable String supplierId,
             @Parameter(description = "资质ID") @PathVariable String id,
             @RequestParam boolean approved,
             @RequestParam(required = false) String operatorId,
-            @RequestParam(required = false) String operatorName,
             @RequestParam(required = false) String remark) {
-        certificateService.verify(id, approved, operatorId, operatorName, remark);
+        certificateService.verify(id, approved, operatorId, remark);
         return ApiResponse.success();
     }
 
     @Operation(summary = "删除资质证照", description = "逻辑删除供应商资质证照。")
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(
-            @Parameter(description = "供应商ID") @PathVariable String supplierId,
             @Parameter(description = "资质ID") @PathVariable String id) {
         boolean success = certificateService.delete(id);
         return success ? ApiResponse.success() : ApiResponse.fail(404, "资质证照不存在");

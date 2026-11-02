@@ -100,15 +100,6 @@ public class UserCrossDatabaseQueryService {
     }
 
     /**
-     * 鏌ヨ鐢ㄦ埛瑙掕壊缂栫爜闆嗗悎
-     * <p>
-     * 鏇夸唬 SysUserRoleMapper.findRoleCodesByUserId
-     * 璺ㄥ簱鏌ヨ锛歞b_permission
-     *
-     * @param userId 鐢ㄦ埛 ID
-     * @return 瑙掕壊缂栫爜闆嗗悎
-     */
-    /**
      * 批量查询用户角色（id / code / name），用户列表一次查询即可，避免 N+1。
      */
     @Slave

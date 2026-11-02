@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.scmcloud.common.exception.ServiceException;
+import com.scmcloud.common.log.util.LogUtils;
 import com.scmcloud.common.tenant.TenantContextHolder;
 import com.scmcloud.supplier.domain.entity.SupSupplier;
 import com.scmcloud.supplier.domain.entity.SupSupplierCategory;
@@ -78,7 +79,8 @@ public class SupSupplierServiceImpl extends ServiceImpl<SupSupplierMapper, SupSu
                                       Integer cooperationStatus, Boolean enabled, Integer auditStatus,
                                       Integer supplierLevel, Integer riskLevel, Boolean blacklisted,
                                       String categoryId) {
-        log.debug("分页查询供应商 page={}, size={}, keyword={}", page, size, keyword);
+        log.debug("分页查询供应商 page={}, size={}, keyword={}",
+                page, size, LogUtils.sanitizeForLog(keyword));
 
         LambdaQueryWrapper<SupSupplier> wrapper = Wrappers.lambdaQuery();
 
@@ -151,7 +153,7 @@ public class SupSupplierServiceImpl extends ServiceImpl<SupSupplierMapper, SupSu
         if (!StringUtils.hasText(name)) {
             return List.of();
         }
-        log.debug("按名称搜索供应商: name={}", name);
+        log.debug("按名称搜索供应商: name={}", LogUtils.sanitizeForLog(name));
         return lambdaQuery()
                 .like(SupSupplier::getSupplierName, name)
                 .eq(SupSupplier::getDeleted, false)
@@ -193,7 +195,7 @@ public class SupSupplierServiceImpl extends ServiceImpl<SupSupplierMapper, SupSu
         }
         changeLogService.record(supplier.getId(), "CREATE",
                 "创建供应商档案，编码 " + code, null, null, null);
-        log.info("创建供应商成功 id={}, code={}", supplier.getId(), code);
+        log.info("创建供应商成功 id={}, code={}", supplier.getId(), LogUtils.sanitizeForLog(code));
         return supplier;
     }
 
@@ -234,7 +236,7 @@ public class SupSupplierServiceImpl extends ServiceImpl<SupSupplierMapper, SupSu
         }
         removeById(id);
         changeLogService.record(id, "DELETE", "删除供应商档案", null, operatorId, operatorName);
-        log.info("删除供应商 id={}", id);
+        log.info("删除供应商 id={}", LogUtils.sanitizeForLog(id));
     }
 
     @Override

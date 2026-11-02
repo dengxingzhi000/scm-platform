@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.scmcloud.common.exception.ServiceException;
+import com.scmcloud.common.log.util.LogUtils;
 import com.scmcloud.supplier.domain.entity.SupSupplier;
 import com.scmcloud.supplier.domain.entity.SupSupplierContact;
 import com.scmcloud.supplier.mapper.SupSupplierContactMapper;
@@ -78,7 +79,8 @@ public class SupSupplierContactServiceImpl
         }
         save(contact);
         syncPrimaryContact(supplierId);
-        log.info("新增供应商联系人 supplierId={}, contactId={}", supplierId, contact.getId());
+        log.info("新增供应商联系人 supplierId={}, contactId={}",
+                LogUtils.sanitizeForLog(supplierId), contact.getId());
         return contact;
     }
 

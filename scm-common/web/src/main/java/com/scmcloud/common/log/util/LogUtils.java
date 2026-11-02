@@ -21,6 +21,7 @@ public class LogUtils {
     private static final String KEY_USERNAME = "username";
     private static final String KEY_TRACE_ID = "traceId";
     private static final String KEY_REQUEST_ID = "requestId";
+    private static final int MAX_LOG_VALUE_LENGTH = 256;
 
     /**
      * 璁剧疆鐢ㄦ埛涓婁笅锟?
@@ -57,6 +58,26 @@ public class LogUtils {
      */
     public static void clear() {
         MDC.clear();
+    }
+
+    /**
+     * 日志输入净化：替换换行符与控制字符，并截断超长内容。
+     * <p>
+     * 用于把请求参数、请求体字段等外部输入写入日志前，避免 CRLF 注入伪造日志行。
+     * 返回 {@code String.valueOf(value)}，因此 {@code null} 仍输出为 {@code "null"}。
+     *
+     * @param value 待写入日志的外部输入
+     * @return 不含换行/控制字符且长度受限的文本
+     */
+    public static String sanitizeForLog(Object value) {
+        String text = String.valueOf(value)
+                .replace("\r", "_")
+                .replace("\n", "_")
+                .replaceAll("[\\x00-\\x1F\\x7F]", "_");
+        if (text.length() > MAX_LOG_VALUE_LENGTH) {
+            return text.substring(0, MAX_LOG_VALUE_LENGTH) + "...";
+        }
+        return text;
     }
 
     /**

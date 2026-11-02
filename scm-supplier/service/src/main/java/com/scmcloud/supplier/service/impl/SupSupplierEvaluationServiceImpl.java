@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.scmcloud.common.exception.ServiceException;
+import com.scmcloud.common.log.util.LogUtils;
 import com.scmcloud.supplier.domain.entity.SupSupplier;
 import com.scmcloud.supplier.domain.entity.SupSupplierEvaluation;
 import com.scmcloud.supplier.domain.support.SupplierScoreCalculator;
@@ -38,7 +39,8 @@ public class SupSupplierEvaluationServiceImpl
     @Override
     public Page<SupSupplierEvaluation> pageList(int page, int size, String supplierId,
                                                 String evaluationPeriod) {
-        log.debug("分页查询供应商评价 page={}, size={}, supplierId={}", page, size, supplierId);
+        log.debug("分页查询供应商评价 page={}, size={}, supplierId={}",
+                page, size, LogUtils.sanitizeForLog(supplierId));
 
         LambdaQueryWrapper<SupSupplierEvaluation> wrapper = Wrappers.lambdaQuery();
 
@@ -105,7 +107,9 @@ public class SupSupplierEvaluationServiceImpl
         save(evaluation);
         refreshSupplierScorecard(evaluation.getSupplierId());
         log.info("创建供应商评价 id={}, supplierId={}, period={}",
-                evaluation.getId(), evaluation.getSupplierId(), evaluation.getEvaluationPeriod());
+                evaluation.getId(),
+                LogUtils.sanitizeForLog(evaluation.getSupplierId()),
+                LogUtils.sanitizeForLog(evaluation.getEvaluationPeriod()));
         return evaluation;
     }
 
@@ -199,7 +203,8 @@ public class SupSupplierEvaluationServiceImpl
         wrapper.set(SupSupplier::getLastEvaluationAt, lastEvaluatedAt);
         wrapper.set(SupSupplier::getUpdateTime, LocalDateTime.now());
         supplierMapper.update(null, wrapper);
-        log.info("回写供应商绩效 supplierId={}, overall={}", supplierId, overall);
+        log.info("回写供应商绩效 supplierId={}, overall={}",
+                LogUtils.sanitizeForLog(supplierId), overall);
     }
 
     private BigDecimal calculateTotal(SupSupplierEvaluation evaluation) {
@@ -249,7 +254,7 @@ public class SupSupplierEvaluationServiceImpl
                     };
                 }
             } catch (RuntimeException e) {
-                log.warn("无法解析评价周期: {}", period);
+                log.warn("无法解析评价周期: {}", LogUtils.sanitizeForLog(period));
             }
         }
         return reference.withDayOfMonth(1);

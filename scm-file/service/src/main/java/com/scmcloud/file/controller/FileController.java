@@ -1,6 +1,7 @@
 package com.scmcloud.file.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.scmcloud.common.log.util.LogUtils;
 import com.scmcloud.common.response.ApiResponse;
 import com.scmcloud.file.api.dto.FileBatchDeleteRequest;
 import com.scmcloud.file.api.dto.FileMetadataDTO;
@@ -74,7 +75,7 @@ public class FileController {
         } catch (FileValidationException e) {
             return ApiResponse.fail(400, e.getMessage());
         } catch (Exception e) {
-            log.error("Failed to update file {}", id, e);
+            log.error("Failed to update file {}", LogUtils.sanitizeForLog(id), e);
             return ApiResponse.fail(500, "Update failed");
         }
     }
@@ -88,7 +89,7 @@ public class FileController {
         } catch (FileNotFoundException e) {
             return ApiResponse.fail(404, e.getMessage());
         } catch (Exception e) {
-            log.error("Failed to delete file {}", id, e);
+            log.error("Failed to delete file {}", LogUtils.sanitizeForLog(id), e);
             return ApiResponse.fail(500, "Delete failed");
         }
     }
@@ -121,7 +122,8 @@ public class FileController {
         } catch (FileValidationException e) {
             return ApiResponse.fail(400, e.getMessage());
         } catch (Exception e) {
-            log.error("Failed to upload file {}", file.getOriginalFilename(), e);
+            log.error("Failed to upload file {}",
+                    LogUtils.sanitizeForLog(file.getOriginalFilename()), e);
             return ApiResponse.fail(500, "Upload failed");
         }
     }
@@ -136,7 +138,7 @@ public class FileController {
                     .<ApiResponse<FileMetadataDTO>>map(ApiResponse::success)
                     .orElseGet(ApiResponse::success);
         } catch (Exception e) {
-            log.error("Failed to check file existence for md5 {}", md5, e);
+            log.error("Failed to check file existence for md5 {}", LogUtils.sanitizeForLog(md5), e);
             return ApiResponse.fail(500, "Check failed");
         }
     }
@@ -150,7 +152,7 @@ public class FileController {
         } catch (FileNotFoundException e) {
             return ApiResponse.fail(404, e.getMessage());
         } catch (Exception e) {
-            log.error("Failed to generate presigned url for file {}", id, e);
+            log.error("Failed to generate presigned url for file {}", LogUtils.sanitizeForLog(id), e);
             return ApiResponse.fail(500, "Failed to generate url");
         }
     }
@@ -184,7 +186,7 @@ public class FileController {
         } catch (FileNotFoundException e) {
             response.setStatus(HttpServletResponse.SC_NOT_FOUND);
         } catch (Exception e) {
-            log.error("Failed to stream file {}", id, e);
+            log.error("Failed to stream file {}", LogUtils.sanitizeForLog(id), e);
             if (!response.isCommitted()) {
                 response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             }

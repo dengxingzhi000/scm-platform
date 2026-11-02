@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.scmcloud.common.exception.ServiceException;
+import com.scmcloud.common.log.util.LogUtils;
 import com.scmcloud.supplier.domain.entity.SupSupplier;
 import com.scmcloud.supplier.domain.entity.SupSupplierBankAccount;
 import com.scmcloud.supplier.mapper.SupSupplierBankAccountMapper;
@@ -76,7 +77,8 @@ public class SupSupplierBankAccountServiceImpl
         }
         save(account);
         syncDefaultAccount(supplierId);
-        log.info("新增供应商银行账户 supplierId={}, accountId={}", supplierId, account.getId());
+        log.info("新增供应商银行账户 supplierId={}, accountId={}",
+                LogUtils.sanitizeForLog(supplierId), account.getId());
         return account;
     }
 

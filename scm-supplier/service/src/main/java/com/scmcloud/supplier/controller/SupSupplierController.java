@@ -1,6 +1,7 @@
 package com.scmcloud.supplier.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.scmcloud.common.log.util.LogUtils;
 import com.scmcloud.common.response.ApiResponse;
 import com.scmcloud.supplier.domain.entity.SupSupplier;
 import com.scmcloud.supplier.domain.entity.SupSupplierCategory;
@@ -41,7 +42,7 @@ public class SupSupplierController {
     @Operation(summary = "查询供应商详情", description = "根据供应商ID查询未删除的供应商详情。")
     @GetMapping("/{id}")
     public ApiResponse<SupSupplier> getById(@Parameter(description = "供应商ID") @PathVariable String id) {
-        log.info("[API] 查询供应商详情 id={}", id);
+        log.info("[API] 查询供应商详情 id={}", LogUtils.sanitizeForLog(id));
         SupSupplier supplier = supplierService.getById(id);
         if (supplier == null || Boolean.TRUE.equals(supplier.getDeleted())) {
             return ApiResponse.fail(404, "供应商不存在");
@@ -52,7 +53,7 @@ public class SupSupplierController {
     @Operation(summary = "查询供应商画像", description = "返回主数据、联系人、银行账户、资质、分类与最近变更日志。")
     @GetMapping("/{id}/profile")
     public ApiResponse<SupplierProfileVO> getProfile(@Parameter(description = "供应商ID") @PathVariable String id) {
-        log.info("[API] 查询供应商画像 id={}", id);
+        log.info("[API] 查询供应商画像 id={}", LogUtils.sanitizeForLog(id));
         return ApiResponse.success(supplierService.getProfile(id));
     }
 
@@ -60,7 +61,7 @@ public class SupSupplierController {
     @GetMapping("/{id}/performance")
     public ApiResponse<SupplierPerformanceVO> getPerformance(
             @Parameter(description = "供应商ID") @PathVariable String id) {
-        log.info("[API] 查询供应商绩效 id={}", id);
+        log.info("[API] 查询供应商绩效 id={}", LogUtils.sanitizeForLog(id));
         return ApiResponse.success(supplierService.getPerformance(id));
     }
 
@@ -69,7 +70,7 @@ public class SupSupplierController {
     public ApiResponse<List<SupSupplierChangeLog>> listChangeLogs(
             @Parameter(description = "供应商ID") @PathVariable String id,
             @RequestParam(defaultValue = "20") int limit) {
-        log.info("[API] 查询供应商变更日志 id={}, limit={}", id, limit);
+        log.info("[API] 查询供应商变更日志 id={}, limit={}", LogUtils.sanitizeForLog(id), limit);
         return ApiResponse.success(supplierService.listChangeLogs(id, limit));
     }
 
@@ -100,7 +101,7 @@ public class SupSupplierController {
     @Operation(summary = "创建供应商", description = "新增供应商主数据，初始化为草稿准入状态并自动生成编码。")
     @PostMapping
     public ApiResponse<SupSupplier> create(@Valid @RequestBody SupplierUpsertRequest request) {
-        log.info("[API] 创建供应商 name={}", request.getSupplierName());
+        log.info("[API] 创建供应商 name={}", LogUtils.sanitizeForLog(request.getSupplierName()));
         return ApiResponse.success(supplierService.createSupplier(request));
     }
 
@@ -108,7 +109,7 @@ public class SupSupplierController {
     @PutMapping("/{id}")
     public ApiResponse<SupSupplier> update(@Parameter(description = "供应商ID") @PathVariable String id,
                                            @Valid @RequestBody SupplierUpsertRequest request) {
-        log.info("[API] 更新供应商 id={}", id);
+        log.info("[API] 更新供应商 id={}", LogUtils.sanitizeForLog(id));
         return ApiResponse.success(supplierService.updateSupplier(id, request));
     }
 
@@ -117,7 +118,7 @@ public class SupSupplierController {
     public ApiResponse<Void> delete(@Parameter(description = "供应商ID") @PathVariable String id,
                                     @RequestParam(required = false) String operatorId,
                                     @RequestParam(required = false) String operatorName) {
-        log.info("[API] 删除供应商 id={}", id);
+        log.info("[API] 删除供应商 id={}", LogUtils.sanitizeForLog(id));
         supplierService.deleteSupplier(id, operatorId, operatorName);
         return ApiResponse.success();
     }
@@ -136,7 +137,8 @@ public class SupSupplierController {
             @Parameter(description = "风险等级") @RequestParam(required = false) Integer riskLevel,
             @Parameter(description = "是否黑名单") @RequestParam(required = false) Boolean blacklisted,
             @Parameter(description = "分类ID") @RequestParam(required = false) String categoryId) {
-        log.info("[API] 分页查询供应商 page={}, size={}, keyword={}", page, size, keyword);
+        log.info("[API] 分页查询供应商 page={}, size={}, keyword={}",
+                page, size, LogUtils.sanitizeForLog(keyword));
         Page<SupSupplier> result = supplierService.pageList(page, size, keyword, supplierType,
                 cooperationStatus, enabled, auditStatus, supplierLevel, riskLevel, blacklisted, categoryId);
         return ApiResponse.success(result);
@@ -158,7 +160,7 @@ public class SupSupplierController {
     @Operation(summary = "启用供应商", description = "仅准入审核通过且未列入黑名单的供应商可启用。")
     @PutMapping("/{id}/enable")
     public ApiResponse<Void> enable(@Parameter(description = "供应商ID") @PathVariable String id) {
-        log.info("[API] 启用供应商 id={}", id);
+        log.info("[API] 启用供应商 id={}", LogUtils.sanitizeForLog(id));
         boolean success = supplierService.enableSupplier(id);
         return success ? ApiResponse.success() : ApiResponse.fail(400, "启用失败");
     }
@@ -166,7 +168,7 @@ public class SupSupplierController {
     @Operation(summary = "停用供应商", description = "将指定供应商状态置为停用。")
     @PutMapping("/{id}/disable")
     public ApiResponse<Void> disable(@Parameter(description = "供应商ID") @PathVariable String id) {
-        log.info("[API] 停用供应商 id={}", id);
+        log.info("[API] 停用供应商 id={}", LogUtils.sanitizeForLog(id));
         boolean success = supplierService.disableSupplier(id);
         return success ? ApiResponse.success() : ApiResponse.fail(400, "停用失败");
     }
