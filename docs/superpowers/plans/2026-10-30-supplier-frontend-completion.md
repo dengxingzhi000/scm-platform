@@ -1541,11 +1541,16 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const h = vi.hoisted(() => ({ push: vi.fn(), create: vi.fn(), update: vi.fn() }));
+const h = vi.hoisted(() => ({
+  push: vi.fn(),
+  create: vi.fn(),
+  update: vi.fn(),
+  detail: undefined as Record<string, unknown> | undefined,
+}));
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: h.push }) }));
 vi.mock("../hooks", () => ({
-  useSupplierFormDetail: () => ({ data: undefined, isLoading: false, isError: false }),
+  useSupplierFormDetail: () => ({ data: h.detail, isLoading: false, isError: false }),
   useCreateSupplier: () => ({ mutateAsync: h.create, isPending: false }),
   useUpdateSupplier: () => ({ mutateAsync: h.update, isPending: false }),
 }));
@@ -1553,7 +1558,12 @@ vi.mock("../hooks", () => ({
 import SupplierForm from "./supplier-form";
 
 describe("SupplierForm", () => {
-  beforeEach(() => { h.push.mockReset(); h.create.mockReset().mockResolvedValue({ id: "s-1" }); });
+  beforeEach(() => {
+    h.push.mockReset();
+    h.detail = undefined;
+    h.create.mockReset().mockResolvedValue({ id: "s-1" });
+    h.update.mockReset().mockResolvedValue({ id: "s-1" });
+  });
 
   it("requires a supplier name before submitting", async () => {
     render(<SupplierForm />);
@@ -1576,6 +1586,32 @@ describe("SupplierForm", () => {
     await userEvent.type(screen.getByLabelText("供应商名称"), "重复编码公司");
     await userEvent.click(screen.getByRole("button", { name: "保存" }));
     expect(await screen.findByText(/供应商编码已存在/)).toBeInTheDocument();
+  });
+
+  it("loads an existing supplier into the edit form and submits an update", async () => {
+    h.detail = {
+      id: "s-1",
+      supplierCode: "SUP-0001",
+      supplierName: "深圳华强电子有限公司",
+      creditRating: "A",
+      registeredCapital: 5000000,
+    };
+    render(<SupplierForm id="s-1" />);
+
+    expect(await screen.findByDisplayValue("深圳华强电子有限公司")).toBeInTheDocument();
+    expect(screen.getByLabelText("供应商编码")).toBeDisabled();
+
+    await userEvent.clear(screen.getByLabelText("供应商名称"));
+    await userEvent.type(screen.getByLabelText("供应商名称"), "华强电子（深圳）");
+    await userEvent.click(screen.getByRole("button", { name: "保存" }));
+
+    await waitFor(() =>
+      expect(h.update).toHaveBeenCalledWith({
+        id: "s-1",
+        data: expect.objectContaining({ supplierName: "华强电子（深圳）" }),
+      })
+    );
+    expect(h.create).not.toHaveBeenCalled();
   });
 });
 ```
@@ -1604,6 +1640,9 @@ describe("SupplierForm", () => {
   `NO_BRAND = "__none__"` 是同一手法）。
 - `creditRating` 的 6 个等级从 `supplier-form-schema.ts` **导出的** `CREDIT_RATINGS` 读取
   （把现有的私有常量改成 `export`），不要在表单里再抄一份。
+  **编辑模式下如果当前已有信用等级，不要提供「未评级」选项** —— `credit_rating` 上的
+  CHECK 约束拒绝空串，`null` 又被 MyBatis-Plus 的 `NOT_NULL` 跳过，这个 API 根本清不掉
+  信用等级（Task 4 的 ruling）。给出空选项会让用户以为能清空，保存后却原值复现。
 - 编辑模式下 `supplierCode` 的 `Input` 加 `disabled`
 - 顶部：错误提示块（`submitError` 样式）+ 「取消」`Button variant="outline"`（`router.push("/supplier")`）+ 「保存」`Button type="submit"`
 - 提交：`const payload = toSupplierPayload(values)`；`id ? update.mutateAsync({ id, data: payload }) : create.mutateAsync(payload)`；
