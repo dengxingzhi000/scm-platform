@@ -111,6 +111,7 @@ class MybatisRuleRepositoryTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void findByEngineTypeAndRuleTypeFiltersByRuleType() {
         when(ruleMapper.selectList(any())).thenReturn(List.of());
 

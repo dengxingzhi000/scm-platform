@@ -2,7 +2,6 @@ package com.scmcloud.file.service.upload;
 
 import com.scmcloud.common.tenant.TenantContextHolder;
 import com.scmcloud.file.api.enums.UploadTaskStatus;
-import com.scmcloud.file.config.StorageConfig;
 import com.scmcloud.file.entity.FileMetadata;
 import com.scmcloud.file.entity.UploadTask;
 import com.scmcloud.file.mapper.UploadTaskMapper;
@@ -15,7 +14,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -32,7 +30,6 @@ public class UploadService {
     private final UploadTaskMapper uploadTaskMapper;
     private final FileUploadValidator fileUploadValidator;
     private final FileVirusScanner virusScanner;
-    private final StorageConfig storageConfig;
 
     /**
      * Web 入口：上传文件到当前租户。

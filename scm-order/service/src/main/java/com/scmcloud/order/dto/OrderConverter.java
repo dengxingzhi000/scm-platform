@@ -9,8 +9,6 @@ import com.scmcloud.order.domain.entity.OrdPayment;
 import com.scmcloud.order.domain.entity.OrdRefund;
 import com.scmcloud.order.domain.entity.OrdRefundItem;
 import com.scmcloud.order.domain.entity.OrdStatusHistory;
-import com.scmcloud.order.domain.entity.PaymentStatus;
-import com.scmcloud.order.domain.entity.RefundStatus;
 import org.springframework.beans.BeanUtils;
 
 import java.math.BigDecimal;

@@ -1,6 +1,6 @@
 package com.scmcloud.file.service.management;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.scmcloud.file.entity.FileMetadata;
 import com.scmcloud.file.service.FileNotFoundException;
 import com.scmcloud.file.service.metadata.FileMetadataService;
@@ -11,6 +11,7 @@ import com.scmcloud.file.service.upload.FileValidationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -138,7 +139,7 @@ class FileManagementServiceTest {
     void deleteBatch_shouldDeleteTenantFilesOnly() {
         FileMetadata first = metadata("file-1", "key-1");
         FileMetadata second = metadata("file-2", "key-2");
-        when(metadataService.list(any(QueryWrapper.class))).thenReturn(List.of(first, second));
+        when(metadataService.list(ArgumentMatchers.<Wrapper<FileMetadata>>any())).thenReturn(List.of(first, second));
         when(storageFactory.getDefaultEngine()).thenReturn(storageEngine);
 
         int deleted = service.deleteBatch(List.of("file-1", "file-1", "file-2", " "), TENANT);
@@ -153,7 +154,7 @@ class FileManagementServiceTest {
     void deleteBatch_shouldShortCircuitOnEmptyInput() {
         assertEquals(0, service.deleteBatch(null, TENANT));
         assertEquals(0, service.deleteBatch(List.of(" "), TENANT));
-        verify(metadataService, never()).list(any(QueryWrapper.class));
+        verify(metadataService, never()).list(ArgumentMatchers.<Wrapper<FileMetadata>>any());
         verify(metadataService, never()).removeByIds(any());
     }
 
