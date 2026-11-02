@@ -27,6 +27,13 @@ const targets = {
   document: process.env.API_DOCUMENT_TARGET ?? "http://localhost:8213",
   file: process.env.API_FILE_TARGET ?? "http://localhost:8214",
   analytics: process.env.API_ANALYTICS_TARGET ?? "http://localhost:8308",
+  mall: process.env.API_MALL_TARGET ?? "http://localhost:8301",
+  member: process.env.API_MEMBER_TARGET ?? "http://localhost:8302",
+  promotion: process.env.API_PROMOTION_TARGET ?? "http://localhost:8303",
+  payment: process.env.API_PAYMENT_TARGET ?? "http://localhost:8304",
+  orderCenter: process.env.API_ORDER_CENTER_TARGET ?? "http://localhost:8305",
+  fulfillment: process.env.API_FULFILLMENT_TARGET ?? "http://localhost:8306",
+  search: process.env.API_SEARCH_TARGET ?? "http://localhost:8307",
 };
 
 const nextConfig: NextConfig = {
@@ -54,6 +61,13 @@ const nextConfig: NextConfig = {
       { source: "/scm-document/:path*", destination: `${targets.document}/:path*` },
       { source: "/scm-file/:path*", destination: `${targets.file}/:path*` },
       { source: "/scm-analytics/:path*", destination: `${targets.analytics}/:path*` },
+      { source: "/scm-mall/:path*", destination: `${targets.mall}/:path*` },
+      { source: "/scm-member/:path*", destination: `${targets.member}/:path*` },
+      { source: "/scm-promotion/:path*", destination: `${targets.promotion}/:path*` },
+      { source: "/scm-payment/:path*", destination: `${targets.payment}/:path*` },
+      { source: "/scm-order-center/:path*", destination: `${targets.orderCenter}/:path*` },
+      { source: "/scm-fulfillment/:path*", destination: `${targets.fulfillment}/:path*` },
+      { source: "/scm-search/:path*", destination: `${targets.search}/:path*` },
     ];
   },
 };

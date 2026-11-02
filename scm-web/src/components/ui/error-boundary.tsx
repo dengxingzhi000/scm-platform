@@ -34,7 +34,9 @@ export class ErrorBoundary extends Component<
   }
 
   handleGoHome = () => {
-    window.location.href = '/dashboard'
+    // 类组件拿不到 useRouter；渲染崩溃后整页重载是刻意行为，
+    // 用 replace 避免把出错页面留在历史记录里。
+    window.location.replace('/dashboard')
   }
 
   render() {
