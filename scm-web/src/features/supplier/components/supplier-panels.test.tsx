@@ -16,10 +16,16 @@ const h = vi.hoisted(() => ({
   createCertificate: vi.fn(),
   updateCertificate: vi.fn(),
   removeCertificate: vi.fn(),
+  createEvaluation: vi.fn(),
+  updateEvaluation: vi.fn(),
+  removeEvaluation: vi.fn(),
+  getEvaluation: vi.fn(),
   contacts: [] as unknown[],
   assigned: [] as unknown[],
   bankAccounts: [] as unknown[],
   certificates: [] as unknown[],
+  evaluations: [] as unknown[],
+  changeLogs: [] as unknown[],
 }));
 
 vi.mock("../hooks", () => ({
@@ -44,12 +50,32 @@ vi.mock("../hooks", () => ({
   useUpdateSupplierCertificate: () => ({ mutateAsync: h.updateCertificate, isPending: false }),
   useVerifySupplierCertificate: () => ({ mutateAsync: h.verify, isPending: false }),
   useDeleteSupplierCertificate: () => ({ mutateAsync: h.removeCertificate, isPending: false }),
+  useSupplierEvaluations: () => ({
+    data: {
+      records: h.evaluations,
+      total: h.evaluations.length,
+      current: 1,
+      pageSize: 20,
+    },
+    isLoading: false,
+  }),
+  useSupplierAverageScore: () => ({ data: 88.5 }),
+  useCreateSupplierEvaluation: () => ({ mutateAsync: h.createEvaluation, isPending: false }),
+  useUpdateSupplierEvaluation: () => ({ mutateAsync: h.updateEvaluation, isPending: false }),
+  useDeleteSupplierEvaluation: () => ({ mutateAsync: h.removeEvaluation, isPending: false }),
+  useSupplierChangeLogs: () => ({ data: h.changeLogs, isLoading: false }),
+}));
+
+vi.mock("@/lib/api/services/supplier", () => ({
+  supplierApiService: { evaluations: { getById: h.getEvaluation } },
 }));
 
 import SupplierBankAccountPanel from "./supplier-bank-account-panel";
 import SupplierCategoryPanel from "./supplier-category-panel";
 import SupplierCertificatePanel from "./supplier-certificate-panel";
+import SupplierChangeLogPanel from "./supplier-change-log-panel";
 import SupplierContactPanel from "./supplier-contact-panel";
+import SupplierEvaluationPanel from "./supplier-evaluation-panel";
 
 /** 分类字典里的「原材料」。 */
 const rawCategory = {
@@ -152,6 +178,42 @@ const pendingCertificate = {
   daysToExpiry: 120,
 };
 
+/** 已完成的绩效评价 —— 总评 86.5 由后端写入，前端不复算。 */
+const septemberEvaluation = {
+  id: "e-1",
+  supplierId: "s-1",
+  evaluationPeriod: "2026-09",
+  startDate: "2026-09-01",
+  endDate: "2026-09-30",
+  qualityScore: 90,
+  deliveryScore: 85,
+  serviceScore: 88,
+  priceScore: 80,
+  totalScore: 86.5,
+  purchaseCount: 12,
+  totalAmount: 125000,
+  onTimeDeliveryRate: 96,
+  qualityPassRate: 99,
+  evaluatorId: "u-1",
+  evaluatorName: "王五",
+  evaluatedAt: "2026-10-01T10:00:00",
+  improvementSuggestions: "缩短交期",
+  createTime: "2026-10-01T10:00:00",
+  remark: null,
+};
+
+/** 变更日志 —— 后端没写操作人，界面回落为「系统」。 */
+const nameChangeLog = {
+  id: "cl-1",
+  supplierId: "s-1",
+  changeType: "UPDATE",
+  changeContent: "更新了供应商名称",
+  reason: "工商变更",
+  operatorId: null,
+  operatorName: null,
+  createTime: "2026-10-01T10:00:00",
+};
+
 describe("supplier detail panels", () => {
   beforeEach(() => {
     h.assign.mockReset().mockResolvedValue(undefined);
@@ -167,10 +229,16 @@ describe("supplier detail panels", () => {
     h.createCertificate.mockReset().mockResolvedValue(undefined);
     h.updateCertificate.mockReset().mockResolvedValue(undefined);
     h.removeCertificate.mockReset().mockResolvedValue(undefined);
+    h.createEvaluation.mockReset().mockResolvedValue(undefined);
+    h.updateEvaluation.mockReset().mockResolvedValue(undefined);
+    h.removeEvaluation.mockReset().mockResolvedValue(undefined);
+    h.getEvaluation.mockReset();
     h.contacts = [zhangWei];
     h.assigned = [];
     h.bankAccounts = [primaryBankAccount, secondaryBankAccount];
     h.certificates = [expiredCertificate, pendingCertificate];
+    h.evaluations = [septemberEvaluation];
+    h.changeLogs = [nameChangeLog];
   });
 
   it("sends the selected category ids as an array when the assignment is saved", async () => {
@@ -480,5 +548,49 @@ describe("supplier detail panels", () => {
     await waitFor(() => expect(h.createCertificate).toHaveBeenCalled());
     const [{ data }] = h.createCertificate.mock.calls[0];
     expect(Object.keys(data)).not.toContain("status");
+  });
+
+  // 总评直接取后端回写的 totalScore，前端不复刻加权算法。
+  it("shows the backend total score next to the four dimension scores", async () => {
+    render(<SupplierEvaluationPanel supplierId="s-1" />);
+    expect(await screen.findByText("总评")).toBeInTheDocument();
+    expect(screen.getByText("86.5")).toBeInTheDocument();
+    expect(screen.queryByText("预估")).not.toBeInTheDocument();
+  });
+
+  it("labels a change log entry with no operator as the system", async () => {
+    render(<SupplierChangeLogPanel supplierId="s-1" />);
+    expect(await screen.findByText("系统")).toBeInTheDocument();
+  });
+
+  // 列表行不保证带全部字段，编辑前必须走 GET /supplier-evaluations/{id}。
+  it("fetches the full evaluation before opening the edit dialog", async () => {
+    h.getEvaluation.mockResolvedValue({
+      id: "e-1",
+      supplierId: "s-1",
+      evaluationPeriod: "2026-08",
+      startDate: "2026-08-01",
+      endDate: "2026-08-31",
+      qualityScore: 90,
+      deliveryScore: 85,
+      serviceScore: 88,
+      priceScore: 80,
+      totalScore: 86.5,
+      purchaseCount: 12,
+      totalAmount: 125000,
+      onTimeDeliveryRate: 96,
+      qualityPassRate: 99,
+      evaluatorName: "王五",
+      improvementSuggestions: null,
+      evaluatedAt: "2026-09-01T10:00:00",
+    });
+    render(<SupplierEvaluationPanel supplierId="s-1" />);
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "编辑2026-09" }),
+    );
+
+    await waitFor(() => expect(h.getEvaluation).toHaveBeenCalledWith("e-1"));
+    expect(await screen.findByDisplayValue("2026-08")).toBeInTheDocument();
   });
 });

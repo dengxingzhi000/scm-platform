@@ -35,6 +35,16 @@ vi.mock("../hooks", () => ({
   useUpdateSupplierCertificate: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useVerifySupplierCertificate: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useDeleteSupplierCertificate: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  // 绩效评价 / 变更留痕分区各自的 hook。
+  useSupplierEvaluations: () => ({
+    data: { records: [], total: 0, current: 1, pageSize: 20 },
+    isLoading: false,
+  }),
+  useSupplierAverageScore: () => ({ data: 0 }),
+  useCreateSupplierEvaluation: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useUpdateSupplierEvaluation: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useDeleteSupplierEvaluation: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useSupplierChangeLogs: () => ({ data: [], isLoading: false }),
 }));
 
 import SupplierDetail from "./supplier-detail";
@@ -74,10 +84,16 @@ describe("SupplierDetail", () => {
     }
   });
 
-  it("switches to the placeholder of a section that is not built yet", async () => {
+  it("shows the evaluation and change-log panels instead of their placeholders", async () => {
     render(<SupplierDetail id="s-1" />);
+
     await userEvent.click(screen.getByText("绩效评价"));
-    expect(screen.getByText("绩效评价分区正在建设中。")).toBeInTheDocument();
+    expect(screen.getByText("供应商绩效评价")).toBeInTheDocument();
+    expect(screen.queryByText("绩效评价分区正在建设中。")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByText("变更留痕"));
+    expect(screen.getByText("暂无变更记录。")).toBeInTheDocument();
+    expect(screen.queryByText("变更留痕分区正在建设中。")).not.toBeInTheDocument();
   });
 
   it("shows the category and the contact panel instead of their placeholders", async () => {

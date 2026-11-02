@@ -22,7 +22,9 @@ import type { BadgeVariant } from "../lib/constants";
 import SupplierBankAccountPanel from "./supplier-bank-account-panel";
 import SupplierCategoryPanel from "./supplier-category-panel";
 import SupplierCertificatePanel from "./supplier-certificate-panel";
+import SupplierChangeLogPanel from "./supplier-change-log-panel";
 import SupplierContactPanel from "./supplier-contact-panel";
+import SupplierEvaluationPanel from "./supplier-evaluation-panel";
 import SupplierOverviewPanel from "./supplier-overview-panel";
 
 interface SupplierDetailProps {
@@ -226,6 +228,10 @@ export default function SupplierDetail({ id }: SupplierDetailProps) {
             <SupplierBankAccountPanel supplierId={id} />
           ) : section === "certificates" ? (
             <SupplierCertificatePanel supplierId={id} />
+          ) : section === "performance" ? (
+            <SupplierEvaluationPanel supplierId={id} />
+          ) : section === "changeLogs" ? (
+            <SupplierChangeLogPanel supplierId={id} />
           ) : (
             <p className="text-muted-foreground text-xs">
               {`${activeSection?.label ?? ""}分区正在建设中。`}
