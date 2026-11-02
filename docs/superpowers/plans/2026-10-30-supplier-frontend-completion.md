@@ -1309,8 +1309,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const h = vi.hoisted(() => ({ assign: vi.fn(), setPrimary: vi.fn(), remove: vi.fn() }));
 
 vi.mock("../hooks", () => ({
-  useSupplierCategories: () => ({ data: [{ id: "c-1", categoryCode: "RAW", categoryName: "原材料", level: 1, enabled: true, sortOrder: 10, createTime: null, remark: null }] }),
-  useSupplierAssignedCategories: () => ({ data: [{ id: "c-1", categoryCode: "RAW", categoryName: "原材料", level: 1, enabled: true, sortOrder: 10, createTime: null, remark: null }] }),
+  useSupplierCategories: () => ({ data: [
+    { id: "c-1", categoryCode: "RAW", categoryName: "原材料", level: 1, enabled: true, sortOrder: 10, createTime: null, remark: null },
+    { id: "c-2", categoryCode: "RAW_ELEC", categoryName: "电子元器件", level: 2, enabled: true, sortOrder: 11, createTime: null, remark: null },
+  ] }),
+  useSupplierAssignedCategories: () => ({ data: [] }),
   useAssignSupplierCategories: () => ({ mutateAsync: h.assign, isPending: false }),
   useSupplierContacts: () => ({ data: [{ id: "ct-1", supplierId: "s-1", contactName: "张伟", contactTitle: "销售经理", contactRole: "SALES", contactPhone: "13800002210", contactEmail: "z@example.com", contactAddress: null, isPrimary: true, enabled: true, sortOrder: 0, createTime: "2026-01-01", remark: null }] }),
   useSetPrimarySupplierContact: () => ({ mutateAsync: h.setPrimary, isPending: false }),
@@ -1348,7 +1351,15 @@ Run: `npx vitest run src/features/supplier/components/supplier-panels.test.tsx` 
 - 列出当前已关联的分类：用 `useSupplierAssignedCategories(supplierId)`（`GET /suppliers/{id}/categories`）
 - 「设置分类」按钮打开 `Dialog`：里面是 `useSupplierCategories()`（分类字典）构成的 `Checkbox` 列表
   （子分类缩进），每个 checkbox 的 `aria-label` 是分类名；
-  勾选初值 = 已关联分类的 id 集合
+  **勾选初值 = 已关联分类的 id 集合**
+
+> **勾选状态怎么来（2026-10-30 实施后修正）**：**不要用 `useEffect` 把服务端已关联集合同步进
+> 本地 state** —— 那会让测试里的点击变成空操作（mock 每次返回新数组 → effect 依赖每次都变 →
+> 点击后立刻被还原），也���引入 `react-hooks/set-state-in-effect` 警告。
+> 正确做法：**只在 Dialog 打开时挂载勾选列表**，用 `useState(assignedIds)` 做初始值，
+> 和 `supplier-contact-panel.tsx` 的 `ContactFormDialog` 同一个模式。
+> 勾选的"当前值"用 `overrides[id] ?? assignedIds.includes(id)` 这类派生式，
+> 或者干脆在打开时拷贝一次 —— 两种都不需要 effect。
 - 「保存」→ `assign.mutateAsync({ id: supplierId, categoryIds: selected })`
 - 失败时行内显示 `errorMessage(error)`
 
@@ -1454,10 +1465,11 @@ git commit -m "feat(supplier): bank account and certificate sections"
 - [ ] **Step 1: 追加失败的测试**
 
 ```tsx
-it("shows the weighted total next to the four dimension scores", async () => {
+it("shows the backend total score next to the four dimension scores", async () => {
   render(<SupplierEvaluationPanel supplierId="s-1" />);
-  expect(await screen.findByText("加权总分")).toBeInTheDocument();
-  expect(screen.getByText("预估")).toBeInTheDocument();
+  expect(await screen.findByText("总评")).toBeInTheDocument();
+  expect(screen.getByText("86.5")).toBeInTheDocument();
+  expect(screen.queryByText("预估")).not.toBeInTheDocument();
 });
 
 it("labels a change log entry with no operator as the system", async () => {
@@ -1466,18 +1478,18 @@ it("labels a change log entry with no operator as the system", async () => {
 });
 ```
 
-mock 里 `useSupplierEvaluations` 返回一条四维度都有分的记录，`useSupplierChangeLogs` 返回一条 `operatorName` 为 null 的记录。
+mock 里 `useSupplierEvaluations` 返回一条四维度都有分、`totalScore` 为 86.5 的记录；`useSupplierAverageScore` 返回 88.5；`useSupplierChangeLogs` 返回一条 `operatorName` 为 null 的记录。
 
 - [ ] **Step 2: 跑测试确认失败** → FAIL
 
 - [ ] **Step 3: 实现 `components/supplier-evaluation-panel.tsx`**
 
 - 头部显示 `useSupplierAverageScore(supplierId)` 的平均分
-- 表格列：评价周期 / 质量 / 交付 / 服务 / 价格 / 加权总分 / 采购次数 / 准时交付率 / 质量合格率 / 评价人 / 评价时间 / 操作
-- **加权总分用前端算的「预估」值**：权重与 `SupplierScoreCalculator` 一致
-  （质量 0.30 / 交付 0.30 / 服务 0.20 / 价格 0.20），四维缺失的项按 0 计入并归一化权重。
-  表格里该列显示「预估」小字标签；**最终值以后端回写的 `totalScore` 为准**，
-  两列并排（`总评` 用后端值，`加权总分（预估）` 用前端值）。
+- 表格列：评价周期 / 质量 / 交付 / 服务 / 价格 / 总评 / 采购次数 / 准时交付率 / 质量合格率 / 评价人 / 评价时间 / 操作
+- **总评直接显示后端回写的 `totalScore`**（`createEvaluation` / `updateEvaluation` 都会写入），
+  前端**不复算**加权总分 —— 与 Global Constraints「不在前端复刻后端的评分」及 spec §4.6 一致。
+  `totalScore` 为空时显示 `-`。
+- **删除**动作：`ConfirmDialog` 二次确认后调 `useDeleteSupplierEvaluation`。
 - 「新增评价」Dialog：评价周期（`YYYY-MM`）、起止日期、四维打分（0–100 的 number input）、
   采购次数、总金额、准时交付率、质量合格率、评价人、改进建议
 - **编辑**动作：先调 `supplierApiService.evaluations.getById(id)` 拿到完整记录再打开 Dialog
