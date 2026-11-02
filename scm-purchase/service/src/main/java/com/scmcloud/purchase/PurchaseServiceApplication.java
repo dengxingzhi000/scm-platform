@@ -1,5 +1,6 @@
 package com.scmcloud.purchase;
 
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
@@ -12,8 +13,9 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
  *
  * @author SCM Platform Team
  */
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = {"com.scmcloud.purchase", "com.scmcloud.common"})
 @EnableDiscoveryClient
+@MapperScan("com.scmcloud.purchase.mapper")
 public class PurchaseServiceApplication {
 
     public static void main(String[] args) {

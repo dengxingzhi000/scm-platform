@@ -8,6 +8,7 @@ import {
   Card,
   CardAction,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -31,11 +32,16 @@ const statusVariants: Record<
   string,
   "default" | "secondary" | "destructive" | "outline" | "success" | "warning"
 > = {
-  PENDING: "warning",
+  PENDING_PAYMENT: "warning",
   PAID: "default",
+  PENDING_SHIP: "secondary",
   SHIPPED: "secondary",
+  IN_TRANSIT: "secondary",
+  DELIVERED: "secondary",
   COMPLETED: "success",
   CANCELLED: "destructive",
+  REFUNDING: "warning",
+  REFUNDED: "destructive",
 };
 
 export default function RecentOrders({ orders, loading }: RecentOrdersProps) {
@@ -46,6 +52,7 @@ export default function RecentOrders({ orders, loading }: RecentOrdersProps) {
     <Card className="gap-3 overflow-hidden">
       <CardHeader>
         <CardTitle>最近订单</CardTitle>
+        <CardDescription>最新 5 笔订单，点击单号查看详情</CardDescription>
         <CardAction>
           <button
             type="button"
@@ -61,6 +68,10 @@ export default function RecentOrders({ orders, loading }: RecentOrdersProps) {
           <div className="px-6">
             <Skeleton className="h-64 w-full" />
           </div>
+        ) : orders.length === 0 ? (
+          <div className="text-muted-foreground px-6 py-10 text-center text-[13px]">
+            暂无订单
+          </div>
         ) : (
           <Table>
             <TableHeader>
@@ -75,12 +86,18 @@ export default function RecentOrders({ orders, loading }: RecentOrdersProps) {
             <TableBody>
               {orders.map((order) => (
                 <TableRow key={order.id}>
-                  <TableCell className="text-primary font-medium">
-                    {order.orderNo}
+                  <TableCell>
+                    <button
+                      type="button"
+                      className="text-primary font-medium hover:underline"
+                      onClick={() => router.push(`/${locale}/order/${order.id}`)}
+                    >
+                      {order.orderNo}
+                    </button>
                   </TableCell>
                   <TableCell>{order.customerName}</TableCell>
                   <TableCell numeric>
-                    ¥{order.amount.toLocaleString()}
+                    ¥{order.amount.toLocaleString("zh-CN")}
                   </TableCell>
                   <TableCell className="text-center">
                     <Badge variant={statusVariants[order.status] ?? "outline"}>

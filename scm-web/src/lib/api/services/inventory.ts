@@ -1,6 +1,10 @@
 import apiClient from "../client";
 import { unwrap } from "../envelope";
 import type {
+  InvAlertPage,
+  InvAlertQueryRequest,
+  InvAlertScanResult,
+  InvAlertStatsResponse,
   InventoryAdjustRequest,
   InventoryPage,
   InventoryQueryRequest,
@@ -11,6 +15,7 @@ import type {
 } from "../contracts/inventory";
 
 const INVENTORY_BASE = "/scm-inventory/api/v1/inventory";
+const ALERT_BASE = `${INVENTORY_BASE}/alerts`;
 
 const get = <T>(url: string, params?: object) =>
   unwrap<T>(apiClient.get(url, { params }));
@@ -43,6 +48,18 @@ export const inventoryApiService = {
       warehouseId,
       initialStock,
     }),
+
+  // ---- 库存告警 ----
+  queryAlerts: (request: InvAlertQueryRequest) =>
+    post<InvAlertPage>(`${ALERT_BASE}/query`, request),
+  alertStats: () => get<InvAlertStatsResponse>(`${ALERT_BASE}/stats`),
+  resolveAlert: (id: string, resolvedBy?: string) =>
+    unwrap<boolean>(
+      apiClient.put(`${ALERT_BASE}/${id}/resolve`, undefined, {
+        params: resolvedBy ? { resolvedBy } : undefined,
+      }),
+    ),
+  scanAlerts: () => post<InvAlertScanResult>(`${ALERT_BASE}/scan`),
 
   // The reservation controller returns bare JSON literals, not ApiResponse.
   reserve: (request: InventoryReservationRequest) =>

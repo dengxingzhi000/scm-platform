@@ -2,6 +2,7 @@ package com.scmcloud.fulfillment.domain.entity;
 
 import com.scmcloud.common.domain.TenantId;
 import com.baomidou.mybatisplus.annotation.*;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
@@ -20,6 +21,7 @@ public class Tracking {
     @TableId(value = "id", type = IdType.ASSIGN_ID)
     private Long id;
 
+    @NotBlank(message = "履约单号不能为空")
     @TableField("fulfillment_no")
     private String fulfillmentNo;
 
@@ -29,6 +31,7 @@ public class Tracking {
     @TableField("carrier")
     private String carrier;
 
+    @NotBlank(message = "跟踪状态不能为空")
     @TableField("status")
     private String status;
 

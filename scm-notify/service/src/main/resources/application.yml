@@ -4,6 +4,16 @@ server:
 spring:
   application:
     name: scm-notify
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      group-id: notify-order-events
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
   cloud:
     nacos:
       discovery:
@@ -14,10 +24,14 @@ spring:
         namespace: ${NACOS_NAMESPACE:}
         file-extension: yaml
   datasource:
-    driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:db_notify}
-    username: ${DB_USERNAME:admin}
-    password: ${DB_PASSWORD:changeme}
+    dynamic:
+      primary: master
+      datasource:
+        master:
+          driver-class-name: org.postgresql.Driver
+          url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:db_notify}?stringtype=unspecified
+          username: ${DB_USERNAME:admin}
+          password: ${DB_PASSWORD:changeme}
   mail:
     host: ${MAIL_HOST:smtp.example.com}
     port: ${MAIL_PORT:587}

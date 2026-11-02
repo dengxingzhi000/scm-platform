@@ -78,15 +78,16 @@ public interface SysRolePermissionMapper extends BaseMapper<SysRolePermission> {
      */
     @Insert("""
             <script>
-            INSERT INTO sys_role_permission (role_id, permission_id, create_by, create_time) VALUES
+            INSERT INTO sys_role_permission (role_id, permission_id, create_by, create_time, tenant_id) VALUES
             <foreach collection='permissionIds' item='permissionId' separator=','>
-            (#{roleId}, #{permissionId}, #{createBy}, NOW())
+            (#{roleId}, #{permissionId}, #{createBy}, NOW(), #{tenantId})
             </foreach>
             </script>
             """)
     void batchInsertRolePermissions(@Param("roleId") UUID roleId,
                                     @Param("permissionIds") List<UUID> permissionIds,
-                                    @Param("createBy") UUID createBy);
+                                    @Param("createBy") UUID createBy,
+                                    @Param("tenantId") UUID tenantId);
 
     /**
      * 缁熻浣跨敤璇ユ潈闄愮殑瑙掕壊锟?

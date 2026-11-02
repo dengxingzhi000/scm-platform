@@ -43,7 +43,10 @@ public class GatewaySecurityConfig {
                                 "/auth/api/auth/login",
                                 "/auth/api/auth/refresh",
                                 "/auth/oauth2/**",
-                                "/auth/api/public/**"
+                                "/auth/api/public/**",
+                                // Channel callbacks carry no platform JWT; the payment
+                                // service authenticates them with the channel signature.
+                                "/scm-payment/api/v1/payments/callback/**"
                         ).permitAll()
                         .pathMatchers("/actuator/health", "/actuator/info").permitAll()
                         .anyExchange().authenticated()

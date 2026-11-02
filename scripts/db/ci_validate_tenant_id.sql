@@ -26,7 +26,9 @@ DECLARE
         -- Document (scm-document, db_document)
         'doc_file_metadata', 'doc_template', 'doc_template_version',
         'doc_template_schema', 'doc_document', 'doc_document_version',
-        'doc_document_audit'
+        'doc_document_audit',
+        -- Audit (scm-audit, db_audit)
+        'sys_audit_log', 'sys_sensitive_operation_log'
     ];
     rec RECORD;
 BEGIN

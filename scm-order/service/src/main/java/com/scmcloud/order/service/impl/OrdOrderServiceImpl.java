@@ -93,6 +93,8 @@ public class OrdOrderServiceImpl extends ServiceImpl<OrdOrderMapper, OrdOrder> i
         orderItemService.saveBatch(items);
 
         OrdStatusHistory history = new OrdStatusHistory();
+
+        history.setId(UUID.randomUUID());
         history.setOrderId(order.getId());
         history.setOrderNo(order.getOrderNo());
         history.setFromStatus(null);
@@ -130,7 +132,6 @@ public class OrdOrderServiceImpl extends ServiceImpl<OrdOrderMapper, OrdOrder> i
         return order;
     }
 
-    // TODO: outbox for updateOrderStatus/cancelOrder
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean updateOrderStatus(UUID orderId, Integer status) {
@@ -160,6 +161,7 @@ public class OrdOrderServiceImpl extends ServiceImpl<OrdOrderMapper, OrdOrder> i
         boolean updated = updateById(order);
         if (updated) {
             OrdStatusHistory history = new OrdStatusHistory();
+            history.setId(UUID.randomUUID());
             history.setOrderId(order.getId());
             history.setOrderNo(order.getOrderNo());
             history.setFromStatus(fromStatus);
@@ -172,11 +174,32 @@ public class OrdOrderServiceImpl extends ServiceImpl<OrdOrderMapper, OrdOrder> i
                     order.getTenantId() != null ? order.getTenantId().toUUID() : null,
                     order.getId(),
                     order.getOrderNo(),
+                    order.getUserId(),
                     OrderStatus.fromCode(fromStatus),
                     targetStatus));
+            outboxService.save(
+                    "ORDER_STATUS_CHANGED",
+                    "OrdOrder",
+                    order.getId().toString(),
+                    new OrderStatusChangedEvent(
+                            order.getTenantId() != null ? order.getTenantId().toUUID() : null,
+                            order.getId(),
+                            order.getOrderNo(),
+                            order.getUserId(),
+                            OrderStatus.fromCode(fromStatus),
+                            targetStatus),
+                    resolveTenantId(order));
         }
 
         return updated;
+    }
+
+    private UUID resolveTenantId(OrdOrder order) {
+        UUID tenantId = TenantContextHolder.getTenantId();
+        if (tenantId != null) {
+            return tenantId;
+        }
+        return order.getTenantId() != null ? order.getTenantId().toUUID() : null;
     }
 
     @Override

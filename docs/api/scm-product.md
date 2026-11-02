@@ -1,6 +1,6 @@
 # scm-product — OpenAPI 文档摘要
 
-- 来源: `http://192.168.0.125:8201/api/public/v3/api-docs`
+- 来源: `http://192.168.0.132:8201/api/public/v3/api-docs`
 - 标题: SCM Platform API - scm-product (1.0.0)
 - 认证: Bearer JWT (Authorization header)
 
@@ -261,8 +261,8 @@
 
 ## Schemas
 
-- **ApiResponseMapStringString** — `code`: integer, `message`: string, `data`: object, `timestamp`: integer
 - **ApiResponseVoid** — `code`: integer, `message`: string, `data`: any, `timestamp`: integer
+- **ApiResponseMapStringString** — `code`: integer, `message`: string, `data`: object, `timestamp`: integer
 - **ProdSpu** — `tenantId`: string, `id`: string, `spuCode`: string, `spuName`: string, `categoryId`: string, `brandId`: string, `description`: string, `detailHtml`: string, `images`: string, `mainImage`: string, `videoUrl`: string, `minPrice`: number, `maxPrice`: number, `totalStock`: integer, `totalSales`: integer, `sortOrder`: integer, `seoTitle`: string, `seoKeywords`: string, `seoDescription`: string, `status`: integer, `publishedAt`: string, `createTime`: string, `createBy`: string, `updateTime`: string, `updateBy`: string, `deleted`: boolean, `remark`: string
 - **ProdSku** — `tenantId`: string, `id`: string, `spuId`: string, `skuCode`: string, `skuName`: string, `attributes`: string, `originalPrice`: number, `sellingPrice`: number, `costPrice`: number, `stock`: integer, `availableStock`: integer, `lockedStock`: integer, `salesCount`: integer, `weight`: number, `volume`: number, `barcode`: string, `imageUrl`: string, `images`: string, `status`: integer, `createTime`: string, `createBy`: string, `updateTime`: string, `updateBy`: string, `deleted`: boolean, `remark`: string
 - **ProdCategory** — `tenantId`: string, `id`: string, `categoryCode`: string, `categoryName`: string, `parentId`: string, `level`: integer, `sortOrder`: integer, `iconUrl`: string, `imageUrl`: string, `description`: string, `isLeaf`: boolean, `enabled`: boolean, `seoTitle`: string, `seoKeywords`: string, `seoDescription`: string, `createTime`: string, `createBy`: string, `updateTime`: string, `updateBy`: string, `deleted`: boolean, `remark`: string

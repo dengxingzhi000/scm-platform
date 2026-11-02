@@ -9,6 +9,7 @@ import {
   Card,
   CardAction,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -27,6 +28,8 @@ import type { InventoryAlert } from "../types";
 interface InventoryAlertsProps {
   alerts: InventoryAlert[];
   loading?: boolean;
+  /** False when the alert source failed — distinct from "no SKU is short". */
+  available?: boolean;
 }
 
 const statusConfig = {
@@ -53,9 +56,18 @@ const statusConfig = {
 export default function InventoryAlerts({
   alerts,
   loading,
+  available = true,
 }: InventoryAlertsProps) {
   const router = useRouter();
   const locale = useLocale();
+  const severity: Record<InventoryAlert["status"], number> = {
+    out: 0,
+    critical: 1,
+    low: 2,
+  };
+  const rows = [...alerts].sort(
+    (a, b) => severity[a.status] - severity[b.status],
+  );
 
   return (
     <Card className="gap-3 overflow-hidden">
@@ -64,14 +76,20 @@ export default function InventoryAlerts({
           <AlertTriangle className="size-4 text-[var(--color-warning)]" />
           库存预警
         </CardTitle>
+        <CardDescription>缺货与低库存 SKU，按严重度排序</CardDescription>
         <CardAction>
-          <button
-            type="button"
-            className="text-primary text-sm hover:underline"
-            onClick={() => router.push(`/${locale}/inventory/alerts`)}
-          >
-            查看全部
-          </button>
+          <div className="flex items-center gap-2">
+            <Badge variant={alerts.length > 0 ? "warning" : "secondary"}>
+              {available ? `${alerts.length} 个 SKU` : "数据不可用"}
+            </Badge>
+            <button
+              type="button"
+              className="text-primary text-sm hover:underline"
+              onClick={() => router.push(`/${locale}/inventory/alerts`)}
+            >
+              查看全部
+            </button>
+          </div>
         </CardAction>
       </CardHeader>
       <CardContent className="px-0">
@@ -79,7 +97,11 @@ export default function InventoryAlerts({
           <div className="px-6">
             <Skeleton className="h-56 w-full" />
           </div>
-        ) : alerts.length === 0 ? (
+        ) : !available ? (
+          <div className="text-muted-foreground px-6 py-10 text-center text-[13px]">
+            库存预警数据不可用，暂时无法判断缺货与低库存
+          </div>
+        ) : rows.length === 0 ? (
           <div className="text-muted-foreground px-6 py-10 text-center text-[13px]">
             当前没有偏低或缺货的 SKU
           </div>
@@ -95,7 +117,7 @@ export default function InventoryAlerts({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {alerts.map((alert) => {
+              {rows.map((alert) => {
                 const config = statusConfig[alert.status] ?? statusConfig.low;
                 const percent = Math.round(
                   (alert.currentStock / alert.threshold) * 100,

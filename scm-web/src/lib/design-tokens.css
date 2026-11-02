@@ -8,7 +8,7 @@
  *
  * The data layer uses the reference's 36px banded header, 11/12px type,
  * hairline column rules, pinned first column and tabular figures. Text is
- * sans across the shell; serif is only used by the brand mark.
+ * sans across the shell; serif is reserved for the brand mark and auth headings.
  */
 :root {
   /* Layout */
@@ -135,28 +135,25 @@
   --color-chart-7: #fde002;
   --color-chart-8: #949494;
 
-  /* Claude 强调色(仅登录体验)
-     命名带 brand- 前缀是刻意的:globals.css 的 @theme inline 里已有
-     --color-accent: var(--accent)(shadcn muted-accent,驱动 bg-accent 工具类) */
-  --color-brand-accent: #D97757;
-  --color-brand-accent-hover: #C2603F;
-  --color-brand-accent-active: #A95134;
-  --color-brand-accent-bg: #F5E7E0;
-
-  /* Auth 页面暖中性色 */
-  --auth-bg: #F0EEE6;
-  --auth-surface: #FFFFFF;
-  --auth-ink: #262624;
-  --auth-ink-soft: #6B6A63;
-  --auth-line: #E5E3DA;
-  --auth-line-strong: #D4D1C5;
-  --auth-btn: #262624; /* 近黑主按钮底色,与 --auth-ink 同值 */
-  --auth-btn-soft-bg: #E9E6DC;
-  --auth-btn-soft-hover: #DFDBCE;
+  /* Auth 页面 — 参考 artificialanalysis.ai 登录页:纯白底、近黑正文、
+     极浅发丝线,主色沿用全局紫罗兰。固定浅色,不跟随深色主题。 */
+  --auth-bg: #FFFFFF;
+  --auth-bg-soft: #FAFAFA;
+  --auth-ink: #171717;
+  --auth-ink-soft: #737373;
+  --auth-ink-muted: #A3A3A3;
+  --auth-line: #F0F0F0;
+  --auth-line-strong: #D4D4D4;
+  --auth-btn: #8842FD;
+  --auth-btn-hover: #6C1BFD;
   --auth-btn-fg: #FFFFFF;
+  --auth-focus: #8842FD;
+  --auth-focus-ring: rgba(136, 66, 253, 0.18);
+  --auth-glass: rgba(0, 0, 0, 0.1);
+  --auth-check: #CFC8FF;
 
-  /* --auth-brand-bg 已不再用于登录页,只剩应用侧边栏的 logo 徽标在用
-     (src/components/Layout/sidebar.tsx);登录页的品牌色是 --color-brand-accent。 */
+  /* --auth-brand-bg 只服务应用侧边栏的 logo 徽标
+     (src/components/Layout/sidebar.tsx);登录页主色是 --auth-btn。 */
   --auth-brand-bg: #8842fd;
 
   /* Duration */

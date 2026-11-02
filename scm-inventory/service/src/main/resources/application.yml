@@ -21,7 +21,7 @@ spring:
   # Datasource
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/db_inventory
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/db_inventory?stringtype=unspecified
     username: ${DB_USERNAME:admin}
     password: ${DB_PASSWORD:changeme}
     hikari:
@@ -46,7 +46,7 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:changeme}
-      database: 1
+      database: 0
       timeout: 5000ms
       lettuce:
         pool:
@@ -72,8 +72,8 @@ mybatis-plus:
   global-config:
     db-config:
       logic-delete-field: deleted
-      logic-delete-value: 1
-      logic-not-delete-value: 0
+      logic-delete-value: true
+      logic-not-delete-value: false
 
 # Seata distributed transaction
 seata:
@@ -171,6 +171,20 @@ frog:
       hsts-enabled: true
       hsts-max-age: 31536000
       hsts-include-subdomains: true
+
+# Shared Kafka producer from scm-common-integration, used to hand stock alerts to scm-notify.
+integration:
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+
+notify:
+  request-topic: ${NOTIFY_REQUEST_TOPIC:scm.notify.events}
+
+scm:
+  inventory:
+    alert:
+      # Comma-separated user ids that receive stock alerts when the alert row names none.
+      notify-user-ids: ${INVENTORY_ALERT_NOTIFY_USER_IDS:}
 
 logging:
   level:

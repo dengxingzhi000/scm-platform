@@ -146,6 +146,7 @@ public class OrderDubboServiceImpl implements OrderDubboService {
                 order.getTenantId() != null ? order.getTenantId().toUUID() : null,
                 order.getId(),
                 order.getOrderNo(),
+                order.getUserId(),
                 previousStatus,
                 OrderStatus.CANCELLED));
 

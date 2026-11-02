@@ -50,7 +50,7 @@ class OrderEventJsonTest {
                 UUID.fromString("550e8400-e29b-41d4-a716-446655440000"),
                 UUID.fromString("660e8400-e29b-41d4-a716-446655440001"),
                 java.util.UUID.fromString("00000000-0000-0000-0000-000000000002"), "NO1002", ts, "ORDER_STATUS_CHANGED",
-                OrderStatus.PAID, OrderStatus.PENDING_SHIP);
+                "user-1", OrderStatus.PAID, OrderStatus.PENDING_SHIP);
 
         String json = objectMapper.writeValueAsString(original);
         OrderEvent deserialized = objectMapper.readValue(json, OrderEvent.class);
@@ -58,6 +58,7 @@ class OrderEventJsonTest {
         OrderStatusChangedEvent restored = assertInstanceOf(OrderStatusChangedEvent.class, deserialized);
         assertEquals(OrderStatus.PAID, restored.getFromStatus());
         assertEquals(OrderStatus.PENDING_SHIP, restored.getToStatus());
+        assertEquals("user-1", restored.getUserId());
         assertEquals(java.util.UUID.fromString("00000000-0000-0000-0000-000000000002"), restored.getOrderId());
         assertEquals(original.getTenantId(), restored.getTenantId());
         assertEquals("NO1002", restored.getOrderNo());

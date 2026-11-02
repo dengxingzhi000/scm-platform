@@ -8,7 +8,9 @@ import com.scmcloud.common.log.service.ISysAuditLogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import com.scmcloud.audit.domain.entity.SysAuditLog;
+import com.scmcloud.audit.domain.entity.SysSensitiveOperationLog;
 import com.scmcloud.audit.mapper.SysAuditLogMapper;
+import com.scmcloud.audit.service.command.SysSensitiveOperationLogCommandService;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -23,6 +25,11 @@ import java.util.UUID;
 public class SysAuditLogServiceImpl
         extends ServiceImpl<SysAuditLogMapper, SysAuditLog>
         implements ISysAuditLogService, com.scmcloud.audit.service.ISysAuditLogService {
+
+    /** Matches {@code @AuditLog.riskLevel} 3/4: password resets, grants, deletes, force logout. */
+    static final int SENSITIVE_RISK_THRESHOLD = 3;
+
+    private final SysSensitiveOperationLogCommandService sensitiveOperationLogCommandService;
 
     @Override
     public SysAuditLog createLog(SysAuditLog entity) {
@@ -115,7 +122,7 @@ public class SysAuditLogServiceImpl
                 .operationDesc(remark)
                 .createTime(LocalDateTime.now())
                 .build();
-        save(log);
+        createLog(log);
     }
 
     @Async
@@ -129,7 +136,7 @@ public class SysAuditLogServiceImpl
                 .errorMsg(reason)
                 .createTime(LocalDateTime.now())
                 .build();
-        save(log);
+        createLog(log);
     }
 
     @Async
@@ -142,7 +149,7 @@ public class SysAuditLogServiceImpl
                 .operationDesc(remark)
                 .createTime(LocalDateTime.now())
                 .build();
-        save(log);
+        createLog(log);
     }
 
     @Async
@@ -161,7 +168,7 @@ public class SysAuditLogServiceImpl
                     .status(success ? 1 : 0)
                     .createTime(LocalDateTime.now())
                     .build();
-            save(auditLog);
+            createLog(auditLog);
 
             if (riskLevel != null && riskLevel >= 4) {
                 log.warn("Security Alert: {}, User: {}, IP: {}",
@@ -169,6 +176,75 @@ public class SysAuditLogServiceImpl
             }
         } catch (Exception e) {
             log.error("Failed to record security event", e);
+        }
+    }
+
+    @Override
+    public void record(com.scmcloud.common.log.dto.AuditLogRecord record) {
+        SysAuditLog entity = SysAuditLog.builder()
+                .userId(record.getUserId())
+                .username(record.getUsername())
+                .realName(record.getRealName())
+                .deptId(record.getDeptId())
+                .operationType(record.getOperationType())
+                .operationModule(record.getOperationModule())
+                .operationDesc(record.getOperationDesc())
+                .requestUri(record.getRequestUri())
+                .requestMethod(record.getRequestMethod())
+                .requestParams(record.getRequestParams())
+                .responseData(record.getResponseData())
+                .responseStatus(record.getResponseStatus())
+                .ipAddress(record.getIpAddress())
+                .location(record.getLocation())
+                .userAgent(record.getUserAgent())
+                .businessType(record.getBusinessType())
+                .businessId(record.getBusinessId())
+                .oldValue(record.getOldValue())
+                .newValue(record.getNewValue())
+                .riskLevel(record.getRiskLevel())
+                .status(record.getStatus())
+                .errorMsg(record.getErrorMsg())
+                .executeTime(record.getExecuteTime())
+                .createTime(record.getCreateTime())
+                .build();
+        createLog(entity);
+        recordSensitiveOperation(entity);
+    }
+
+    /**
+     * High-risk {@code @AuditLog} operations are mirrored into the sensitive-operation ledger, so
+     * that table is fed by the audit chain instead of only by hand-written API calls. A failure
+     * here must not lose the general audit row, which is already durable.
+     */
+    private void recordSensitiveOperation(SysAuditLog auditLog) {
+        Integer riskLevel = auditLog.getRiskLevel();
+        if (riskLevel == null || riskLevel < SENSITIVE_RISK_THRESHOLD) {
+            return;
+        }
+        if (!StringUtils.hasText(auditLog.getUserId())) {
+            log.warn("Sensitive operation has no actor and is not mirrored: type={}",
+                    auditLog.getOperationType());
+            return;
+        }
+        try {
+            SysSensitiveOperationLog sensitive = new SysSensitiveOperationLog()
+                    .setUserId(auditLog.getUserId())
+                    .setUsername(auditLog.getUsername())
+                    .setOperationType(auditLog.getOperationType())
+                    .setOperationModule(auditLog.getOperationModule())
+                    .setSensitiveDataType(StringUtils.hasText(auditLog.getBusinessType())
+                            ? auditLog.getBusinessType()
+                            : "AUDITED_OPERATION")
+                    .setAffectedCount(1)
+                    .setTargetTable(auditLog.getBusinessType())
+                    .setRiskScore(Math.min(riskLevel, 10))
+                    .setApprovalRequired(Boolean.FALSE)
+                    .setIpAddress(auditLog.getIpAddress())
+                    .setUserAgent(auditLog.getUserAgent())
+                    .setCreateTime(auditLog.getCreateTime());
+            sensitiveOperationLogCommandService.createLog(sensitive);
+        } catch (Exception e) {
+            log.error("Failed to mirror sensitive operation: type={}", auditLog.getOperationType(), e);
         }
     }
 }

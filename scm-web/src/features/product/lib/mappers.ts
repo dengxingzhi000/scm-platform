@@ -147,10 +147,27 @@ export function toProduct(
 
 export function toProductPage(
   page: ProductPage<ProdSpuDTO> | null | undefined,
-  context: Pick<ProductContext, "categories" | "brands"> = {}
+  context: Pick<ProductContext, "categories" | "brands"> & { skus?: ProdSkuDTO[] } = {}
 ): PageResult<Product> {
+  const skusBySpu = new Map<string, ProdSkuDTO[]>();
+  for (const sku of context.skus ?? []) {
+    if (!sku.spuId) continue;
+    const group = skusBySpu.get(sku.spuId);
+    if (group) {
+      group.push(sku);
+    } else {
+      skusBySpu.set(sku.spuId, [sku]);
+    }
+  }
+
   return {
-    records: (page?.records ?? []).map((dto) => toProduct(dto, context)),
+    records: (page?.records ?? []).map((dto) =>
+      toProduct(dto, {
+        categories: context.categories,
+        brands: context.brands,
+        skus: skusBySpu.get(dto.id) ?? [],
+      })
+    ),
     total: page?.total ?? 0,
     current: page?.pageNum ?? 1,
     pageSize: page?.pageSize ?? 0,

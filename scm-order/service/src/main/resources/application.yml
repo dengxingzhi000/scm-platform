@@ -21,7 +21,7 @@ spring:
   # Datasource
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/db_order
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/db_order?stringtype=unspecified
     username: ${DB_USERNAME:admin}
     password: ${DB_PASSWORD:changeme}
     hikari:
@@ -57,8 +57,8 @@ mybatis-plus:
   global-config:
     db-config:
       logic-delete-field: deleted
-      logic-delete-value: 1
-      logic-not-delete-value: 0
+      logic-delete-value: true
+      logic-not-delete-value: false
 
 # Seata distributed transaction
 seata:
@@ -165,3 +165,8 @@ logging:
     com.xxl.job: INFO
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"
+
+# Outbox -> Kafka publisher（scm-common-integration）；容器内必须指到 kafka，而不是默认的 localhost
+integration:
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}

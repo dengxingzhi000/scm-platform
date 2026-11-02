@@ -1,5 +1,8 @@
 package com.scmcloud.common.domain;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
+
 import java.io.Serializable;
 import java.util.Objects;
 import java.util.UUID;
@@ -28,6 +31,7 @@ public final class TenantId implements Comparable<TenantId>, Serializable {
         return new TenantId(value);
     }
 
+    @JsonCreator
     public static TenantId fromString(String value) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException("TenantId string must not be null or blank");
@@ -44,8 +48,10 @@ public final class TenantId implements Comparable<TenantId>, Serializable {
     }
 
     /**
-     * For MyBatis-Plus / database mapping (String column).
+     * For MyBatis-Plus / database mapping (String column) and for JSON: the API renders
+     * {@code "tenantId":"<uuid>"} instead of an empty object.
      */
+    @JsonValue
     @Override
     public String toString() {
         return value.toString();

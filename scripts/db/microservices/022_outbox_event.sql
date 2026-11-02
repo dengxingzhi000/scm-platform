@@ -14,10 +14,10 @@ CREATE TABLE IF NOT EXISTS outbox_event (
     status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
     retry_count INTEGER NOT NULL DEFAULT 0,
     max_retries INTEGER NOT NULL DEFAULT 5,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    published_at TIMESTAMPTZ,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    published_at TIMESTAMP,
     last_error TEXT,
-    next_retry_at TIMESTAMPTZ
+    next_retry_at TIMESTAMP
 );
 
 -- Index for polling unpublished events

@@ -42,7 +42,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
     private final SysRoleDataRuleMapper roleDataRuleMapper;
     private final com.scmcloud.common.security.PermissionChecker permissionChecker;
 
-    private static final String SUPER_ADMIN_ROLE_ID = "019a0aee-3b74-7bfc-b34f-48b5428d4875";
+    private static final String SUPER_ADMIN_ROLE_CODE = "ROLE_SUPER_ADMIN";
 
     /**
      * 分页查询角色列表
@@ -149,7 +149,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
 
         if (roleDTO.getPermissionIds() != null && !roleDTO.getPermissionIds().isEmpty()) {
             rolePermissionMapper.batchInsertRolePermissions(role.getId(), roleDTO.getPermissionIds(),
-                    operatorId);
+                    operatorId, tenantId);
         }
 
         dataSyncEventPublisher.publishRoleCreated(role);
@@ -174,7 +174,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
             throw new BusinessException("角色不存在");
         }
 
-        requireNotSuperAdminRole(existRole.getId());
+        requireNotSuperAdminRole(existRole);
         requireRoleOwnership(existRole);
 
         SysRole role = new SysRole();
@@ -214,7 +214,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
             throw new BusinessException("角色不存在");
         }
 
-        requireNotSuperAdminRole(role.getId());
+        requireNotSuperAdminRole(role);
         requireRoleOwnership(role);
 
         Integer userCount = userRoleMapper.countUsersByRoleId(id);
@@ -256,7 +256,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
 
         if (permissionIds != null && !permissionIds.isEmpty()) {
             rolePermissionMapper.batchInsertRolePermissions(roleId, permissionIds,
-                    operatorId);
+                    operatorId, TenantValidationUtil.getRequiredTenantId());
         }
 
         logTenantOperation("GRANT_PERMISSIONS", roleId, role.getTenantId());
@@ -297,8 +297,8 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
         }
     }
 
-    private void requireNotSuperAdminRole(UUID roleId) {
-        if (roleId.equals(UUID.fromString(SUPER_ADMIN_ROLE_ID))) {
+    private void requireNotSuperAdminRole(SysRole role) {
+        if (SUPER_ADMIN_ROLE_CODE.equals(role.getRoleCode())) {
             throw new BusinessException("不能操作超级管理员角色");
         }
     }

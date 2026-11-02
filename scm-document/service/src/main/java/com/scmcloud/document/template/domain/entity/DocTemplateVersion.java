@@ -32,4 +32,6 @@ public class DocTemplateVersion {
     private String createdBy;
     private Date createTime;
     private Date publishedAt;
+
+    private String tenantId;
 }

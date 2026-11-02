@@ -18,7 +18,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const DEFAULT_HOST = '192.168.0.125';
+const DEFAULT_HOST = '192.168.0.132';
 const TENANT_ID = '11111111-1111-1111-1111-111111111111';
 
 /**
@@ -70,6 +70,74 @@ const TAG_ALIASES = {
   '状态字典': 'StatusDict',
   '决策规则': 'DecisionRule',
   '决策权重': 'DecisionWeight',
+  // scm-warehouse
+  '仓库管理': 'Warehouse',
+  '库位管理': 'Location',
+  '入库管理': 'Inbound',
+  '入库明细': 'InboundItem',
+  '出库管理': 'Outbound',
+  '出库明细': 'OutboundItem',
+  '波次拣货': 'WavePicking',
+  // scm-logistics
+  '运单管理': 'Waybill',
+  '物流跟踪': 'Tracking',
+  '承运商管理': 'Carrier',
+  '运输路线': 'TransportRoute',
+  '配送区域': 'DeliveryArea',
+  // scm-supplier
+  '供应商管理': 'Supplier',
+  '供应商评估': 'SupplierEvaluation',
+  '供应商结算': 'SupplierSettlement',
+  '采购订单明细': 'SupplierPurchaseItem',
+  // scm-purchase
+  '询价管理': 'Rfq',
+  '询价明细': 'RfqItem',
+  '采购申请': 'PurchaseRequest',
+  '采购申请明细': 'PurchaseRequestItem',
+  '采购收货': 'PurchaseReceipt',
+  '收货明细': 'ReceiptItem',
+  '供应商报价': 'SupplierQuotation',
+  '报价明细': 'QuotationItem',
+  '比价管理': 'PriceComparison',
+  '比价明细': 'ComparisonItem',
+  '采购计划': 'PurchasePlan',
+  '采购计划明细': 'PlanItem',
+  '采购合同': 'PurchaseContract',
+  '采购订单': 'PurchaseOrder',
+  // scm-finance
+  '结算单': 'Settlement',
+  '结算明细': 'SettlementItem',
+  '对账记录': 'Reconciliation',
+  '平台服务费': 'PlatformFee',
+  '发票管理': 'Invoice',
+  '运费规则': 'FreightRule',
+  // scm-approval
+  '权限审批': 'PermissionApproval',
+  '审批流程': 'ApprovalProcess',
+  // scm-audit
+  '审计日志': 'AuditLog',
+  '敏感操作日志': 'SensitiveOperationLog',
+  // scm-notify
+  '站内通知': 'InAppNotification',
+  '通知偏好': 'NotificationPreference',
+  '通知模板': 'NotificationTemplate',
+  '通知审计': 'NotificationAudit',
+  // scm-tenant
+  '租户管理': 'Tenant',
+  '租户订阅': 'TenantSubscription',
+  '租户资源配额': 'TenantQuota',
+  '租户套餐': 'TenantPlan',
+  '租户功能': 'TenantFeature',
+  '租户配置': 'TenantConfig',
+  '租户开通': 'TenantProvisioning',
+  '租户操作日志': 'TenantOperationLog',
+  // scm-document
+  '文档模板': 'DocumentTemplate',
+  '文档管理': 'Document',
+  '文档文件': 'DocumentFile',
+  // scm-file
+  '文件管理': 'File',
+  'OCR 识别': 'Ocr',
 };
 
 const SERVICES = [
@@ -78,6 +146,17 @@ const SERVICES = [
   { name: 'scm-product', port: 8201 },
   { name: 'scm-inventory', port: 8202 },
   { name: 'scm-order', port: 8203 },
+  { name: 'scm-warehouse', port: 8204 },
+  { name: 'scm-logistics', port: 8205 },
+  { name: 'scm-supplier', port: 8206 },
+  { name: 'scm-purchase', port: 8207 },
+  { name: 'scm-finance', port: 8208 },
+  { name: 'scm-approval', port: 8209 },
+  { name: 'scm-audit', port: 8210 },
+  { name: 'scm-notify', port: 8211 },
+  { name: 'scm-tenant', port: 8212 },
+  { name: 'scm-document', port: 8213 },
+  { name: 'scm-file', port: 8214 },
 ];
 
 // The repo root is the parent of `scripts/`, so the default output lands in
@@ -262,6 +341,17 @@ function writeSummaries(entries, dir) {
     '/scm-product/api/v1/**       -> scm-product  (:8201)',
     '/scm-inventory/api/v1/**     -> scm-inventory(:8202)',
     '/scm-order/api/v1/**         -> scm-order    (:8203)',
+    '/scm-warehouse/wms-*/**      -> scm-warehouse(:8204)',
+    '/scm-logistics/api/v1/**     -> scm-logistics(:8205)',
+    '/scm-supplier/**             -> scm-supplier (:8206)',
+    '/scm-purchase/pur-*/**       -> scm-purchase (:8207)',
+    '/scm-finance/**              -> scm-finance  (:8208)',
+    '/scm-approval/**             -> scm-approval (:8209)',
+    '/scm-audit/**                -> scm-audit    (:8210)',
+    '/scm-notify/**               -> scm-notify   (:8211)',
+    '/scm-tenant/**               -> scm-tenant   (:8212)',
+    '/scm-document/api/v1/**      -> scm-document (:8213)',
+    '/scm-file/**                 -> scm-file     (:8214)',
     '```',
     '',
     '## 生成 TypeScript 客户端',

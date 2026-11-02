@@ -47,6 +47,11 @@
         </dependency>
         <dependency>
             <groupId>com.scmcloud</groupId>
+            <artifactId>scm-notify-api</artifactId>
+            <version>1.0.0-beta.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.scmcloud</groupId>
             <artifactId>scm-common-decision-engine</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>

@@ -1,5 +1,6 @@
 package com.scmcloud.fulfillment.service;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.IService;
 import com.scmcloud.fulfillment.domain.entity.FulfillmentOrder;
 
@@ -8,6 +9,8 @@ public interface IFulfillmentOrderService extends IService<FulfillmentOrder> {
     FulfillmentOrder createFulfillment(String orderNo, String userId, String fulfillmentType);
 
     FulfillmentOrder getFulfillment(String fulfillmentNo);
+
+    Page<FulfillmentOrder> pageQuery(int page, int size, String orderNo, String userId, Integer status);
 
     void cancelFulfillment(String fulfillmentNo, String reason);
 

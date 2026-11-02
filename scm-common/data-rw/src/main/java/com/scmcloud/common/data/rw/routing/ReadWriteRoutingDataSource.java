@@ -143,7 +143,13 @@ public class ReadWriteRoutingDataSource extends AbstractRoutingDataSource {
             }
 
             // No available slave, fallback to master
-            log.warn("[RW-Routing] Group [{}] no available slave, fallback to MASTER", groupName);
+            if (slaveInfos == null || slaveInfos.isEmpty()) {
+                // 该 group 未配置从库（单机部署）。注解语义仍然生效，所有读落到主库，
+                // 但这是预期状态，不应每次查询都告警。
+                log.debug("[RW-Routing] Group [{}] has no slave configured, routing to MASTER", groupName);
+            } else {
+                log.warn("[RW-Routing] Group [{}] no available slave, fallback to MASTER", groupName);
+            }
             incrementFallbackCounter();
         }
 

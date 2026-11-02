@@ -124,7 +124,10 @@ public class SecurityConfig {
                                 "/api/auth/register",
                                 "/api/auth/refresh",
                                 "/api/auth/logout",
-                                "/api/public/**"
+                                "/api/public/**",
+                                // Error dispatches carry no authentication (the JWT filter skips
+                                // ERROR dispatch), so denying /error rewrites every 5xx as a 401.
+                                "/error"
                         ).permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                         .anyRequest().authenticated())

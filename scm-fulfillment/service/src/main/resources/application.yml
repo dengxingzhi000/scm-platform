@@ -19,7 +19,7 @@ spring:
 
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/db_warehouse
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/db_warehouse?stringtype=unspecified
     username: ${DB_USERNAME:admin}
     password: ${DB_PASSWORD:changeme}
     hikari:
@@ -40,7 +40,7 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
-      database: 6
+      database: 0
 
 mybatis-plus:
   configuration:

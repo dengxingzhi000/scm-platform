@@ -52,10 +52,10 @@ public class InvoiceController {
         return ApiResponse.success();
     }
 
-    @Operation(summary = "分页查询发票", description = "按往来方 ID 分页查询该往来方名下的发票列表。")
+    @Operation(summary = "分页查询发票", description = "按往来方 ID 分页查询发票；partyId 为空时返回当前租户全部发票。")
     @GetMapping("/page")
     public ApiResponse<Page<Invoice>> pageByPartyId(
-            @Parameter(description = "往来方 ID，即开票对象（客户或供应商）") @RequestParam String partyId,
+            @Parameter(description = "往来方 ID，即开票对象（客户或供应商），不传则查询全部") @RequestParam(required = false) String partyId,
             @Parameter(description = "页码，从 1 开始") @RequestParam(defaultValue = "1") int pageNum,
             @Parameter(description = "每页条数") @RequestParam(defaultValue = "10") int pageSize) {
         Page<Invoice> page = invoiceService.pageByPartyId(partyId, pageNum, pageSize);

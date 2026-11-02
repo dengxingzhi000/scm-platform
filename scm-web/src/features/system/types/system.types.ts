@@ -34,7 +34,7 @@ export interface Permission {
   id: string
   name: string
   code: string
-  type: 'menu' | 'button' | 'data'
+  type: 'directory' | 'menu' | 'button' | 'data'
   parentId: string | null
   icon?: string
   path?: string

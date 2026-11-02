@@ -121,9 +121,10 @@ src/test/setup.ts                  # Vitest setup
   it in `globals.css`.
 - Canvas chart colours come from `useThemeTokens()` so ECharts/G6 follow the
   same palette as Tailwind and Ant Design.
-- The dashboard is a Server Component prefetching `dashboardService.getStats()`
-  and hydrating React Query on the client. When that service moves to the
-  gateway, forward the auth/tenant cookies from the server fetch.
+- The dashboard is client-rendered and aggregates real gateway data
+  (`dashboardService`: orders, inventory stats/alerts, SKU catalog, supplier
+  total). The old server-side `prefetchQuery` was removed because it could not
+  forward the auth/tenant cookies to the gateway.
 - Zustand is for UI state only. `useAuthStore` is the documented exception: it
   persists the session token and current user for the Axios interceptor. Do not
   add more server data to any Zustand store.
@@ -139,9 +140,11 @@ src/test/setup.ts                  # Vitest setup
 The shared infrastructure is in place and the **dashboard** and **product**
 screens are ported to the new stack (shadcn/ui, TanStack Table, RHF + Zod,
 Recharts/ECharts). The **auth** flow and **system management** screens
-(user/role/dept/dict/permission) now call the real auth/system service through
-the gateway; the rest of the domains still render Ant Design 6 components and
-use local mocks.
+(user/role/dept/dict/permission) call the real auth/system service through the
+gateway, and every business screen (order, inventory, supplier, purchase,
+warehouse, logistics, finance, notification, analytics) now reads real APIs —
+there are no in-file mock arrays left. Several of those screens still render
+Ant Design 6 components and are ported to shadcn/ui incrementally.
 
 When porting a domain:
 

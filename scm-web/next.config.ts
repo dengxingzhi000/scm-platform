@@ -15,6 +15,18 @@ const targets = {
   product: process.env.API_PRODUCT_TARGET ?? "http://localhost:8201",
   inventory: process.env.API_INVENTORY_TARGET ?? "http://localhost:8202",
   order: process.env.API_ORDER_TARGET ?? "http://localhost:8203",
+  warehouse: process.env.API_WAREHOUSE_TARGET ?? "http://localhost:8204",
+  logistics: process.env.API_LOGISTICS_TARGET ?? "http://localhost:8205",
+  supplier: process.env.API_SUPPLIER_TARGET ?? "http://localhost:8206",
+  purchase: process.env.API_PURCHASE_TARGET ?? "http://localhost:8207",
+  finance: process.env.API_FINANCE_TARGET ?? "http://localhost:8208",
+  approval: process.env.API_APPROVAL_TARGET ?? "http://localhost:8209",
+  audit: process.env.API_AUDIT_TARGET ?? "http://localhost:8210",
+  notify: process.env.API_NOTIFY_TARGET ?? "http://localhost:8211",
+  tenant: process.env.API_TENANT_TARGET ?? "http://localhost:8212",
+  document: process.env.API_DOCUMENT_TARGET ?? "http://localhost:8213",
+  file: process.env.API_FILE_TARGET ?? "http://localhost:8214",
+  analytics: process.env.API_ANALYTICS_TARGET ?? "http://localhost:8308",
 };
 
 const nextConfig: NextConfig = {
@@ -23,11 +35,25 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [
       { source: "/auth/:path*", destination: `${targets.auth}/:path*` },
-      { source: "/system/:path*", destination: `${targets.system}/:path*` },
+      // Scoped to `/system/api`: the 系统管理 pages are on `/system/*`, so a bare
+      // `/system/:path*` source would proxy those page navigations to scm-system.
+      { source: "/system/api/:path*", destination: `${targets.system}/api/:path*` },
       { source: "/common/:path*", destination: `${targets.system}/:path*` },
       { source: "/scm-product/:path*", destination: `${targets.product}/:path*` },
       { source: "/scm-inventory/:path*", destination: `${targets.inventory}/:path*` },
       { source: "/scm-order/:path*", destination: `${targets.order}/:path*` },
+      { source: "/scm-warehouse/:path*", destination: `${targets.warehouse}/:path*` },
+      { source: "/scm-logistics/:path*", destination: `${targets.logistics}/:path*` },
+      { source: "/scm-supplier/:path*", destination: `${targets.supplier}/:path*` },
+      { source: "/scm-purchase/:path*", destination: `${targets.purchase}/:path*` },
+      { source: "/scm-finance/:path*", destination: `${targets.finance}/:path*` },
+      { source: "/scm-approval/:path*", destination: `${targets.approval}/:path*` },
+      { source: "/scm-audit/:path*", destination: `${targets.audit}/:path*` },
+      { source: "/scm-notify/:path*", destination: `${targets.notify}/:path*` },
+      { source: "/scm-tenant/:path*", destination: `${targets.tenant}/:path*` },
+      { source: "/scm-document/:path*", destination: `${targets.document}/:path*` },
+      { source: "/scm-file/:path*", destination: `${targets.file}/:path*` },
+      { source: "/scm-analytics/:path*", destination: `${targets.analytics}/:path*` },
     ];
   },
 };

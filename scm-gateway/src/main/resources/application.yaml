@@ -10,7 +10,7 @@ spring:
     exclude:
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
   datasource:
-    url: jdbc:postgresql://${DB_HOST:127.0.0.1}:5432/db_user
+    url: jdbc:postgresql://${DB_HOST:127.0.0.1}:5432/db_user?stringtype=unspecified
     driver-class-name: org.postgresql.Driver
     username: ${DB_USERNAME:admin}
     password: ${DB_PASSWORD:admin123}
@@ -75,6 +75,9 @@ security:
       - /auth/**
       - /public/**
       - /actuator/**
+      # Payment channels call without the platform HMAC headers; the payment
+      # service verifies the Alipay RSA2 / WeChat Pay v3 signature instead.
+      - /scm-payment/api/v1/payments/callback/**
     app-secrets:
       # SECURITY: Secrets MUST be provided via environment variables in production
       # Remove default values to enforce secure configuration

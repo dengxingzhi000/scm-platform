@@ -64,15 +64,29 @@ CREATE TABLE IF NOT EXISTS sup_supplier (
     -- 附件
     business_license VARCHAR(512),                  -- 营业执照
     certificates JSONB DEFAULT '[]',                -- 资质证书数组
+    website VARCHAR(256),
+
+    -- 准入 / 风控
+    supplier_level INT,
+    audit_status INT,
+    audit_remark TEXT,
+    audited_by UUID,
+    audited_at TIMESTAMP,
+    risk_level INT,
+    blacklisted BOOLEAN NOT NULL DEFAULT FALSE,
+    blacklist_reason TEXT,
+    blacklisted_at TIMESTAMP,
+    overall_score DECIMAL(5, 2),
+    last_evaluation_at TIMESTAMP,
 
     -- 状态
     enabled BOOLEAN NOT NULL DEFAULT TRUE,
     sort_order INT DEFAULT 0,
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     update_by UUID,
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
     remark TEXT
@@ -121,10 +135,10 @@ CREATE TABLE IF NOT EXISTS sup_purchase_order (
     warehouse_id UUID,
 
     -- 时间
-    expected_delivery TIMESTAMPTZ,
-    actual_delivery TIMESTAMPTZ,
-    completed_at TIMESTAMPTZ,
-    cancelled_at TIMESTAMPTZ,
+    expected_delivery TIMESTAMP,
+    actual_delivery TIMESTAMP,
+    completed_at TIMESTAMP,
+    cancelled_at TIMESTAMP,
 
     -- 采购员
     buyer_id UUID,
@@ -133,7 +147,7 @@ CREATE TABLE IF NOT EXISTS sup_purchase_order (
     -- 审批
     approver_id UUID,
     approver_name VARCHAR(128),
-    approved_at TIMESTAMPTZ,
+    approved_at TIMESTAMP,
 
     -- 付款
     payment_status SMALLINT DEFAULT 0
@@ -142,9 +156,9 @@ CREATE TABLE IF NOT EXISTS sup_purchase_order (
         CONSTRAINT chk_purchase_paid CHECK (paid_amount >= 0),
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     update_by UUID,
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
     remark TEXT,
@@ -207,7 +221,7 @@ CREATE TABLE IF NOT EXISTS sup_purchase_order_item (
     quality_requirement TEXT,
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     remark TEXT
 );
 
@@ -250,15 +264,15 @@ CREATE TABLE IF NOT EXISTS sup_supplier_evaluation (
     -- 评价人
     evaluator_id UUID,
     evaluator_name VARCHAR(128),
-    evaluated_at TIMESTAMPTZ,
+    evaluated_at TIMESTAMP,
 
     -- 改进建议
     improvement_suggestions TEXT,
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     update_by UUID,
     remark TEXT,
 
@@ -313,12 +327,12 @@ CREATE TABLE IF NOT EXISTS sup_settlement (
     -- 审批
     approver_id UUID,
     approver_name VARCHAR(128),
-    approved_at TIMESTAMPTZ,
+    approved_at TIMESTAMP,
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     update_by UUID,
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
     remark TEXT,

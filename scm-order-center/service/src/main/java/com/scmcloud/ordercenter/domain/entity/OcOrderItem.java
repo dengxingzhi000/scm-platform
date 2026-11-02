@@ -2,6 +2,8 @@ package com.scmcloud.ordercenter.domain.entity;
 
 import com.scmcloud.common.domain.TenantId;
 import com.baomidou.mybatisplus.annotation.*;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Min;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
@@ -36,15 +38,18 @@ public class OcOrderItem {
     @TableField("sku_name")
     private String skuName;
 
+    @DecimalMin(value = "0.00", message = "商品单价不能为负数")
     @TableField("price")
     private BigDecimal price;
 
+    @Min(value = 1, message = "商品数量必须大于 0")
     @TableField("quantity")
     private Integer quantity;
 
     @TableField("discount_amount")
     private BigDecimal discountAmount;
 
+    @DecimalMin(value = "0.00", message = "明细应付金额不能为负数")
     @TableField("payable_amount")
     private BigDecimal payableAmount;
 

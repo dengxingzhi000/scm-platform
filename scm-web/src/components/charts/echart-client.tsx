@@ -10,6 +10,8 @@ interface EChartClientProps {
   className?: string;
   style?: React.CSSProperties;
   notMerge?: boolean;
+  /** ECharts event name → handler, e.g. `{ click: (params) => ... }`. */
+  onEvents?: Record<string, (params: unknown) => void>;
 }
 
 /**
@@ -21,6 +23,7 @@ export default function EChartClient({
   className,
   style,
   notMerge = true,
+  onEvents,
 }: EChartClientProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<ReturnType<typeof echarts.init> | null>(null);
@@ -46,10 +49,21 @@ export default function EChartClient({
     chartRef.current?.setOption(option, { notMerge });
   }, [option, notMerge]);
 
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart || !onEvents) return;
+
+    const entries = Object.entries(onEvents);
+    entries.forEach(([event, handler]) => chart.on(event, handler));
+    return () => {
+      entries.forEach(([event, handler]) => chart.off(event, handler));
+    };
+  }, [onEvents]);
+
   return (
     <div
       ref={containerRef}
-      className={cn("h-80 w-full", className)}
+      className={cn("w-full", className)}
       style={style}
     />
   );

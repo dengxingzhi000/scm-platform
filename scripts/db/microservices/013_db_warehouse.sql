@@ -45,9 +45,9 @@ CREATE TABLE IF NOT EXISTS wms_warehouse (
     sort_order INT DEFAULT 0,
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     update_by UUID,
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
     remark TEXT
@@ -89,9 +89,9 @@ CREATE TABLE IF NOT EXISTS wms_location (
     enabled BOOLEAN NOT NULL DEFAULT TRUE,
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     update_by UUID,
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
     remark TEXT,
@@ -139,18 +139,18 @@ CREATE TABLE IF NOT EXISTS wms_inbound (
         CONSTRAINT chk_inbound_received CHECK (received_quantity >= 0),
 
     -- 时间
-    expected_at TIMESTAMPTZ,
-    started_at TIMESTAMPTZ,
-    completed_at TIMESTAMPTZ,
+    expected_at TIMESTAMP,
+    started_at TIMESTAMP,
+    completed_at TIMESTAMP,
 
     -- 操作人
     operator_id UUID,
     operator_name VARCHAR(128),
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     update_by UUID,
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
     remark TEXT,
@@ -195,10 +195,11 @@ CREATE TABLE IF NOT EXISTS wms_inbound_item (
         CONSTRAINT chk_quality_status CHECK (quality_status IN (1, 2, 3)),
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by VARCHAR(64),
-    update_time TIMESTAMPTZ,
+    update_time TIMESTAMP,
     update_by VARCHAR(64),
+    deleted BOOLEAN NOT NULL DEFAULT FALSE,
     remark TEXT,
 
     CONSTRAINT fk_inbound_item FOREIGN KEY (inbound_id) REFERENCES wms_inbound(id)
@@ -246,18 +247,18 @@ CREATE TABLE IF NOT EXISTS wms_outbound (
     total_distance INT,                             -- 总距离（米）
 
     -- 时间
-    expected_at TIMESTAMPTZ,
-    started_at TIMESTAMPTZ,
-    completed_at TIMESTAMPTZ,
+    expected_at TIMESTAMP,
+    started_at TIMESTAMP,
+    completed_at TIMESTAMP,
 
     -- 操作人
     picker_id UUID,
     picker_name VARCHAR(128),
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     update_by UUID,
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
     remark TEXT,
@@ -301,10 +302,11 @@ CREATE TABLE IF NOT EXISTS wms_outbound_item (
         CONSTRAINT chk_outbound_item_actual CHECK (actual_quantity >= 0),
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by VARCHAR(64),
-    update_time TIMESTAMPTZ,
+    update_time TIMESTAMP,
     update_by VARCHAR(64),
+    deleted BOOLEAN NOT NULL DEFAULT FALSE,
     remark TEXT,
 
     CONSTRAINT fk_outbound_item FOREIGN KEY (outbound_id) REFERENCES wms_outbound(id)
@@ -346,13 +348,13 @@ CREATE TABLE IF NOT EXISTS wms_wave_picking (
     picker_name VARCHAR(128),
 
     -- 时间
-    started_at TIMESTAMPTZ,
-    completed_at TIMESTAMPTZ,
+    started_at TIMESTAMP,
+    completed_at TIMESTAMP,
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     update_by UUID,
     remark TEXT,
 

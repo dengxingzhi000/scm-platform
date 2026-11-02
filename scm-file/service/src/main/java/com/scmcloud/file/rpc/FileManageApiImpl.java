@@ -4,9 +4,8 @@ import com.scmcloud.file.api.FileManageApi;
 import com.scmcloud.file.api.dto.FileMetadataDTO;
 import com.scmcloud.file.convert.FileMetadataConvert;
 import com.scmcloud.file.entity.FileMetadata;
+import com.scmcloud.file.service.management.FileManagementService;
 import com.scmcloud.file.service.metadata.FileMetadataService;
-import com.scmcloud.file.service.storage.StorageEngine;
-import com.scmcloud.file.service.storage.StorageFactory;
 import com.scmcloud.file.service.upload.UploadService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,15 +23,12 @@ public class FileManageApiImpl implements FileManageApi {
     private final UploadService uploadService;
     private final FileMetadataService metadataService;
     private final FileMetadataConvert metadataConvert;
-    private final StorageFactory storageFactory;
+    private final FileManagementService fileManagementService;
 
     @Override
     public void delete(String id, String tenantId) {
         Optional<FileMetadata> meta = metadataService.findById(id, tenantId);
-        meta.ifPresent(m -> {
-            storageFactory.getDefaultEngine().delete(m.getStorageKey());
-            metadataService.removeById(m.getId());
-        });
+        meta.ifPresent(m -> fileManagementService.delete(m.getId(), tenantId));
     }
 
     @Override

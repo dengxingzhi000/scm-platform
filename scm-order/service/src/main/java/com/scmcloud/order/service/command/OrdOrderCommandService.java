@@ -89,6 +89,8 @@ public class OrdOrderCommandService {
         ordOrderItemCommandService.saveBatch(items);
 
         OrdStatusHistory history = new OrdStatusHistory();
+
+        history.setId(UUID.randomUUID());
         history.setOrderId(order.getId());
         history.setOrderNo(order.getOrderNo());
         history.setFromStatus(null);
@@ -140,16 +142,15 @@ public class OrdOrderCommandService {
         return ordOrderMapper.updateById(order);
     }
 
-    // TODO: outbox for updateOrderStatus/cancelOrder
     @Master(reason = "更新订单状态")
     @Transactional(rollbackFor = Exception.class)
-    public boolean updateOrderStatus(UUID orderId, Integer status) {
+    public OrdOrder updateOrderStatus(UUID orderId, Integer status) {
         log.info("更新订单状态: orderId={}, status={}", orderId, status);
 
         OrdOrder order = ordOrderMapper.selectById(orderId);
         if (order == null) {
             log.warn("订单不存在: orderId={}", orderId);
-            return false;
+            return null;
         }
 
         Integer fromStatus = order.getStatus();
@@ -170,6 +171,7 @@ public class OrdOrderCommandService {
         int updated = ordOrderMapper.updateById(order);
         if (updated > 0) {
             OrdStatusHistory history = new OrdStatusHistory();
+            history.setId(UUID.randomUUID());
             history.setOrderId(order.getId());
             history.setOrderNo(order.getOrderNo());
             history.setFromStatus(fromStatus);
@@ -182,11 +184,25 @@ public class OrdOrderCommandService {
                     order.getTenantId() != null ? order.getTenantId().toUUID() : null,
                     order.getId(),
                     order.getOrderNo(),
+                    order.getUserId(),
                     OrderStatus.fromCode(fromStatus),
                     targetStatus));
+            outboxService.save(
+                    "ORDER_STATUS_CHANGED",
+                    "OrdOrder",
+                    order.getId().toString(),
+                    new OrderStatusChangedEvent(
+                            order.getTenantId() != null ? order.getTenantId().toUUID() : null,
+                            order.getId(),
+                            order.getOrderNo(),
+                            order.getUserId(),
+                            OrderStatus.fromCode(fromStatus),
+                            targetStatus),
+                    resolveTenantId(order));
+            return order;
         }
 
-        return updated > 0;
+        return null;
     }
 
     @Master(reason = "删除订单")
@@ -204,17 +220,17 @@ public class OrdOrderCommandService {
      *
      * @param orderId 订单 ID
      * @param reason  取消原因
-     * @return 取消成功返回 {@code true}；订单不存在返回 {@code false}
+     * @return 取消后的订单；订单不存在返回 {@code null}
      */
     @Master(reason = "取消订单")
     @Transactional(rollbackFor = Exception.class)
-    public boolean cancelOrder(UUID orderId, String reason) {
+    public OrdOrder cancelOrder(UUID orderId, String reason) {
         log.info("取消订单: orderId={}, reason={}", (orderId + "").replace("\r", "_").replace("\n", "_"), (reason + "").replace("\r", "_").replace("\n", "_"));
 
         OrdOrder existing = ordOrderMapper.selectById(orderId);
         if (existing == null) {
             log.warn("订单不存在: orderId={}", orderId);
-            return false;
+            return null;
         }
 
         Integer fromStatus = existing.getStatus();
@@ -233,6 +249,8 @@ public class OrdOrderCommandService {
         ordOrderMapper.updateById(existing);
 
         OrdStatusHistory history = new OrdStatusHistory();
+
+        history.setId(UUID.randomUUID());
         history.setOrderId(existing.getId());
         history.setOrderNo(existing.getOrderNo());
         history.setFromStatus(fromStatus);
@@ -246,11 +264,25 @@ public class OrdOrderCommandService {
                 existing.getTenantId() != null ? existing.getTenantId().toUUID() : null,
                 existing.getId(),
                 existing.getOrderNo(),
+                existing.getUserId(),
                 previousStatus,
                 OrderStatus.CANCELLED));
 
+        outboxService.save(
+                "ORDER_STATUS_CHANGED",
+                "OrdOrder",
+                existing.getId().toString(),
+                new OrderStatusChangedEvent(
+                        existing.getTenantId() != null ? existing.getTenantId().toUUID() : null,
+                        existing.getId(),
+                        existing.getOrderNo(),
+                        existing.getUserId(),
+                        previousStatus,
+                        OrderStatus.CANCELLED),
+                resolveTenantId(existing));
+
         log.info("订单已取消: orderNo={}, id={}", existing.getOrderNo(), existing.getId());
-        return true;
+        return existing;
     }
 
     @Master(reason = "创建订单")
@@ -289,9 +321,34 @@ public class OrdOrderCommandService {
                 existing.getTenantId() != null ? existing.getTenantId().toUUID() : null,
                 existing.getId(),
                 existing.getOrderNo(),
+                existing.getUserId(),
                 previousStatus,
                 OrderStatus.CANCELLED));
 
+        outboxService.save(
+                "ORDER_STATUS_CHANGED",
+                "OrdOrder",
+                existing.getId().toString(),
+                new OrderStatusChangedEvent(
+                        existing.getTenantId() != null ? existing.getTenantId().toUUID() : null,
+                        existing.getId(),
+                        existing.getOrderNo(),
+                        existing.getUserId(),
+                        previousStatus,
+                        OrderStatus.CANCELLED),
+                resolveTenantId(existing));
+
         log.info("超时订单已取消: orderNo={}, id={}", existing.getOrderNo(), existing.getId());
+    }
+
+    /**
+     * 事件所属租户：优先取当前线程租户上下文，定时任务没有上下文时回退到订单自身租户。
+     */
+    private UUID resolveTenantId(OrdOrder order) {
+        UUID tenantId = TenantContextHolder.getTenantId();
+        if (tenantId != null) {
+            return tenantId;
+        }
+        return order.getTenantId() != null ? order.getTenantId().toUUID() : null;
     }
 }

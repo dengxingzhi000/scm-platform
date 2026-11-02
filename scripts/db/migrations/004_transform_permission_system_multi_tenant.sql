@@ -207,9 +207,9 @@ CREATE TABLE IF NOT EXISTS sys_department (
     status VARCHAR(20) DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'INACTIVE')),
 
     -- 审计字段
-    create_time TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     create_by UUID,
-    update_time TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     update_by UUID,
     deleted BOOLEAN DEFAULT FALSE,
 
@@ -256,9 +256,9 @@ CREATE TABLE IF NOT EXISTS sys_data_permission (
     priority INT DEFAULT 0,                  -- 优先级（数字越大优先级越高）
 
     -- 审计字段
-    create_time TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     create_by UUID,
-    update_time TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     update_by UUID,
     deleted BOOLEAN DEFAULT FALSE,
 
@@ -293,7 +293,7 @@ CREATE TABLE IF NOT EXISTS sys_role_data_permission (
     data_permission_id UUID NOT NULL,
 
     -- 审计字段
-    create_time TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     create_by UUID,
 
     -- 约束

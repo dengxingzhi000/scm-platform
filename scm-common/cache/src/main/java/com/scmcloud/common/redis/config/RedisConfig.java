@@ -49,6 +49,7 @@ public class RedisConfig {
             Map.entry("userDetails", Duration.ofMinutes(30)),
             // 权限和角色
             Map.entry("userRoles", Duration.ofHours(1)),
+            Map.entry("userRolesWithNames", Duration.ofHours(1)),
             Map.entry("userPermissions", Duration.ofHours(1)),
             Map.entry("userDataScope", Duration.ofHours(1)),
             Map.entry("userMaxRoleLevel", Duration.ofHours(1)),

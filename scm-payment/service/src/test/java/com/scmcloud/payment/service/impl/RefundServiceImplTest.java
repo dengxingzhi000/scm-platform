@@ -79,8 +79,14 @@ class RefundServiceImplTest {
 
     @Test
     void approvesPendingRefund() {
-        Refund pending = new Refund().setRefundNo("RF-1").setStatus(1);
+        Refund pending = new Refund()
+                .setRefundNo("RF-1")
+                .setPaymentNo("PAY-1")
+                .setRefundAmount(new BigDecimal("30.00"))
+                .setStatus(1);
         when(refundMapper.selectOne(any(Wrapper.class), eq(true))).thenReturn(pending);
+        when(paymentOrderService.queryPayment("PAY-1")).thenReturn(paidPayment());
+        when(refundMapper.selectList(any(Wrapper.class))).thenReturn(List.of());
         when(refundMapper.updateById(any(Refund.class))).thenReturn(1);
 
         Refund approved = refundService.approveRefund("RF-1");
@@ -90,11 +96,41 @@ class RefundServiceImplTest {
     }
 
     @Test
+    void rejectsApprovalThatExceedsBalanceAtApprovalTime() {
+        Refund pending = new Refund()
+                .setRefundNo("RF-1")
+                .setPaymentNo("PAY-1")
+                .setRefundAmount(new BigDecimal("30.00"))
+                .setStatus(1);
+        Refund approvedBefore = new Refund()
+                .setRefundAmount(new BigDecimal("80.00"))
+                .setStatus(2);
+        when(refundMapper.selectOne(any(Wrapper.class), eq(true))).thenReturn(pending);
+        when(paymentOrderService.queryPayment("PAY-1")).thenReturn(paidPayment());
+        when(refundMapper.selectList(any(Wrapper.class))).thenReturn(List.of(approvedBefore));
+
+        assertThrows(IllegalStateException.class, () -> refundService.approveRefund("RF-1"));
+        verify(refundMapper, never()).updateById(any(Refund.class));
+    }
+
+    @Test
     void rejectsApprovingNonPendingRefund() {
         Refund approved = new Refund().setRefundNo("RF-1").setStatus(2);
         when(refundMapper.selectOne(any(Wrapper.class), eq(true))).thenReturn(approved);
 
         assertThrows(IllegalStateException.class, () -> refundService.approveRefund("RF-1"));
+    }
+
+    @Test
+    void pageQueryRejectsInvalidPage() {
+        assertThrows(IllegalArgumentException.class,
+                () -> refundService.pageQuery(0, 20, null, null, null, null));
+    }
+
+    @Test
+    void pageQueryRejectsOversizedPageSize() {
+        assertThrows(IllegalArgumentException.class,
+                () -> refundService.pageQuery(1, 101, null, null, null, null));
     }
 
     private PaymentOrder paidPayment() {

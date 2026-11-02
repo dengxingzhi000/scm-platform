@@ -1,5 +1,6 @@
 package com.scmcloud.document.file.controller;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.scmcloud.common.response.ApiResponse;
 import com.scmcloud.common.tenant.TenantContextHolder;
 import com.scmcloud.document.file.domain.entity.DocumentFile;
@@ -22,6 +23,19 @@ import java.util.Optional;
 public class DocumentFileController {
 
     private final DocumentFileService documentFileService;
+
+    @Operation(summary = "分页查询文档文件", description = "按名称关键字、来源类型和关联业务 ID 分页查询当前租户的文档文件。")
+    @GetMapping("/page")
+    public ApiResponse<Page<DocumentFile>> page(
+            @Parameter(description = "页码，默认 1") @RequestParam(required = false) Integer page,
+            @Parameter(description = "每页数量，默认 20") @RequestParam(required = false) Integer size,
+            @Parameter(description = "文件名称关键字") @RequestParam(required = false) String keyword,
+            @Parameter(description = "来源类型：TEMPLATE_SOURCE / RENDERED_OUTPUT") @RequestParam(required = false) String sourceType,
+            @Parameter(description = "关联业务 ID") @RequestParam(required = false) String refId) {
+        String tenantId = TenantContextHolder.getRequiredTenantId().toString();
+        return ApiResponse.success(documentFileService.pageQuery(
+                page == null ? 1 : page, size == null ? 20 : size, tenantId, keyword, sourceType, refId));
+    }
 
     @Operation(summary = "查询文档文件", description = "根据文件 ID 查询当前租户下的文档文件元数据。")
     @GetMapping("/{id}")

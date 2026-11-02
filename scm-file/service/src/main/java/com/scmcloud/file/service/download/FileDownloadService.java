@@ -1,6 +1,7 @@
 package com.scmcloud.file.service.download;
 
 import com.scmcloud.file.entity.FileMetadata;
+import com.scmcloud.file.service.FileNotFoundException;
 import com.scmcloud.file.service.metadata.FileMetadataService;
 import com.scmcloud.file.service.storage.StorageEngine;
 import com.scmcloud.file.service.storage.StorageFactory;
@@ -23,7 +24,7 @@ public class FileDownloadService {
 
     public FileMetadata resolve(String fileId, String tenantId) {
         return metadataService.findById(fileId, tenantId)
-                .orElseThrow(() -> new FileNotFoundException("File not found: " + fileId));
+                .orElseThrow(() -> new FileNotFoundException(fileId));
     }
 
     public String generatePresignedUrl(String fileId, String tenantId) {
@@ -37,11 +38,5 @@ public class FileDownloadService {
         FileMetadata metadata = resolve(fileId, tenantId);
         StorageEngine engine = storageFactory.getDefaultEngine();
         return engine.download(metadata.getStorageKey());
-    }
-
-    public static class FileNotFoundException extends RuntimeException {
-        public FileNotFoundException(String message) {
-            super(message);
-        }
     }
 }

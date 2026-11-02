@@ -42,5 +42,7 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!api|auth|system|common|scm-|_next|_vercel|.*\\..*).*)'],
+  // `system/api` (not `system`) so the 系统管理 pages under /system/* still reach
+  // the locale redirect; only the API subtree must bypass i18n.
+  matcher: ['/((?!api|auth|system/api|common|scm-|_next|_vercel|.*\\..*).*)'],
 }

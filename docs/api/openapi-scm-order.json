@@ -2305,6 +2305,127 @@
         }
       }
     },
+    "/api/v1/orders/dashboard/summary": {
+      "get": {
+        "tags": [
+          "Order"
+        ],
+        "summary": "查询订单看板聚合",
+        "description": "按时间范围聚合营收、订单量、日趋势、状态分布与待处理计数，支持环比/同比。",
+        "operationId": "dashboardSummary",
+        "parameters": [
+          {
+            "name": "range",
+            "in": "query",
+            "description": "时间范围",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "LAST_7_DAYS",
+              "enum": [
+                "TODAY",
+                "LAST_7_DAYS",
+                "LAST_30_DAYS"
+              ]
+            }
+          },
+          {
+            "name": "compare",
+            "in": "query",
+            "description": "对比基准",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "PREVIOUS_PERIOD",
+              "enum": [
+                "NONE",
+                "PREVIOUS_PERIOD",
+                "YEAR_OVER_YEAR"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseOrderDashboardSummaryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponseMapStringString"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ApiResponseVoid"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "423": {
+            "description": "Locked",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/order-items/{id}": {
       "get": {
         "tags": [
@@ -3939,6 +4060,141 @@
             }
           },
           "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ApiResponseOrderDashboardSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/OrderDashboardSummaryResponse"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "Attention": {
+        "type": "object",
+        "properties": {
+          "pendingPayment": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "pendingShip": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "refunding": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "OrderDashboardSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "range": {
+            "type": "string"
+          },
+          "compareMode": {
+            "type": "string"
+          },
+          "granularity": {
+            "type": "string"
+          },
+          "rangeStart": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "rangeEnd": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "comparisonStartDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "comparisonEndDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "currentRevenue": {
+            "type": "number"
+          },
+          "comparisonRevenue": {
+            "type": "number"
+          },
+          "currentOrders": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "comparisonOrders": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalOrders": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "points": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrendPoint"
+            }
+          },
+          "statusCounts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StatusCount"
+            }
+          },
+          "attention": {
+            "$ref": "#/components/schemas/Attention"
+          }
+        }
+      },
+      "StatusCount": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "TrendPoint": {
+        "type": "object",
+        "properties": {
+          "startTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "revenue": {
+            "type": "number"
+          },
+          "orders": {
             "type": "integer",
             "format": "int64"
           }

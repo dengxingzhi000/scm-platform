@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * 鏁版嵁鍚屾浜嬩欢鍙戝竷锟?
@@ -110,8 +111,14 @@ public class DataSyncEventPublisher {
     private void publishEvent(DataSyncEvent event, String database, String table, String action, Object id) {
         event.setSourceDatabase(database);
         event.setSourceTable(table);
-        publisher.publishAsync(event);
-        log.debug("[DataSync] Published {}: id={}", action, id);
+        // Kafka 不可用时 producer.send 会阻塞到 max.block.ms；数据同步是最终一致的旁路能力，
+        // 不能让它拖垮用户/角色/部门的写操作，因此放到异步线程执行并吞掉异常。
+        CompletableFuture.runAsync(() -> publisher.publishAsync(event))
+                .exceptionally(ex -> {
+                    log.warn("[DataSync] Publish skipped {}: id={}, reason={}", action, id, ex.getMessage());
+                    return null;
+                });
+        log.debug("[DataSync] Scheduled {}: id={}", action, id);
     }
 
     private Map<String, Object> buildData(Object... keyValues) {

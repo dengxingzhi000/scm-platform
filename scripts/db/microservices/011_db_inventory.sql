@@ -45,13 +45,13 @@ CREATE TABLE IF NOT EXISTS inv_inventory (
     version INT NOT NULL DEFAULT 0,
 
     -- 最近操作时间
-    last_inbound_at TIMESTAMPTZ,
-    last_outbound_at TIMESTAMPTZ,
+    last_inbound_at TIMESTAMP,
+    last_outbound_at TIMESTAMP,
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     update_by UUID,
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
     remark TEXT,
@@ -96,13 +96,13 @@ CREATE TABLE IF NOT EXISTS inv_reservation (
         CONSTRAINT chk_reservation_status CHECK (status IN (0, 1, 2, 3)),
 
     -- 时间
-    expire_at TIMESTAMPTZ NOT NULL,
-    reserved_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    confirmed_at TIMESTAMPTZ,
-    released_at TIMESTAMPTZ,
+    expire_at TIMESTAMP NOT NULL,
+    reserved_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    confirmed_at TIMESTAMP,
+    released_at TIMESTAMP,
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     remark TEXT,
 
     -- UNIQUE constraint must include partition key for partitioned tables
@@ -160,7 +160,7 @@ CREATE TABLE IF NOT EXISTS inv_log (
     operator_name VARCHAR(128),
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     remark TEXT,
     extra_data JSONB DEFAULT '{}'
 ) PARTITION BY RANGE (create_time);
@@ -208,7 +208,7 @@ CREATE TABLE IF NOT EXISTS inv_snapshot (
     total_value DECIMAL(15, 2),
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
 
     CONSTRAINT uk_snapshot_date_sku_wh UNIQUE (snapshot_date, sku_id, warehouse_id)
 );
@@ -240,17 +240,17 @@ CREATE TABLE IF NOT EXISTS inv_alert (
 
     -- 状态
     is_resolved BOOLEAN NOT NULL DEFAULT FALSE,
-    resolved_at TIMESTAMPTZ,
+    resolved_at TIMESTAMP,
     resolved_by UUID,
 
     -- 通知
     notified BOOLEAN NOT NULL DEFAULT FALSE,
-    notified_at TIMESTAMPTZ,
+    notified_at TIMESTAMP,
     notify_to_user_ids UUID[],
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     remark TEXT
 );
 

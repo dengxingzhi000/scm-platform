@@ -7,7 +7,6 @@ import com.xxl.job.core.context.XxlJobHelper;
 import com.xxl.job.core.handler.annotation.XxlJob;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
@@ -43,8 +42,8 @@ import java.util.stream.Collectors;
  * @since 2025-01-24
  */
 @Slf4j
-@Component
 @RequiredArgsConstructor
+// 暂不注册为 Bean：InventoryBatchService / NotificationService 目前没有任何实现
 public class NearExpiryAlertJob {
 
     private final InventoryBatchService inventoryBatchService;

@@ -56,14 +56,17 @@ export function TotpForm({ pendingCredentials, onBack, onSuccess }: TotpFormProp
           name="code"
           render={({ field }) => (
             <FormItem>
-              <Label htmlFor="code">{t("mfa.title")}</Label>
+              {/* 卡片标题已经写了「两步验证」,label 只留给读屏。 */}
+              <Label htmlFor="code" className="sr-only">
+                {t("mfa.title")}
+              </Label>
               <Input
                 id="code"
                 inputMode="numeric"
                 autoComplete="one-time-code"
                 maxLength={6}
                 placeholder={t("mfa.codePlaceholder")}
-                className="h-12 rounded-lg bg-transparent text-center text-lg tracking-[0.5em]"
+                className="h-9 rounded-lg border-[var(--auth-line)] bg-transparent text-center text-lg text-[var(--auth-ink)] tracking-[0.5em] placeholder:text-[var(--auth-ink-soft)] hover:border-[var(--auth-line-strong)] focus-visible:border-[var(--auth-focus)] focus-visible:bg-white focus-visible:ring-[3px] focus-visible:ring-[var(--auth-focus-ring)]"
                 {...field}
               />
               {form.formState.errors.code && (
@@ -78,7 +81,7 @@ export function TotpForm({ pendingCredentials, onBack, onSuccess }: TotpFormProp
         <Button
           type="submit"
           disabled={loginMutation.isPending}
-          className="h-12 w-full rounded-lg bg-[var(--auth-btn)] text-[var(--auth-btn-fg)] hover:bg-[var(--auth-ink-soft)]"
+          className="h-9 w-full rounded-lg bg-[var(--auth-btn)] text-[var(--auth-btn-fg)] hover:bg-[var(--auth-btn-hover)] focus-visible:ring-[3px] focus-visible:ring-[var(--auth-focus-ring)]"
         >
           {t("mfa.submit")}
         </Button>
@@ -87,7 +90,7 @@ export function TotpForm({ pendingCredentials, onBack, onSuccess }: TotpFormProp
           type="button"
           variant="ghost"
           onClick={onBack}
-          className="text-[var(--auth-ink-soft)]"
+          className="text-[var(--auth-ink-soft)] hover:bg-[var(--auth-bg-soft)] hover:text-[var(--auth-ink)]"
         >
           {t("mfa.back")}
         </Button>

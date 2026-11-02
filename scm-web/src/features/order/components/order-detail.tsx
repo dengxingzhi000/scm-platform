@@ -1,19 +1,61 @@
 'use client'
+import { useState } from 'react'
 import { Descriptions, Card, Tag, Table, Timeline, Empty } from 'antd'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Ban, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Textarea } from '@/components/ui/textarea'
 import { PageHeader } from '@/components/ui/page-header'
-import { useOrderDetail } from '../hooks'
+import {
+  useCancelOrder,
+  useOrderDetail,
+  useOrderStatusHistory,
+  useUpdateOrderStatus,
+} from '../hooks'
 import { orderService } from '../services/order.service'
+import { formatDateTime } from '../lib/mappers'
+import type { OrderStatus } from '../types'
 import OrderStatusFlow from './order-status-flow'
 
 interface OrderDetailProps { id: string }
 
+/** Mirrors `OrderStatus.canTransitionTo()` in scm-order; cancellation goes through its own endpoint. */
+const NEXT_STATUSES: Partial<Record<OrderStatus, OrderStatus[]>> = {
+  PENDING_PAYMENT: ['PAID'],
+  PAID: ['PENDING_SHIP', 'REFUNDING'],
+  PENDING_SHIP: ['SHIPPED', 'REFUNDING'],
+  SHIPPED: ['IN_TRANSIT', 'REFUNDING'],
+  IN_TRANSIT: ['DELIVERED', 'REFUNDING'],
+  DELIVERED: ['COMPLETED', 'REFUNDING'],
+  REFUNDING: ['REFUNDED'],
+}
+
+const CANCELABLE: OrderStatus[] = ['PENDING_PAYMENT', 'PAID']
+
 export default function OrderDetail({ id }: OrderDetailProps) {
   const { data: order, isLoading } = useOrderDetail(id)
+  const { data: history } = useOrderStatusHistory(id)
+  const updateStatus = useUpdateOrderStatus()
+  const cancelOrder = useCancelOrder()
   const router = useRouter()
   const statusFlow = orderService.getStatusFlow()
+  const [cancelOpen, setCancelOpen] = useState(false)
+  const [cancelReason, setCancelReason] = useState('')
 
   if (isLoading && !order) return <Card loading style={{ minHeight: 320 }} />
   if (!order) return <Empty description="订单不存在" />
@@ -27,15 +69,50 @@ export default function OrderDetail({ id }: OrderDetailProps) {
     { title: '已退数量', dataIndex: 'refundQuantity', key: 'refundQuantity', width: 90, align: 'center' as const },
   ]
 
-  const timelineItems: { children: string; color?: string }[] = [
-    { children: `创建订单 ${order.createdAt}` },
-  ]
-  if (order.payTime) timelineItems.push({ children: `付款 ${order.payTime}`, color: 'green' })
-  if (order.shipTime) timelineItems.push({ children: `发货 ${order.shipTime}`, color: 'green' })
-  if (order.completeTime) timelineItems.push({ children: `完成 ${order.completeTime}`, color: 'green' })
-  if (order.cancelTime) timelineItems.push({ children: `取消 ${order.cancelTime}${order.cancelReason ? ` · ${order.cancelReason}` : ''}`, color: 'red' })
+  // The status-history endpoint is authoritative; the timestamp fallback covers legacy
+  // orders that were created before history rows existed.
+  const historyItems = (history ?? []).map((row) => ({
+    children: [
+      row.toStatusName || (row.toStatus ? statusFlow[row.toStatus]?.label : '') || row.toStatus || '-',
+      formatDateTime(row.transitionedAt),
+      row.operatorName ? `· ${row.operatorName}` : '',
+      row.remark ? `· ${row.remark}` : '',
+    ]
+      .filter(Boolean)
+      .join(' '),
+    color:
+      row.toStatus === 'COMPLETED'
+        ? 'green'
+        : row.toStatus === 'CANCELLED' || row.toStatus === 'REFUNDED'
+          ? 'red'
+          : undefined,
+  }))
+
+  const timelineItems: { children: string; color?: string }[] =
+    historyItems.length > 0
+      ? historyItems
+      : [
+          { children: `创建订单 ${order.createdAt}` },
+        ]
+  if (historyItems.length === 0) {
+    if (order.payTime) timelineItems.push({ children: `付款 ${order.payTime}`, color: 'green' })
+    if (order.shipTime) timelineItems.push({ children: `发货 ${order.shipTime}`, color: 'green' })
+    if (order.completeTime) timelineItems.push({ children: `完成 ${order.completeTime}`, color: 'green' })
+  }
+  if (order.cancelTime) {
+    timelineItems.push({ children: `取消 ${order.cancelTime}${order.cancelReason ? ` · ${order.cancelReason}` : ''}`, color: 'red' })
+  }
 
   const cfg = statusFlow[order.status]
+  const nextStatuses = NEXT_STATUSES[order.status] ?? []
+  const canCancel = CANCELABLE.includes(order.status)
+
+  const submitCancel = async () => {
+    if (!cancelReason.trim()) return
+    await cancelOrder.mutateAsync({ id: order.id, reason: cancelReason.trim() })
+    setCancelOpen(false)
+    setCancelReason('')
+  }
 
   return (
     <div className="space-y-4">
@@ -44,10 +121,49 @@ export default function OrderDetail({ id }: OrderDetailProps) {
         title="订单详情"
         description={`订单号 ${order.orderNo} · 下单用户 ${order.username}`}
         actions={
-          <Button variant="outline" onClick={() => router.push('/order')}>
-            <ArrowLeft />
-            返回列表
-          </Button>
+          <div className="flex items-center gap-2">
+            {nextStatuses.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    disabled={updateStatus.isPending}
+                  >
+                    状态流转
+                    <ChevronDown />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>选择目标状态</DropdownMenuLabel>
+                  {nextStatuses.map((status) => (
+                    <DropdownMenuItem
+                      key={status}
+                      onSelect={() =>
+                        updateStatus.mutate({ id: order.id, status })
+                      }
+                    >
+                      {statusFlow[status]?.label ?? status}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            {canCancel && (
+              <Button
+                variant="outline"
+                className="text-destructive hover:text-destructive"
+                disabled={cancelOrder.isPending}
+                onClick={() => setCancelOpen(true)}
+              >
+                <Ban />
+                取消订单
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => router.push('/order')}>
+              <ArrowLeft />
+              返回列表
+            </Button>
+          </div>
         }
       />
       <OrderStatusFlow status={order.status} />
@@ -75,6 +191,36 @@ export default function OrderDetail({ id }: OrderDetailProps) {
       <Card title="订单日志">
         <Timeline items={timelineItems} />
       </Card>
+
+      <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>取消订单</DialogTitle>
+            <DialogDescription>
+              取消后订单不可恢复，取消原因会写入订单日志。
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={cancelReason}
+            onChange={(event) => setCancelReason(event.target.value)}
+            placeholder="请输入取消原因"
+            maxLength={200}
+            rows={3}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCancelOpen(false)}>
+              返回
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={!cancelReason.trim() || cancelOrder.isPending}
+              onClick={submitCancel}
+            >
+              确认取消
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

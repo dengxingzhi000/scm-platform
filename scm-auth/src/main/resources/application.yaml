@@ -47,7 +47,7 @@ spring:
             rule-type: degrade
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://${DB_HOST:localhost}:5432/db_auth?currentSchema=public
+    url: jdbc:postgresql://${DB_HOST:localhost}:5432/db_auth?currentSchema=public&stringtype=unspecified
     username: ${DB_USERNAME:admin}
     password: ${DB_PASSWORD:changeme}
   data:

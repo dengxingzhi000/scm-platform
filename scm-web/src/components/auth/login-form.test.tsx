@@ -11,13 +11,11 @@ vi.mock("@/lib/api/services/auth", () => ({
 }));
 
 // useMutation 需要 QueryClient 上下文;这里直接 mock 掉,让测试只关心表单行为。
-// useQuery 也要一并提供 —— Task 6 会把 SocialAuthButtons(useQuery)插进这个表单。
 vi.mock("@tanstack/react-query", () => ({
   useMutation: () => ({
     mutateAsync: (...args: unknown[]) => login(...args),
     isPending: false,
   }),
-  useQuery: () => ({ data: [] as string[] }),
 }));
 
 vi.mock("next-intl", () => ({
@@ -43,6 +41,25 @@ describe("LoginForm", () => {
     });
     expect(login).not.toHaveBeenCalled();
     expect(onSuccess).not.toHaveBeenCalled();
+  });
+
+  it("keeps third-party buttons visible and defers the unavailability notice to the page", async () => {
+    const onProviderUnavailable = vi.fn();
+    render(
+      <LoginForm
+        onSuccess={vi.fn()}
+        onMfaRequired={vi.fn()}
+        onError={vi.fn()}
+        onProviderUnavailable={onProviderUnavailable}
+      />
+    );
+
+    expect(screen.getByText("login.providers.lastUsed")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "login.providers.google" }));
+    expect(onProviderUnavailable).toHaveBeenCalledWith("google");
+
+    await userEvent.click(screen.getByRole("button", { name: "login.providers.microsoft" }));
+    expect(onProviderUnavailable).toHaveBeenLastCalledWith("microsoft");
   });
 
   it("submits the credentials and forwards the response", async () => {

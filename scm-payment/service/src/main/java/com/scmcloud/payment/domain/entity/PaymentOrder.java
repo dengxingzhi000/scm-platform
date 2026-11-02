@@ -45,6 +45,9 @@ public class PaymentOrder {
     @TableField("status")
     private Integer status;
 
+    @TableField("transaction_id")
+    private String transactionId;
+
     @TableField("paid_at")
     private LocalDateTime paidAt;
 

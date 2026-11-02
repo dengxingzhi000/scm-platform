@@ -18,10 +18,14 @@ spring:
 
   # Datasource
   datasource:
-    driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:db_tenant}
-    username: ${DB_USERNAME:admin}
-    password: ${DB_PASSWORD:changeme}
+    dynamic:
+      primary: master
+      datasource:
+        master:
+          driver-class-name: org.postgresql.Driver
+          url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:db_tenant}?stringtype=unspecified
+          username: ${DB_USERNAME:admin}
+          password: ${DB_PASSWORD:changeme}
 
   flyway:
     enabled: true
@@ -132,3 +136,12 @@ frog:
       hsts-enabled: true
       hsts-max-age: 31536000
       hsts-include-subdomains: true
+
+dubbo:
+  registry:
+    address: nacos://${NACOS_SERVER:localhost:8848}
+  protocol:
+    name: dubbo
+    port: -1
+  consumer:
+    check: false

@@ -2,6 +2,9 @@ import apiClient from "../client";
 import { unwrap } from "../envelope";
 import type {
   OrderCancelRequest,
+  OrderDashboardCompare,
+  OrderDashboardRange,
+  OrderDashboardSummaryDTO,
   OrderItemPage,
   OrderItemResponse,
   OrderPage,
@@ -41,6 +44,15 @@ export const orderApiService = {
   getOrder: (id: string) => get<OrderResponse>(`${ORDER_BASE}/orders/${id}`),
   queryOrders: (request: OrderQueryRequest) =>
     post<OrderPage>(`${ORDER_BASE}/orders/query`, request),
+  /** Server-side dashboard aggregate; avoids paging through orders in the browser. */
+  getDashboardSummary: (
+    range: OrderDashboardRange,
+    compare: OrderDashboardCompare,
+  ) =>
+    get<OrderDashboardSummaryDTO>(`${ORDER_BASE}/orders/dashboard/summary`, {
+      range,
+      compare,
+    }),
   listOrderItems: (orderId: string) =>
     get<OrderItemResponse[]>(`${ORDER_BASE}/orders/${orderId}/items`),
   queryOrderItems: (request: {

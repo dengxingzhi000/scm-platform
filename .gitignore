@@ -54,3 +54,6 @@ application-local.yaml
 
 # Superpowers worktrees
 .worktrees/
+
+# Superpowers brainstorming mockups
+.superpowers/

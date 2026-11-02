@@ -48,35 +48,27 @@ function sourceFiles(dir = join(process.cwd(), "src")): string[] {
 }
 
 describe("auth design tokens", () => {
-  it("pins the Claude accent ramp", () => {
-    expect(token("color-brand-accent")).toBe("#D97757");
-    expect(token("color-brand-accent-hover")).toBe("#C2603F");
-    expect(token("color-brand-accent-active")).toBe("#A95134");
-    expect(token("color-brand-accent-bg")).toBe("#F5E7E0");
+  it("pins the reference auth palette", () => {
+    expect(token("auth-bg")).toBe("#FFFFFF");
+    expect(token("auth-ink")).toBe("#171717");
+    expect(token("auth-ink-soft")).toBe("#737373");
+    expect(token("auth-ink-muted")).toBe("#A3A3A3");
+    expect(token("auth-line")).toBe("#F0F0F0");
+    expect(token("auth-line-strong")).toBe("#D4D4D4");
+    expect(token("auth-btn")).toBe("#8842FD");
+    expect(token("auth-btn-hover")).toBe("#6C1BFD");
+    expect(token("auth-btn-fg")).toBe("#FFFFFF");
+    expect(token("auth-glass")).toBe("rgba(0, 0, 0, 0.1)");
   });
 
-  it("pins the warm neutral ramp", () => {
-    expect(token("auth-bg")).toBe("#F0EEE6");
-    expect(token("auth-surface")).toBe("#FFFFFF");
-    expect(token("auth-ink")).toBe("#262624");
-    expect(token("auth-ink-soft")).toBe("#6B6A63");
-    expect(token("auth-line")).toBe("#E5E3DA");
-    expect(token("auth-line-strong")).toBe("#D4D1C5");
-    expect(token("auth-btn")).toBe("#262624");
-    expect(token("auth-btn-soft-bg")).toBe("#E9E6DC");
-    expect(token("auth-btn-soft-hover")).toBe("#DFDBCE");
-    expect(token("auth-btn-fg")).toBe("#FFFFFF");
+  it("reuses the global violet as the auth primary", () => {
+    // 登录页不再自带强调色:紫罗兰就是全局主色,AuthShell 只做变量映射。
+    expect(token("auth-btn").toLowerCase()).toBe(token("color-primary"));
+    expect(token("auth-btn-hover").toLowerCase()).toBe(token("color-primary-hover"));
   });
 
   it("does not shadow the shadcn --color-accent alias", () => {
     expect(DECLARATIONS).not.toMatch(/--color-accent\s*:/);
-  });
-
-  it("does not repaint the global primary for the auth experience", () => {
-    // 全局 --color-primary 归应用设计系统所有(现在是紫罗兰)。
-    // 登录页的 Claude 橙只能通过 AuthShell 根元素上的 --primary 覆写生效 ——
-    // 两者的值必须不同,相等就说明登录页把全局主色也染成了橙色。
-    expect(token("color-primary")).not.toBe(token("color-brand-accent"));
   });
 
   it("does not override the fixed-light auth palette in dark mode", () => {

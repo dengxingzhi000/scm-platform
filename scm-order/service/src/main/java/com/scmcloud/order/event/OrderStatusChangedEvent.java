@@ -13,12 +13,19 @@ import java.util.UUID;
  */
 @Getter
 public class OrderStatusChangedEvent extends OrderEvent {
+    private final String userId;
     private final OrderStatus fromStatus;
     private final OrderStatus toStatus;
 
     public OrderStatusChangedEvent(UUID tenantId, UUID orderId, String orderNo,
                                    OrderStatus fromStatus, OrderStatus toStatus) {
+        this(tenantId, orderId, orderNo, null, fromStatus, toStatus);
+    }
+
+    public OrderStatusChangedEvent(UUID tenantId, UUID orderId, String orderNo, String userId,
+                                   OrderStatus fromStatus, OrderStatus toStatus) {
         super(tenantId, orderId, orderNo, "ORDER_STATUS_CHANGED");
+        this.userId = userId;
         this.fromStatus = fromStatus;
         this.toStatus = toStatus;
     }
@@ -30,9 +37,11 @@ public class OrderStatusChangedEvent extends OrderEvent {
                                     @JsonProperty("orderNo") String orderNo,
                                     @JsonProperty("timestamp") Instant timestamp,
                                     @JsonProperty("eventType") String eventType,
+                                    @JsonProperty("userId") String userId,
                                     @JsonProperty("fromStatus") OrderStatus fromStatus,
                                     @JsonProperty("toStatus") OrderStatus toStatus) {
         super(eventId, tenantId, orderId, orderNo, timestamp, eventType);
+        this.userId = userId;
         this.fromStatus = fromStatus;
         this.toStatus = toStatus;
     }

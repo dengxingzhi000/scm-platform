@@ -10,6 +10,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.UUID;
@@ -45,22 +46,28 @@ public class AuditMetaObjectHandler implements MetaObjectHandler {
 
         UUID tenantId = TenantContextHolder.getTenantId();
         if (tenantId != null) {
-            Class<?> fieldType = metaObject.getGetterType("tenantId");
-            if (TenantId.class.isAssignableFrom(fieldType)) {
-                this.strictInsertFill(metaObject, "tenantId", TenantId.class, TenantId.from(tenantId));
-            } else {
-                this.strictInsertFill(metaObject, "tenantId", String.class, tenantId.toString());
+            if (metaObject.hasGetter("tenantId")) {
+                Class<?> fieldType = metaObject.getGetterType("tenantId");
+                if (TenantId.class.isAssignableFrom(fieldType)) {
+                    this.strictInsertFill(metaObject, "tenantId", TenantId.class, TenantId.from(tenantId));
+                } else if (String.class.equals(fieldType)) {
+                    this.strictInsertFill(metaObject, "tenantId", String.class, tenantId.toString());
+                } else if (UUID.class.equals(fieldType)) {
+                    this.strictInsertFill(metaObject, "tenantId", UUID.class, tenantId);
+                }
             }
         } else {
             log.warn("Tenant ID is null when inserting, entity: {}", metaObject.getOriginalObject().getClass().getName());
         }
 
         OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
-        this.strictInsertFill(metaObject, "createTime", OffsetDateTime.class, now);
+        // strictInsertFill 只认与字段类型匹配的值：业务实体普遍是 LocalDateTime，
+        // 统一填 OffsetDateTime 会导致 create_time/update_time 为 null 并触发非空约束。
+        this.fillInsertTime(metaObject, "createTime", now);
 
         fillCreateBy(metaObject);
 
-        this.strictInsertFill(metaObject, "updateTime", OffsetDateTime.class, now);
+        this.fillInsertTime(metaObject, "updateTime", now);
 
         fillUpdateBy(metaObject);
 
@@ -72,14 +79,46 @@ public class AuditMetaObjectHandler implements MetaObjectHandler {
         log.debug("Start update fill ...");
 
         OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
-        this.strictUpdateFill(metaObject, "updateTime", OffsetDateTime.class, now);
+        this.fillUpdateTime(metaObject, "updateTime", now);
 
         fillUpdateBy(metaObject);
     }
 
+    /**
+     * 时间字段的实际 Java 类型：analytics 的实体用 OffsetDateTime，其余业务实体用 LocalDateTime。
+     */
+    private void fillInsertTime(MetaObject metaObject, String fieldName, OffsetDateTime now) {
+        if (!metaObject.hasGetter(fieldName)) return;
+
+        if (isOffsetDateTime(metaObject, fieldName)) {
+            this.strictInsertFill(metaObject, fieldName, OffsetDateTime.class, now);
+        } else {
+            // LocalDateTime 字段使用服务器本地时区（Asia/Shanghai），不能拿 UTC 直接转。
+            this.strictInsertFill(metaObject, fieldName, LocalDateTime.class, LocalDateTime.now());
+        }
+    }
+
+    private void fillUpdateTime(MetaObject metaObject, String fieldName, OffsetDateTime now) {
+        if (!metaObject.hasGetter(fieldName)) return;
+
+        if (isOffsetDateTime(metaObject, fieldName)) {
+            this.strictUpdateFill(metaObject, fieldName, OffsetDateTime.class, now);
+        } else {
+            this.strictUpdateFill(metaObject, fieldName, LocalDateTime.class, LocalDateTime.now());
+        }
+    }
+
+    private boolean isOffsetDateTime(MetaObject metaObject, String fieldName) {
+        if (!metaObject.hasGetter(fieldName)) {
+            return false;
+        }
+        Class<?> type = metaObject.getGetterType(fieldName);
+        return type != null && OffsetDateTime.class.isAssignableFrom(type);
+    }
+
     private void fillCreateBy(MetaObject metaObject) {
         UUID userId = getCurrentUserId();
-        if (userId == null) return;
+        if (userId == null || !metaObject.hasGetter("createBy")) return;
 
         Object createByValue = metaObject.getValue("createBy");
         if (createByValue instanceof String) {
@@ -91,7 +130,7 @@ public class AuditMetaObjectHandler implements MetaObjectHandler {
 
     private void fillUpdateBy(MetaObject metaObject) {
         UUID userId = getCurrentUserId();
-        if (userId == null) return;
+        if (userId == null || !metaObject.hasGetter("updateBy")) return;
 
         Object updateByValue = metaObject.getValue("updateBy");
         if (updateByValue instanceof String) {

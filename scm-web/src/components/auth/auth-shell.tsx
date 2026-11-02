@@ -1,65 +1,82 @@
-import type { ReactNode } from "react";
+import Image from "next/image";
+import type { CSSProperties, ReactNode } from "react";
 import { useTranslations } from "next-intl";
+import { Check } from "lucide-react";
 
-import { BrandMark } from "./brand-mark";
+import { BrandGlyph, BrandMark } from "./brand-mark";
 
 interface AuthShellProps {
   children: ReactNode;
 }
 
 /**
- * 认证页双栏外壳。
- * 左栏是暖象牙底的表单区,右栏是满高圆角占位图。
- * 根元素上覆写 shadcn 的 --primary/--ring/--accent,把 Claude 橙限制在登录体验内,
- * 全局 --color-primary(靛蓝)不变。
+ * 认证页双栏外壳:左侧纯白表单区,右侧满高流体封面 + 玻璃卡。
+ * 根元素把 shadcn 变量锁到 --auth-* 上,登录体验固定浅色,
+ * 不受应用深色主题影响(否则深色下的白底输入框会继承深色文字)。
  */
 export function AuthShell({ children }: AuthShellProps) {
   const t = useTranslations("login");
+  const features = [t("hero.feature1"), t("hero.feature2"), t("hero.feature3")];
 
   return (
     <main
-      className="min-h-dvh bg-[var(--auth-bg)] lg:grid lg:grid-cols-[1fr_minmax(0,42%)]"
+      className="flex min-h-dvh bg-[var(--auth-bg)] text-[var(--auth-ink)]"
       style={
         {
-          "--primary": "var(--color-brand-accent)",
-          "--ring": "var(--color-brand-accent)",
-          "--accent": "var(--color-brand-accent-bg)",
-          // --accent 换成桃色底,--accent-foreground 必须跟着换 ——
-          // globals.css 里它还是 var(--color-primary)(靛蓝),幽灵按钮 hover 会变成靛蓝配桃色。
+          "--background": "var(--auth-bg)",
+          "--foreground": "var(--auth-ink)",
+          "--primary": "var(--auth-btn)",
+          "--primary-foreground": "var(--auth-btn-fg)",
+          "--ring": "var(--auth-focus)",
+          "--input": "var(--auth-line-strong)",
+          "--border": "var(--auth-line)",
+          "--muted-foreground": "var(--auth-ink-muted)",
+          "--accent": "var(--auth-bg-soft)",
           "--accent-foreground": "var(--auth-ink)",
-        } as React.CSSProperties
+        } as CSSProperties
       }
     >
-      <section className="flex flex-col px-6 py-6 lg:px-12">
-        <header className="flex items-center justify-between gap-4">
+      <section className="flex min-w-0 flex-1 flex-col gap-4 p-6 md:p-10">
+        <header className="flex justify-center lg:justify-start">
           <BrandMark />
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              className="rounded-lg border border-[var(--auth-line-strong)] bg-[var(--auth-btn-soft-bg)] px-4 py-2 text-sm font-medium text-[var(--auth-ink)] transition-colors hover:bg-[var(--auth-btn-soft-hover)]"
-            >
-              {t("header.contactSales")}
-            </button>
-            <button
-              type="button"
-              className="rounded-lg bg-[var(--auth-btn)] px-4 py-2 text-sm font-medium text-[var(--auth-btn-fg)] transition-colors hover:bg-[var(--auth-ink-soft)]"
-            >
-              {t("header.tryPlatform")}
-            </button>
-          </div>
         </header>
 
-        <div className="flex flex-1 items-center justify-center py-12">
-          <div className="w-full max-w-[520px]">{children}</div>
+        <div className="flex flex-1 items-center justify-center py-8">
+          <div className="w-full max-w-[320px]">{children}</div>
         </div>
+
+        {/*
+          「服务条款 / 隐私政策」目前没有对应路由(仓库里不存在 /terms 与 /privacy),
+          渲染成 <Link> 就是死链 —— 点下去会被 proxy.ts 弹回登录页。
+          路由上线后(记得补 locale 前缀)再换成链接。
+        */}
+        <p className="mx-auto max-w-[420px] text-center text-xs leading-relaxed text-[var(--auth-ink-soft)]">
+          {t("legal")}
+        </p>
       </section>
 
-      <aside className="hidden p-6 lg:block">
-        <img
-          src="/auth-hero.svg"
+      <aside className="relative hidden w-[clamp(400px,30vw,480px)] shrink-0 items-center justify-center overflow-hidden p-12 lg:flex xl:p-16">
+        <Image
+          src="/auth/cover.jpg"
           alt={t("heroAlt")}
-          className="h-full w-full rounded-2xl object-cover"
+          fill
+          priority
+          sizes="(min-width: 1024px) 480px, 1px"
+          className="object-cover"
         />
+
+        <div className="relative mt-10 w-full max-w-[320px] rounded-[2rem] bg-[var(--auth-glass)] p-8 text-white backdrop-blur-[4px]">
+          <BrandGlyph tone="inverse" className="mb-2 size-8 rounded-lg text-[22px]" />
+          <h2 className="auth-serif-heading text-xl text-white">{t("hero.title")}</h2>
+          <ul className="mt-3 flex flex-col gap-1.5">
+            {features.map((feature) => (
+              <li key={feature} className="flex items-center gap-2 text-sm text-white/90">
+                <Check aria-hidden="true" className="size-4 shrink-0 text-[var(--auth-check)]" />
+                {feature}
+              </li>
+            ))}
+          </ul>
+        </div>
       </aside>
     </main>
   );

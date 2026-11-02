@@ -17,13 +17,13 @@ spec:
         app: scm-file
       annotations:
         prometheus.io/scrape: "true"
-        prometheus.io/port: "8213"
+        prometheus.io/port: "8214"
     spec:
       containers:
         - name: scm-file
           image: scm-platform/scm-file:latest
           ports:
-            - containerPort: 8213
+            - containerPort: 8214
               name: http
           env:
             - name: SPRING_PROFILES_ACTIVE
@@ -75,13 +75,13 @@ spec:
           livenessProbe:
             httpGet:
               path: /actuator/health
-              port: 8213
+              port: 8214
             initialDelaySeconds: 60
             periodSeconds: 10
           readinessProbe:
             httpGet:
               path: /actuator/health
-              port: 8213
+              port: 8214
             initialDelaySeconds: 30
             periodSeconds: 5
 ---
@@ -94,7 +94,7 @@ spec:
   selector:
     app: scm-file
   ports:
-    - port: 8213
-      targetPort: 8213
+    - port: 8214
+      targetPort: 8214
       name: http
   type: ClusterIP

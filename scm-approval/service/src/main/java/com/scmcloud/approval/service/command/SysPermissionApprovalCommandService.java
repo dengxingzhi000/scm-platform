@@ -4,10 +4,13 @@ import com.scmcloud.common.data.rw.annotation.Master;
 import com.scmcloud.common.util.UUIDv7Util;
 import com.scmcloud.approval.domain.entity.SysPermissionApproval;
 import com.scmcloud.approval.mapper.SysPermissionApprovalMapper;
+import com.scmcloud.approval.service.notification.ApprovalNotificationPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
 
@@ -22,6 +25,7 @@ public class SysPermissionApprovalCommandService {
     private static final int STATUS_WITHDRAWN = 4;
 
     private final SysPermissionApprovalMapper sysPermissionApprovalMapper;
+    private final ApprovalNotificationPublisher notificationPublisher;
 
     @Master(reason = "写操作必须走主库")
     @Transactional(rollbackFor = Exception.class)
@@ -68,6 +72,7 @@ public class SysPermissionApprovalCommandService {
         }
 
         log.info("审批通过成功: id={}", approvalId);
+        notifyAfterCommit(approval, true);
         return approval;
     }
 
@@ -98,6 +103,21 @@ public class SysPermissionApprovalCommandService {
         }
 
         log.info("审批拒绝成功: id={}", approvalId);
+        notifyAfterCommit(approval, false);
         return approval;
+    }
+
+    /** Notifying before the commit would tell the applicant about a decision that never landed. */
+    private void notifyAfterCommit(SysPermissionApproval approval, boolean approved) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    notificationPublisher.publish(approval, approved);
+                }
+            });
+        } else {
+            notificationPublisher.publish(approval, approved);
+        }
     }
 }

@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS ord_order (
     payment_no VARCHAR(128),
     paid_amount DECIMAL(12, 2) DEFAULT 0
         CONSTRAINT chk_paid_amount CHECK (paid_amount >= 0),
-    paid_at TIMESTAMPTZ,
+    paid_at TIMESTAMP,
 
     -- 收货地址（JSONB）
     shipping_address JSONB NOT NULL,
@@ -60,15 +60,15 @@ CREATE TABLE IF NOT EXISTS ord_order (
     warehouse_id UUID,
     waybill_no VARCHAR(128),
     carrier VARCHAR(128),
-    shipped_at TIMESTAMPTZ,
-    estimated_arrival TIMESTAMPTZ,
+    shipped_at TIMESTAMP,
+    estimated_arrival TIMESTAMP,
 
     -- 时间节点
-    payment_deadline TIMESTAMPTZ,
-    auto_cancel_at TIMESTAMPTZ,
-    auto_complete_at TIMESTAMPTZ,
-    completed_at TIMESTAMPTZ,
-    cancelled_at TIMESTAMPTZ,
+    payment_deadline TIMESTAMP,
+    auto_cancel_at TIMESTAMP,
+    auto_complete_at TIMESTAMP,
+    completed_at TIMESTAMP,
+    cancelled_at TIMESTAMP,
     cancel_reason TEXT,
 
     -- 库存预占
@@ -81,9 +81,9 @@ CREATE TABLE IF NOT EXISTS ord_order (
     extra_data JSONB DEFAULT '{}',
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     update_by UUID,
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
     remark TEXT,
@@ -162,7 +162,7 @@ CREATE TABLE IF NOT EXISTS ord_order_item (
         CONSTRAINT chk_refund_amount CHECK (refund_amount >= 0),
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     remark TEXT
 );
 
@@ -196,7 +196,7 @@ CREATE TABLE IF NOT EXISTS ord_status_history (
     extra_data JSONB DEFAULT '{}',
 
     -- 时间
-    transitioned_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    transitioned_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_history_order ON ord_status_history(order_id, transitioned_at DESC);
@@ -238,10 +238,10 @@ CREATE TABLE IF NOT EXISTS ord_payment (
     third_party_response JSONB,
 
     -- 时间
-    initiated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    paid_at TIMESTAMPTZ,
-    failed_at TIMESTAMPTZ,
-    refunded_at TIMESTAMPTZ,
+    initiated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    paid_at TIMESTAMP,
+    failed_at TIMESTAMP,
+    refunded_at TIMESTAMP,
 
     -- 退款
     refund_amount DECIMAL(12, 2) DEFAULT 0
@@ -249,8 +249,8 @@ CREATE TABLE IF NOT EXISTS ord_payment (
     refund_reason TEXT,
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     remark TEXT
 );
 
@@ -296,9 +296,9 @@ CREATE TABLE IF NOT EXISTS ord_refund (
     -- 状态
     status SMALLINT NOT NULL DEFAULT 0
         CONSTRAINT chk_refund_status CHECK (status IN (0, 1, 2, 3)),
-    approved_at TIMESTAMPTZ,
-    rejected_at TIMESTAMPTZ,
-    completed_at TIMESTAMPTZ,
+    approved_at TIMESTAMP,
+    rejected_at TIMESTAMP,
+    completed_at TIMESTAMP,
 
     -- 处理人
     handler_id UUID,
@@ -310,8 +310,8 @@ CREATE TABLE IF NOT EXISTS ord_refund (
     return_carrier VARCHAR(128),
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     remark TEXT
 );
 

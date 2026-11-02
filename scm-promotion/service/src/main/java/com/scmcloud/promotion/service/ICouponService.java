@@ -1,5 +1,6 @@
 package com.scmcloud.promotion.service;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.IService;
 import com.scmcloud.promotion.domain.entity.Coupon;
 
@@ -15,4 +16,6 @@ public interface ICouponService extends IService<Coupon> {
     void useCoupon(String couponCode, String orderNo);
 
     List<Coupon> getByUserId(String userId);
+
+    Page<Coupon> pageQuery(int page, int size, String userId, Integer status);
 }

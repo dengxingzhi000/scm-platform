@@ -1,6 +1,6 @@
 # scm-system — OpenAPI 文档摘要
 
-- 来源: `http://192.168.0.125:8081/api/public/v3/api-docs`
+- 来源: `http://192.168.0.132:8081/api/public/v3/api-docs`
 - 标题: SCM Platform API - system-service (1.0.0)
 - 认证: Bearer JWT (Authorization header)
 
@@ -432,8 +432,8 @@
 
 ## Schemas
 
-- **ApiResponseMapStringString** — `code`: integer, `message`: string, `data`: object, `timestamp`: integer
 - **ApiResponseVoid** — `code`: integer, `message`: string, `data`: any, `timestamp`: integer
+- **ApiResponseMapStringString** — `code`: integer, `message`: string, `data`: object, `timestamp`: integer
 - **DecisionRule** — `id`: string, `engineType`: string, `scene`: string, `ruleType`: string, `expression`: string, `description`: string, `enabled`: boolean, `priority`: integer, `version`: integer
 - **ApiResponseDecisionRule** — `code`: integer, `message`: string, `data`: DecisionRule, `timestamp`: integer
 - **UserDTO** — `id`: string, `username`: string, `password`: string, `realName`: string, `idCard`: string, `email`: string, `phone`: string, `avatar`: string, `status`: integer, `deptId`: string, `deptName`: string, `userLevel`: integer, `accountType`: integer, `loginAttempts`: integer, `lockedUntil`: string, `passwordExpireTime`: string, `forceChangePassword`: boolean, `twoFactorEnabled`: boolean, `createTime`: string, `lastLoginTime`: string, `lastLoginIp`: string, `remark`: string, `roleIds`: string[], `roleNames`: string[], `permissions`: string[]

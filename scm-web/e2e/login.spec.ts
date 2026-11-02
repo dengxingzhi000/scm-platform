@@ -2,9 +2,11 @@ import { test, expect } from "@playwright/test";
 
 test("login page displays correctly", async ({ page }) => {
   await page.goto("/zh-CN/login");
-  await expect(page.locator("h1")).toContainText("让供应链运转如丝");
+  await expect(page.locator("h1")).toContainText("登录 SCM 平台");
   await expect(page.locator('input[name="username"]')).toBeVisible();
   await expect(page.locator('input[name="password"]')).toBeVisible();
+  await expect(page.getByRole("button", { name: "Google" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Microsoft" })).toBeVisible();
 });
 
 test("successful login redirects to dashboard", async ({ page }) => {
@@ -17,7 +19,7 @@ test("successful login redirects to dashboard", async ({ page }) => {
 
 test("login page renders the English copy", async ({ page }) => {
   await page.goto("/en-US/login");
-  await expect(page.locator("h1")).toContainText("Make your supply chain flow");
+  await expect(page.locator("h1")).toContainText("Log in to SCM");
   await expect(page.locator('input[name="username"]')).toBeVisible();
   // 忘记密码链接必须跟随 locale —— 写死 /zh-CN 的实现会在这里变红
   await expect(page.getByRole("link", { name: "Forgot password?" })).toHaveAttribute(

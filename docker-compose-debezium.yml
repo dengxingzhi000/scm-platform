@@ -1,41 +1,37 @@
-﻿version: '3.8'
+# SCM Platform - Debezium CDC 开发环境
+# Kafka 4.x / Confluent Platform 8.x 起使用 KRaft，不再依赖 ZooKeeper
+
+name: scm-platform-debezium
 
 services:
-  # Zookeeper (Kafka 渚濊禆)
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.5.0
-    container_name: scm-zookeeper
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-    ports:
-      - "2181:2181"
-    networks:
-      - scm-network
-
-  # Kafka
+  # Kafka（KRaft 模式）
   kafka:
-    image: confluentinc/cp-kafka:7.5.0
+    image: confluentinc/cp-kafka:8.4.0
     container_name: scm-kafka
-    depends_on:
-      - zookeeper
     ports:
       - "9092:9092"
+      - "9093:9093"
     environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9094
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9094,PLAINTEXT_HOST://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
     networks:
       - scm-network
 
-  # Kafka Connect (鍖呭惈 Debezium PostgreSQL Connector)
+  # Kafka Connect（包含 Debezium PostgreSQL Connector）
   kafka-connect:
-    image: debezium/connect:2.5
+    image: debezium/connect:3.0.0.Final
     container_name: scm-kafka-connect
     depends_on:
       - kafka
@@ -48,7 +44,7 @@ services:
       CONFIG_STORAGE_TOPIC: connect_configs
       OFFSET_STORAGE_TOPIC: connect_offsets
       STATUS_STORAGE_TOPIC: connect_status
-      # 鍐呴儴 Topic 鍓湰鏁拌缃负 1锛堝崟鑺傜偣 Kafka锛?
+      # 内部 Topic 副本数设置为 1（单节点 Kafka）
       CONFIG_STORAGE_REPLICATION_FACTOR: 1
       OFFSET_STORAGE_REPLICATION_FACTOR: 1
       STATUS_STORAGE_REPLICATION_FACTOR: 1
@@ -60,20 +56,22 @@ services:
       timeout: 10s
       retries: 5
 
-  # PostgreSQL (涓绘暟鎹簱)
+  # PostgreSQL（主数据库）
   postgres:
-    image: postgres:16-alpine
+    # 不用 alpine 变体：musl 版在部分宿主机上 initdb 写 postmaster.pid 会 EPERM
+    image: postgres:18
     container_name: scm-postgres
     environment:
       POSTGRES_USER: admin
-      POSTGRES_PASSWORD: ${DB_PASSWORD:changeme}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
       POSTGRES_DB: db_product
+      PGDATA: /var/lib/postgresql/18/docker
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./scripts/db/microservices/010_db_product.sql:/docker-entrypoint-initdb.d/010_db_product.sql
-    # 鍚敤 PostgreSQL 閫昏緫澶嶅埗锛圖ebezium 闇€瑕侊級
+      - postgres_data:/var/lib/postgresql
+      - ./scripts/db/microservices/010_db_product.sql:/docker-entrypoint-initdb.d/010_db_product.sql:ro
+    # 启用 PostgreSQL 逻辑复制（Debezium 需要）
     command:
       - "postgres"
       - "-c"

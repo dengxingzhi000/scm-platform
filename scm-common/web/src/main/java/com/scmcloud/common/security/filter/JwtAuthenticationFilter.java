@@ -1,12 +1,12 @@
 package com.scmcloud.common.security.filter;
 
 import com.scmcloud.common.security.metrics.SecurityMetrics;
+import com.scmcloud.common.security.util.AuthTokenContext;
 import com.scmcloud.common.security.util.HttpServletRequestUtils;
 import com.scmcloud.common.security.util.IpUtils;
 import com.scmcloud.common.security.util.JwtUtils;
 import com.scmcloud.common.security.util.SecurityErrorResponseWriter;
 import com.scmcloud.common.web.domain.SecurityUser;
-import jakarta.annotation.Nonnull;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -43,8 +43,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final SecurityMetrics securityMetrics;
 
     @Override
-    protected void doFilterInternal(@Nonnull HttpServletRequest request, @Nonnull HttpServletResponse response,
-                                    @Nonnull FilterChain filterChain) throws IOException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws IOException, jakarta.servlet.ServletException {
         try {
             // 鑾峰彇 Token
             String token = httpServletRequestUtils.getTokenFromRequest(request);
@@ -56,6 +56,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 // 楠岃瘉 Token
                 if (jwtUtils.validateToken(token, currentIp, currentDeviceId)) {
+                    AuthTokenContext.set(token, currentDeviceId);
                     // 鎻愬彇鐢ㄦ埛淇℃伅锛堝緱鐩婁簬ThreadLocal缂撳瓨锛岃繖4娆¤皟鐢ㄥ彧浼氳В鏋怲oken涓€娆★級
                     UUID userId = jwtUtils.getUserIdFromToken(token);
                     String username = jwtUtils.getUsernameFromToken(token);
@@ -88,7 +89,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(authentication);
 
                     log.debug("User authenticated: traceId={}, userId={}, username={}",
-                            (request.getHeader("X-Request-ID") + "").replace("\r", "_").replace("\n", "_"), (userId + "").replace("\r", "_").replace("\n", "_"), (username + "").replace("\r", "_").replace("\n", "_"));
+                            (request.getHeader("X-Request-ID") + "").replace("\r", "_")
+                                    .replace("\n", "_"), (userId + "").replace("\r", "_")
+                                    .replace("\n", "_"), (username + "").replace("\r", "_")
+                                    .replace("\n", "_"));
                 } else {
                     securityMetrics.increment("security.jwt.invalid");
                     SecurityErrorResponseWriter.write(request, response, HttpServletResponse.SC_UNAUTHORIZED,
@@ -97,16 +101,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
             }
 
-            // 缁х画杩囨护鍣ㄩ摼
-            filterChain.doFilter(request, response);
         } catch (Exception e) {
             securityMetrics.increment("security.jwt.errors");
             log.error("Cannot set user authentication traceId={}", (request.getHeader("X-Request-ID") + "").replace("\r", "_").replace("\n", "_"), e);
             SecurityErrorResponseWriter.write(request, response, HttpServletResponse.SC_UNAUTHORIZED, "AUTH_ERROR",
                     "Authentication error");
+            return;
         } finally {
             // 娓呯悊ThreadLocal缂撳瓨锛岄槻姝㈠唴瀛樻硠锟?
             JwtUtils.clearTokenCache();
+        }
+
+        try {
+            filterChain.doFilter(request, response);
+        } finally {
+            AuthTokenContext.clear();
         }
     }
 }

@@ -50,6 +50,7 @@ export default function LoginPage() {
         onSuccess={(response, remember) => void handleSuccess(response, remember)}
         onMfaRequired={setPendingCredentials}
         onError={(error) => message.error(error.message || t("failed"))}
+        onProviderUnavailable={() => message.info(t("providers.unavailable"))}
       />
     </LoginCard>
   );

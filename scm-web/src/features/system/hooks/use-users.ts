@@ -36,3 +36,6 @@ export function useGrantUserRoles() {
 export function useForceLogoutUser() {
   return useMutation({ mutationFn: ({ id, reason }: { id: string; reason: string }) => userService.forceLogout(id, reason), onSuccess: () => { message.success('用户已强制下线') } })
 }
+export function useUserStatistics(id: string | null) {
+  return useQuery({ queryKey: ['users', 'statistics', id], queryFn: () => userService.statistics(id as string), enabled: !!id })
+}

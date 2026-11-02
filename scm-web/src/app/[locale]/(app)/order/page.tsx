@@ -1,3 +1,13 @@
 'use client'
+
+import { Suspense } from 'react'
 import { OrderList } from '@/features/order/components'
-export default function OrderPage() { return <OrderList /> }
+import { Skeleton } from '@/components/ui/skeleton'
+
+export default function OrderPage() {
+  return (
+    <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+      <OrderList />
+    </Suspense>
+  )
+}

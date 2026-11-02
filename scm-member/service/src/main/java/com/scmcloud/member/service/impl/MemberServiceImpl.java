@@ -1,6 +1,7 @@
 package com.scmcloud.member.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.scmcloud.member.domain.entity.Member;
 import com.scmcloud.member.mapper.MemberMapper;
@@ -9,8 +10,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @RequiredArgsConstructor
@@ -51,6 +54,47 @@ public class MemberServiceImpl extends ServiceImpl<MemberMapper, Member> impleme
     public Member getByUserId(String userId) {
         return getOne(new LambdaQueryWrapper<Member>()
                 .eq(Member::getUserId, userId));
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Member updateProfile(String userId, String nickname, String avatar,
+                                Integer gender, LocalDate birthday) {
+        Member member = getByUserId(userId);
+        if (member == null) {
+            throw new IllegalArgumentException("Member not found: " + userId);
+        }
+        if (StringUtils.hasText(nickname)) {
+            member.setNickname(nickname);
+        }
+        if (StringUtils.hasText(avatar)) {
+            member.setAvatar(avatar);
+        }
+        if (gender != null) {
+            member.setGender(gender);
+        }
+        if (birthday != null) {
+            member.setBirthday(birthday);
+        }
+        member.setUpdatedAt(LocalDateTime.now());
+        updateById(member);
+        log.info("Member profile updated: userId={}", (userId + "").replace("\r", "_").replace("\n", "_"));
+        return member;
+    }
+
+    @Override
+    public Page<Member> pageQuery(int page, int size, String keyword,
+                                  Integer memberLevel, Integer status) {
+        LambdaQueryWrapper<Member> wrapper = new LambdaQueryWrapper<>();
+        if (StringUtils.hasText(keyword)) {
+            wrapper.and(w -> w.like(Member::getNickname, keyword)
+                    .or().like(Member::getMemberNo, keyword)
+                    .or().eq(Member::getUserId, keyword));
+        }
+        wrapper.eq(memberLevel != null, Member::getMemberLevel, memberLevel)
+                .eq(status != null, Member::getStatus, status)
+                .orderByDesc(Member::getCreatedAt);
+        return page(new Page<>(page, size), wrapper);
     }
 
     @Override

@@ -47,9 +47,9 @@ CREATE TABLE IF NOT EXISTS tms_carrier (
     sort_order INT DEFAULT 0,
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     update_by UUID,
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
     remark TEXT
@@ -106,8 +106,8 @@ CREATE TABLE IF NOT EXISTS tms_waybill (
         CONSTRAINT chk_waybill_status CHECK (status IN (0, 1, 2, 3, 4, 5, 6)),
 
     -- 时间预估
-    estimated_delivery TIMESTAMPTZ,
-    actual_delivery TIMESTAMPTZ,
+    estimated_delivery TIMESTAMP,
+    actual_delivery TIMESTAMP,
 
     -- 配送员
     courier_id UUID,
@@ -118,7 +118,7 @@ CREATE TABLE IF NOT EXISTS tms_waybill (
     sign_type SMALLINT
         CONSTRAINT chk_sign_type CHECK (sign_type IS NULL OR sign_type IN (1, 2, 3)),
     sign_person VARCHAR(128),
-    sign_time TIMESTAMPTZ,
+    sign_time TIMESTAMP,
     sign_image VARCHAR(512),
 
     -- 异常
@@ -126,9 +126,9 @@ CREATE TABLE IF NOT EXISTS tms_waybill (
     exception_reason TEXT,
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     update_by UUID,
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
     remark TEXT,
@@ -155,7 +155,7 @@ CREATE TABLE IF NOT EXISTS tms_tracking (
     waybill_no VARCHAR(128) NOT NULL,
 
     -- 轨迹信息
-    track_time TIMESTAMPTZ NOT NULL,
+    track_time TIMESTAMP NOT NULL,
     location VARCHAR(256),
     description TEXT NOT NULL,
 
@@ -173,7 +173,7 @@ CREATE TABLE IF NOT EXISTS tms_tracking (
     source VARCHAR(32) DEFAULT 'API',               -- API, MANUAL
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     extra_data JSONB DEFAULT '{}',
 
     CONSTRAINT fk_tracking_waybill FOREIGN KEY (waybill_id) REFERENCES tms_waybill(id)
@@ -229,13 +229,13 @@ CREATE TABLE IF NOT EXISTS tms_route (
         CONSTRAINT chk_route_status CHECK (status IN (0, 1, 2, 3)),
 
     -- 时间
-    started_at TIMESTAMPTZ,
-    completed_at TIMESTAMPTZ,
+    started_at TIMESTAMP,
+    completed_at TIMESTAMP,
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     update_by UUID,
     remark TEXT
 );
@@ -281,9 +281,9 @@ CREATE TABLE IF NOT EXISTS tms_delivery_area (
     enabled BOOLEAN NOT NULL DEFAULT TRUE,
 
     -- 元数据
-    create_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     create_by UUID,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP NOT NULL DEFAULT NOW(),
     update_by UUID,
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
     remark TEXT,

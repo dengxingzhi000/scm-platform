@@ -7,6 +7,8 @@ export interface Notification {
   isRead: boolean
   link?: string
   createdAt: string
+  /** Raw backend timestamp, kept so a panel can render relative time without re-parsing. */
+  createTime: string | null
 }
 
 export interface NotificationSearchParams {
@@ -14,4 +16,9 @@ export interface NotificationSearchParams {
   pageSize?: number
   type?: string
   isRead?: boolean
+  /** Matches the title or the content. */
+  keyword?: string
+  /** ISO-8601 local date-time, inclusive. */
+  startTime?: string
+  endTime?: string
 }

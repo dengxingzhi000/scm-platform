@@ -1,6 +1,6 @@
 # scm-auth — OpenAPI 文档摘要
 
-- 来源: `http://192.168.0.125:8106/api/public/v3/api-docs`
+- 来源: `http://192.168.0.132:8106/api/public/v3/api-docs`
 - 标题: SCM Platform API - auth-service (1.0.0)
 - 认证: Bearer JWT (Authorization header)
 
