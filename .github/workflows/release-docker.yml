@@ -6,7 +6,7 @@ name: Release 鈥?Docker Images to GHCR
 # updates) the matching GitHub Release with auto-generated notes.
 #
 # Required secrets / permissions: only `GITHUB_TOKEN` 鈥?no Docker Hub creds.
-# Dockerfiles live at scm-<name>/Dockerfile (one per deployable service).
+# Dockerfiles live at <domain>/<service>/Dockerfile (one per deployable service).
 
 on:
   push:
@@ -35,14 +35,19 @@ jobs:
         id: list
         run: |
           set -euo pipefail
-          services=$(ls -d scm-*/Dockerfile 2>/dev/null \
-            | xargs -I{} dirname {} \
-            | sed 's|^\./||' \
+          services=$(find platform scm ecom lms -mindepth 2 -maxdepth 2 -name Dockerfile -printf '%h\n' 2>/dev/null \
             | sort \
-            | jq -R -s -c 'split("\n") | map(select(length > 0))')
+            | while read -r dir; do
+                case "$dir" in
+                  lms/tms) service="scm-logistics" ;;
+                  *) service="scm-$(basename "$dir")" ;;
+                esac
+                printf '{"service":"%s","path":"%s"}\n' "$service" "$dir"
+              done \
+            | jq -s -c '.')
           echo "services=$services" >> "$GITHUB_OUTPUT"
           echo "Detected services:"
-          echo "$services" | jq -r '.[]' | sed 's/^/  - /'
+          echo "$services" | jq -r '.[] | "  - \(.service) (\(.path))"'
 
   build:
     name: Build & Push ${{ matrix.service }}
@@ -52,7 +57,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: ${{ fromJson(needs.detect-services.outputs.services) }}
+        include: ${{ fromJson(needs.detect-services.outputs.services) }}
     steps:
       - uses: actions/checkout@v7
 
@@ -64,9 +69,9 @@ jobs:
           cache: 'maven'
 
       # Two layouts 鈥?both are handled by building from com.scm.parent/pom.xml
-      # (the only pom that lists every top-level scm-* module, so -am can pull
-      # in scm-common-web, scm-system-api, etc. that each service depends on):
-      #   - flat modules (scm-auth, scm-gateway): jar lands at <module>/target/*.jar
+      # (the only pom that lists the four domain aggregators, so -am can pull
+      # in platform-common-*, platform-contract-system, etc. that each service depends on):
+      #   - flat modules (platform/auth, platform/gateway): jar lands at <module>/target/*.jar
       #   - api/service split modules:            jar lands at <module>/service/target/*.jar
       # We select by artifactId, which works regardless of layout:
       #   - flat       -> artifactId is 'scm-{name}'
@@ -75,12 +80,13 @@ jobs:
         run: |
           set -euo pipefail
           service="${{ matrix.service }}"
-          if [ -d "${service}/service" ]; then
+          path="${{ matrix.path }}"
+          if [ -d "${path}/service" ]; then
             aid="${service}-service"
           else
             aid="${service}"
           fi
-          echo "Building ${service} (artifactId=${aid}) ..."
+          echo "Building ${service} (${path}, artifactId=${aid}) ..."
           mvn -q -B -DskipTests \
             -pl ":${aid}" -am \
             -f com.scm.parent/pom.xml \
@@ -110,8 +116,8 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
-          context: ./${{ matrix.service }}
-          file: ./${{ matrix.service }}/Dockerfile
+          context: ./${{ matrix.path }}
+          file: ./${{ matrix.path }}/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

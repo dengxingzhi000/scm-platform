@@ -238,22 +238,37 @@ jobs:
 
     strategy:
       matrix:
-        service:
-          - scm-auth
-          - scm-gateway
-          - scm-system
-          - scm-product
-          - scm-inventory
-          - scm-order
-          - scm-warehouse
-          - scm-logistics
-          - scm-supplier
-          - scm-finance
-          - scm-purchase
-          - scm-approval
-          - scm-audit
-          - scm-notify
-          - scm-tenant
+        include:
+          - service: scm-auth
+            path: platform/auth
+          - service: scm-gateway
+            path: platform/gateway
+          - service: scm-system
+            path: platform/system
+          - service: scm-product
+            path: platform/product
+          - service: scm-inventory
+            path: platform/inventory
+          - service: scm-order
+            path: scm/order
+          - service: scm-warehouse
+            path: scm/warehouse
+          - service: scm-logistics
+            path: lms/tms
+          - service: scm-supplier
+            path: scm/supplier
+          - service: scm-finance
+            path: scm/finance
+          - service: scm-purchase
+            path: scm/purchase
+          - service: scm-approval
+            path: platform/approval
+          - service: scm-audit
+            path: platform/audit
+          - service: scm-notify
+            path: platform/notify
+          - service: scm-tenant
+            path: platform/tenant
 
     steps:
       - name: Checkout code
@@ -268,10 +283,10 @@ jobs:
 
       - name: Build JAR
         run: |
-          if [ -d "${{ matrix.service }}/service" ]; then
-            mvn clean package -DskipTests -pl ../${{ matrix.service }}/service -am -f com.scm.parent/pom.xml
+          if [ -d "${{ matrix.path }}/service" ]; then
+            mvn clean package -DskipTests -pl ../${{ matrix.path }}/service -am -f com.scm.parent/pom.xml
           else
-            mvn clean package -DskipTests -pl ../${{ matrix.service }} -am -f com.scm.parent/pom.xml
+            mvn clean package -DskipTests -pl ../${{ matrix.path }} -am -f com.scm.parent/pom.xml
           fi
 
       - name: Set up Docker Buildx
@@ -297,8 +312,8 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
-          context: ./${{ matrix.service }}
-          file: ./${{ matrix.service }}/Dockerfile
+          context: ./${{ matrix.path }}
+          file: ./${{ matrix.path }}/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

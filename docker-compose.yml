@@ -555,7 +555,7 @@ services:
   scm-member:
     profiles: ["ecommerce"]
     build:
-      context: ./scm-member
+      context: ./ecom/member
     container_name: scm-member
     environment:
       DB_HOST: postgres
@@ -576,7 +576,7 @@ services:
   scm-promotion:
     profiles: ["ecommerce"]
     build:
-      context: ./scm-promotion
+      context: ./ecom/promotion
     container_name: scm-promotion
     environment:
       DB_HOST: postgres
@@ -597,7 +597,7 @@ services:
   scm-payment:
     profiles: ["ecommerce"]
     build:
-      context: ./scm-payment
+      context: ./ecom/payment
     container_name: scm-payment
     environment:
       DB_HOST: postgres
@@ -618,7 +618,7 @@ services:
   scm-order-center:
     profiles: ["ecommerce"]
     build:
-      context: ./scm-order-center
+      context: ./ecom/order-center
     container_name: scm-order-center
     environment:
       DB_HOST: postgres
@@ -639,7 +639,7 @@ services:
   scm-mall:
     profiles: ["ecommerce"]
     build:
-      context: ./scm-mall
+      context: ./ecom/mall
     container_name: scm-mall
     environment:
       DB_HOST: postgres
@@ -660,7 +660,7 @@ services:
   scm-fulfillment:
     profiles: ["ecommerce"]
     build:
-      context: ./scm-fulfillment
+      context: ./ecom/fulfillment
     container_name: scm-fulfillment
     environment:
       DB_HOST: postgres
@@ -681,7 +681,7 @@ services:
   scm-search:
     profiles: ["ecommerce"]
     build:
-      context: ./scm-search
+      context: ./ecom/search
     container_name: scm-search
     environment:
       REDIS_HOST: redis
@@ -699,7 +699,7 @@ services:
   scm-analytics:
     profiles: ["ecommerce"]
     build:
-      context: ./scm-analytics
+      context: ./ecom/analytics
     container_name: scm-analytics
     environment:
       DB_HOST: postgres
@@ -735,7 +735,7 @@ services:
   scm-gateway:
     <<: *core-service
     build:
-      context: ./scm-gateway
+      context: ./platform/gateway
     container_name: scm-gateway
     environment:
       <<: *core-service-env
@@ -751,7 +751,7 @@ services:
   scm-auth:
     <<: *core-service
     build:
-      context: ./scm-auth
+      context: ./platform/auth
     container_name: scm-auth
     environment:
       <<: *core-service-env
@@ -770,7 +770,7 @@ services:
   scm-system:
     <<: *core-service
     build:
-      context: ./scm-system
+      context: ./platform/system
     container_name: scm-system
     environment:
       <<: *core-service-env
@@ -793,7 +793,7 @@ services:
   scm-product:
     <<: *core-service
     build:
-      context: ./scm-product
+      context: ./platform/product
     container_name: scm-product
     environment:
       <<: *core-service-env
@@ -810,7 +810,7 @@ services:
   scm-inventory:
     <<: *core-service
     build:
-      context: ./scm-inventory
+      context: ./platform/inventory
     container_name: scm-inventory
     environment:
       <<: *core-service-env
@@ -825,7 +825,7 @@ services:
   scm-order:
     <<: *core-service
     build:
-      context: ./scm-order
+      context: ./scm/order
     container_name: scm-order
     environment:
       <<: *core-service-env
@@ -840,7 +840,7 @@ services:
   scm-warehouse:
     <<: *core-service
     build:
-      context: ./scm-warehouse
+      context: ./scm/warehouse
     container_name: scm-warehouse
     environment:
       <<: *core-service-env
@@ -855,7 +855,7 @@ services:
   scm-logistics:
     <<: *core-service
     build:
-      context: ./scm-logistics
+      context: ./lms/tms
     container_name: scm-logistics
     environment:
       <<: *core-service-env
@@ -870,7 +870,7 @@ services:
   scm-supplier:
     <<: *core-service
     build:
-      context: ./scm-supplier
+      context: ./scm/supplier
     container_name: scm-supplier
     environment:
       <<: *core-service-env
@@ -885,7 +885,7 @@ services:
   scm-purchase:
     <<: *core-service
     build:
-      context: ./scm-purchase
+      context: ./scm/purchase
     container_name: scm-purchase
     environment:
       <<: *core-service-env
@@ -900,7 +900,7 @@ services:
   scm-finance:
     <<: *core-service
     build:
-      context: ./scm-finance
+      context: ./scm/finance
     container_name: scm-finance
     environment:
       <<: *core-service-env
@@ -915,7 +915,7 @@ services:
   scm-approval:
     <<: *core-service
     build:
-      context: ./scm-approval
+      context: ./platform/approval
     container_name: scm-approval
     environment:
       <<: *core-service-env
@@ -930,7 +930,7 @@ services:
   scm-message:
     <<: *core-service
     build:
-      context: ./scm-message
+      context: ./platform/message
     container_name: scm-message
     environment:
       <<: *core-service-env
@@ -945,7 +945,7 @@ services:
   scm-audit:
     <<: *core-service
     build:
-      context: ./scm-audit
+      context: ./platform/audit
     container_name: scm-audit
     environment:
       <<: *core-service-env
@@ -960,7 +960,7 @@ services:
   scm-notify:
     <<: *core-service
     build:
-      context: ./scm-notify
+      context: ./platform/notify
     container_name: scm-notify
     environment:
       <<: *core-service-env
@@ -975,7 +975,7 @@ services:
   scm-tenant:
     <<: *core-service
     build:
-      context: ./scm-tenant
+      context: ./platform/tenant
     container_name: scm-tenant
     environment:
       <<: *core-service-env
@@ -990,7 +990,7 @@ services:
   scm-document:
     <<: *core-service
     build:
-      context: ./scm-document
+      context: ./platform/document
     container_name: scm-document
     environment:
       <<: *core-service-env
@@ -1005,7 +1005,7 @@ services:
   scm-file:
     <<: *core-service
     build:
-      context: ./scm-file
+      context: ./platform/file
     container_name: scm-file
     environment:
       <<: *core-service-env
