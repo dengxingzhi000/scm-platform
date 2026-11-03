@@ -32,8 +32,8 @@ psql --version     # 应显示 PostgreSQL 16+
 
 ```bash
 # 克隆仓库
-git checkout https://github.com/your-org/scm-platform.git
-cd scm-platform
+git checkout https://github.com/your-org/cognora-aura-platform.git
+cd cognora-aura-platform
 
 # 切换到开发分支
 git checkout develop

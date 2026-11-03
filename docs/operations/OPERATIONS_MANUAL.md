@@ -165,7 +165,7 @@ Nginx (2 节点)
 
 **配置文件结构**:
 ```
-scm-platform/
+cognora-aura-platform/
 ├── common.yaml             # 公共配置
 ├── scm-gateway.yaml        # 网关配置
 ├── scm-order.yaml          # 订单服务配置
@@ -240,7 +240,7 @@ export NACOS_SERVER_ADDR="192.168.1.101:8848,192.168.1.102:8848,192.168.1.103:88
 5. **Database**: QPS, 慢查询, 连接池
 6. **JVM**: 堆内存, GC 次数, GC 时间
 
-访问地址: http://grafana.scm-platform.com:3000
+访问地址: http://grafana.cognora-aura-platform.com:3000
 
 ### 5.3 告警规则
 
@@ -248,7 +248,7 @@ export NACOS_SERVER_ADDR="192.168.1.101:8848,192.168.1.102:8848,192.168.1.103:88
 ```yaml
 # alertmanager.yml
 groups:
-  - name: scm-platform-alerts
+  - name: cognora-aura-platform-alerts
     interval: 30s
     rules:
       # 服务不可用告警
@@ -357,7 +357,7 @@ userId:"123e4567-e89b-12d3-a456-426614174000"
 
 ```bash
 # logrotate 配置
-/var/log/scm-platform/*.log {
+/var/log/cognora-aura-platform/*.log {
     daily
     rotate 30
     compress

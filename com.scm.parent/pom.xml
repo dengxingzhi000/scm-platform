@@ -3,13 +3,13 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.cognora</groupId>
-  <artifactId>scm-platform</artifactId>
+  <artifactId>cognora-aura-platform</artifactId>
   <version>1.0.0-beta.1</version>
   <packaging>pom</packaging>
 
   <name>CognoraAura Platform</name>
   <description>Enterprise Supply Chain Management Platform based on Spring Cloud 2025</description>
-  <url>https://github.com/dengxingzhi000/scm-platform</url>
+  <url>https://github.com/dengxingzhi000/cognora-aura-platform</url>
 
   <modules>
     <!-- Internal artifact version alignment -->

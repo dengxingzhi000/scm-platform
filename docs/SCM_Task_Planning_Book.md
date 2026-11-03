@@ -1315,7 +1315,7 @@ The security posture exceeds most commercial products at the same price point.
 | T082 | Kubernetes Deployment manifest: `scm-auth`, `scm-gateway` | P1 | 2 | — | TODO |
 | T083 | Kubernetes Deployment manifest: `scm-order`, `scm-inventory` | P1 | 1 | T082 | TODO |
 | T084 | Kubernetes Deployment manifests: remaining 11 services | P1 | 3 | T082 | TODO |
-| T085 | Helm chart: `scm-platform` umbrella chart with sub-charts per service | P1 | 4 | T082 | TODO |
+| T085 | Helm chart: `cognora-aura-platform` umbrella chart with sub-charts per service | P1 | 4 | T082 | TODO |
 | T086 | Helm values: `values-dev.yaml`, `values-staging.yaml`, `values-prod.yaml` | P1 | 2 | T085 | TODO |
 | T087 | Grafana dashboard: orders/hour, revenue/day, cancellation rate | P2 | 2 | — | TODO |
 | T088 | Grafana dashboard: inventory health — low stock, stockout count, turnover | P2 | 2 | — | TODO |

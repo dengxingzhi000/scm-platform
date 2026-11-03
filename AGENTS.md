@@ -89,7 +89,7 @@ dev box:
 |---|---|
 | Host | `192.168.0.117` |
 | User | `root` |
-| Password | 见密码管理器条目 `scm-platform / prod-vm`（不写进仓库） |
+| Password | 见密码管理器条目 `cognora-aura-platform / prod-vm`（不写进仓库） |
 
 ```bash
 ssh root@192.168.0.117
@@ -682,7 +682,7 @@ both**, so a `scm-*-deployment.yml` glob does not cover everything:
 
 No manifests exist for the e-commerce layer (member, promotion, payment,
 order-center, fulfillment, search, analytics). Helm charts live in
-`deploy/helm/scm-platform`, ArgoCD in `deploy/argocd`. Health endpoint:
+`deploy/helm/cognora-aura-platform`, ArgoCD in `deploy/argocd`. Health endpoint:
 `/actuator/health` on each service's port.
 
 ## CI

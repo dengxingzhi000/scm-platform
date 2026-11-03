@@ -6,7 +6,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <!--
-      Standalone on purpose: it must not inherit scm-platform, because the
+      Standalone on purpose: it must not inherit cognora-aura-platform, because the
       platform parent will import this BOM once the repository is split into
       the platform/scm/ecom/lms reactors.
     -->

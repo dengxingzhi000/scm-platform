@@ -4,7 +4,7 @@
 
     <parent>
         <groupId>com.cognora</groupId>
-        <artifactId>scm-platform</artifactId>
+        <artifactId>cognora-aura-platform</artifactId>
         <version>1.0.0-beta.1</version>
         <relativePath>../../com.scm.parent/pom.xml</relativePath>
     </parent>

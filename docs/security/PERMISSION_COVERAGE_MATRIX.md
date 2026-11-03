@@ -1,6 +1,6 @@
 # API 权限覆盖矩阵与补齐方案
 
-- 核查对象：`d:\ProgramProject\scm-platform` 当前工作区（不是 HEAD）
+- 核查对象：`d:\ProgramProject\cognora-aura-platform` 当前工作区（不是 HEAD）
 - 核查日期：2026-11-02
 - 当前分支：`feat/supplier-frontend-completion`（工作区有大量未提交重构，本报告按磁盘上的当前代码统计）
 - 本轮只读核查；新增文件仅限权限登记 SQL 与本报告，未修改任何 Java 代码，未执行 git commit / push。
@@ -122,7 +122,7 @@
 
 ## 3. 权限登记补齐产出
 
-新增脚本：[019_api_permission_coverage.sql](file:///d:/ProgramProject/scm-platform/scripts/db/seed/019_api_permission_coverage.sql)（目标库 `db_permission`，依赖 `002_rbac_permission.sql`）。
+新增脚本：[019_api_permission_coverage.sql](file:///d:/ProgramProject/cognora-aura-platform/scripts/db/seed/019_api_permission_coverage.sql)（目标库 `db_permission`，依赖 `002_rbac_permission.sql`）。
 
 - 权限码总数：**553** 条（管理端 537 + 混合 16），命名沿用 `domain:resource:action`，例如 `order:order:update-status`、`tenant:tenant:delete`。
 - 可直接生效：**203** 条 literal 路径（`api_path` 是字面量，当前精确匹配即可命中）。

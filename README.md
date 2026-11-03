@@ -9,10 +9,10 @@
 **Twenty-six backend services. One laptop. Real distributed transactions,
 Redis-hot inventory, and a Next.js control tower.**
 
-[![Build](https://img.shields.io/github/actions/workflow/status/dengxingzhi000/scm-platform/maven-build.yml?branch=master&style=flat-square&logo=github&label=build)](https://github.com/dengxingzhi000/scm-platform/actions)
-[![Stars](https://img.shields.io/github/stars/dengxingzhi000/scm-platform?color=ffcb47&labelColor=black&style=flat-square&logo=github)](https://github.com/dengxingzhi000/scm-platform/stargazers)
-[![Forks](https://img.shields.io/github/forks/dengxingzhi000/scm-platform?color=8ae8ff&labelColor=black&style=flat-square&logo=github)](https://github.com/dengxingzhi000/scm-platform/network/members)
-[![Issues](https://img.shields.io/github/issues/dengxingzhi000/scm-platform?color=ff80eb&labelColor=black&style=flat-square&logo=github)](https://github.com/dengxingzhi000/scm-platform/issues)
+[![Build](https://img.shields.io/github/actions/workflow/status/dengxingzhi000/cognora-aura-platform/maven-build.yml?branch=master&style=flat-square&logo=github&label=build)](https://github.com/dengxingzhi000/cognora-aura-platform/actions)
+[![Stars](https://img.shields.io/github/stars/dengxingzhi000/cognora-aura-platform?color=ffcb47&labelColor=black&style=flat-square&logo=github)](https://github.com/dengxingzhi000/cognora-aura-platform/stargazers)
+[![Forks](https://img.shields.io/github/forks/dengxingzhi000/cognora-aura-platform?color=8ae8ff&labelColor=black&style=flat-square&logo=github)](https://github.com/dengxingzhi000/cognora-aura-platform/network/members)
+[![Issues](https://img.shields.io/github/issues/dengxingzhi000/cognora-aura-platform?color=ff80eb&labelColor=black&style=flat-square&logo=github)](https://github.com/dengxingzhi000/cognora-aura-platform/issues)
 [![Services](https://img.shields.io/badge/services-26-blue?style=flat-square)](#modules)
 [![Java](https://img.shields.io/badge/Java-21-007396?logo=openjdk&logoColor=white&style=flat-square)](https://openjdk.org/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.x-6DB33F?logo=springboot&logoColor=white&style=flat-square)](https://spring.io/projects/spring-boot)
@@ -313,7 +313,7 @@ names the constraint that actually shapes the design, not just the config.
 ### Project structure
 
 ```
-scm-platform/
+cognora-aura-platform/
 ├── com.scm.parent/          # Parent POM (dependency management) — always build via -f
 ├── scm-web/                 # Frontend (Next.js 15, React 19, Ant Design 5) — separate npm project
 ├── scm-common/              # Shared libraries (no Spring Boot main)
@@ -460,7 +460,7 @@ kubectl apply -f deploy/k8s/scm-auth-canary-deployment.yml
 kubectl apply -f deploy/k8s/scm-auth-canary-service.yml
 
 # Or use Helm
-helm install scm-platform deploy/helm/scm-platform/
+helm install cognora-aura-platform deploy/helm/cognora-aura-platform/
 
 # ArgoCD GitOps
 kubectl apply -f deploy/argocd/application.yaml
@@ -673,11 +673,11 @@ Report vulnerabilities through [SECURITY.md](./SECURITY.md).
 
 ## Star history
 
-<a href="https://www.star-history.com/?repos=dengxingzhi000%2Fscm-platform&amp;type=date">
+<a href="https://www.star-history.com/?repos=dengxingzhi000%2Fcognora-aura-platform&amp;type=date">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=dengxingzhi000/scm-platform&amp;type=date&amp;theme=dark&amp;legend=top-left" />
-    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=dengxingzhi000/scm-platform&amp;type=date" />
-    <img alt="SCM Platform GitHub star history" src="https://api.star-history.com/chart?repos=dengxingzhi000/scm-platform&amp;type=date" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=dengxingzhi000/cognora-aura-platform&amp;type=date&amp;theme=dark&amp;legend=top-left" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=dengxingzhi000/cognora-aura-platform&amp;type=date" />
+    <img alt="SCM Platform GitHub star history" src="https://api.star-history.com/chart?repos=dengxingzhi000/cognora-aura-platform&amp;type=date" />
   </picture>
 </a>
 
@@ -687,7 +687,7 @@ Report vulnerabilities through [SECURITY.md](./SECURITY.md).
 
 ## Contributing
 
-We'd love your help! [Open an issue](https://github.com/dengxingzhi000/scm-platform/issues)
+We'd love your help! [Open an issue](https://github.com/dengxingzhi000/cognora-aura-platform/issues)
 to report a bug or suggest a feature, or send a pull request to improve the code
 or docs.
 

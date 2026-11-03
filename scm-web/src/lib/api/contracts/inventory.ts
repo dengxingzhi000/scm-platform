@@ -92,7 +92,7 @@ export interface InventoryStatsResponse {
   normalStockCount?: number;
 }
 
-/** `com.scmcloud.inventory.dto.InvAlertResponse`. */
+/** `com.cognora.platform.inventory.dto.InvAlertResponse`. */
 export interface InvAlertResponse {
   id: string;
   skuId?: string | null;

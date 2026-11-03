@@ -23,7 +23,7 @@ groups:
         annotations:
           summary: "High CQRS query latency detected"
           description: "Method {{ $labels.method }} P95 latency is {{ $value | humanizeDuration }} (threshold: 500ms)"
-          runbook: "https://docs.scm-platform.com/runbooks/high-cqrs-latency"
+          runbook: "https://docs.cognora-aura-platform.com/runbooks/high-cqrs-latency"
 
       # Critical P95 Latency - Critical
       - alert: CriticalCQRSLatency
@@ -39,7 +39,7 @@ groups:
         annotations:
           summary: "CRITICAL: CQRS query latency exceeds 1s"
           description: "Method {{ $labels.method }} P95 latency is {{ $value | humanizeDuration }}"
-          runbook: "https://docs.scm-platform.com/runbooks/critical-cqrs-latency"
+          runbook: "https://docs.cognora-aura-platform.com/runbooks/critical-cqrs-latency"
           action_required: "Immediate investigation required - check database and connection pool"
 
       # P99 Latency Spike
@@ -77,7 +77,7 @@ groups:
         annotations:
           summary: "High CQRS error rate detected"
           description: "Method {{ $labels.method }} error rate is {{ $value | humanizePercentage }} (threshold: 1%)"
-          runbook: "https://docs.scm-platform.com/runbooks/high-error-rate"
+          runbook: "https://docs.cognora-aura-platform.com/runbooks/high-error-rate"
 
       # Critical Error Rate
       - alert: CriticalCQRSErrorRate
@@ -140,7 +140,7 @@ groups:
         annotations:
           summary: "Low cache hit rate detected"
           description: "Cache {{ $labels.cache }} hit rate is {{ $value | humanizePercentage }} (threshold: 60%)"
-          runbook: "https://docs.scm-platform.com/runbooks/low-cache-hit-rate"
+          runbook: "https://docs.cognora-aura-platform.com/runbooks/low-cache-hit-rate"
 
       # Critical Cache Hit Rate
       - alert: CriticalCacheHitRate
@@ -172,7 +172,7 @@ groups:
         annotations:
           summary: "High cache eviction rate detected"
           description: "Cache {{ $labels.cache }} evictions: {{ $value | humanize }} per second"
-          runbook: "https://docs.scm-platform.com/runbooks/high-cache-evictions"
+          runbook: "https://docs.cognora-aura-platform.com/runbooks/high-cache-evictions"
 
       # ========================================
       # Database Connection Pool Alerts
@@ -194,7 +194,7 @@ groups:
         annotations:
           summary: "High database connection pool usage"
           description: "Pool {{ $labels.pool }} usage is {{ $value | humanizePercentage }} (threshold: 85%)"
-          runbook: "https://docs.scm-platform.com/runbooks/high-connection-pool-usage"
+          runbook: "https://docs.cognora-aura-platform.com/runbooks/high-connection-pool-usage"
 
       # Critical Connection Pool Usage
       - alert: CriticalConnectionPoolUsage
@@ -300,7 +300,7 @@ groups:
         annotations:
           summary: "Unusually low CQRS request rate"
           description: "Request rate is {{ $value }} QPS (threshold: 10 QPS)"
-          runbook: "https://docs.scm-platform.com/runbooks/low-request-rate"
+          runbook: "https://docs.cognora-aura-platform.com/runbooks/low-request-rate"
 
       # High Request Rate (Potential Attack)
       - alert: HighCQRSRequestRate
