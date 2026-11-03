@@ -37,11 +37,11 @@ class TenantMybatisAutoConfigurationTest {
     @Test
     void scmTenantKeys_areBoundThroughTheRecordConstructor() {
         runner.withPropertyValues(
-                "scm.tenant.required=false",
-                "scm.tenant.fail-on-parse-error=false",
-                "scm.tenant.exclude-paths[0]=/open/**",
-                "scm.tenant.exclude-tables[0]=cfg_shared_view",
-                "scm.tenant.exclude-tables[1]=report_*")
+                "cognora.tenant.required=false",
+                "cognora.tenant.fail-on-parse-error=false",
+                "cognora.tenant.exclude-paths[0]=/open/**",
+                "cognora.tenant.exclude-tables[0]=cfg_shared_view",
+                "cognora.tenant.exclude-tables[1]=report_*")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     TenantProperties properties = context.getBean(TenantProperties.class);
@@ -55,7 +55,7 @@ class TenantMybatisAutoConfigurationTest {
 
     @Test
     void sqlIsolationCanBeSwitchedOffWithoutDroppingTheFilter() {
-        runner.withPropertyValues("scm.tenant.sql-isolation=false").run(context -> {
+        runner.withPropertyValues("cognora.tenant.sql-isolation=false").run(context -> {
             assertThat(context).hasNotFailed();
             assertThat(context).doesNotHaveBean(Interceptor.class);
             assertThat(context).hasSingleBean(TenantProperties.class);

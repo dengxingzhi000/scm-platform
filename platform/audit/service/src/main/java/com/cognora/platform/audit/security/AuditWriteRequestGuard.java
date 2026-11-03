@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
  * 签名的内部调用，防止任意登录用户伪造/删除审计记录。校验算法与拦截器保持一致：
  * <pre>signature = HMAC-SHA256(secretKey, timestamp + nonce + appId + uri + sortedParams)</pre>
  *
- * <p>未校验 nonce 重放：scm-audit 不依赖 Redis。时间戳窗口限制为 5 分钟。
+ * <p>未校验 nonce 重放：platform-audit 不依赖 Redis。时间戳窗口限制为 5 分钟。
  */
 @Slf4j
 @Component

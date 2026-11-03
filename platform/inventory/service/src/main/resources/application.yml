@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: scm-inventory
+    name: platform-inventory
 
   # Nacos service discovery and config center
   cloud:
@@ -154,7 +154,7 @@ xxl:
     admin:
       addresses: ${XXL_JOB_ADMIN:http://localhost:8088/xxl-job-admin}
     executor:
-      appname: scm-inventory-executor
+      appname: platform-inventory-executor
       address:
       ip:
       port: 9998
@@ -163,7 +163,7 @@ xxl:
     accessToken: default_token
 
 # Logging
-frog:
+cognora:
   security:
     headers:
       content-type-options-enabled: true
@@ -180,7 +180,7 @@ integration:
 notify:
   request-topic: ${NOTIFY_REQUEST_TOPIC:scm.notify.events}
 
-scm:
+cognora:
   inventory:
     alert:
       # Comma-separated user ids that receive stock alerts when the alert row names none.

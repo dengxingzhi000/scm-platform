@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: gateway-service
+    name: platform-gateway
   cloud:
     nacos:
       server-addr: ${NACOS_SERVER:127.0.0.1:8848}

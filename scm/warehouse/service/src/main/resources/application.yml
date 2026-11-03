@@ -156,7 +156,7 @@ xxl:
     accessToken: default_token
 
 # Logging
-frog:
+cognora:
   security:
     headers:
       content-type-options-enabled: true

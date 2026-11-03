@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Configuration;
 import java.util.Map;
 
 @Configuration
-@ConditionalOnProperty(name = "scm.cache.two-level.enabled", havingValue = "true")
+@ConditionalOnProperty(name = "cognora.cache.two-level.enabled", havingValue = "true")
 public class CacheMetricsConfig {
 
     @Bean

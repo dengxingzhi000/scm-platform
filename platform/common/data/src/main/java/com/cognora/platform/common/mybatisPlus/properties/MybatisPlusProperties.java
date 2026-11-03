@@ -5,7 +5,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 @Component
-@ConfigurationProperties(prefix = "frog.mybatis")
+@ConfigurationProperties(prefix = "cognora.mybatis")
 @Data
 public class MybatisPlusProperties {
     /**

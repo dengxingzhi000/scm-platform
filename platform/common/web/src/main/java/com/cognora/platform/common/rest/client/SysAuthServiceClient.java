@@ -47,7 +47,7 @@ public interface SysAuthServiceClient {
      */
     @PostExchange("/force-logout/{userId}")
     @SentinelResource(
-        value = "auth-service:forceLogout",
+        value = "platform-auth:forceLogout",
         fallback = "forceLogoutFallback"
     )
     ApiResponse<Void> forceLogout(

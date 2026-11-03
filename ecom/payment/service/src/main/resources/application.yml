@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: scm-payment
+    name: ecom-payment
 
   cloud:
     nacos:
@@ -63,7 +63,7 @@ payment:
 
 # 支付渠道回调不带平台租户头，验签由渠道完成；放行回调路径的租户校验，
 # 其余接口仍要求 X-Tenant-Id。
-scm:
+cognora:
   tenant:
     exclude-paths:
       - /actuator/**

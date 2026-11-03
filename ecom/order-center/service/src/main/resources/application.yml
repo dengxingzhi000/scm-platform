@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: scm-order-center
+    name: ecom-order-center
 
   cloud:
     nacos:

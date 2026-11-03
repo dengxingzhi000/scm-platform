@@ -6,7 +6,7 @@ import org.springframework.web.service.annotation.HttpExchange;
 import org.springframework.web.service.annotation.PostExchange;
 
 /**
- * Internal client for scm-audit's record endpoint. The shared RestClient interceptor forwards the
+ * Internal client for platform-audit's record endpoint. The shared RestClient interceptor forwards the
  * caller's JWT, tenant and device headers, so the audit service can authenticate the write.
  */
 @HttpExchange("/sys-audit-log")

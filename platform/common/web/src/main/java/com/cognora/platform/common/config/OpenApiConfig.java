@@ -42,7 +42,7 @@ public class OpenApiConfig {
     @Value("${server.port:8080}")
     private int serverPort;
 
-    @Value("${scm.openapi.server-url:}")
+    @Value("${cognora.openapi.server-url:}")
     private String serverUrl;
 
     @Bean

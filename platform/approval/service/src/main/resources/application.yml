@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: scm-approval
+    name: platform-approval
 
   # Nacos service discovery and config center
   cloud:
@@ -116,7 +116,7 @@ management:
       prometheus:
         enabled: true
 
-frog:
+cognora:
   security:
     headers:
       content-type-options-enabled: true

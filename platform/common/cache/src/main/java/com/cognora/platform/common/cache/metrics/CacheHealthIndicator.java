@@ -13,7 +13,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Component
-@ConditionalOnProperty(name = "scm.cache.two-level.enabled", havingValue = "true")
+@ConditionalOnProperty(name = "cognora.cache.two-level.enabled", havingValue = "true")
 @RequiredArgsConstructor
 public class CacheHealthIndicator implements HealthIndicator {
     private final RedisTemplate<String, Object> redisTemplate;

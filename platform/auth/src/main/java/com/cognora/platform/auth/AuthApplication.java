@@ -25,7 +25,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @EnableTransactionManagement
 @EnableCaching
 @EnableScheduling
-// Scanned "com.cognora" once, which pulled in scm-audit-service's commandService while its
+// Scanned "com.cognora" once, which pulled in platform-audit-service's commandService while its
 // mapper package was not in @MapperScan, so the context failed with "No qualifying bean of type
 // SysAuditLogMapper". Keep the scan to this service plus the shared library.
 @ComponentScan(basePackages = {"com.cognora.platform.auth", "com.cognora.platform.common"})

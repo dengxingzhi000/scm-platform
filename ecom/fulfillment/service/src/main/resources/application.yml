@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: scm-fulfillment
+    name: ecom-fulfillment
 
   cloud:
     nacos:

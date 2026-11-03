@@ -122,7 +122,7 @@ monitoring:
         count: 50  # 每秒最多 50 次
         control-behavior: 0  # 直接拒绝
 
-frog:
+cognora:
   security:
     headers:
       enabled: true

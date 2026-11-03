@@ -87,7 +87,7 @@ public class RedisConfig {
     }
 
     @Bean
-    @ConditionalOnProperty(name = "scm.cache.two-level.enabled", havingValue = "true")
+    @ConditionalOnProperty(name = "cognora.cache.two-level.enabled", havingValue = "true")
     public RedisMessageListenerContainer twoLevelCacheListenerContainer(
             RedisConnectionFactory connectionFactory,
             TwoLevelCacheInvalidationListener twoLevelListener) {
@@ -99,7 +99,7 @@ public class RedisConfig {
 
     @Bean
     @Primary
-    @ConditionalOnProperty(name = "scm.cache.two-level.enabled", havingValue = "true")
+    @ConditionalOnProperty(name = "cognora.cache.two-level.enabled", havingValue = "true")
     public TwoLevelCacheManager twoLevelCacheManager(RedisTemplate<String, Object> redisTemplate) {
         return new TwoLevelCacheManager(redisTemplate, Duration.ofHours(1), CACHE_TTLS, 10_000L);
     }

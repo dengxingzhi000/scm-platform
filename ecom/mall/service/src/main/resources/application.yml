@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: scm-mall
+    name: ecom-mall
 
   cloud:
     nacos:

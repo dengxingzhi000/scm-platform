@@ -27,7 +27,7 @@ import java.util.UUID;
  *   <li>降级备用：RestClient + @HttpExchange (SysPermissionServiceClient) - HTTP REST</li>
  * </ul>
  *
- * <p>对应 system-service 的 SysPermissionController 端点
+ * <p>对应 platform-system 的 SysPermissionController 端点
  *
  * <p><strong>安全特性：Fail-Closed 模式</strong>
  * <ul>

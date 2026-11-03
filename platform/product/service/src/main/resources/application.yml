@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: scm-product
+    name: platform-product
 
   # Nacos 服务发现与配置中心
   cloud:
@@ -203,7 +203,7 @@ xxl:
     admin:
       addresses: ${XXL_JOB_ADMIN:http://localhost:8088/xxl-job-admin}
     executor:
-      appname: scm-product-executor
+      appname: platform-product-executor
       address:
       ip:
       port: 9997
@@ -211,7 +211,7 @@ xxl:
       logretentiondays: 30
     accessToken: default_token
 
-frog:
+cognora:
   security:
     headers:
       content-type-options-enabled: true

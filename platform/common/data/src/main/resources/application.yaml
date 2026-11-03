@@ -1,5 +1,5 @@
 
-frog:
+cognora:
   mybatis:
     pagination-max-limit: 1000
 

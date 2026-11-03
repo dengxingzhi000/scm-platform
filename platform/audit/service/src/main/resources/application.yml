@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: scm-audit
+    name: platform-audit
 
   # Nacos service discovery and config center
   cloud:
@@ -128,7 +128,7 @@ management:
       prometheus:
         enabled: true
 
-frog:
+cognora:
   security:
     headers:
       content-type-options-enabled: true

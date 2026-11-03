@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
  * Security headers toggle configuration.
  */
 @Component
-@ConfigurationProperties(prefix = "frog.security.headers")
+@ConfigurationProperties(prefix = "cognora.security.headers")
 @Data
 public class SecurityHeadersProperties {
 

@@ -5,7 +5,7 @@ spring:
   main:
     web-application-type: reactive
   application:
-    name: gateway-service
+    name: platform-gateway
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration

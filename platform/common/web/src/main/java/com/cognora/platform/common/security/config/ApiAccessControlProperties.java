@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Component
-@ConfigurationProperties(prefix = "frog.security.api-filter")
+@ConfigurationProperties(prefix = "cognora.security.api-filter")
 @Data
 public class ApiAccessControlProperties {
 

@@ -14,7 +14,7 @@ server:
 
 spring:
   application:
-    name: auth-service
+    name: platform-auth
   config:
     import:
       - optional:nacos:${spring.application.name}.yaml?server-addr=${spring.cloud.nacos.server-addr}

@@ -25,7 +25,7 @@ public class TenantMybatisAutoConfiguration {
     @Bean
     @Order(Ordered.LOWEST_PRECEDENCE)
     @ConditionalOnMissingBean(TenantInterceptor.class)
-    @ConditionalOnProperty(prefix = "scm.tenant", name = "sql-isolation", matchIfMissing = true)
+    @ConditionalOnProperty(prefix = "cognora.tenant", name = "sql-isolation", matchIfMissing = true)
     public Interceptor tenantInterceptor(TenantProperties properties) {
         return new TenantInterceptor(properties);
     }

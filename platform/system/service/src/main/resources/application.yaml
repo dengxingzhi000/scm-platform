@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: system-service
+    name: platform-system
   config:
     import:
       - optional:nacos:${spring.application.name}.yaml?server-addr=${spring.cloud.nacos.server-addr}
@@ -321,7 +321,7 @@ management:
       hikaricp: true
       logback: true
 
-frog:
+cognora:
   security:
     headers:
       content-type-options-enabled: true
@@ -355,7 +355,7 @@ security:
     enabled: true
 
 # 平台级共享表（字典、状态机）不参与租户过滤：它们以 tenant_id=NULL 存储。
-scm:
+cognora:
   tenant:
     exclude-tables:
       - sys_dict_type

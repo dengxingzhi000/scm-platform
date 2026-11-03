@@ -58,13 +58,13 @@ public class PlatformFeeServiceImpl implements IPlatformFeeService {
     /**
      * 存储超量单价（元/GB）
      */
-    @Value("${scm.platform-fee.storage-unit-price:0.50}")
+    @Value("${cognora.platform-fee.storage-unit-price:0.50}")
     private BigDecimal storageUnitPrice;
 
     /**
      * API 超量单价（元/次）
      */
-    @Value("${scm.platform-fee.api-unit-price:0.01}")
+    @Value("${cognora.platform-fee.api-unit-price:0.01}")
     private BigDecimal apiUnitPrice;
 
     @Override

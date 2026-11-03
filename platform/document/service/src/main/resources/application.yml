@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: scm-document
+    name: platform-document
   datasource:
     dynamic:
       primary: master

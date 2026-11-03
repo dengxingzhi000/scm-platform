@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: scm-tenant
+    name: platform-tenant
 
   # Nacos service discovery and config center
   cloud:
@@ -51,7 +51,7 @@ xxl:
     admin:
       addresses: ${XXL_JOB_ADMIN_ADDR:http://localhost:8088/xxl-job-admin}
     executor:
-      appname: scm-tenant-executor
+      appname: platform-tenant-executor
       port: 9993
       logpath: ${user.home}/logs/scm-tenant/xxl-job
       logretentiondays: 30
@@ -128,7 +128,7 @@ management:
       prometheus:
         enabled: true
 
-frog:
+cognora:
   security:
     headers:
       content-type-options-enabled: true

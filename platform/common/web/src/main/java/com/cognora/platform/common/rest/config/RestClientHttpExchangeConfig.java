@@ -85,9 +85,9 @@ public class RestClientHttpExchangeConfig {
     @Bean
     @Lazy
     public SysUserServiceClient sysUserServiceClient(RestClient.Builder restClientBuilder) {
-        // Users live in scm-system (db_user), which registers as "system-service"; the old
+        // Users live in scm-system (db_user), which registers as "platform-system"; the old
         // "user-service" name never resolved, so every lookup fell through to http://user-service.
-        String baseUrl = resolveServiceUrl("system-service");
+        String baseUrl = resolveServiceUrl("platform-system");
         log.info("Creating SysUserServiceClient with baseUrl: {}", baseUrl);
 
         RestClient restClient = restClientBuilder
@@ -107,7 +107,7 @@ public class RestClientHttpExchangeConfig {
     @Bean
     @Lazy
     public SysAuthServiceClient sysAuthServiceClient(RestClient.Builder restClientBuilder) {
-        String baseUrl = resolveServiceUrl("auth-service");
+        String baseUrl = resolveServiceUrl("platform-auth");
         log.info("Creating SysAuthServiceClient with baseUrl: {}", baseUrl);
 
         RestClient restClient = restClientBuilder
@@ -127,9 +127,9 @@ public class RestClientHttpExchangeConfig {
     @Bean
     @Lazy
     public SysPermissionServiceClient sysPermissionServiceClient(RestClient.Builder restClientBuilder) {
-        // /api/system/permissions/** is served by scm-system ("system-service"), not a standalone
+        // /api/system/permissions/** is served by scm-system ("platform-system"), not a standalone
         // permission service; ApiAccessControlFilter fails closed, so a wrong name denied every API.
-        String baseUrl = resolveServiceUrl("system-service");
+        String baseUrl = resolveServiceUrl("platform-system");
         log.info("Creating SysPermissionServiceClient with baseUrl: {}", baseUrl);
 
         RestClient restClient = restClientBuilder
@@ -144,12 +144,12 @@ public class RestClientHttpExchangeConfig {
     }
 
     /**
-     * Client for scm-audit's record endpoint ({@code POST /sys-audit-log}).
+     * Client for platform-audit's record endpoint ({@code POST /sys-audit-log}).
      */
     @Bean
     @Lazy
     public SysAuditServiceClient sysAuditServiceClient(RestClient.Builder restClientBuilder) {
-        String baseUrl = resolveServiceUrl("scm-audit");
+        String baseUrl = resolveServiceUrl("platform-audit");
         log.info("Creating SysAuditServiceClient with baseUrl: {}", baseUrl);
 
         RestClient restClient = restClientBuilder

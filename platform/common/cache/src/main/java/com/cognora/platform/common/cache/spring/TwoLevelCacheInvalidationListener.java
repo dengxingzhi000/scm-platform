@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 import java.nio.charset.StandardCharsets;
 
 @Component
-@ConditionalOnProperty(name = "scm.cache.two-level.enabled", havingValue = "true")
+@ConditionalOnProperty(name = "cognora.cache.two-level.enabled", havingValue = "true")
 @RequiredArgsConstructor
 @Slf4j
 public class TwoLevelCacheInvalidationListener implements MessageListener {

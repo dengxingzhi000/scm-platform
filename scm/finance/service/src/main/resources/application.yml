@@ -116,7 +116,7 @@ management:
       prometheus:
         enabled: true
 
-frog:
+cognora:
   security:
     headers:
       content-type-options-enabled: true

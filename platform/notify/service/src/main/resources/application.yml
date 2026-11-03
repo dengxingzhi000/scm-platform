@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: scm-notify
+    name: platform-notify
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
     producer:
@@ -87,7 +87,7 @@ management:
       prometheus:
         enabled: true
 
-frog:
+cognora:
   security:
     headers:
       content-type-options-enabled: true

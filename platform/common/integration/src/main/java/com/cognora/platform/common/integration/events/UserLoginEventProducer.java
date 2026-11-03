@@ -23,7 +23,7 @@ public class UserLoginEventProducer {
                 .build();
         MessageEnvelope<UserLoginEvent> envelope = MessageEnvelope.of(
                         "auth.user.login",
-                        "auth-service",
+                        "platform-auth",
                         event)
                 .toBuilder()
                 .subject(username)

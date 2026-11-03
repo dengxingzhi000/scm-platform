@@ -5,7 +5,7 @@ server:
 
 spring:
   application:
-    name: scm-file
+    name: platform-file
   datasource:
     dynamic:
       primary: master

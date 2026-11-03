@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: scm-message
+    name: platform-message
   datasource:
     dynamic:
       primary: master

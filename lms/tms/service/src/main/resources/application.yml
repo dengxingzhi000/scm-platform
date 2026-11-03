@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: scm-logistics
+    name: lms-tms
 
   # Nacos service discovery and config center
   cloud:
@@ -148,7 +148,7 @@ xxl:
     admin:
       addresses: ${XXL_JOB_ADMIN:http://localhost:8088/xxl-job-admin}
     executor:
-      appname: scm-logistics-executor
+      appname: lms-tms-executor
       address:
       ip:
       port: 9995
@@ -157,7 +157,7 @@ xxl:
     accessToken: default_token
 
 # Logging
-frog:
+cognora:
   security:
     headers:
       content-type-options-enabled: true

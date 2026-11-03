@@ -29,7 +29,7 @@ public class InventoryAlertNotificationPublisher {
     public InventoryAlertNotificationPublisher(
             KafkaTemplate<String, Object> kafkaTemplate,
             @Value("${notify.request-topic:scm.notify.events}") String topic,
-            @Value("${scm.inventory.alert.notify-user-ids:}") String configuredRecipients) {
+            @Value("${cognora.inventory.alert.notify-user-ids:}") String configuredRecipients) {
         this.kafkaTemplate = kafkaTemplate;
         this.topic = topic;
         this.configuredRecipients = split(configuredRecipients);

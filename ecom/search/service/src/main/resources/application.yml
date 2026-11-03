@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: scm-search
+    name: ecom-search
 
   cloud:
     nacos:

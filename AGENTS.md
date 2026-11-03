@@ -176,9 +176,9 @@ Package roots are `com.cognora.platform.*`, `com.cognora.scm.*`,
 `com.cognora.platform.common.response.ApiResponse` in `platform/common/core`);
 groupId is `com.cognora`. The Java packages were renamed away from `com.frog`, but the
 **Spring config prefixes were not** — `@ConfigurationProperties` still use
-`frog.security.headers`, `frog.security.sql-filter`,
-`frog.security.https-redirect`, `frog.security.api-filter` and `frog.mybatis`.
-New YAML must keep using `frog.*`.
+`cognora.security.headers`, `cognora.security.sql-filter`,
+`cognora.security.https-redirect`, `cognora.security.api-filter` and `cognora.mybatis`.
+New YAML must keep using `cognora.*`.
 
 ## Patterns that shape the code
 
@@ -187,7 +187,7 @@ New YAML must keep using `frog.*`.
 1. `TenantFilter` (`OncePerRequestFilter`, `HIGHEST_PRECEDENCE + 10`) reads the
    tenant UUID from the `X-Tenant-Id` header (or `Tenant-Id`, or the `tenantId`
    query param) and sets it on the context. If it is missing and
-   `scm.tenant.required=true` (the default) it throws `TenantParseException`.
+   `cognora.tenant.required=true` (the default) it throws `TenantParseException`.
    It clears the context in a `finally`.
 2. `TenantContextHolder` is a plain `ThreadLocal<UUID>`. Prefer
    `getRequiredTenantId()` — `getTenantId()` returns `null` silently.
@@ -195,7 +195,7 @@ New YAML must keep using `frog.*`.
    `<alias_or_table>.tenant_id = '<uuid>'`. It is registered by
    `TenantMybatisAutoConfiguration` (listed in `platform/common/core`'s
    `AutoConfiguration.imports`) and can be switched off per service with
-   `scm.tenant.sql-isolation=false`. Details that matter when you touch it:
+   `cognora.tenant.sql-isolation=false`. Details that matter when you touch it:
    - **Ordering is load-bearing.** `MybatisPlusConfig.mybatisPlusInterceptor`
      carries `@Order(0)` and the tenant plugin `@Order(LOWEST_PRECEDENCE)`;
      MyBatis wraps plugins in registration order, so the tenant rewrite must be
@@ -208,7 +208,7 @@ New YAML must keep using `frog.*`.
    - Skipped tables = the tenant registry plus the framework tables whose schema
      the platform does not own (`undo_log`, `flyway_schema_history`, `qrtz_*`,
      `xxl_job_*`, `act_*`, `flw_*`). Add to that set with
-     `scm.tenant.exclude-tables` (a trailing `*` matches a prefix).
+     `cognora.tenant.exclude-tables` (a trailing `*` matches a prefix).
    - Known holes: only the driving table of a JOIN gets the predicate (it logs a
      warning), and a subquery in `FROM` is not filtered.
    - The two `db_audit` log tables are filtered: they carry `tenant_id` via
@@ -370,7 +370,7 @@ chain bypass advice entirely — answer through
   set in `scm-auth` only), `security.mtls.enabled` (needs `certificates/*.p12`),
   `security.oauth2.pkce.enabled`, `security.permission-checker.enabled`
   (set in `scm-system`), `tenant.quota-checker.enabled`,
-  `scm.cache.two-level.enabled` and `datasync.enabled` (default off since its
+  `cognora.cache.two-level.enabled` and `datasync.enabled` (default off since its
   `KafkaTemplate<String,String>` injection can never resolve).
 
 ## Database
@@ -550,7 +550,7 @@ npm run test:e2e     # Playwright
   is not a dependency — that path is dead.
 - **Fetching the OpenAPI docs**: every service publishes its document at
   `/api/public/v3/api-docs`, but the request **must carry an `X-Tenant-Id`
-  header** — `TenantFilter` runs with `scm.tenant.required=true` and rejects
+  header** — `TenantFilter` runs with `cognora.tenant.required=true` and rejects
   the request without tenant context (401/500). Swagger UI is disabled by
   default (`springdoc.swagger-ui.enabled=false`), so there is no HTML page —
   only the JSON.
@@ -725,7 +725,7 @@ check, `continue-on-error`), and `docker-build` → `deploy-dev`/`deploy-prod`.
   `JacksonJsonSerializer` / `JacksonJsonDeserializer` (`platform/common/integration`).
 - Do not add schema changes to `scripts/db/microservices/` for a service that
   has Flyway migrations — use `db/migration/V<n>__*.sql`.
-- Do not rename `com.cognora.*` packages or the `frog.*` config prefixes
+- Do not rename `com.cognora.*` packages or the `cognora.*` config prefixes
   without a repo-wide sweep.
 - Do not try to "repair" the mojibake in Chinese comments/strings — 247 files
   carry unrecoverable UTF-8 corruption (`docs/mojibake-report.md` lists them).

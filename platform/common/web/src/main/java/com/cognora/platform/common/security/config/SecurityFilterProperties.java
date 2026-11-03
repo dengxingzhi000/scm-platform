@@ -11,7 +11,7 @@ import java.util.List;
  * 瀹夊叏杩囨护鐩稿叧閰嶇疆
  */
 @Component
-@ConfigurationProperties(prefix = "frog.security.sql-filter")
+@ConfigurationProperties(prefix = "cognora.security.sql-filter")
 @Data
 public class SecurityFilterProperties {
 

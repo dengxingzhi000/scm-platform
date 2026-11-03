@@ -6,11 +6,11 @@ import org.springframework.boot.context.properties.bind.ConstructorBinding;
 import java.util.List;
 
 /**
- * {@code scm.tenant.*}. Records bind through the constructor, so every component is
+ * {@code cognora.tenant.*}. Records bind through the constructor, so every component is
  * boxed and defaulted in the compact constructor — an absent key keeps the previous
  * behaviour instead of silently turning isolation off.
  */
-@ConfigurationProperties(prefix = "scm.tenant")
+@ConfigurationProperties(prefix = "cognora.tenant")
 public record TenantProperties(
         Boolean failOnParseError,
         Boolean required,

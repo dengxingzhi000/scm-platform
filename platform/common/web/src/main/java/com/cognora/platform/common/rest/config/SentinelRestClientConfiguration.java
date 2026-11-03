@@ -59,7 +59,7 @@ public class SentinelRestClientConfiguration {
 
         // 璁よ瘉鏈嶅姟 - 寮哄埗鐧诲嚭锛堟瘡绉掓渶锟?00 娆★級
         FlowRule authLogoutRule = new FlowRule();
-        authLogoutRule.setResource("auth-service:forceLogout");
+        authLogoutRule.setResource("platform-auth:forceLogout");
         authLogoutRule.setGrade(RuleConstant.FLOW_GRADE_QPS);
         authLogoutRule.setCount(100);
         authLogoutRule.setLimitApp("default");
@@ -140,7 +140,7 @@ public class SentinelRestClientConfiguration {
 
         // 璁よ瘉鏈嶅姟 - 寮哄埗鐧诲嚭锛堝紓甯告瘮锟?0% 瑙﹀彂鐔旀柇锟?
         DegradeRule authLogoutDegrade = new DegradeRule();
-        authLogoutDegrade.setResource("auth-service:forceLogout");
+        authLogoutDegrade.setResource("platform-auth:forceLogout");
         authLogoutDegrade.setGrade(RuleConstant.DEGRADE_GRADE_EXCEPTION_RATIO);
         authLogoutDegrade.setCount(0.5);  // 50% 寮傚父锟?
         authLogoutDegrade.setTimeWindow(10);  // 鐔旀柇鏃堕暱 10 锟?
