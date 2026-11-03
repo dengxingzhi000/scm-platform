@@ -125,6 +125,14 @@ public class UserAuthorizationCacheEvictor {
     }
 
     /**
+     * 只失效 {@code userDeptId}。用户更新路径已由 {@link #evictUserAuthorization} 清理
+     * {@code accessibleDeptIds}，这里不再重复整体清理。
+     */
+    public void evictUserDeptId(UUID userId) {
+        evictBare(USER_DEPT_ID, userId);
+    }
+
+    /**
      * 角色/权限定义级别的写操作（角色更新、角色权限授予、权限定义变更），
      * 受影响用户集合无法低成本枚举，因此整体清理用户授权缓存。
      */

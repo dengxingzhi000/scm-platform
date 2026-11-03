@@ -29,8 +29,10 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -82,7 +84,6 @@ class FileControllerTest {
 
     @Test
     void updateShouldKeep404ForMissingFile() {
-        FileUpdateRequest request = new FileUpdateRequest();
         when(fileManagementService.update("file-1", "contract.pdf", "CONTRACT", "order-1"))
                 .thenThrow(new FileNotFoundException("file-1"));
 
@@ -213,6 +214,8 @@ class FileControllerTest {
         controller.download("file-1", response);
 
         assertEquals(404, response.getStatus());
+        // getContentAsString() throws a checked UnsupportedEncodingException,
+        // so read the bytes instead.
         assertEquals(0, response.getContentAsByteArray().length);
     }
 

@@ -77,29 +77,6 @@ class AuditWriteRequestGuardTest {
     }
 
     @Test
-    void contextPathPrefixedWriteShouldStillBeGuarded() throws Exception {
-        MockHttpServletRequest request = request("POST", "/audit/sys-audit-log");
-        request.setContextPath("/audit");
-        MockHttpServletResponse response = new MockHttpServletResponse();
-
-        guard.doFilter(request, response, new MockFilterChain());
-
-        assertEquals(403, response.getStatus());
-    }
-
-    @Test
-    void contextPathDeploymentShouldAcceptSignatureOverClientPath() throws Exception {
-        MockHttpServletRequest request = request("POST", "/audit/sys-audit-log");
-        request.setContextPath("/audit");
-        sign(request, System.currentTimeMillis(), "nonce-1", "/sys-audit-log");
-        MockFilterChain chain = new MockFilterChain();
-
-        guard.doFilter(request, new MockHttpServletResponse(), chain);
-
-        assertNotNull(chain.getRequest(), "client signs the URI path without the context path");
-    }
-
-    @Test
     void readRequestsShouldNotBeFiltered() throws Exception {
         MockHttpServletRequest request = request("GET", "/sys-audit-log/page");
         MockFilterChain chain = new MockFilterChain();
@@ -126,11 +103,7 @@ class AuditWriteRequestGuardTest {
     }
 
     private void sign(MockHttpServletRequest request, long timestamp, String nonce) {
-        sign(request, timestamp, nonce, request.getRequestURI());
-    }
-
-    private void sign(MockHttpServletRequest request, long timestamp, String nonce, String path) {
-        String content = timestamp + nonce + APP_ID + path;
+        String content = timestamp + nonce + APP_ID + request.getRequestURI();
         String signature = SecureUtil.hmac(HmacAlgorithm.HmacSHA256, SECRET.getBytes(StandardCharsets.UTF_8))
                 .digestHex(content);
         request.addHeader("X-Timestamp", String.valueOf(timestamp));

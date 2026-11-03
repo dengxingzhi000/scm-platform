@@ -92,7 +92,7 @@ public class DocumentFileService extends ServiceImpl<DocumentFileMapper, Documen
         return presignedUrl(fileRef, currentTenantId());
     }
 
-    /** 通过 scm-file 解析真实文件元数据 */
+    /** 通过 platform-file 解析真实文件元数据 */
     public Optional<FileMetadataDTO> resolveStorage(String fileRef, String tenantId) {
         return Optional.ofNullable(fileQueryApi.getById(fileRef, tenantId));
     }

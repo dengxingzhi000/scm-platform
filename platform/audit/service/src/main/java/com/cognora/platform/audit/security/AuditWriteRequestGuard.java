@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
  * 签名的内部调用，防止任意登录用户伪造/删除审计记录。校验算法与拦截器保持一致：
  * <pre>signature = HMAC-SHA256(secretKey, timestamp + nonce + appId + uri + sortedParams)</pre>
  *
- * <p>未校验 nonce 重放：platform-audit 不依赖 Redis。时间戳窗口限制为 5 分钟。
+ * <p>未校验 nonce 重放：scm-audit 不依赖 Redis。时间戳窗口限制为 5 分钟。
  */
 @Slf4j
 @Component
@@ -42,20 +42,7 @@ public class AuditWriteRequestGuard extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return !("POST".equals(request.getMethod()) && WRITE_PATH.equals(pathWithinApplication(request)));
-    }
-
-    /**
-     * 调用方按 {@code RestClientRequestSignatureInterceptor} 的算法只签 URI 路径（不含 context path），
-     * 因此服务端也必须用去掉 context path 的路径，否则加 context path 部署时守卫会整体失效。
-     */
-    private static String pathWithinApplication(HttpServletRequest request) {
-        String uri = request.getRequestURI();
-        String contextPath = request.getContextPath();
-        if (contextPath != null && !contextPath.isEmpty() && uri.startsWith(contextPath)) {
-            return uri.substring(contextPath.length());
-        }
-        return uri;
+        return !("POST".equals(request.getMethod()) && WRITE_PATH.equals(request.getRequestURI()));
     }
 
     @Override
@@ -90,7 +77,7 @@ public class AuditWriteRequestGuard extends OncePerRequestFilter {
             return false;
         }
 
-        String signContent = timestamp + nonce + appId + pathWithinApplication(request)
+        String signContent = timestamp + nonce + appId + request.getRequestURI()
                 + sortAndConcatParams(request.getQueryString());
         String expected = SecureUtil.hmac(HmacAlgorithm.HmacSHA256, secretKey.getBytes(StandardCharsets.UTF_8))
                 .digestHex(signContent);

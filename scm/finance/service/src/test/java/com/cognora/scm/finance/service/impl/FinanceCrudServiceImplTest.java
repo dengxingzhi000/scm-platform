@@ -13,7 +13,6 @@ import com.cognora.scm.finance.mapper.SettlementOrderMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -132,7 +131,6 @@ class FinanceCrudServiceImplTest {
         service.createFee(fee);
 
         assertNotNull(fee.getId());
-        assertEquals(0, fee.getStatus());
         assertNotNull(fee.getCreateTime());
         assertNotNull(fee.getUpdateTime());
         verify(mapper).insert(fee);

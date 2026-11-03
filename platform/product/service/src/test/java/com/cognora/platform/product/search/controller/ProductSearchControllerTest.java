@@ -1,17 +1,19 @@
 package com.cognora.platform.product.search.controller;
 
+import com.cognora.platform.product.search.dto.ProductSearchResponse;
 import com.cognora.platform.product.search.service.ProductSearchService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.List;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -30,8 +32,11 @@ class ProductSearchControllerTest {
 
     @Test
     void quickSearchShouldDelegateRequestAssemblyToService() throws Exception {
+        // Page.empty() carries an Unpaged pageable, and Jackson 3 calls
+        // Unpaged.getOffset() while serializing it, which throws
+        // UnsupportedOperationException. Use a real paged page instead.
         when(productSearchService.quickSearch("phone", 1, 20, "sales", "desc"))
-                .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 20), 0));
+                .thenReturn(new PageImpl<ProductSearchResponse>(List.of(), PageRequest.of(0, 20), 0));
 
         MockMvc mvc = MockMvcBuilders.standaloneSetup(productSearchController).build();
         mvc.perform(get("/api/v1/products/search").param("keyword", "phone"))

@@ -38,8 +38,9 @@ export function useCompleteLogin() {
   ): Promise<LoginCompletion> => {
     // 后端可能以 HTTP 200 返回带 message 的错误信封 —— 此时没有 token,不能进 store。
     // 旧页面在这里 `message.error(...)` 然后停在原地;现在把文案交给调用方去弹。
-    if (!response.accessToken) {
-      return { ok: false, message: response.message ?? "" };
+    // `data` 缺失时 unwrap 会返回 undefined,这里一并按失败处理。
+    if (!response?.accessToken) {
+      return { ok: false, message: response?.message ?? "" };
     }
 
     login(

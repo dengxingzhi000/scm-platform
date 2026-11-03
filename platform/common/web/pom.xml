@@ -193,6 +193,12 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- Spring Framework 7 logs through commons-logging; context-based unit tests need it. -->
+        <dependency>
+            <groupId>commons-logging</groupId>
+            <artifactId>commons-logging</artifactId>
+            <scope>test</scope>
+        </dependency>
         <!-- test end -->
     </dependencies>
 </project>

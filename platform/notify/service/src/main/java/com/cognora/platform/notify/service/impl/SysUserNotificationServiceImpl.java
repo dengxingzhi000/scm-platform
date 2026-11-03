@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
+import com.cognora.platform.common.log.util.LogUtils;
 import com.cognora.platform.common.tenant.TenantContextHolder;
 import com.cognora.platform.common.web.util.SecurityUtils;
 import com.cognora.platform.notify.domain.entity.SysUserNotification;
@@ -28,7 +29,9 @@ public class SysUserNotificationServiceImpl
                                               String keyword, LocalDateTime startTime, LocalDateTime endTime) {
         String userId = currentUserId();
         log.debug("分页查询站内通知 page={}, size={}, userId={}, type={}, isRead={}, keyword={}, startTime={}, endTime={}",
-                page, size, userId, type, isRead, keyword, startTime, endTime);
+                page, size, LogUtils.sanitizeForLog(userId), LogUtils.sanitizeForLog(type), isRead,
+                LogUtils.sanitizeForLog(keyword), LogUtils.sanitizeForLog(startTime),
+                LogUtils.sanitizeForLog(endTime));
 
         LambdaQueryWrapper<SysUserNotification> wrapper = Wrappers.lambdaQuery();
         wrapper.eq(SysUserNotification::getTenantId, currentTenantId());

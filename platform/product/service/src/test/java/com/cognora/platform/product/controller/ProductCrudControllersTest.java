@@ -4,8 +4,8 @@ import com.cognora.platform.product.service.IProdAttributeTemplateService;
 import com.cognora.platform.product.service.IProdBrandService;
 import com.cognora.platform.product.service.IProdCategoryService;
 import com.cognora.platform.product.service.IProdSkuService;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cognora.platform.product.service.IProdSpuService;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -126,6 +126,8 @@ class ProductCrudControllersTest {
 
     @Test
     void listEndpointsShouldDelegateQueryConditions() throws Exception {
+        // PageResult.of() rejects a null page, so the delegated call has to
+        // return a real page rather than the default null from the mock.
         when(skuService.pageBySpuId(eq("spu-1"), eq(1), eq(10))).thenReturn(new Page<>());
         when(brandService.pageByName(eq("brand"), eq(1), eq(10))).thenReturn(new Page<>());
 

@@ -1,5 +1,6 @@
 package com.cognora.platform.file.service.metadata;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cognora.platform.common.tenant.TenantContextHolder;
 import com.cognora.platform.file.api.dto.FileMetadataDTO;
@@ -113,7 +114,7 @@ class FileMetadataServiceTest {
         source.setRecords(List.of(metadata));
         FileMetadataDTO dto = new FileMetadataDTO();
         dto.setId("file-1");
-        when(mapper.selectPage(any(), any())).thenReturn(source);
+        when(mapper.selectPage(any(Page.class), any(LambdaQueryWrapper.class))).thenReturn(source);
         when(fileMetadataConvert.toDTO(metadata)).thenReturn(dto);
 
         Page<FileMetadataDTO> result = service.pageFiles(1, 20, "contract", "CONTRACT", "order-1");

@@ -9,7 +9,9 @@ import org.springframework.cloud.loadbalancer.core.ReactorLoadBalancer;
 import org.springframework.cloud.loadbalancer.core.RoundRobinLoadBalancer;
 import org.springframework.cloud.loadbalancer.core.ServiceInstanceListSupplier;
 import org.springframework.cloud.loadbalancer.support.LoadBalancerClientFactory;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
 
 /**
@@ -21,6 +23,20 @@ import org.springframework.core.env.Environment;
  */
 @Slf4j
 public class LoadBalancerClientStrategyConfiguration {
+
+    /**
+     * Load-balancer supplier that hides Dubbo RPC registrations. The discovery-backed
+     * delegate is queried on every request, so a changed instance list (including a new
+     * IP after a restart) is visible without rebuilding any client.
+     */
+    @Bean
+    @Primary
+    public ServiceInstanceListSupplier serviceInstanceListSupplier(ConfigurableApplicationContext context) {
+        return new NonDubboServiceInstanceListSupplier(
+                ServiceInstanceListSupplier.builder()
+                        .withBlockingDiscoveryClient()
+                        .build(context));
+    }
 
     @Bean
     @ConditionalOnProperty(

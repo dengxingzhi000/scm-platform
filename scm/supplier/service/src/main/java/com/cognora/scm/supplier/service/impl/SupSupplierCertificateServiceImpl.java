@@ -3,6 +3,7 @@ package com.cognora.scm.supplier.service.impl;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.cognora.platform.common.exception.ServiceException;
+import com.cognora.platform.common.log.util.LogUtils;
 import com.cognora.scm.supplier.domain.entity.SupSupplier;
 import com.cognora.scm.supplier.domain.entity.SupSupplierCertificate;
 import com.cognora.scm.supplier.mapper.SupSupplierCertificateMapper;
@@ -66,7 +67,8 @@ public class SupSupplierCertificateServiceImpl
         certificate.setCreateTime(LocalDateTime.now());
         certificate.setUpdateTime(LocalDateTime.now());
         save(certificate);
-        log.info("新增供应商资质 supplierId={}, certificateId={}", supplierId, certificate.getId());
+        log.info("新增供应商资质 supplierId={}, certificateId={}",
+                LogUtils.sanitizeForLog(supplierId), LogUtils.sanitizeForLog(certificate.getId()));
         return certificate;
     }
 
@@ -106,7 +108,7 @@ public class SupSupplierCertificateServiceImpl
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void verify(String id, boolean approved, String operatorId, String operatorName, String remark) {
+    public void verify(String id, boolean approved, String operatorId, String remark) {
         SupSupplierCertificate certificate = getById(id);
         if (certificate == null || Boolean.TRUE.equals(certificate.getDeleted())) {
             throw new ServiceException(404, HttpStatus.NOT_FOUND, "资质证照不存在");

@@ -3,6 +3,7 @@ package com.cognora.scm.supplier.service.impl;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.cognora.platform.common.exception.ServiceException;
+import com.cognora.platform.common.log.util.LogUtils;
 import com.cognora.scm.supplier.domain.entity.SupSupplierCategory;
 import com.cognora.scm.supplier.domain.entity.SupSupplierCategoryRel;
 import com.cognora.scm.supplier.mapper.SupSupplierCategoryMapper;
@@ -63,7 +64,9 @@ public class SupSupplierCategoryServiceImpl
         category.setCreateTime(LocalDateTime.now());
         category.setUpdateTime(LocalDateTime.now());
         save(category);
-        log.info("创建供应商分类 code={}, name={}", category.getCategoryCode(), category.getCategoryName());
+        log.info("创建供应商分类 code={}, name={}",
+                LogUtils.sanitizeForLog(category.getCategoryCode()),
+                LogUtils.sanitizeForLog(category.getCategoryName()));
         return category;
     }
 
@@ -110,7 +113,7 @@ public class SupSupplierCategoryServiceImpl
                     "该分类已被供应商引用，无法删除");
         }
         removeById(id);
-        log.info("删除供应商分类 id={}", id);
+        log.info("删除供应商分类 id={}", LogUtils.sanitizeForLog(id));
     }
 
     private void validateCategory(SupSupplierCategory category) {

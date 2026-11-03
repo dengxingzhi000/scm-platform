@@ -1,6 +1,7 @@
 package com.cognora.scm.supplier.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.cognora.platform.common.log.util.LogUtils;
 import com.cognora.platform.common.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,7 +38,7 @@ public class SupSupplierEvaluationController {
     @Operation(summary = "创建供应商评价", description = "新增供应商评价，按质量/交付/服务/价格加权计算总分并回写供应商绩效。")
     @PostMapping
     public ApiResponse<SupSupplierEvaluation> create(@RequestBody SupSupplierEvaluation evaluation) {
-        log.info("[API] 创建供应商评价 supplierId={}", evaluation.getSupplierId());
+        log.info("[API] 创建供应商评价 supplierId={}", LogUtils.sanitizeForLog(evaluation.getSupplierId()));
         return ApiResponse.success(evaluationService.createEvaluation(evaluation));
     }
 
@@ -45,14 +46,14 @@ public class SupSupplierEvaluationController {
     @PutMapping("/{id}")
     public ApiResponse<SupSupplierEvaluation> update(@Parameter(description = "评价ID") @PathVariable String id,
                                                      @RequestBody SupSupplierEvaluation evaluation) {
-        log.info("[API] 更新评价: id={}", id);
+        log.info("[API] 更新评价: id={}", LogUtils.sanitizeForLog(id));
         return ApiResponse.success(evaluationService.updateEvaluation(id, evaluation));
     }
 
     @Operation(summary = "删除评价", description = "根据评价ID删除供应商评价并重新回写供应商绩效。")
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@Parameter(description = "评价ID") @PathVariable String id) {
-        log.info("[API] 删除评价: id={}", id);
+        log.info("[API] 删除评价: id={}", LogUtils.sanitizeForLog(id));
         boolean success = evaluationService.deleteEvaluation(id);
         return success ? ApiResponse.success() : ApiResponse.fail(404, "评价不存在");
     }

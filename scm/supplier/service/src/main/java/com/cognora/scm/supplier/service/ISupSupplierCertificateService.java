@@ -16,7 +16,7 @@ public interface ISupSupplierCertificateService extends IService<SupSupplierCert
 
     boolean delete(String id);
 
-    void verify(String id, boolean approved, String operatorId, String operatorName, String remark);
+    void verify(String id, boolean approved, String operatorId, String remark);
 
     Page<SupSupplierCertificate> pageExpiring(int page, int size, int days);
 

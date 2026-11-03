@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.cognora.platform.common.exception.ServiceException;
+import com.cognora.platform.common.log.util.LogUtils;
 import com.cognora.scm.supplier.domain.entity.SupSupplier;
 import com.cognora.scm.supplier.domain.entity.SupSupplierContact;
 import com.cognora.scm.supplier.mapper.SupSupplierContactMapper;
@@ -78,7 +79,8 @@ public class SupSupplierContactServiceImpl
         }
         save(contact);
         syncPrimaryContact(supplierId);
-        log.info("新增供应商联系人 supplierId={}, contactId={}", supplierId, contact.getId());
+        log.info("新增供应商联系人 supplierId={}, contactId={}",
+                LogUtils.sanitizeForLog(supplierId), LogUtils.sanitizeForLog(contact.getId()));
         return contact;
     }
 

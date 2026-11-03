@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cognora.platform.common.data.rw.annotation.Slave;
+import com.cognora.platform.common.log.util.LogUtils;
 import com.cognora.scm.purchase.domain.entity.PurOrder;
 import com.cognora.scm.purchase.mapper.PurOrderMapper;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +25,7 @@ public class PurOrderQueryService {
     @Slave
     public Page<PurOrder> pageList(int page, int size, String keyword, Integer status, String supplierId) {
         log.debug("分页查询采购订单 page={}, size={}, keyword={}, status={}, supplierId={}",
-                page, size, keyword, status, supplierId);
+                page, size, LogUtils.sanitizeForLog(keyword), status, LogUtils.sanitizeForLog(supplierId));
 
         LambdaQueryWrapper<PurOrder> wrapper = Wrappers.lambdaQuery();
         wrapper.eq(PurOrder::getDeleted, false);

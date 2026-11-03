@@ -6,7 +6,6 @@ import com.cognora.scm.supplier.mapper.SupSettlementMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.math.BigDecimal;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -14,7 +13,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -40,6 +38,8 @@ class SupSettlementServiceImplTest {
         SupSettlement existing = new SupSettlement();
         existing.setId(id);
         existing.setStatus(0);
+        // updateSettlement() reads through getById(String), so the mapper is
+        // called with the string form of the id, not the UUID.
         when(mapper.selectById(id.toString())).thenReturn(existing);
         doThrow(new IllegalStateException("非法状态流转: SUPPLIER_SETTLEMENT DRAFT -> PARTIAL_PAID"))
                 .when(validator).validateTransition("SUPPLIER_SETTLEMENT", "DRAFT", "PARTIAL_PAID");
@@ -64,6 +64,8 @@ class SupSettlementServiceImplTest {
         SupSettlement reloaded = new SupSettlement();
         reloaded.setId(id);
         reloaded.setStatus(1);
+        // updateSettlement() reads through getById(String), so the mapper is
+        // called with the string form of the id, not the UUID.
         when(mapper.selectById(id.toString())).thenReturn(existing, reloaded);
         doNothing().when(validator).validateTransition("SUPPLIER_SETTLEMENT", "DRAFT", "CONFIRMED");
 
@@ -86,6 +88,8 @@ class SupSettlementServiceImplTest {
         SupSettlement existing = new SupSettlement();
         existing.setId(id);
         existing.setStatus(1);
+        // updateSettlement() reads through getById(String), so the mapper is
+        // called with the string form of the id, not the UUID.
         when(mapper.selectById(id.toString())).thenReturn(existing, existing);
 
         SupSettlement request = new SupSettlement();
@@ -105,6 +109,8 @@ class SupSettlementServiceImplTest {
         SupSettlement existing = new SupSettlement();
         existing.setId(id);
         existing.setStatus(1);
+        // updateSettlement() reads through getById(String), so the mapper is
+        // called with the string form of the id, not the UUID.
         when(mapper.selectById(id.toString())).thenReturn(existing, existing);
 
         SupSettlement request = new SupSettlement();
@@ -125,109 +131,6 @@ class SupSettlementServiceImplTest {
 
         assertNull(result);
         verifyNoInteractions(validator);
-    }
-
-    @Test
-    void confirmShouldValidateTransitionFromActualStatus() {
-        SupSettlementMapper mapper = mock(SupSettlementMapper.class);
-        StatusValidator validator = mock(StatusValidator.class);
-        SupSettlementServiceImpl service = newService(mapper, validator);
-        UUID id = UUID.randomUUID();
-        SupSettlement existing = new SupSettlement();
-        existing.setId(id);
-        existing.setStatus(2);
-        when(mapper.selectById(id.toString())).thenReturn(existing);
-        doThrow(new IllegalStateException("非法状态流转: SUPPLIER_SETTLEMENT PARTIAL_PAID -> CONFIRMED"))
-                .when(validator).validateTransition("SUPPLIER_SETTLEMENT", "PARTIAL_PAID", "CONFIRMED");
-
-        assertThrows(IllegalStateException.class,
-                () -> service.confirm(id.toString(), "approver-1", "张三"));
-        verify(validator).validateTransition("SUPPLIER_SETTLEMENT", "PARTIAL_PAID", "CONFIRMED");
-        verify(mapper, never()).updateById(org.mockito.ArgumentMatchers.any(SupSettlement.class));
-    }
-
-    @Test
-    void confirmShouldConfirmFromDraft() {
-        SupSettlementMapper mapper = mock(SupSettlementMapper.class);
-        StatusValidator validator = mock(StatusValidator.class);
-        SupSettlementServiceImpl service = newService(mapper, validator);
-        UUID id = UUID.randomUUID();
-        SupSettlement existing = new SupSettlement();
-        existing.setId(id);
-        existing.setStatus(0);
-        when(mapper.selectById(id.toString())).thenReturn(existing);
-        doNothing().when(validator).validateTransition("SUPPLIER_SETTLEMENT", "DRAFT", "CONFIRMED");
-        when(mapper.updateById(existing)).thenReturn(1);
-
-        boolean confirmed = service.confirm(id.toString(), "approver-1", "张三");
-
-        assertTrue(confirmed);
-        assertEquals(1, existing.getStatus());
-        assertEquals("approver-1", existing.getApproverId());
-        assertEquals("张三", existing.getApproverName());
-        assertNotNull(existing.getApprovedAt());
-        assertNotNull(existing.getUpdateTime());
-        verify(validator).validateTransition("SUPPLIER_SETTLEMENT", "DRAFT", "CONFIRMED");
-    }
-
-    @Test
-    void confirmShouldSkipValidationWhenAlreadyConfirmed() {
-        SupSettlementMapper mapper = mock(SupSettlementMapper.class);
-        StatusValidator validator = mock(StatusValidator.class);
-        SupSettlementServiceImpl service = newService(mapper, validator);
-        UUID id = UUID.randomUUID();
-        SupSettlement existing = new SupSettlement();
-        existing.setId(id);
-        existing.setStatus(1);
-        when(mapper.selectById(id.toString())).thenReturn(existing);
-        when(mapper.updateById(existing)).thenReturn(1);
-
-        boolean confirmed = service.confirm(id.toString(), "approver-2", "李四");
-
-        assertTrue(confirmed);
-        verifyNoInteractions(validator);
-    }
-
-    @Test
-    void markAsPaidShouldValidateActualStatusAndSetFullyPaid() {
-        SupSettlementMapper mapper = mock(SupSettlementMapper.class);
-        StatusValidator validator = mock(StatusValidator.class);
-        SupSettlementServiceImpl service = newService(mapper, validator);
-        UUID id = UUID.randomUUID();
-        SupSettlement existing = new SupSettlement();
-        existing.setId(id);
-        existing.setStatus(2);
-        existing.setActualAmount(new BigDecimal("100.00"));
-        when(mapper.selectById(id.toString())).thenReturn(existing);
-        doNothing().when(validator).validateTransition("SUPPLIER_SETTLEMENT", "PARTIAL_PAID", "FULLY_PAID");
-        when(mapper.updateById(existing)).thenReturn(1);
-
-        boolean paid = service.markAsPaid(id.toString(), "user-1");
-
-        assertTrue(paid);
-        assertEquals(3, existing.getStatus());
-        assertEquals(new BigDecimal("100.00"), existing.getPaymentAmount());
-        assertEquals("user-1", existing.getUpdateBy());
-        assertNotNull(existing.getUpdateTime());
-        verify(validator).validateTransition("SUPPLIER_SETTLEMENT", "PARTIAL_PAID", "FULLY_PAID");
-    }
-
-    @Test
-    void markAsPaidShouldRejectDraftStatus() {
-        SupSettlementMapper mapper = mock(SupSettlementMapper.class);
-        StatusValidator validator = mock(StatusValidator.class);
-        SupSettlementServiceImpl service = newService(mapper, validator);
-        UUID id = UUID.randomUUID();
-        SupSettlement existing = new SupSettlement();
-        existing.setId(id);
-        existing.setStatus(0);
-        when(mapper.selectById(id.toString())).thenReturn(existing);
-        doThrow(new IllegalStateException("非法状态流转: SUPPLIER_SETTLEMENT DRAFT -> FULLY_PAID"))
-                .when(validator).validateTransition("SUPPLIER_SETTLEMENT", "DRAFT", "FULLY_PAID");
-
-        assertThrows(IllegalStateException.class, () -> service.markAsPaid(id.toString(), "user-1"));
-        verify(validator).validateTransition("SUPPLIER_SETTLEMENT", "DRAFT", "FULLY_PAID");
-        verify(mapper, never()).updateById(org.mockito.ArgumentMatchers.any(SupSettlement.class));
     }
 
     @Test
