@@ -21,7 +21,7 @@ import type { SupplierDTO, SupplierUpsertPayload } from "@/lib/api/contracts/sup
  */
 
 /** 后端 `SupSupplierServiceImpl.CREDIT_RATINGS` 允许的信用等级。 */
-const CREDIT_RATINGS = ["A+", "A", "B+", "B", "C", "D"] as const;
+export const CREDIT_RATINGS = ["A+", "A", "B+", "B", "C", "D"] as const;
 
 /** 后端 `validateMasterData` 允许的供应商类型。 */
 const SUPPLIER_TYPE_VALUES: readonly number[] = [1, 2, 3, 4];
