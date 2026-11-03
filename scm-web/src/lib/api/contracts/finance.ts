@@ -1,6 +1,6 @@
 import type { MpPage } from "./page";
 
-/** `com.scmcloud.finance.domain.entity.SettlementOrder`. */
+/** `com.cognora.scm.finance.domain.entity.SettlementOrder`. */
 export interface SettlementOrderDTO {
   id: string;
   settlementNo?: string | null;
@@ -25,7 +25,7 @@ export interface SettlementOrderDTO {
   remark?: string | null;
 }
 
-/** `com.scmcloud.finance.domain.entity.Invoice`. */
+/** `com.cognora.scm.finance.domain.entity.Invoice`. */
 export interface InvoiceDTO {
   id: string;
   invoiceNo?: string | null;
@@ -64,7 +64,7 @@ export interface ReconciliationQuery {
   hasDiff?: boolean;
 }
 
-/** `com.scmcloud.finance.domain.entity.ReconciliationRecord`. */
+/** `com.cognora.scm.finance.domain.entity.ReconciliationRecord`. */
 export interface ReconciliationRecordDTO {
   id: string;
   tenantId?: string | null;

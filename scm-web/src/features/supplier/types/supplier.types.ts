@@ -2,6 +2,8 @@ export interface Supplier {
   id: string
   name: string
   code: string
+  /** 英文名称。 */
+  nameEn?: string
   contactPerson: string
   contactPhone: string
   email?: string
@@ -17,6 +19,20 @@ export interface Supplier {
   creditRating?: string
   taxNo?: string
   supplierType?: number
+  businessType?: string
+  legalPerson?: string
+  /** 注册资本，单位元。 */
+  registeredCapital?: number
+  /** 统一社会信用代码。 */
+  registrationNo?: string
+  /** 成立日期 —— 原始 ISO 串，展示层用 dayjs 格式化。 */
+  establishmentDate?: string
+  /** 合作起始日期 —— 原始 ISO 串，展示层用 dayjs 格式化。 */
+  cooperationStartDate?: string
+  paymentTerms?: string
+  paymentMethod?: string
+  website?: string
+  sortOrder?: number
   createdAt: string
   remark?: string
 }
@@ -85,6 +101,8 @@ export interface SupplierBankAccount {
 export interface SupplierCertificate {
   id: string
   supplierId?: string | null
+  /** 到期预警接口回填的供应商名称；证照详情接口不回填。 */
+  supplierName?: string | null
   certificateType?: string | null
   certificateName?: string | null
   certificateNo?: string | null

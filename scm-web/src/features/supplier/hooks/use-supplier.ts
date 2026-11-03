@@ -28,7 +28,7 @@ export function useSupplierList(params?: SupplierSearchParams) {
   return useQuery({
     queryKey: supplierKeys.list(params),
     queryFn: async () => {
-      const { current, pageSize, keyword, status, ...filters } = params ?? ({} as SupplierSearchParams)
+      const { current, pageSize, keyword, status, ...filters } = params ?? {}
       return toSupplierPage(
         await supplierApiService.list({
           page: current ?? 1,

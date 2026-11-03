@@ -266,7 +266,7 @@ global:
   scrape_interval: 15s      # Scrape interval
   evaluation_interval: 15s  # Rule evaluation interval
   external_labels:
-    cluster: 'scm-platform'
+    cluster: 'cognora-aura-platform'
     region: 'cn-east-1'
 
 # Scrape configuration for SCM services

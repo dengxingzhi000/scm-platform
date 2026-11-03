@@ -1,6 +1,6 @@
 import type { MpPage } from "./page";
 
-/** `com.scmcloud.tenant.domain.entity.Tenant`. */
+/** `com.cognora.platform.tenant.domain.entity.Tenant`. */
 export interface TenantDTO {
   id: string;
   tenantCode?: string | null;
@@ -38,7 +38,7 @@ export interface TenantDTO {
   remark?: string | null;
 }
 
-/** `com.scmcloud.tenant.api.command.TenantCreateCommand`. */
+/** `com.cognora.platform.tenant.api.command.TenantCreateCommand`. */
 export interface TenantCreateCommand {
   tenantName: string;
   tenantNameEn?: string;
@@ -55,7 +55,7 @@ export interface TenantCreateCommand {
   adminEmail?: string;
 }
 
-/** `com.scmcloud.tenant.service.provisioning.TenantProvisioningResult`. */
+/** `com.cognora.platform.tenant.service.provisioning.TenantProvisioningResult`. */
 export interface TenantProvisioningResult {
   tenantId?: string | null;
   tenantCode?: string | null;
@@ -68,7 +68,7 @@ export interface TenantProvisioningResult {
   errorMessage?: string | null;
 }
 
-/** `com.scmcloud.tenant.domain.entity.TenantPackage`. */
+/** `com.cognora.platform.tenant.domain.entity.TenantPackage`. */
 export interface TenantPackageDTO {
   id: string;
   packageCode?: string | null;
@@ -98,7 +98,7 @@ export interface TenantPackageDTO {
   remark?: string | null;
 }
 
-/** `com.scmcloud.tenant.domain.entity.TenantSubscription`. */
+/** `com.cognora.platform.tenant.domain.entity.TenantSubscription`. */
 export interface TenantSubscriptionDTO {
   id: string;
   tenantId?: string | null;
@@ -120,7 +120,7 @@ export interface TenantSubscriptionDTO {
   deleted?: boolean | null;
 }
 
-/** `com.scmcloud.tenant.domain.entity.TenantResourceQuota`. */
+/** `com.cognora.platform.tenant.domain.entity.TenantResourceQuota`. */
 export interface TenantResourceQuotaDTO {
   id: string;
   tenantId?: string | null;
@@ -143,7 +143,7 @@ export interface TenantResourceQuotaDTO {
   updateTime?: string | null;
 }
 
-/** `com.scmcloud.tenant.domain.entity.TenantFeature`. */
+/** `com.cognora.platform.tenant.domain.entity.TenantFeature`. */
 export interface TenantFeatureDTO {
   id: string;
   tenantId?: string | null;
@@ -160,7 +160,7 @@ export interface TenantFeatureDTO {
   updateBy?: string | null;
 }
 
-/** `com.scmcloud.tenant.domain.entity.TenantConfig`. */
+/** `com.cognora.platform.tenant.domain.entity.TenantConfig`. */
 export interface TenantConfigDTO {
   id: string;
   tenantId?: string | null;
@@ -178,7 +178,7 @@ export interface TenantConfigDTO {
   updateBy?: string | null;
 }
 
-/** `com.scmcloud.tenant.domain.entity.TenantOperationLog`. */
+/** `com.cognora.platform.tenant.domain.entity.TenantOperationLog`. */
 export interface TenantOperationLogDTO {
   id: string;
   tenantId?: string | null;

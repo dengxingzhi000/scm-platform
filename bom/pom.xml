@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!--
+      Standalone on purpose: it must not inherit cognora-aura-platform, because the
+      platform parent will import this BOM once the repository is split into
+      the platform/scm/ecom/lms reactors.
+    -->
+    <groupId>com.cognora</groupId>
+    <artifactId>cognora-bom</artifactId>
+    <version>2.0.0</version>
+    <packaging>pom</packaging>
+
+    <name>Cognora Platform BOM</name>
+    <description>Version alignment for all internal Cognora artifacts</description>
+
+    <properties>
+        <cognora.version>2.0.0</cognora.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency><groupId>com.cognora</groupId><artifactId>ecom-analytics-api</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>ecom-analytics-service</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>platform-approval-api</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>platform-approval-service</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>platform-audit-api</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>platform-audit-service</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>platform-auth</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>platform-common-cache</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>platform-common-core</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>platform-common-data</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>platform-common-data-rw</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>platform-common-data-rw-stub</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>platform-common-decision-engine</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>platform-common-decision-matrix</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>platform-common-integration</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>platform-common-monitoring</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>platform-common-security-api</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>platform-common-security-core</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>platform-common-system-contract</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>platform-common-web</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>platform-document-api</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>platform-document-service</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>platform-file-api</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>platform-file-service</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>scm-finance-api</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>scm-finance-service</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>ecom-fulfillment-api</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>ecom-fulfillment-service</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>platform-gateway</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>platform-inventory-api</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>platform-inventory-service</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>lms-tms-api</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>lms-tms-service</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>ecom-mall-api</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>ecom-mall-service</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>ecom-member-api</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>ecom-member-service</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>platform-message-api</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>platform-message-service</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>platform-notify-api</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>platform-notify-service</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>scm-order-api</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>ecom-order-center-api</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>ecom-order-center-service</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>scm-order-service</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>ecom-payment-api</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>ecom-payment-service</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>platform-product-api</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>platform-product-service</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>ecom-promotion-api</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>ecom-promotion-service</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>scm-purchase-api</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>scm-purchase-service</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>ecom-search-api</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>ecom-search-service</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>scm-supplier-api</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>scm-supplier-service</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>platform-system-service</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>platform-tenant-api</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>platform-tenant-service</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>scm-warehouse-api</artifactId><version>${cognora.version}</version></dependency>
+            <dependency><groupId>com.cognora</groupId><artifactId>scm-warehouse-service</artifactId><version>${cognora.version}</version></dependency>
+        </dependencies>
+    </dependencyManagement>
+</project>

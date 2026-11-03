@@ -1,6 +1,7 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { useTenantStore } from '@/stores/tenant-store'
+import { createRandomId, resolveDeviceId } from './request-id'
 import type { LoginResponse } from './contracts/auth'
 
 const API_BASE_URL =
@@ -13,21 +14,6 @@ const apiClient = axios.create({
     'Content-Type': 'application/json',
   },
 })
-
-const DEVICE_ID_STORAGE_KEY = 'scm-device-id'
-
-/**
- * The backend binds each JWT to the device id it saw at login (X-Device-ID) and rejects the
- * token when a later request presents a different value, so it must be generated once and reused.
- */
-function resolveDeviceId(): string {
-  if (typeof window === 'undefined') return ''
-  const stored = window.localStorage.getItem(DEVICE_ID_STORAGE_KEY)
-  if (stored) return stored
-  const generated = crypto.randomUUID().replace(/-/g, '')
-  window.localStorage.setItem(DEVICE_ID_STORAGE_KEY, generated)
-  return generated
-}
 
 /**
  * On a full page reload the zustand store is empty until `initialize()` runs, but page
@@ -61,8 +47,9 @@ apiClient.interceptors.request.use(
       config.headers['X-Device-ID'] = deviceId
     }
 
-    // Request ID for tracing
-    config.headers['X-Request-Id'] = crypto.randomUUID()
+    // Request ID for tracing. `crypto.randomUUID` is secure-context only, so the
+    // helper falls back to `getRandomValues` for LAN deployments over plain HTTP.
+    config.headers['X-Request-Id'] = createRandomId()
 
     return config
   },
@@ -78,15 +65,21 @@ let pendingRequests: Array<{
 
 apiClient.interceptors.response.use(
   (response) => response.data,
-  async (error: AxiosError) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & {
-      _retry?: boolean
+  async (error: AxiosError | undefined) => {
+    // A rejected request interceptor (e.g. a browser API throwing) rejects with a
+    // non-Axios value that has no `config`. Reading `.url` off it used to replace
+    // the real error with `Cannot read properties of undefined (reading 'url')`.
+    const originalRequest = error?.config as
+      | (InternalAxiosRequestConfig & { _retry?: boolean })
+      | undefined
+    if (!originalRequest) {
+      return Promise.reject(error)
     }
 
     // 401 — attempt token refresh, except on the auth endpoints themselves: refreshing a
     // rejected login/userinfo call would only fail again and force a logout loop.
     const isAuthEndpoint = originalRequest.url?.startsWith('/auth/') ?? false
-    if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
+    if (error?.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       originalRequest._retry = true
 
       if (isRefreshing) {

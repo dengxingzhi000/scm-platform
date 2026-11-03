@@ -3,17 +3,17 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: scm-auth
+  name: platform-auth
   namespace: scm-prod
 spec:
   replicas: 6
   selector:
     matchLabels:
-      app: scm-auth
+      app: platform-auth
   template:
     metadata:
       labels:
-        app: scm-auth
+        app: platform-auth
     spec:
       topologySpreadConstraints:
         - maxSkew: 1
@@ -21,7 +21,7 @@ spec:
           whenUnsatisfiable: DoNotSchedule
           labelSelector:
             matchLabels:
-              app: scm-auth
+              app: platform-auth
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
@@ -32,11 +32,11 @@ spec:
                     - key: app
                       operator: In
                       values:
-                        - scm-auth
+                        - platform-auth
                 topologyKey: kubernetes.io/hostname
       containers:
-        - name: scm-auth
-          image: ${DOCKERHUB_USERNAME}/scm-auth:latest
+        - name: platform-auth
+          image: ${DOCKERHUB_USERNAME}/platform-auth:latest
           ports:
             - containerPort: 8106
           envFrom:

@@ -1,2 +1,0 @@
-com.scmcloud.common.monitoring.config.ObservabilityAutoConfiguration
-com.scmcloud.common.sentinel.config.SentinelAutoConfiguration

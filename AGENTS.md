@@ -7,38 +7,41 @@ fix this file in the same change.
 ## Build
 
 **There is no root `pom.xml`.** Every Maven command needs
-`-f com.scm.parent/pom.xml`; that parent POM declares the modules through
-`../scm-*` paths.
+`-f com.scm.parent/pom.xml`; that parent POM declares four domain aggregators
+under `../platform`, `../scm`, `../ecom` and `../lms`.
 
 ```bash
+mvn install -f bom/pom.xml                                     # install internal BOM (once per clone)
 mvn clean install -f com.scm.parent/pom.xml                    # full build
 mvn clean install -DskipTests -f com.scm.parent/pom.xml        # fast build
-mvn test -pl ../scm-order/service -f com.scm.parent/pom.xml    # one module's tests
-mvn test -pl ../scm-order/service -Dtest=OrderServiceTest -f com.scm.parent/pom.xml
+mvn test -pl ../scm/order/service -f com.scm.parent/pom.xml    # one module's tests
+mvn test -pl ../scm/order/service -Dtest=OrderServiceTest -f com.scm.parent/pom.xml
 mvn verify -Djacoco.skip=false -f com.scm.parent/pom.xml       # coverage gates ON
 ```
 
 ### Maven gotchas
 
-1. **`-pl` paths are relative to `com.scm.parent/`.** `-pl scm-order/service`
+1. **`-pl` paths are relative to `com.scm.parent/`.** `-pl scm/order/service`
    fails with *"Could not find the selected project in the reactor"* — use
-   `-pl ../scm-order/service` (this is what CI does), or `cd` into the module
+   `-pl ../scm/order/service` (this is what CI does), or `cd` into the module
    and run Maven there (its POM resolves the parent via `../pom.xml`).
-2. **Fresh clone:** the `scm-common/*` artifacts are not in `~/.m2`, so add
-   `-am` (or run a full `install` first) or dependency resolution fails.
+2. **Fresh clone:** the four aggregators import `cognora-bom`, so run
+   `mvn install -f bom/pom.xml` before any other Maven command. The
+   `platform/common/*` artifacts are also absent from `~/.m2`, so add `-am`
+   (or run a full `install` first) or dependency resolution fails.
 3. **`jacoco.skip=true`** is set in the parent POM — plain `mvn verify` does *not*
    enforce the 70% line / 60% branch gates. Pass `-Djacoco.skip=false`.
 
 ### `spring-boot-maven-plugin` is skipped by default
 
 The parent POM sets `<skip>true</skip>` on `spring-boot-maven-plugin` (so the
-`scm-common/*` libraries are not repackaged into fat jars). Deployable modules
+`platform/common/*` libraries are not repackaged into fat jars). Deployable modules
 override it with `<skip>false</skip>` — **copy that override into any module you
 add**, otherwise `mvn spring-boot:run` exits 0 without starting the app,
 `mvn package` produces a plain jar, and the Dockerfile
 (`COPY service/target/*.jar app.jar`) fails.
 
-`scm-logistics-service`, `scm-supplier-service` and `scm-warehouse-service`
+`lms-tms-service`, `scm-supplier-service` and `scm-warehouse-service`
 had controllers but no `@SpringBootApplication` class until
 `*ServiceApplication` was added to each; they are deployable again, so a clean
 `mvn install` repackages all of them.
@@ -48,10 +51,10 @@ module compiles against must keep the plain jar installed: give it
 `<classifier>exec</classifier>` and make its Dockerfile copy the exec jar
 explicitly (`COPY service/target/*-exec.jar app.jar`), because two jars now sit
 in `target/` and `COPY *.jar app.jar` fails with "cannot copy to
-non-directory". `scm-inventory-service` and `scm-audit-service` are that case —
-`scm-order`'s tests import `com.scmcloud.inventory.*` (dropping the classifier
-broke `mvn test-compile` in CI) and `scm-auth` depends on `scm-audit-service`
-(without the classifier its 149 MB boot jar was nested into scm-auth's fat jar,
+non-directory". `platform-inventory-service` and `platform-audit-service` are that case —
+`scm-order`'s tests import `com.cognora.platform.inventory.*` (dropping the classifier
+broke `mvn test-compile` in CI) and `platform-auth` depends on `platform-audit-service`
+(without the classifier its 149 MB boot jar was nested into platform-auth's fat jar,
 duplicating `org.springframework.boot.loader.**` and `META-INF/services`
 entries on the classpath).
 
@@ -86,7 +89,7 @@ dev box:
 |---|---|
 | Host | `192.168.0.117` |
 | User | `root` |
-| Password | 见密码管理器条目 `scm-platform / prod-vm`（不写进仓库） |
+| Password | 见密码管理器条目 `cognora-aura-platform / prod-vm`（不写进仓库） |
 
 ```bash
 ssh root@192.168.0.117
@@ -153,39 +156,46 @@ Seata 8091, XXL-Job 8088, Sentinel 8858, Prometheus 9090, SkyWalking UI 8090.
 
 ## Module layout
 
+- **Domain reactors**: `platform/` (common libraries plus gateway, auth, system,
+  tenant, audit, notify, file, document, message, approval, product, inventory),
+  `scm/` (order, warehouse, purchase, supplier, finance), `ecom/` (member,
+  promotion, payment, order-center, mall, search, fulfillment, analytics),
+  `lms/` (tms).
 - **Service modules** follow an `api/` + `service/` split: `api/` holds the
   Dubbo RPC interfaces and DTOs, `service/` is the deployable Spring Boot app.
-- **Flat modules**: `scm-auth`, `scm-gateway` (one Maven module each).
-- **`scm-common/`** — `core`, `data`, `data-rw`, `data-rw-stub`, `cache`, `web`,
-  `monitoring`, `integration`, `decision-matrix`, `decision-engine`,
-  `security/{core,api}`.
+- **Flat modules**: `platform/auth`, `platform/gateway` (one Maven module each).
+- **`platform/common/`** — `core`, `data`, `data-rw`, `data-rw-stub`, `cache`,
+  `web`, `system-contract`, `monitoring`, `integration`, `decision-matrix`,
+  `decision-engine`, `security/{core,api}`.
 - **`scm-web/`** — Next.js 16.4 frontend, separate npm project, **not** in the
   parent POM.
 
-Package base is `com.scmcloud.*` (e.g. `com.scmcloud.order.controller`,
-`com.scmcloud.common.response.ApiResponse` in `scm-common/core`); groupId is
-`com.scmcloud`. The Java packages were renamed away from `com.frog`, but the
+Package roots are `com.cognora.platform.*`, `com.cognora.scm.*`,
+`com.cognora.ecom.*` and `com.cognora.lms.*` (e.g.
+`com.cognora.scm.order.controller`,
+`com.cognora.platform.common.response.ApiResponse` in `platform/common/core`);
+groupId is `com.cognora`. The Java packages were renamed away from `com.frog`, but the
 **Spring config prefixes were not** — `@ConfigurationProperties` still use
-`frog.security.headers`, `frog.security.sql-filter`,
-`frog.security.https-redirect`, `frog.security.api-filter` and `frog.mybatis`.
-New YAML must keep using `frog.*`.
+`cognora.security.headers`, `cognora.security.sql-filter`,
+`cognora.security.https-redirect`, `cognora.security.api-filter` and `cognora.mybatis`.
+New YAML must keep using `cognora.*`.
 
 ## Patterns that shape the code
 
-### Multi-tenant isolation (four layers, all in `scm-common/core`)
+### Multi-tenant isolation (four layers, all in `platform/common/core`)
 
 1. `TenantFilter` (`OncePerRequestFilter`, `HIGHEST_PRECEDENCE + 10`) reads the
    tenant UUID from the `X-Tenant-Id` header (or `Tenant-Id`, or the `tenantId`
    query param) and sets it on the context. If it is missing and
-   `scm.tenant.required=true` (the default) it throws `TenantParseException`.
+   `cognora.tenant.required=true` (the default) it throws `TenantParseException`.
    It clears the context in a `finally`.
 2. `TenantContextHolder` is a plain `ThreadLocal<UUID>`. Prefer
    `getRequiredTenantId()` — `getTenantId()` returns `null` silently.
 3. `TenantInterceptor` (MyBatis) rewrites every SELECT/UPDATE/DELETE to append
    `<alias_or_table>.tenant_id = '<uuid>'`. It is registered by
-   `TenantMybatisAutoConfiguration` (listed in `scm-common/core`'s
+   `TenantMybatisAutoConfiguration` (listed in `platform/common/core`'s
    `AutoConfiguration.imports`) and can be switched off per service with
-   `scm.tenant.sql-isolation=false`. Details that matter when you touch it:
+   `cognora.tenant.sql-isolation=false`. Details that matter when you touch it:
    - **Ordering is load-bearing.** `MybatisPlusConfig.mybatisPlusInterceptor`
      carries `@Order(0)` and the tenant plugin `@Order(LOWEST_PRECEDENCE)`;
      MyBatis wraps plugins in registration order, so the tenant rewrite must be
@@ -198,7 +208,7 @@ New YAML must keep using `frog.*`.
    - Skipped tables = the tenant registry plus the framework tables whose schema
      the platform does not own (`undo_log`, `flyway_schema_history`, `qrtz_*`,
      `xxl_job_*`, `act_*`, `flw_*`). Add to that set with
-     `scm.tenant.exclude-tables` (a trailing `*` matches a prefix).
+     `cognora.tenant.exclude-tables` (a trailing `*` matches a prefix).
    - Known holes: only the driving table of a JOIN gets the predicate (it logs a
      warning), and a subquery in `FROM` is not filtered.
    - The two `db_audit` log tables are filtered: they carry `tenant_id` via
@@ -208,7 +218,7 @@ New YAML must keep using `frog.*`.
      existing `db_audit` must have Track A applied, or every audit read fails
      with `column "tenant_id" does not exist`.
    - A service only enforces this after it is rebuilt against the current
-     `scm-common/core`; verified live on `scm-order` and `scm-audit`.
+     `platform/common/core`; verified live on `scm-order` and `scm-audit`.
 4. `AsyncTenantAutoConfiguration` publishes a `tenantAwareTaskExecutor` bean
    that propagates the tenant context into `@Async` threads. Any other executor
    loses it — wrap work in `TenantContextHolder.executeInTenantContext(...)`.
@@ -222,7 +232,7 @@ no service overrides them.
 
 ### Audit trail
 
-- `@AuditLog` (scm-common/web) is intercepted by the shared `SysAuditLogAspect`,
+- `@AuditLog` (platform/common/web) is intercepted by the shared `SysAuditLogAspect`,
   registered by `AuditLogAutoConfiguration` — not by component scanning, so it
   also applies to services that only scan their own package (scm-auth). Every
   service except scm-audit delivers through `SysAuditServiceClient`
@@ -261,8 +271,8 @@ pointing at its own `db_<service>`.
 
 ### Read-write separation
 
-`@Master` / `@Slave` live in `scm-common/data-rw`
-(`com.scmcloud.common.data.rw.annotation`); `scm-common/data-rw-stub` is a
+`@Master` / `@Slave` live in `platform/common/data-rw`
+(`com.cognora.platform.common.data.rw.annotation`); `platform/common/data-rw-stub` is a
 no-op variant for editions without replicas. Query services → `@Slave`, command
 services → `@Master`. **The whole auto-configuration is gated on
 `spring.datasource.rw.enabled=true`.** `scm-product` is the only service that
@@ -285,19 +295,19 @@ table (`scripts/db/microservices/020_undo_log_tables.sql`).
 
 ### Inventory hot path
 
-Redis Lua only — `scm-common/cache/src/main/resources/lua/inventory/`
+Redis Lua only — `platform/common/cache/src/main/resources/lua/inventory/`
 (`deduct_stock.lua`, `add_stock.lua`, `seckill.lua`). Never query PostgreSQL in
 a hot path. Reservation timeout is 900s (auto-release).
 
 ### Caching
 
-Two-level: Caffeine (L1) → Redis (L2) in `scm-common/cache`. Inventory stays
+Two-level: Caffeine (L1) → Redis (L2) in `platform/common/cache`. Inventory stays
 Redis-only with a short TTL (~30s).
 
 ### Order status transitions
 
 Enum state machine in
-`scm-order/service/src/main/java/com/scmcloud/order/domain/entity/OrderStatus.java`
+`scm/order/service/src/main/java/com/cognora/scm/order/domain/entity/OrderStatus.java`
 (`canTransitionTo()` / `validNextStatuses()`), enforced inside the aggregate
 (`OrdOrder.transitionTo()`). **Not** Spring State Machine — that dependency is
 declared in the parent POM but unused.
@@ -307,7 +317,7 @@ COMPLETED`; `CANCELLED` only from `PENDING_PAYMENT`/`PAID`; `REFUNDING` from
 `PAID`..`DELIVERED`; `COMPLETED`/`CANCELLED`/`REFUNDED` are terminal.
 
 For other entity types the generic path is `StatusValidator` in
-`scm-common/web`, delegating to `StatusMachineDubboService` in `scm-system`.
+`platform/common/web`, delegating to `StatusMachineDubboService` in `scm-system`.
 
 ### Partitioned tables (PostgreSQL)
 
@@ -319,18 +329,18 @@ enforced in the application via Redis.
 ### Idempotency
 
 Two aspects exist — use the one that matches your module:
-`com.scmcloud.common.lock.IdempotentAspect` (`scm-common/cache`, SpEL key
-expression) and `com.scmcloud.common.security.idempotent.IdempotentAspect`
-(`scm-common/web`, `Idempotent-Token` header). Both use Redis with a TTL and
+`com.cognora.platform.common.lock.IdempotentAspect` (`platform/common/cache`, SpEL key
+expression) and `com.cognora.platform.common.security.idempotent.IdempotentAspect`
+(`platform/common/web`, `Idempotent-Token` header). Both use Redis with a TTL and
 delete the key when the business call fails.
 
 ### Error responses
 
 Two `@RestControllerAdvice` beans are scanned by every service, and advice is
 picked **per bean, not per method**: the first ordered bean that has *any*
-applicable handler wins. So `SecurityRestExceptionHandler` (`scm-common/web`,
+applicable handler wins. So `SecurityRestExceptionHandler` (`platform/common/web`,
 `HIGHEST_PRECEDENCE + 10`) must never declare an `Exception` catch-all — doing
-so shadows every handler in `GlobalExceptionHandler` (`scm-common/core`), turns
+so shadows every handler in `GlobalExceptionHandler` (`platform/common/core`), turns
 business exceptions into 500s and puts the raw `ex.getMessage()` on the wire
 (e.g. `Handler dispatch failed: java.util.ServiceConfigurationError: ...`).
 Keep that bean to `AuthenticationException` (the SPA parses its text to detect
@@ -353,14 +363,14 @@ chain bypass advice entirely — answer through
   `localhost:9092`) and `KAFKA_HOST`/`KAFKA_PORT` all appear. `.env.example`
   only defines `KAFKA_SERVERS`.
 - `scripts/rename-packages.ps1` is the one-off script used for the
-  `com.frog` → `com.scmcloud` package move; there is no live rename workflow.
+  `com.frog` → `com.cognora` package move; there is no live rename workflow.
 - Optional subsystems in `scm-common` are off unless a service opts in, because
   each used to break every context when loaded unconditionally:
   `security.uaa.enabled` (OAuth2 authorization server + `CustomUserDetailsService`,
   set in `scm-auth` only), `security.mtls.enabled` (needs `certificates/*.p12`),
   `security.oauth2.pkce.enabled`, `security.permission-checker.enabled`
   (set in `scm-system`), `tenant.quota-checker.enabled`,
-  `scm.cache.two-level.enabled` and `datasync.enabled` (default off since its
+  `cognora.cache.two-level.enabled` and `datasync.enabled` (default off since its
   `KafkaTemplate<String,String>` injection can never resolve).
 
 ## Database
@@ -521,10 +531,10 @@ npm run test:e2e     # Playwright
   npm's `.bin/tsc` may point at the TS 6 shim.
 - API base URL: `NEXT_PUBLIC_API_BASE_URL`, consumed by
   `src/lib/api/client.ts`. Gateway routes strip their first segment: auth is
-  `/auth/api/auth/**` → `/api/auth/**`, system is `/system/api/system/**` →
+  `/platform-auth/api/auth/**` → `/api/auth/**`, system is `/platform-system/api/system/**` →
   `/api/system/**`. The local `.env.local` leaves the variable empty so axios
   calls the Next origin and the rewrites in `next.config.ts` proxy each
-  `/scm-<service>/**` prefix to its `API_<SERVICE>_TARGET`. Point it at the
+  `/<project>-<domain>/**` prefix to its `API_<SERVICE>_TARGET`. Point it at the
   gateway (`http://localhost:8761`) to bypass the rewrites. Supplier, purchase,
   warehouse, logistics, finance, notify and analytics have their own targets;
   the defaults are the ports in the Ports table.
@@ -540,7 +550,7 @@ npm run test:e2e     # Playwright
   is not a dependency — that path is dead.
 - **Fetching the OpenAPI docs**: every service publishes its document at
   `/api/public/v3/api-docs`, but the request **must carry an `X-Tenant-Id`
-  header** — `TenantFilter` runs with `scm.tenant.required=true` and rejects
+  header** — `TenantFilter` runs with `cognora.tenant.required=true` and rejects
   the request without tenant context (401/500). Swagger UI is disabled by
   default (`springdoc.swagger-ui.enabled=false`), so there is no HTML page —
   only the JSON.
@@ -559,14 +569,14 @@ npm run test:e2e     # Playwright
   parameters".
 - Gateway path model: only `auth` / `system` / `common` have explicit routes
   (`StripPrefix=1`), everything else is reached through the Nacos discovery
-  locator as `/scm-<service>/**`. So the frontend calls
-  `/auth/api/auth/**`, `/system/api/system/**`,
-  `/scm-order/api/v1/**`, `/scm-inventory/api/v1/**`,
+  locator as `/<project>-<domain>/**`. So the frontend calls
+  `/platform-auth/api/auth/**`, `/platform-system/api/system/**`,
+  `/scm-order/api/v1/**`, `/platform-inventory/api/v1/**`,
   `/scm-supplier/api/v1/**`, `/scm-purchase/api/v1/**`,
-  `/scm-logistics/api/v1/**`, `/scm-warehouse/wms-*/**`,
-  `/scm-finance/**`, `/scm-notify/**`, `/scm-approval/**`,
-  `/scm-audit/**`, `/scm-tenant/**`, `/scm-document/api/v1/**`,
-  `/scm-file/**` and `/scm-analytics/api/v1/**`.
+  `/lms-tms/api/v1/**`, `/scm-warehouse/wms-*/**`,
+  `/scm-finance/**`, `/platform-notify/**`, `/platform-approval/**`,
+  `/platform-audit/**`, `/platform-tenant/**`, `/platform-document/api/v1/**`,
+  `/platform-file/**` and `/ecom-analytics/api/v1/**`.
 - The business screens are all wired to real gateway APIs now. Dashboard,
   finance, logistics, supplier, notification, purchase and warehouse no longer
   ship in-file mock arrays; their feature services map backend DTOs in
@@ -595,7 +605,7 @@ npm run test:e2e     # Playwright
   `TIMESTAMP` in `scripts/db/microservices/012_db_order.sql`) while the Postgres
   session runs UTC and the containers run `TZ=Asia/Shanghai`. Binding a bare
   `LocalDateTime` lets the session zone pick the instant, so day/hour buckets
-  and range filters shift by 8 hours. Use `com.scmcloud.order.util.SqlTime`:
+  and range filters shift by 8 hours. Use `com.cognora.scm.order.util.SqlTime`:
   bucket with `create_time at time zone <zone>` and filter with
   `create_time >= ({0}::timestamptz)` bound from `SqlTime.absolute(...)`;
   `OrdOrderDashboardQueryServiceTest` and `TenantInterceptorTest` pin this.
@@ -626,7 +636,7 @@ npm run test:e2e     # Playwright
   `<excludedGroups>integration</excludedGroups>`, so every `@Tag("integration")`
   test (Seata AT/TCC, XXL-Job, order lifecycle, product search) is **skipped by
   default**. Those need Docker/Testcontainers; `AbstractIntegrationTest` (in
-  `scm-common/core`) starts PostgreSQL, Redis and Kafka containers, but its
+  `platform/common/core`) starts PostgreSQL, Redis and Kafka containers, but its
   `db/init-test.sql` init script does not exist in the repo.
 - Testcontainers is on **2.x**: the module artifacts are
   `testcontainers` / `testcontainers-postgresql` / `testcontainers-kafka`, and
@@ -672,7 +682,7 @@ both**, so a `scm-*-deployment.yml` glob does not cover everything:
 
 No manifests exist for the e-commerce layer (member, promotion, payment,
 order-center, fulfillment, search, analytics). Helm charts live in
-`deploy/helm/scm-platform`, ArgoCD in `deploy/argocd`. Health endpoint:
+`deploy/helm/cognora-aura-platform`, ArgoCD in `deploy/argocd`. Health endpoint:
 `/actuator/health` on each service's port.
 
 ## CI
@@ -712,10 +722,10 @@ check, `continue-on-error`), and `docker-build` → `deploy-dev`/`deploy-prod`.
 - Do not start business services before Gateway + Auth + System.
 - Do not use `org.springframework.kafka.support.serializer.JsonSerializer` /
   `JsonDeserializer` / `JsonSerde` — removed in Spring Kafka 4.0; use
-  `JacksonJsonSerializer` / `JacksonJsonDeserializer` (`scm-common/integration`).
+  `JacksonJsonSerializer` / `JacksonJsonDeserializer` (`platform/common/integration`).
 - Do not add schema changes to `scripts/db/microservices/` for a service that
   has Flyway migrations — use `db/migration/V<n>__*.sql`.
-- Do not rename `com.scmcloud.*` packages or the `frog.*` config prefixes
+- Do not rename `com.cognora.*` packages or the `cognora.*` config prefixes
   without a repo-wide sweep.
 - Do not try to "repair" the mojibake in Chinese comments/strings — 247 files
   carry unrecoverable UTF-8 corruption (`docs/mojibake-report.md` lists them).

@@ -1,0 +1,109 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: platform-auth
+  namespace: scm-platform
+  labels:
+    app: platform-auth
+    tier: infrastructure
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: platform-auth
+  template:
+    metadata:
+      labels:
+        app: platform-auth
+    spec:
+      containers:
+        - name: platform-auth
+          image: scm-platform/platform-auth:latest
+          ports:
+            - containerPort: 8106
+              name: http
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "kubernetes"
+            - name: NACOS_SERVER_ADDR
+              valueFrom:
+                configMapKeyRef:
+                  name: scm-config
+                  key: nacos-server
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: scm-config
+                  key: db-host
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: scm-secrets
+                  key: db-username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: scm-secrets
+                  key: db-password
+            - name: REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: scm-config
+                  key: redis-host
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: scm-secrets
+                  key: redis-password
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: scm-secrets
+                  key: jwt-secret
+            - name: JAVA_OPTS
+              value: "-Xms256m -Xmx512m -XX:+UseG1GC"
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8106
+            initialDelaySeconds: 60
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8106
+            initialDelaySeconds: 30
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: platform-auth
+  namespace: scm-platform
+spec:
+  selector:
+    app: platform-auth
+  ports:
+    - port: 8106
+      targetPort: 8106
+      name: http
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: scm-secrets
+  namespace: scm-platform
+type: Opaque
+data:
+  db-username: YWRtaW4=          # admin (base64)
+  db-password: YWRtaW4xMjM=      # admin123 (base64)
+  redis-password: cmVkaXMxMjM=   # redis123 (base64)
+  jwt-secret: c2NtLWp3dC1zZWNyZXQta2V5LTIwMjY=  # scm-jwt-secret-key-2026 (base64)

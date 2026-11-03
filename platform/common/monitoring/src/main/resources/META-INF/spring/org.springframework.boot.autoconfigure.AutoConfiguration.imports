@@ -1,0 +1,2 @@
+com.cognora.platform.common.monitoring.config.ObservabilityAutoConfiguration
+com.cognora.platform.common.sentinel.config.SentinelAutoConfiguration

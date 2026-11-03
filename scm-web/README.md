@@ -1,7 +1,7 @@
-# @scmcloud/scm-web
+# @cognora/aura-web
 
 Next.js 16 App Router frontend for the SCM platform. The project directory is
-`scm-web`; the npm package name is `@scmcloud/scm-web`. It is **not** part of
+`scm-web`; the npm package name is `@cognora/aura-web`. It is **not** part of
 the Maven reactor.
 
 ## Stack contract

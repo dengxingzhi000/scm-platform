@@ -1,0 +1,2 @@
+com.cognora.platform.common.tenant.AsyncTenantAutoConfiguration
+com.cognora.platform.common.tenant.TenantMybatisAutoConfiguration

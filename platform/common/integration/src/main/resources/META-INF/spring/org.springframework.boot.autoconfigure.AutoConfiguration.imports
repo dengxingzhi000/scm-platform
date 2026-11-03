@@ -1,0 +1,4 @@
+com.cognora.platform.common.integration.config.RabbitIntegrationAutoConfiguration
+com.cognora.platform.common.integration.config.KafkaIntegrationAutoConfiguration
+com.cognora.platform.common.integration.config.OutboxAutoConfiguration
+com.cognora.platform.common.integration.config.ObservabilityFallbackAutoConfiguration

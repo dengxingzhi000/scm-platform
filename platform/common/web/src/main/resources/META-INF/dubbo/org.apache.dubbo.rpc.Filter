@@ -1,0 +1,2 @@
+tenantContextFilter=com.cognora.platform.common.dubbo.TenantContextFilter
+hopCountFilter=com.cognora.platform.common.dubbo.HopCountFilter

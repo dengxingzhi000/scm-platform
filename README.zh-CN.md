@@ -9,10 +9,10 @@
 **26 个后端服务。一台笔记本。真实的分布式事务、Redis 热路径库存，
 以及一套 Next.js 控制台。**
 
-[![Build](https://img.shields.io/github/actions/workflow/status/dengxingzhi000/scm-platform/maven-build.yml?branch=master&style=flat-square&logo=github&label=build)](https://github.com/dengxingzhi000/scm-platform/actions)
-[![Stars](https://img.shields.io/github/stars/dengxingzhi000/scm-platform?color=ffcb47&labelColor=black&style=flat-square&logo=github)](https://github.com/dengxingzhi000/scm-platform/stargazers)
-[![Forks](https://img.shields.io/github/forks/dengxingzhi000/scm-platform?color=8ae8ff&labelColor=black&style=flat-square&logo=github)](https://github.com/dengxingzhi000/scm-platform/network/members)
-[![Issues](https://img.shields.io/github/issues/dengxingzhi000/scm-platform?color=ff80eb&labelColor=black&style=flat-square&logo=github)](https://github.com/dengxingzhi000/scm-platform/issues)
+[![Build](https://img.shields.io/github/actions/workflow/status/dengxingzhi000/cognora-aura-platform/maven-build.yml?branch=master&style=flat-square&logo=github&label=build)](https://github.com/dengxingzhi000/cognora-aura-platform/actions)
+[![Stars](https://img.shields.io/github/stars/dengxingzhi000/cognora-aura-platform?color=ffcb47&labelColor=black&style=flat-square&logo=github)](https://github.com/dengxingzhi000/cognora-aura-platform/stargazers)
+[![Forks](https://img.shields.io/github/forks/dengxingzhi000/cognora-aura-platform?color=8ae8ff&labelColor=black&style=flat-square&logo=github)](https://github.com/dengxingzhi000/cognora-aura-platform/network/members)
+[![Issues](https://img.shields.io/github/issues/dengxingzhi000/cognora-aura-platform?color=ff80eb&labelColor=black&style=flat-square&logo=github)](https://github.com/dengxingzhi000/cognora-aura-platform/issues)
 [![Services](https://img.shields.io/badge/services-26-blue?style=flat-square)](#模块)
 [![Java](https://img.shields.io/badge/Java-21-007396?logo=openjdk&logoColor=white&style=flat-square)](https://openjdk.org/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.x-6DB33F?logo=springboot&logoColor=white&style=flat-square)](https://spring.io/projects/spring-boot)
@@ -297,7 +297,7 @@ npm run dev
 ### 项目结构
 
 ```
-scm-platform/
+cognora-aura-platform/
 ├── com.scm.parent/          # 父 POM（依赖管理）—— 构建时始终通过 -f 指定
 ├── scm-web/                 # 前端（Next.js 15、React 19、Ant Design 5）—— 独立 npm 工程
 ├── scm-common/              # 公共库（无 Spring Boot 启动类）
@@ -442,7 +442,7 @@ kubectl apply -f deploy/k8s/scm-auth-canary-deployment.yml
 kubectl apply -f deploy/k8s/scm-auth-canary-service.yml
 
 # 或使用 Helm
-helm install scm-platform deploy/helm/scm-platform/
+helm install cognora-aura-platform deploy/helm/cognora-aura-platform/
 
 # ArgoCD GitOps
 kubectl apply -f deploy/argocd/application.yaml
@@ -641,11 +641,11 @@ Binlog —— 只有运行依赖它们的服务时才需要。
 
 ## Star 历程
 
-<a href="https://www.star-history.com/?repos=dengxingzhi000%2Fscm-platform&amp;type=date">
+<a href="https://www.star-history.com/?repos=dengxingzhi000%2Fcognora-aura-platform&amp;type=date">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=dengxingzhi000/scm-platform&amp;type=date&amp;theme=dark&amp;legend=top-left" />
-    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=dengxingzhi000/scm-platform&amp;type=date" />
-    <img alt="SCM Platform GitHub star 历程" src="https://api.star-history.com/chart?repos=dengxingzhi000/scm-platform&amp;type=date" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=dengxingzhi000/cognora-aura-platform&amp;type=date&amp;theme=dark&amp;legend=top-left" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=dengxingzhi000/cognora-aura-platform&amp;type=date" />
+    <img alt="SCM Platform GitHub star 历程" src="https://api.star-history.com/chart?repos=dengxingzhi000/cognora-aura-platform&amp;type=date" />
   </picture>
 </a>
 
@@ -655,7 +655,7 @@ Binlog —— 只有运行依赖它们的服务时才需要。
 
 ## 贡献指南
 
-欢迎参与！[提交 Issue](https://github.com/dengxingzhi000/scm-platform/issues)
+欢迎参与！[提交 Issue](https://github.com/dengxingzhi000/cognora-aura-platform/issues)
 反馈缺陷或提出新功能，或发送 Pull Request 改进代码与文档。
 
 请先阅读 [CONTRIBUTING.md](./CONTRIBUTING.md) —— 其中涵盖构建方式、分支约定，

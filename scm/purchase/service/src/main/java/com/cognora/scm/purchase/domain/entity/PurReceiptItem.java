@@ -1,0 +1,72 @@
+package com.cognora.scm.purchase.domain.entity;
+
+import java.math.BigDecimal;
+import com.baomidou.mybatisplus.annotation.FieldFill;
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.IdType;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import com.baomidou.mybatisplus.annotation.TableId;
+import java.io.Serializable;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.experimental.Accessors;
+
+/**
+ * <p>
+ * 閲囪喘鍏ュ簱鏄庣粏锟?
+ * </p>
+ *
+ * @author deng
+ * @since 2025-12-25
+ */
+@Data
+@EqualsAndHashCode(callSuper = false)
+@Accessors(chain = true)
+@TableName("pur_receipt_item")
+public class PurReceiptItem implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
+    @TableId(value = "id", type = IdType.NONE)
+    private String id;
+
+    @TableField(value = "tenant_id", fill = FieldFill.INSERT)
+    private String tenantId;
+
+    private String receiptId;
+
+    private String receiptNo;
+
+    private String orderItemId;
+
+    private String materialCode;
+
+    private String materialName;
+
+    private BigDecimal expectedQuantity;
+
+    private BigDecimal actualQuantity;
+
+    private BigDecimal qualifiedQuantity;
+
+    private BigDecimal unqualifiedQuantity;
+
+    private String unit;
+
+    private String batchNo;
+
+    private LocalDate productionDate;
+
+    private LocalDate expiryDate;
+    private Integer qualityResult;
+
+    private String locationCode;
+
+    private LocalDateTime createTime;
+
+    private String remark;
+
+
+}

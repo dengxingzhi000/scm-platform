@@ -6,98 +6,98 @@
 # ─── Platform / cross-cutting ───────────────────────────────────────────
 scm-common:
   - changed-files:
-      - any-glob-to-any-file: scm-common/**/*
+      - any-glob-to-any-file: platform/common/**/*
 
 scm-gateway:
   - changed-files:
-      - any-glob-to-any-file: scm-gateway/**/*
+      - any-glob-to-any-file: platform/gateway/**/*
 
 scm-auth:
   - changed-files:
-      - any-glob-to-any-file: scm-auth/**/*
+      - any-glob-to-any-file: platform/auth/**/*
 
 # ─── Supply-chain core ─────────────────────────────────────────────────
 scm-system:
   - changed-files:
-      - any-glob-to-any-file: scm-system/**/*
+      - any-glob-to-any-file: platform/system/**/*
 
 scm-product:
   - changed-files:
-      - any-glob-to-any-file: scm-product/**/*
+      - any-glob-to-any-file: platform/product/**/*
 
 scm-inventory:
   - changed-files:
-      - any-glob-to-any-file: scm-inventory/**/*
+      - any-glob-to-any-file: platform/inventory/**/*
 
 scm-order:
   - changed-files:
-      - any-glob-to-any-file: scm-order/**/*
+      - any-glob-to-any-file: scm/order/**/*
 
 scm-warehouse:
   - changed-files:
-      - any-glob-to-any-file: scm-warehouse/**/*
+      - any-glob-to-any-file: scm/warehouse/**/*
 
 scm-logistics:
   - changed-files:
-      - any-glob-to-any-file: scm-logistics/**/*
+      - any-glob-to-any-file: lms/tms/**/*
 
 scm-purchase:
   - changed-files:
-      - any-glob-to-any-file: scm-purchase/**/*
+      - any-glob-to-any-file: scm/purchase/**/*
 
 scm-supplier:
   - changed-files:
-      - any-glob-to-any-file: scm-supplier/**/*
+      - any-glob-to-any-file: scm/supplier/**/*
 
 scm-finance:
   - changed-files:
-      - any-glob-to-any-file: scm-finance/**/*
+      - any-glob-to-any-file: scm/finance/**/*
 
 scm-file:
   - changed-files:
-      - any-glob-to-any-file: scm-file/**/*
+      - any-glob-to-any-file: platform/file/**/*
 
 scm-document:
   - changed-files:
-      - any-glob-to-any-file: scm-document/**/*
+      - any-glob-to-any-file: platform/document/**/*
 
 # ─── Approval / Audit / Notify / Tenant ─────────────────────────────────
 scm-approval:
   - changed-files:
-      - any-glob-to-any-file: scm-approval/**/*
+      - any-glob-to-any-file: platform/approval/**/*
 
 scm-audit:
   - changed-files:
-      - any-glob-to-any-file: scm-audit/**/*
+      - any-glob-to-any-file: platform/audit/**/*
 
 scm-notify:
   - changed-files:
-      - any-glob-to-any-file: scm-notify/**/*
+      - any-glob-to-any-file: platform/notify/**/*
 
 scm-message:
   - changed-files:
-      - any-glob-to-any-file: scm-message/**/*
+      - any-glob-to-any-file: platform/message/**/*
 
 scm-tenant:
   - changed-files:
-      - any-glob-to-any-file: scm-tenant/**/*
+      - any-glob-to-any-file: platform/tenant/**/*
 
 # ─── E-commerce layer ──────────────────────────────────────────────────
 scm-mall:
   - changed-files:
-      - any-glob-to-any-file: scm-mall/**/*
+      - any-glob-to-any-file: ecom/mall/**/*
 
 scm-member:
   - changed-files:
-      - any-glob-to-any-file: scm-member/**/*
+      - any-glob-to-any-file: ecom/member/**/*
 
 scm-promotion:
   - changed-files:
-      - any-glob-to-any-file: scm-promotion/**/*
+      - any-glob-to-any-file: ecom/promotion/**/*
 
 scm-payment:
   - changed-files:
-      - any-glob-to-any-file: scm-payment/**/*
+      - any-glob-to-any-file: ecom/payment/**/*
 
 scm-order-center:
   - changed-files:
@@ -105,15 +105,15 @@ scm-order-center:
 
 scm-fulfillment:
   - changed-files:
-      - any-glob-to-any-file: scm-fulfillment/**/*
+      - any-glob-to-any-file: ecom/fulfillment/**/*
 
 scm-search:
   - changed-files:
-      - any-glob-to-any-file: scm-search/**/*
+      - any-glob-to-any-file: ecom/search/**/*
 
 scm-analytics:
   - changed-files:
-      - any-glob-to-any-file: scm-analytics/**/*
+      - any-glob-to-any-file: ecom/analytics/**/*
 
 # ─── Cross-cutting by area ─────────────────────────────────────────────
 frontend:

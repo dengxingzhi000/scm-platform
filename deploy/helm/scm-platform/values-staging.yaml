@@ -57,4 +57,4 @@ config:
     namespace: "scm-staging"
   logging:
     level:
-      com.scmcloud: INFO
+      com.cognora: INFO

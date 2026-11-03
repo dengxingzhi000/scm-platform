@@ -41,7 +41,7 @@ git status
 git checkout -b fix/pom-naming
 
 # 或者创建备份
-tar -czf ../scm-platform-backup.tar.gz .
+tar -czf ../cognora-aura-platform-backup.tar.gz .
 ```
 
 ### 第三步：执行自动修复

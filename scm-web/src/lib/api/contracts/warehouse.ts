@@ -1,6 +1,6 @@
 import type { MpPage } from "./page";
 
-/** `com.scmcloud.warehouse.domain.entity.WmsWarehouse`. */
+/** `com.cognora.scm.warehouse.domain.entity.WmsWarehouse`. */
 export interface WmsWarehouseDTO {
   id: string;
   warehouseCode?: string | null;
@@ -19,7 +19,7 @@ export interface WmsWarehouseDTO {
   remark?: string | null;
 }
 
-/** `com.scmcloud.warehouse.domain.entity.WmsInbound`. */
+/** `com.cognora.scm.warehouse.domain.entity.WmsInbound`. */
 export interface WmsInboundDTO {
   id: string;
   inboundNo?: string | null;
@@ -40,7 +40,7 @@ export interface WmsInboundDTO {
   remark?: string | null;
 }
 
-/** `com.scmcloud.warehouse.domain.entity.WmsInboundItem`. */
+/** `com.cognora.scm.warehouse.domain.entity.WmsInboundItem`. */
 export interface WmsInboundItemDTO {
   id: string;
   inboundId?: string | null;
@@ -54,7 +54,7 @@ export interface WmsInboundItemDTO {
   qualityStatus?: number | null;
 }
 
-/** `com.scmcloud.warehouse.domain.entity.WmsOutbound`. */
+/** `com.cognora.scm.warehouse.domain.entity.WmsOutbound`. */
 export interface WmsOutboundDTO {
   id: string;
   outboundNo?: string | null;
@@ -75,7 +75,7 @@ export interface WmsOutboundDTO {
   remark?: string | null;
 }
 
-/** `com.scmcloud.warehouse.domain.entity.WmsOutboundItem`. */
+/** `com.cognora.scm.warehouse.domain.entity.WmsOutboundItem`. */
 export interface WmsOutboundItemDTO {
   id: string;
   outboundId?: string | null;
@@ -92,7 +92,7 @@ export type WmsWarehousePage = MpPage<WmsWarehouseDTO>;
 export type WmsInboundPage = MpPage<WmsInboundDTO>;
 export type WmsOutboundPage = MpPage<WmsOutboundDTO>;
 
-/** `com.scmcloud.warehouse.domain.entity.WmsWavePicking`. */
+/** `com.cognora.scm.warehouse.domain.entity.WmsWavePicking`. */
 export interface WmsWavePickingDTO {
   tenantId?: string | null;
   id: string;

@@ -1,6 +1,6 @@
 import type { MpPage } from "./page";
 
-/** `com.scmcloud.logistics.domain.entity.TmsWaybill`. */
+/** `com.cognora.lms.logistics.domain.entity.TmsWaybill`. */
 export interface TmsWaybillDTO {
   id: string;
   waybillNo?: string | null;
@@ -27,7 +27,7 @@ export interface TmsWaybillDTO {
   remark?: string | null;
 }
 
-/** `com.scmcloud.logistics.domain.entity.TmsTracking`. */
+/** `com.cognora.lms.logistics.domain.entity.TmsTracking`. */
 export interface TmsTrackingDTO {
   id: string;
   waybillId?: string | null;
@@ -44,7 +44,7 @@ export interface TmsTrackingDTO {
   createTime?: string | null;
 }
 
-/** `com.scmcloud.logistics.domain.entity.TmsCarrier`. */
+/** `com.cognora.lms.logistics.domain.entity.TmsCarrier`. */
 export interface TmsCarrierDTO {
   tenantId?: string | null;
   id: string;

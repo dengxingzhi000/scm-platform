@@ -1,5 +1,6 @@
 export * from './use-operator'
 export * from './use-supplier'
+export * from './use-supplier-form-detail'
 export * from './use-supplier-bank-account'
 export * from './use-supplier-certificate'
 export * from './use-supplier-category'

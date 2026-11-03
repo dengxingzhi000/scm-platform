@@ -116,6 +116,20 @@ describe("useCompleteLogin", () => {
     expect(outcome).toEqual({ ok: false, message: "" });
   });
 
+  it("treats a missing envelope data payload as a failure instead of throwing", async () => {
+    const { result } = renderHook(() => useCompleteLogin());
+
+    let outcome: Awaited<ReturnType<typeof result.current>> | undefined;
+    await act(async () => {
+      // `ApiResponse` success without `data` unwraps to undefined.
+      outcome = await result.current(undefined as unknown as LoginResponse);
+    });
+
+    expect(outcome).toEqual({ ok: false, message: "" });
+    expect(login).not.toHaveBeenCalled();
+    expect(push).not.toHaveBeenCalled();
+  });
+
   it("reports success so the caller knows to show the success toast", async () => {
     const { result } = renderHook(() => useCompleteLogin());
 

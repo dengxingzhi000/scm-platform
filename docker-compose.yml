@@ -552,11 +552,11 @@ services:
 # 电商域服务（可选：docker compose --profile ecommerce up -d）
 # 需先用 mvn package 生成各模块 service/target/*.jar
 # ============================================================
-  scm-member:
+  ecom-member:
     profiles: ["ecommerce"]
     build:
-      context: ./scm-member
-    container_name: scm-member
+      context: ./ecom/member
+    container_name: ecom-member
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
@@ -573,11 +573,11 @@ services:
     networks:
       - scm-network
 
-  scm-promotion:
+  ecom-promotion:
     profiles: ["ecommerce"]
     build:
-      context: ./scm-promotion
-    container_name: scm-promotion
+      context: ./ecom/promotion
+    container_name: ecom-promotion
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
@@ -594,11 +594,11 @@ services:
     networks:
       - scm-network
 
-  scm-payment:
+  ecom-payment:
     profiles: ["ecommerce"]
     build:
-      context: ./scm-payment
-    container_name: scm-payment
+      context: ./ecom/payment
+    container_name: ecom-payment
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
@@ -615,11 +615,11 @@ services:
     networks:
       - scm-network
 
-  scm-order-center:
+  ecom-order-center:
     profiles: ["ecommerce"]
     build:
-      context: ./scm-order-center
-    container_name: scm-order-center
+      context: ./ecom/order-center
+    container_name: ecom-order-center
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
@@ -636,11 +636,11 @@ services:
     networks:
       - scm-network
 
-  scm-mall:
+  ecom-mall:
     profiles: ["ecommerce"]
     build:
-      context: ./scm-mall
-    container_name: scm-mall
+      context: ./ecom/mall
+    container_name: ecom-mall
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
@@ -657,11 +657,11 @@ services:
     networks:
       - scm-network
 
-  scm-fulfillment:
+  ecom-fulfillment:
     profiles: ["ecommerce"]
     build:
-      context: ./scm-fulfillment
-    container_name: scm-fulfillment
+      context: ./ecom/fulfillment
+    container_name: ecom-fulfillment
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
@@ -678,11 +678,11 @@ services:
     networks:
       - scm-network
 
-  scm-search:
+  ecom-search:
     profiles: ["ecommerce"]
     build:
-      context: ./scm-search
-    container_name: scm-search
+      context: ./ecom/search
+    container_name: ecom-search
     environment:
       REDIS_HOST: redis
       NACOS_SERVER: nacos:8848
@@ -696,11 +696,11 @@ services:
     networks:
       - scm-network
 
-  scm-analytics:
+  ecom-analytics:
     profiles: ["ecommerce"]
     build:
-      context: ./scm-analytics
-    container_name: scm-analytics
+      context: ./ecom/analytics
+    container_name: ecom-analytics
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
@@ -732,31 +732,31 @@ services:
 # 内存：本机 8G 跑不下全部服务（infra 已占约 4~5G），每个 JVM 限 320m 堆；
 # 建议按需分批 `up -d`，或加 --scale 之前先看 `docker stats`。
 # ============================================================
-  scm-gateway:
+  platform-gateway:
     <<: *core-service
     build:
-      context: ./scm-gateway
-    container_name: scm-gateway
+      context: ./platform/gateway
+    container_name: platform-gateway
     environment:
       <<: *core-service-env
-      SPRING_APPLICATION_NAME: scm-gateway
+      SPRING_APPLICATION_NAME: platform-gateway
       # classpath 上 application.yaml / .yml 同时存在时端口会被盖成 8080，OS 环境变量优先级最高
       SERVER_PORT: 8761
       # 网关不做 URL→权限 的二次校验（它自己的 ApiSignatureFilter 负责入口校验），
       # 而 PermissionAccessAutoConfiguration 强依赖 SysPermissionServiceClient，网关里没有这个 Bean。
-      SPRING_AUTOCONFIGURE_EXCLUDE: com.scmcloud.common.access.PermissionAccessAutoConfiguration
+      SPRING_AUTOCONFIGURE_EXCLUDE: com.cognora.platform.common.access.PermissionAccessAutoConfiguration
     ports:
       - "8761:8761"
 
-  scm-auth:
+  platform-auth:
     <<: *core-service
     build:
-      context: ./scm-auth
-    container_name: scm-auth
+      context: ./platform/auth
+    container_name: platform-auth
     environment:
       <<: *core-service-env
-      # 网关路由写的是 lb://auth-service，注册名必须一致
-      SPRING_APPLICATION_NAME: auth-service
+      # 网关路由写的是 lb://platform-auth，注册名必须一致
+      SPRING_APPLICATION_NAME: platform-auth
       # classpath 上 application.yaml / .yml 同时存在时端口会被盖成 8080，OS 环境变量优先级最高
       SERVER_PORT: 8106
       # auth 的 application.yaml 默认开启 HTTPS 并引用 classpath:certs/auth-keystore.p12，
@@ -767,15 +767,15 @@ services:
     ports:
       - "8106:8106"
 
-  scm-system:
+  platform-system:
     <<: *core-service
     build:
-      context: ./scm-system
-    container_name: scm-system
+      context: ./platform/system
+    container_name: platform-system
     environment:
       <<: *core-service-env
-      # 网关路由写的是 lb://system-service；权限/用户内部客户端也解析这个名字
-      SPRING_APPLICATION_NAME: system-service
+      # 网关路由写的是 lb://platform-system；权限/用户内部客户端也解析这个名字
+      SPRING_APPLICATION_NAME: platform-system
       # classpath 上 application.yaml / .yml 同时存在时端口会被盖成 8080，OS 环境变量优先级最高
       SERVER_PORT: 8081
       # dynamic-datasource 需要显式 master，否则启动时 CannotFindDataSourceException
@@ -790,14 +790,14 @@ services:
     ports:
       - "8081:8081"
 
-  scm-product:
+  platform-product:
     <<: *core-service
     build:
-      context: ./scm-product
-    container_name: scm-product
+      context: ./platform/product
+    container_name: platform-product
     environment:
       <<: *core-service-env
-      SPRING_APPLICATION_NAME: scm-product
+      SPRING_APPLICATION_NAME: platform-product
       # classpath 上 application.yaml / .yml 同时存在时端口会被盖成 8080，OS 环境变量优先级最高
       SERVER_PORT: 8201
       # dynamic-datasource 需要显式 master，否则启动时 CannotFindDataSourceException
@@ -807,14 +807,14 @@ services:
     ports:
       - "8201:8201"
 
-  scm-inventory:
+  platform-inventory:
     <<: *core-service
     build:
-      context: ./scm-inventory
-    container_name: scm-inventory
+      context: ./platform/inventory
+    container_name: platform-inventory
     environment:
       <<: *core-service-env
-      SPRING_APPLICATION_NAME: scm-inventory
+      SPRING_APPLICATION_NAME: platform-inventory
       # classpath 上 application.yaml / .yml 同时存在时端口会被盖成 8080，OS 环境变量优先级最高
       SERVER_PORT: 8202
       # dynamic-datasource 需要显式 master，否则启动时 CannotFindDataSourceException
@@ -825,7 +825,7 @@ services:
   scm-order:
     <<: *core-service
     build:
-      context: ./scm-order
+      context: ./scm/order
     container_name: scm-order
     environment:
       <<: *core-service-env
@@ -840,7 +840,7 @@ services:
   scm-warehouse:
     <<: *core-service
     build:
-      context: ./scm-warehouse
+      context: ./scm/warehouse
     container_name: scm-warehouse
     environment:
       <<: *core-service-env
@@ -852,14 +852,14 @@ services:
     ports:
       - "8204:8204"
 
-  scm-logistics:
+  lms-tms:
     <<: *core-service
     build:
-      context: ./scm-logistics
-    container_name: scm-logistics
+      context: ./lms/tms
+    container_name: lms-tms
     environment:
       <<: *core-service-env
-      SPRING_APPLICATION_NAME: scm-logistics
+      SPRING_APPLICATION_NAME: lms-tms
       # classpath 上 application.yaml / .yml 同时存在时端口会被盖成 8080，OS 环境变量优先级最高
       SERVER_PORT: 8205
       # dynamic-datasource 需要显式 master，否则启动时 CannotFindDataSourceException
@@ -870,7 +870,7 @@ services:
   scm-supplier:
     <<: *core-service
     build:
-      context: ./scm-supplier
+      context: ./scm/supplier
     container_name: scm-supplier
     environment:
       <<: *core-service-env
@@ -885,7 +885,7 @@ services:
   scm-purchase:
     <<: *core-service
     build:
-      context: ./scm-purchase
+      context: ./scm/purchase
     container_name: scm-purchase
     environment:
       <<: *core-service-env
@@ -900,7 +900,7 @@ services:
   scm-finance:
     <<: *core-service
     build:
-      context: ./scm-finance
+      context: ./scm/finance
     container_name: scm-finance
     environment:
       <<: *core-service-env
@@ -912,14 +912,14 @@ services:
     ports:
       - "8208:8208"
 
-  scm-approval:
+  platform-approval:
     <<: *core-service
     build:
-      context: ./scm-approval
-    container_name: scm-approval
+      context: ./platform/approval
+    container_name: platform-approval
     environment:
       <<: *core-service-env
-      SPRING_APPLICATION_NAME: scm-approval
+      SPRING_APPLICATION_NAME: platform-approval
       # classpath 上 application.yaml / .yml 同时存在时端口会被盖成 8080，OS 环境变量优先级最高
       SERVER_PORT: 8209
       # dynamic-datasource 需要显式 master，否则启动时 CannotFindDataSourceException
@@ -927,14 +927,14 @@ services:
     ports:
       - "8209:8209"
 
-  scm-message:
+  platform-message:
     <<: *core-service
     build:
-      context: ./scm-message
-    container_name: scm-message
+      context: ./platform/message
+    container_name: platform-message
     environment:
       <<: *core-service-env
-      SPRING_APPLICATION_NAME: scm-message
+      SPRING_APPLICATION_NAME: platform-message
       # dynamic-datasource 需要显式 master，否则启动时 CannotFindDataSourceException
       SPRING_DATASOURCE_DYNAMIC_DATASOURCE_MASTER_URL: jdbc:postgresql://postgres:5432/db_system?stringtype=unspecified
       # 模块默认 8209 与 scm-approval 冲突，容器里改成 8216
@@ -942,14 +942,14 @@ services:
     ports:
       - "8216:8216"
 
-  scm-audit:
+  platform-audit:
     <<: *core-service
     build:
-      context: ./scm-audit
-    container_name: scm-audit
+      context: ./platform/audit
+    container_name: platform-audit
     environment:
       <<: *core-service-env
-      SPRING_APPLICATION_NAME: scm-audit
+      SPRING_APPLICATION_NAME: platform-audit
       # classpath 上 application.yaml / .yml 同时存在时端口会被盖成 8080，OS 环境变量优先级最高
       SERVER_PORT: 8210
       # dynamic-datasource 需要显式 master，否则启动时 CannotFindDataSourceException
@@ -957,14 +957,14 @@ services:
     ports:
       - "8210:8210"
 
-  scm-notify:
+  platform-notify:
     <<: *core-service
     build:
-      context: ./scm-notify
-    container_name: scm-notify
+      context: ./platform/notify
+    container_name: platform-notify
     environment:
       <<: *core-service-env
-      SPRING_APPLICATION_NAME: scm-notify
+      SPRING_APPLICATION_NAME: platform-notify
       # classpath 上 application.yaml / .yml 同时存在时端口会被盖成 8080，OS 环境变量优先级最高
       SERVER_PORT: 8211
       # dynamic-datasource 需要显式 master，否则启动时 CannotFindDataSourceException
@@ -972,14 +972,14 @@ services:
     ports:
       - "8211:8211"
 
-  scm-tenant:
+  platform-tenant:
     <<: *core-service
     build:
-      context: ./scm-tenant
-    container_name: scm-tenant
+      context: ./platform/tenant
+    container_name: platform-tenant
     environment:
       <<: *core-service-env
-      SPRING_APPLICATION_NAME: scm-tenant
+      SPRING_APPLICATION_NAME: platform-tenant
       # classpath 上 application.yaml / .yml 同时存在时端口会被盖成 8080，OS 环境变量优先级最高
       SERVER_PORT: 8212
       # dynamic-datasource 需要显式 master，否则启动时 CannotFindDataSourceException
@@ -987,14 +987,14 @@ services:
     ports:
       - "8212:8212"
 
-  scm-document:
+  platform-document:
     <<: *core-service
     build:
-      context: ./scm-document
-    container_name: scm-document
+      context: ./platform/document
+    container_name: platform-document
     environment:
       <<: *core-service-env
-      SPRING_APPLICATION_NAME: scm-document
+      SPRING_APPLICATION_NAME: platform-document
       # classpath 上 application.yaml / .yml 同时存在时端口会被盖成 8080，OS 环境变量优先级最高
       SERVER_PORT: 8213
       # dynamic-datasource 需要显式 master，否则启动时 CannotFindDataSourceException
@@ -1002,14 +1002,14 @@ services:
     ports:
       - "8213:8213"
 
-  scm-file:
+  platform-file:
     <<: *core-service
     build:
-      context: ./scm-file
-    container_name: scm-file
+      context: ./platform/file
+    container_name: platform-file
     environment:
       <<: *core-service-env
-      SPRING_APPLICATION_NAME: scm-file
+      SPRING_APPLICATION_NAME: platform-file
       # 模块默认 8201 与 scm-product 冲突，容器内改为 8214
       SERVER_PORT: 8214
       # dynamic-datasource 需要显式 master，否则启动时 CannotFindDataSourceException

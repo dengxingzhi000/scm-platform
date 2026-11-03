@@ -3,7 +3,7 @@
 --
 -- The service's Flyway V1_0_0 also creates this table; this bootstrap copy
 -- lets a database created by init-all-databases work before Flyway runs and
--- matches com.scmcloud.file.entity.FileMetadata:
+-- matches com.cognora.platform.file.entity.FileMetadata:
 --   * tenant_id / create_by are UUID strings, not BIGINT
 --   * update_by stays BIGINT (the entity maps it to Long)
 --   * deleted is the MyBatis-Plus logic-delete flag (0 = active, 1 = deleted)

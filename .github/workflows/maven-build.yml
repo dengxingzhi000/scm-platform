@@ -60,6 +60,9 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
+      - name: Install internal BOM
+        run: mvn install -B -DskipTests -f bom/pom.xml
+
       - name: Initialize databases
         if: github.event_name == 'push'
         env:
@@ -156,6 +159,9 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
+      - name: Install internal BOM
+        run: mvn install -B -DskipTests -f bom/pom.xml
+
       - name: Cache SonarCloud packages
         uses: actions/cache@v6
         with:
@@ -192,6 +198,9 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: 'temurin'
           cache: 'maven'
+
+      - name: Install internal BOM
+        run: mvn install -B -DskipTests -f bom/pom.xml
 
       - name: Cache OWASP NVD database
         uses: actions/cache@v6
@@ -238,22 +247,37 @@ jobs:
 
     strategy:
       matrix:
-        service:
-          - scm-auth
-          - scm-gateway
-          - scm-system
-          - scm-product
-          - scm-inventory
-          - scm-order
-          - scm-warehouse
-          - scm-logistics
-          - scm-supplier
-          - scm-finance
-          - scm-purchase
-          - scm-approval
-          - scm-audit
-          - scm-notify
-          - scm-tenant
+        include:
+          - service: platform-auth
+            path: platform/auth
+          - service: platform-gateway
+            path: platform/gateway
+          - service: platform-system
+            path: platform/system
+          - service: platform-product
+            path: platform/product
+          - service: platform-inventory
+            path: platform/inventory
+          - service: scm-order
+            path: scm/order
+          - service: scm-warehouse
+            path: scm/warehouse
+          - service: lms-tms
+            path: lms/tms
+          - service: scm-supplier
+            path: scm/supplier
+          - service: scm-finance
+            path: scm/finance
+          - service: scm-purchase
+            path: scm/purchase
+          - service: platform-approval
+            path: platform/approval
+          - service: platform-audit
+            path: platform/audit
+          - service: platform-notify
+            path: platform/notify
+          - service: platform-tenant
+            path: platform/tenant
 
     steps:
       - name: Checkout code
@@ -266,12 +290,15 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
+      - name: Install internal BOM
+        run: mvn install -B -DskipTests -f bom/pom.xml
+
       - name: Build JAR
         run: |
-          if [ -d "${{ matrix.service }}/service" ]; then
-            mvn clean package -DskipTests -pl ../${{ matrix.service }}/service -am -f com.scm.parent/pom.xml
+          if [ -d "${{ matrix.path }}/service" ]; then
+            mvn clean package -DskipTests -pl ../${{ matrix.path }}/service -am -f com.scm.parent/pom.xml
           else
-            mvn clean package -DskipTests -pl ../${{ matrix.service }} -am -f com.scm.parent/pom.xml
+            mvn clean package -DskipTests -pl ../${{ matrix.path }} -am -f com.scm.parent/pom.xml
           fi
 
       - name: Set up Docker Buildx
@@ -297,8 +324,8 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
-          context: ./${{ matrix.service }}
-          file: ./${{ matrix.service }}/Dockerfile
+          context: ./${{ matrix.path }}
+          file: ./${{ matrix.path }}/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -325,18 +352,18 @@ jobs:
 
       - name: Deploy to dev namespace
         run: |
-          kubectl set image deployment/scm-auth scm-auth=${{ secrets.DOCKERHUB_USERNAME }}/scm-auth:develop-${{ github.sha }} -n scm-dev
-          kubectl set image deployment/scm-gateway scm-gateway=${{ secrets.DOCKERHUB_USERNAME }}/scm-gateway:develop-${{ github.sha }} -n scm-dev
-          kubectl set image deployment/scm-system scm-system=${{ secrets.DOCKERHUB_USERNAME }}/scm-system:develop-${{ github.sha }} -n scm-dev
-          kubectl rollout status deployment/scm-auth -n scm-dev
-          kubectl rollout status deployment/scm-gateway -n scm-dev
-          kubectl rollout status deployment/scm-system -n scm-dev
+          kubectl set image deployment/platform-auth platform-auth=${{ secrets.DOCKERHUB_USERNAME }}/platform-auth:develop-${{ github.sha }} -n scm-dev
+          kubectl set image deployment/platform-gateway platform-gateway=${{ secrets.DOCKERHUB_USERNAME }}/platform-gateway:develop-${{ github.sha }} -n scm-dev
+          kubectl set image deployment/platform-system platform-system=${{ secrets.DOCKERHUB_USERNAME }}/platform-system:develop-${{ github.sha }} -n scm-dev
+          kubectl rollout status deployment/platform-auth -n scm-dev
+          kubectl rollout status deployment/platform-gateway -n scm-dev
+          kubectl rollout status deployment/platform-system -n scm-dev
 
       - name: Verify deployment
         run: |
-          kubectl get pods -n scm-dev -l app=scm-auth
-          kubectl get pods -n scm-dev -l app=scm-gateway
-          kubectl get pods -n scm-dev -l app=scm-system
+          kubectl get pods -n scm-dev -l app=platform-auth
+          kubectl get pods -n scm-dev -l app=platform-gateway
+          kubectl get pods -n scm-dev -l app=platform-system
 
   deploy-prod:
     name: Deploy to Production
@@ -358,15 +385,15 @@ jobs:
 
       - name: Deploy to production namespace
         run: |
-          kubectl set image deployment/scm-auth scm-auth=${{ secrets.DOCKERHUB_USERNAME }}/scm-auth:master-${{ github.sha }} -n scm-prod
-          kubectl set image deployment/scm-gateway scm-gateway=${{ secrets.DOCKERHUB_USERNAME }}/scm-gateway:master-${{ github.sha }} -n scm-prod
-          kubectl set image deployment/scm-system scm-system=${{ secrets.DOCKERHUB_USERNAME }}/scm-system:master-${{ github.sha }} -n scm-prod
-          kubectl rollout status deployment/scm-auth -n scm-prod
-          kubectl rollout status deployment/scm-gateway -n scm-prod
-          kubectl rollout status deployment/scm-system -n scm-prod
+          kubectl set image deployment/platform-auth platform-auth=${{ secrets.DOCKERHUB_USERNAME }}/platform-auth:master-${{ github.sha }} -n scm-prod
+          kubectl set image deployment/platform-gateway platform-gateway=${{ secrets.DOCKERHUB_USERNAME }}/platform-gateway:master-${{ github.sha }} -n scm-prod
+          kubectl set image deployment/platform-system platform-system=${{ secrets.DOCKERHUB_USERNAME }}/platform-system:master-${{ github.sha }} -n scm-prod
+          kubectl rollout status deployment/platform-auth -n scm-prod
+          kubectl rollout status deployment/platform-gateway -n scm-prod
+          kubectl rollout status deployment/platform-system -n scm-prod
 
       - name: Verify deployment
         run: |
-          kubectl get pods -n scm-prod -l app=scm-auth
-          kubectl get pods -n scm-prod -l app=scm-gateway
-          kubectl get pods -n scm-prod -l app=scm-system
+          kubectl get pods -n scm-prod -l app=platform-auth
+          kubectl get pods -n scm-prod -l app=platform-gateway
+          kubectl get pods -n scm-prod -l app=platform-system

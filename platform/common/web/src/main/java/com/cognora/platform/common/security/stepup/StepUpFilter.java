@@ -1,0 +1,159 @@
+package com.cognora.platform.common.security.stepup;
+
+import com.alibaba.csp.sentinel.Entry;
+import com.alibaba.csp.sentinel.SphU;
+import com.alibaba.csp.sentinel.slots.block.BlockException;
+import com.cognora.platform.common.log.service.ISysAuditLogService;
+import com.cognora.platform.common.security.metrics.SecurityMetrics;
+import com.cognora.platform.common.security.util.FilterBypassHelper;
+import com.cognora.platform.common.security.util.HttpServletRequestUtils;
+import com.cognora.platform.common.security.util.JwtUtils;
+import com.cognora.platform.common.security.util.SecurityErrorResponseWriter;
+import com.cognora.platform.common.web.domain.SecurityUser;
+import com.cognora.platform.common.web.util.SecurityUtils;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NullMarked;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.UUID;
+
+/**
+ * Step-Up 璁よ瘉杩囨护鍣細鍩轰簬 Sentinel 鐔旀柇淇濇姢鐨勬晱鎰熸搷浣滀簩娆¤璇佹牎锟?
+ *
+ * <p>浣跨敤 Sentinel 杩涜鐔旀柇闄嶇骇淇濇姢锛屾浛浠e師鏈夌殑 SimpleCircuitBreaker
+ *
+ * <p>Sentinel Resource: "step-up:evaluate"
+ *
+ * @author Deng
+ */
+@Component
+@Slf4j
+@RequiredArgsConstructor
+@NullMarked
+public class StepUpFilter extends OncePerRequestFilter {
+    private final StepUpEvaluator evaluator;
+    private final ObjectProvider<ISysAuditLogService> auditLogProvider;
+    private final JwtUtils jwtUtils;
+    private final HttpServletRequestUtils requestUtils;
+    private final SecurityMetrics securityMetrics;
+    private final StepUpProperties properties;
+
+    @Override
+    protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response,
+                                    @NonNull FilterChain filterChain) throws ServletException, IOException {
+
+        if (!properties.isEnabled()) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        String uri = request.getRequestURI();
+        if (FilterBypassHelper.matchesAny(uri, properties.getWhitelistPaths())) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        SecurityUser user = SecurityUtils.getCurrentUser();
+        if (shouldBypass(uri, user)) {
+            response.setHeader("X-StepUp-Bypass", "config");
+            securityMetrics.increment("security.stepup.bypass.config");
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        // Sentinel resource protection for step-up evaluation
+        StepUpRequirement requirement;
+        try(Entry entry = SphU.entry("step-up:evaluate")) {
+            requirement = evaluator.evaluate(request, user);
+
+        } catch (BlockException ex) {
+            // Sentinel circuit is open or rate limited
+            if (properties.getCircuitBreaker().isBypassOnOpen()) {
+
+                log.warn("Step-up evaluation BLOCKED by Sentinel, bypassing: uri={}", (uri + "").replace("\r", "_").replace("\n", "_"), ex);
+                response.setHeader("X-StepUp-Bypass", "sentinel-circuit");
+
+                securityMetrics.increment("security.stepup.bypass.circuit");
+                filterChain.doFilter(request, response);
+                return;
+            } else {
+
+                log.error("Step-up evaluation BLOCKED by Sentinel, denying access: uri={}", (uri + "").replace("\r", "_").replace("\n", "_"), ex);
+
+                throw new ServletException("Step-up evaluation blocked by circuit breaker", ex);
+            }
+
+        } catch (Exception ex) {
+            // Evaluation logic failed
+            if (properties.getCircuitBreaker().isBypassOnOpen()) {
+
+                log.error("Step-up evaluation failed, bypassing: {}", ex.getMessage(), ex);
+                response.setHeader("X-StepUp-Bypass", "error");
+
+                securityMetrics.increment("security.stepup.bypass.error");
+                filterChain.doFilter(request, response);
+                return;
+            }
+            throw new ServletException("Step-up evaluation failed", ex);
+
+        }
+
+        if (requirement != StepUpRequirement.NONE) {
+            String token = requestUtils.getTokenFromRequest(request);
+            java.util.Set<String> amr = token != null ? jwtUtils.getAmrFromToken(token) : Collections.emptySet();
+            if ((requirement == StepUpRequirement.MFA && amr.contains("mfa"))
+                    || (requirement == StepUpRequirement.WEBAUTHN && amr.contains("webauthn"))) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+        }
+        if (requirement != StepUpRequirement.NONE) {
+            String require = requirement == StepUpRequirement.MFA ? "mfa" : "webauthn";
+            response.setHeader("X-StepUp-Required", require);
+            SecurityErrorResponseWriter.write(request, response, HttpServletResponse.SC_UNAUTHORIZED,
+                    "STEP_UP_REQUIRED", "Step-up required: " + require);
+            securityMetrics.increment("security.stepup.required");
+
+            if (user != null) {
+                UUID userId = user.getUserId();
+                ISysAuditLogService auditLogService = auditLogProvider.getIfAvailable();
+                if (auditLogService != null) {
+                    auditLogService.recordSecurityEvent(
+                            "STEP_UP_REQUIRED", 2,
+                            userId,
+                            user.getUsername(),
+                            request.getRemoteAddr(),
+                            request.getRequestURI(),
+                            false,
+                            "Step-up required: " + require
+                    );
+                }
+            }
+            UUID userIdLog = user != null ? user.getUserId() : null;
+
+            log.info("Step-up required: traceId={} userId={} method={} uri={} -> {}",
+                    (request.getHeader("X-Request-ID") + "").replace("\r", "_").replace("\n", "_"), (userIdLog + "").replace("\r", "_").replace("\n", "_"), (request.getMethod() + "").replace("\r", "_").replace("\n", "_"), (request.getRequestURI() + "").replace("\r", "_").replace("\n", "_"), (require + "").replace("\r", "_").replace("\n", "_"));
+            return;
+        }
+
+        filterChain.doFilter(request, response);
+    }
+
+    private boolean shouldBypass(String uri, SecurityUser user) {
+        return FilterBypassHelper.shouldBypass(uri, user,
+                properties.getBypassPaths(),
+                properties.getBypassUsers(),
+                properties.getBypassRoles(),
+                properties.getBypassPermissions());
+    }
+}

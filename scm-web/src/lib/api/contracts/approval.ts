@@ -1,4 +1,4 @@
-/** `com.scmcloud.approval.domain.entity.SysPermissionApproval`. */
+/** `com.cognora.platform.approval.domain.entity.SysPermissionApproval`. */
 export interface SysPermissionApprovalDTO {
   id: string;
   applicantId?: string | null;
@@ -26,7 +26,7 @@ export interface SysPermissionApprovalDTO {
   permissionNames?: string | null;
 }
 
-/** `com.scmcloud.approval.api.dto.TaskDTO` (flow engine task). */
+/** `com.cognora.platform.approval.api.dto.TaskDTO` (flow engine task). */
 export interface TaskDTO {
   taskId: string;
   taskName?: string | null;

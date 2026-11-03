@@ -6,8 +6,8 @@ Thank you for your interest in contributing to SCM Platform! This guide will hel
 
 There are many ways to contribute:
 
-- **Report bugs** — Found something broken? [Open an issue](https://github.com/dengxingzhi000/scm-platform/issues/new?template=bug_report.md)
-- **Suggest features** — Have an idea? [Request a feature](https://github.com/dengxingzhi000/scm-platform/issues/new?template=feature_request.md)
+- **Report bugs** — Found something broken? [Open an issue](https://github.com/dengxingzhi000/cognora-aura-platform/issues/new?template=bug_report.md)
+- **Suggest features** — Have an idea? [Request a feature](https://github.com/dengxingzhi000/cognora-aura-platform/issues/new?template=feature_request.md)
 - **Submit code** — Fix bugs, add features, or improve documentation via pull requests
 - **Improve docs** — Fix typos, add examples, or clarify existing documentation
 - **Review PRs** — Help review open pull requests
@@ -30,11 +30,11 @@ There are many ways to contribute:
 
 ```bash
 # 1. Fork the repository on GitHub, then clone your fork
-git clone https://github.com/<your-username>/scm-platform.git
-cd scm-platform
+git clone https://github.com/<your-username>/cognora-aura-platform.git
+cd cognora-aura-platform
 
 # 2. Add upstream remote
-git remote add upstream https://github.com/dengxingzhi000/scm-platform.git
+git remote add upstream https://github.com/dengxingzhi000/cognora-aura-platform.git
 
 # 3. Start infrastructure services
 docker-compose up -d
@@ -115,16 +115,16 @@ mvn verify -f com.scm.parent/pom.xml
 ### Package Structure
 
 ```
-com.scmcloud.{module}.{layer}
+com.cognora.{module}.{layer}
 ```
 
 Examples:
-- `com.scmcloud.order.controller`
-- `com.scmcloud.order.service.impl`
-- `com.scmcloud.order.mapper`
-- `com.scmcloud.common.response.ApiResponse`
+- `com.cognora.scm.order.controller`
+- `com.cognora.scm.order.service.impl`
+- `com.cognora.scm.order.mapper`
+- `com.cognora.platform.common.response.ApiResponse`
 
-GroupId is `com.scmcloud` (not `com.frog`).
+GroupId is `com.cognora` (not `com.frog`).
 
 ### Module Layout
 
@@ -139,7 +139,7 @@ GroupId is `com.scmcloud` (not `com.frog`).
 | Classes | PascalCase | `OrderService`, `InventoryMapper` |
 | Methods | camelCase | `createOrder`, `deductStock` |
 | Constants | UPPER_SNAKE_CASE | `MAX_RETRY_COUNT` |
-| Packages | lowercase | `com.scmcloud.order.service` |
+| Packages | lowercase | `com.cognora.scm.order.service` |
 | Tables | snake_case with prefix | `ord_order`, `inv_stock` |
 | Config files | kebab-case | `application-dev.yml` |
 
@@ -343,7 +343,7 @@ Looking for ways to contribute? These categories are great for first-time contri
 | **Integration tests** | Write integration tests for API endpoints | Medium |
 | **Performance** | Optimize queries, add caching where missing | Medium |
 
-Look for issues labeled [`good first issue`](https://github.com/dengxingzhi000/scm-platform/labels/good%20first%20issue) on GitHub.
+Look for issues labeled [`good first issue`](https://github.com/dengxingzhi000/cognora-aura-platform/labels/good%20first%20issue) on GitHub.
 
 ## Code Review Checklist
 
@@ -393,4 +393,4 @@ For enterprise contributions (from companies or organizations), a signed CLA may
 
 ---
 
-Questions? Open a [discussion](https://github.com/dengxingzhi000/scm-platform/discussions) on GitHub or reach out to the maintainers.
+Questions? Open a [discussion](https://github.com/dengxingzhi000/cognora-aura-platform/discussions) on GitHub or reach out to the maintainers.

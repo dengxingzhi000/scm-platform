@@ -1,0 +1,24 @@
+package com.cognora.ecom.fulfillment.service;
+
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.spring.service.IService;
+import com.cognora.ecom.fulfillment.domain.entity.FulfillmentOrder;
+
+public interface IFulfillmentOrderService extends IService<FulfillmentOrder> {
+
+    FulfillmentOrder createFulfillment(String orderNo, String userId, String fulfillmentType);
+
+    FulfillmentOrder getFulfillment(String fulfillmentNo);
+
+    Page<FulfillmentOrder> pageQuery(int page, int size, String orderNo, String userId, Integer status);
+
+    void cancelFulfillment(String fulfillmentNo, String reason);
+
+    void pickItems(String fulfillmentNo);
+
+    void packItems(String fulfillmentNo);
+
+    void shipItems(String fulfillmentNo, String trackingNo, String carrier);
+
+    void confirmDelivery(String fulfillmentNo);
+}

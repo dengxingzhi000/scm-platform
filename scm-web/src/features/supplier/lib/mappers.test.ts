@@ -91,6 +91,35 @@ describe("supplier mappers", () => {
     expect(supplier.riskLevel).toBeUndefined();
   });
 
+  it("carries the master-data fields the overview panel shows", () => {
+    const supplier = toSupplier({
+      ...supplierFixture,
+      supplierNameEn: "Shenzhen Huaqiang Electronics Co., Ltd.",
+      businessType: "电子元器件",
+      legalPerson: "张伟",
+      registeredCapital: 5000000,
+      registrationNo: "91440300MA5EXAMPLE",
+      establishmentDate: "2011-05-06",
+      cooperationStartDate: "2021-03-02",
+      paymentTerms: "月结 30 天",
+      paymentMethod: "银行转账",
+      website: "https://example.com",
+      sortOrder: 3,
+    });
+
+    expect(supplier.nameEn).toBe("Shenzhen Huaqiang Electronics Co., Ltd.");
+    expect(supplier.businessType).toBe("电子元器件");
+    expect(supplier.legalPerson).toBe("张伟");
+    expect(supplier.registeredCapital).toBe(5000000);
+    expect(supplier.registrationNo).toBe("91440300MA5EXAMPLE");
+    expect(supplier.establishmentDate).toBe("2011-05-06");
+    expect(supplier.cooperationStartDate).toBe("2021-03-02");
+    expect(supplier.paymentTerms).toBe("月结 30 天");
+    expect(supplier.paymentMethod).toBe("银行转账");
+    expect(supplier.website).toBe("https://example.com");
+    expect(supplier.sortOrder).toBe(3);
+  });
+
   it("masks a bank account but keeps the last four digits", () => {
     expect(maskBankAccount("6222021234567890")).toBe("**** **** **** 7890");
     expect(maskBankAccount("123")).toBe("****");

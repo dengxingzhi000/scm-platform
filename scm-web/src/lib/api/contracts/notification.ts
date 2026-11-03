@@ -7,7 +7,7 @@ export type NotificationTypeCode =
   | "APPROVAL"
   | "SECURITY";
 
-/** `com.scmcloud.notify.domain.entity.SysUserNotification`. */
+/** `com.cognora.platform.notify.domain.entity.SysUserNotification`. */
 export interface UserNotificationDTO {
   id: string;
   userId?: string | null;

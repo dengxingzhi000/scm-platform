@@ -1,0 +1,101 @@
+package com.cognora.lms.logistics.service.impl;
+
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import com.cognora.lms.logistics.domain.entity.TmsCarrier;
+import com.cognora.lms.logistics.mapper.TmsCarrierMapper;
+import com.cognora.lms.logistics.service.ITmsCarrierService;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
+
+@Slf4j
+@Service
+public class TmsCarrierServiceImpl extends ServiceImpl<TmsCarrierMapper, TmsCarrier> implements ITmsCarrierService {
+
+    @Override
+    public Page<TmsCarrier> pageList(int page, int size, String carrierName, Integer carrierType, Boolean enabled) {
+        log.debug("Query carrier list: page={}, size={}, carrierName={}, carrierType={}, enabled={}", (page + "").replace("\r", "_").replace("\n", "_"), (size + "").replace("\r", "_").replace("\n", "_"), (carrierName + "").replace("\r", "_").replace("\n", "_"), (carrierType + "").replace("\r", "_").replace("\n", "_"), (enabled + "").replace("\r", "_").replace("\n", "_"));
+
+        LambdaQueryWrapper<TmsCarrier> wrapper = Wrappers.lambdaQuery();
+        if (StringUtils.hasText(carrierName)) {
+            wrapper.like(TmsCarrier::getCarrierName, carrierName);
+        }
+        if (carrierType != null) {
+            wrapper.eq(TmsCarrier::getCarrierType, carrierType);
+        }
+        if (enabled != null) {
+            wrapper.eq(TmsCarrier::getEnabled, enabled);
+        }
+        wrapper.eq(TmsCarrier::getDeleted, false);
+        wrapper.orderByAsc(TmsCarrier::getSortOrder);
+        wrapper.orderByDesc(TmsCarrier::getCreateTime);
+
+        return page(new Page<>(page, size), wrapper);
+    }
+
+    @Override
+    public List<TmsCarrier> listEnabled() {
+        log.debug("Query enabled carriers list");
+        return lambdaQuery()
+                .eq(TmsCarrier::getEnabled, true)
+                .eq(TmsCarrier::getDeleted, false)
+                .orderByAsc(TmsCarrier::getSortOrder)
+                .list();
+    }
+
+    @Override
+    public TmsCarrier getByCarrierCode(String carrierCode) {
+        log.debug("Query carrier by code: carrierCode={}", (carrierCode + "").replace("\r", "_").replace("\n", "_"));
+        return lambdaQuery()
+                .eq(TmsCarrier::getCarrierCode, carrierCode)
+                .eq(TmsCarrier::getDeleted, false)
+                .one();
+    }
+
+    @Override
+    public TmsCarrier createCarrier(TmsCarrier carrier) {
+        log.info("Create carrier: carrierCode={}, carrierName={}", (carrier.getCarrierCode() + "").replace("\r", "_").replace("\n", "_"), (carrier.getCarrierName() + "").replace("\r", "_").replace("\n", "_"));
+        carrier.setId(UUID.randomUUID().toString());
+        carrier.setDeleted(false);
+        carrier.setCreateTime(LocalDateTime.now());
+        carrier.setUpdateTime(LocalDateTime.now());
+        save(carrier);
+        return carrier;
+    }
+
+    @Override
+    public TmsCarrier updateCarrier(String id, TmsCarrier carrier) {
+        log.info("Update carrier: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
+        carrier.setId(id);
+        carrier.setUpdateTime(LocalDateTime.now());
+        updateById(carrier);
+        return carrier;
+    }
+
+    @Override
+    public void deleteCarrier(String id) {
+        log.info("Delete carrier: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
+        TmsCarrier carrier = new TmsCarrier();
+        carrier.setId(id);
+        carrier.setDeleted(true);
+        carrier.setUpdateTime(LocalDateTime.now());
+        updateById(carrier);
+    }
+
+    @Override
+    public void toggleEnabled(String id, boolean enabled) {
+        log.info("Toggle carrier enabled: id={}, enabled={}", (id + "").replace("\r", "_").replace("\n", "_"), (enabled + "").replace("\r", "_").replace("\n", "_"));
+        TmsCarrier carrier = new TmsCarrier();
+        carrier.setId(id);
+        carrier.setEnabled(enabled);
+        carrier.setUpdateTime(LocalDateTime.now());
+        updateById(carrier);
+    }
+}

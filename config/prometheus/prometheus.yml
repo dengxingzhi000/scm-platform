@@ -1,4 +1,4 @@
-﻿# Prometheus configuration
+# Prometheus configuration
 # Scrapes SCM Platform service metrics
 
 global:
@@ -26,28 +26,28 @@ scrape_configs:
       - targets: ['localhost:9090']
 
   # Spring Boot Actuator endpoints
-  - job_name: 'scm-gateway'
+  - job_name: 'platform-gateway'
     metrics_path: '/actuator/prometheus'
     static_configs:
       - targets: ['host.docker.internal:8761']
         labels:
           service: 'gateway'
 
-  - job_name: 'scm-system'
+  - job_name: 'platform-system'
     metrics_path: '/actuator/prometheus'
     static_configs:
       - targets: ['host.docker.internal:8081']
         labels:
           service: 'system'
 
-  - job_name: 'scm-product'
+  - job_name: 'platform-product'
     metrics_path: '/actuator/prometheus'
     static_configs:
       - targets: ['host.docker.internal:8201']
         labels:
           service: 'product'
 
-  - job_name: 'scm-inventory'
+  - job_name: 'platform-inventory'
     metrics_path: '/actuator/prometheus'
     static_configs:
       - targets: ['host.docker.internal:8202']
@@ -68,7 +68,7 @@ scrape_configs:
         labels:
           service: 'warehouse'
 
-  - job_name: 'scm-logistics'
+  - job_name: 'lms-tms'
     metrics_path: '/actuator/prometheus'
     static_configs:
       - targets: ['host.docker.internal:8205']

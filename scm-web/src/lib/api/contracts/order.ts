@@ -23,7 +23,7 @@ export type PaymentStatus =
   | "REFUNDED"
   | "CANCELLED";
 
-/** `com.scmcloud.order.dto.OrderResponse`. `items` is never populated by the API. */
+/** `com.cognora.scm.order.dto.OrderResponse`. `items` is never populated by the API. */
 export interface OrderResponse {
   id: string;
   orderNo: string;
@@ -268,7 +268,7 @@ export interface OrderDashboardTrendPointDTO {
   orders: number;
 }
 
-/** `com.scmcloud.order.dto.OrderDashboardSummaryResponse`. */
+/** `com.cognora.scm.order.dto.OrderDashboardSummaryResponse`. */
 export interface OrderDashboardSummaryDTO {
   range: OrderDashboardRange;
   compareMode: OrderDashboardCompare;

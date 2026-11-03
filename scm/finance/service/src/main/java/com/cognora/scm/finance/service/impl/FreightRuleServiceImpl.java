@@ -1,0 +1,158 @@
+package com.cognora.scm.finance.service.impl;
+
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.cognora.scm.finance.domain.entity.FreightRule;
+import com.cognora.scm.finance.mapper.FreightRuleMapper;
+import com.cognora.scm.finance.service.IFreightRuleService;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Slf4j
+@Service
+public class FreightRuleServiceImpl extends ServiceImpl<FreightRuleMapper, FreightRule>
+        implements IFreightRuleService {
+
+    @Override
+    public List<FreightRule> listActiveRules() {
+        log.debug("Query active freight rules");
+        LocalDate today = LocalDate.now();
+        LambdaQueryWrapper<FreightRule> wrapper = Wrappers.lambdaQuery();
+        wrapper.eq(FreightRule::getEnabled, true)
+                .eq(FreightRule::getDeleted, false)
+                .le(FreightRule::getEffectiveDate, today)
+                .ge(FreightRule::getExpiryDate, today)
+                .orderByDesc(FreightRule::getPriority);
+        return list(wrapper);
+    }
+
+    @Override
+    public BigDecimal calculateFreight(String ruleId, BigDecimal weight, Integer quantity,
+                                       BigDecimal volume, BigDecimal orderAmount) {
+        log.info("璁＄畻杩愯垂: ruleId={}, weight={}, quantity={}, volume={}, orderAmount={}",
+                (ruleId + "").replace("\r", "_").replace("\n", "_"), (weight + "").replace("\r", "_").replace("\n", "_"), (quantity + "").replace("\r", "_").replace("\n", "_"), (volume + "").replace("\r", "_").replace("\n", "_"), (orderAmount + "").replace("\r", "_").replace("\n", "_"));
+
+        FreightRule rule = getById(ruleId);
+        if (rule == null || Boolean.TRUE.equals(rule.getDeleted())) {
+            throw new IllegalArgumentException("Freight rule not found: " + ruleId);
+        }
+
+        if (!Boolean.TRUE.equals(rule.getEnabled())) {
+            throw new IllegalArgumentException("Freight rule is disabled: " + ruleId);
+        }
+
+        if (rule.getFreeThreshold() != null && orderAmount != null
+                && orderAmount.compareTo(rule.getFreeThreshold()) >= 0) {
+            log.info("Order amount meets free shipping threshold, free shipping: orderAmount={}, threshold={}",
+                    orderAmount, rule.getFreeThreshold());
+            return BigDecimal.ZERO;
+        }
+
+        BigDecimal freight;
+        switch (rule.getBillingType()) {
+            case 1 -> freight = calculateByWeight(rule, weight);
+            case 2 -> freight = calculateByQuantity(rule, quantity);
+            case 3 -> freight = calculateByVolume(rule, volume);
+            case 4 -> freight = rule.getFixedFreight() != null ? rule.getFixedFreight() : BigDecimal.ZERO;
+            default -> throw new IllegalArgumentException("Unsupported billing type: " + rule.getBillingType());
+        }
+
+        if (rule.getRemoteAreaFee() != null) {
+            freight = freight.add(rule.getRemoteAreaFee());
+        }
+        if (rule.getHandlingFee() != null) {
+            freight = freight.add(rule.getHandlingFee());
+        }
+
+        freight = freight.setScale(2, RoundingMode.HALF_UP);
+        log.info("杩愯垂璁＄畻缁撴灉: ruleId={}, freight={}", (ruleId + "").replace("\r", "_").replace("\n", "_"), (freight + "").replace("\r", "_").replace("\n", "_"));
+        return freight;
+    }
+
+    @Override
+    public FreightRule createRule(FreightRule rule) {
+        rule.setDeleted(false);
+        rule.setCreateTime(LocalDateTime.now());
+        rule.setUpdateTime(LocalDateTime.now());
+        save(rule);
+        log.info("运费规则创建成功: id={}", (rule.getId() + "").replace("\r", "_").replace("\n", "_"));
+        return rule;
+    }
+
+    @Override
+    public FreightRule updateRule(String id, FreightRule rule) {
+        rule.setId(id);
+        rule.setUpdateTime(LocalDateTime.now());
+        updateById(rule);
+        log.info("运费规则更新成功: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
+        return rule;
+    }
+
+    @Override
+    public void deleteRule(String id) {
+        FreightRule rule = getById(id);
+        if (rule != null) {
+            rule.setDeleted(true);
+            rule.setUpdateTime(LocalDateTime.now());
+            updateById(rule);
+            log.info("运费规则删除成功: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
+        }
+    }
+
+    private BigDecimal calculateByWeight(FreightRule rule, BigDecimal weight) {
+        if (weight == null || weight.compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO;
+        }
+        BigDecimal firstWeight = rule.getFirstWeight() != null ? rule.getFirstWeight() : BigDecimal.ONE;
+        BigDecimal firstPrice = rule.getFirstPrice() != null ? rule.getFirstPrice() : BigDecimal.ZERO;
+        BigDecimal additionalWeight = rule.getAdditionalWeight() != null ? rule.getAdditionalWeight() : BigDecimal.ONE;
+        BigDecimal additionalPrice = rule.getAdditionalPrice() != null ? rule.getAdditionalPrice() : BigDecimal.ZERO;
+
+        if (weight.compareTo(firstWeight) <= 0) {
+            return firstPrice;
+        }
+        BigDecimal extraWeight = weight.subtract(firstWeight);
+        int additionalUnits = extraWeight.divide(additionalWeight, 0, RoundingMode.CEILING).intValue();
+        return firstPrice.add(additionalPrice.multiply(BigDecimal.valueOf(additionalUnits)));
+    }
+
+    private BigDecimal calculateByQuantity(FreightRule rule, Integer quantity) {
+        if (quantity == null || quantity <= 0) {
+            return BigDecimal.ZERO;
+        }
+        BigDecimal firstPrice = rule.getFirstPrice() != null ? rule.getFirstPrice() : BigDecimal.ZERO;
+        BigDecimal additionalPrice = rule.getAdditionalPrice() != null ? rule.getAdditionalPrice() : BigDecimal.ZERO;
+        int firstWeight = rule.getFirstWeight() != null ? rule.getFirstWeight().intValue() : 1;
+        int additionalWeight = rule.getAdditionalWeight() != null ? rule.getAdditionalWeight().intValue() : 1;
+
+        if (quantity <= firstWeight) {
+            return firstPrice;
+        }
+        int extraUnits = (int) Math.ceil((double) (quantity - firstWeight) / additionalWeight);
+        return firstPrice.add(additionalPrice.multiply(BigDecimal.valueOf(extraUnits)));
+    }
+
+    private BigDecimal calculateByVolume(FreightRule rule, BigDecimal volume) {
+        if (volume == null || volume.compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO;
+        }
+        BigDecimal firstWeight = rule.getFirstWeight() != null ? rule.getFirstWeight() : BigDecimal.ONE;
+        BigDecimal firstPrice = rule.getFirstPrice() != null ? rule.getFirstPrice() : BigDecimal.ZERO;
+        BigDecimal additionalWeight = rule.getAdditionalWeight() != null ? rule.getAdditionalWeight() : BigDecimal.ONE;
+        BigDecimal additionalPrice = rule.getAdditionalPrice() != null ? rule.getAdditionalPrice() : BigDecimal.ZERO;
+
+        if (volume.compareTo(firstWeight) <= 0) {
+            return firstPrice;
+        }
+        BigDecimal extraVolume = volume.subtract(firstWeight);
+        int additionalUnits = extraVolume.divide(additionalWeight, 0, RoundingMode.CEILING).intValue();
+        return firstPrice.add(additionalPrice.multiply(BigDecimal.valueOf(additionalUnits)));
+    }
+}

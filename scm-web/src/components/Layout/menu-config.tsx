@@ -19,6 +19,11 @@ import {
   SafetyCertificateOutlined,
   FolderOpenOutlined,
   CloudUploadOutlined,
+  ShoppingOutlined,
+  GiftOutlined,
+  WalletOutlined,
+  ContainerOutlined,
+  SearchOutlined,
 } from '@ant-design/icons'
 
 type MenuItem = Required<MenuProps>['items'][number]
@@ -63,7 +68,11 @@ export const appMenuItems: MenuItem[] = [
     getItem('询价管理', '/purchase/rfq'),
     getItem('报价管理', '/purchase/quotation'),
   ]),
-  getItem('供应商管理', '/supplier', <TeamOutlined />),
+  getItem('供应商管理', 'group-supplier', <TeamOutlined />, [
+    getItem('供应商列表', '/supplier'),
+    getItem('准入审核', '/supplier/audit'),
+    getItem('分类字典', '/supplier/category'),
+  ]),
   getItem('物流管理', 'group-logistics', <CarOutlined />, [
     getItem('运单管理', '/logistics'),
     getItem('物流跟踪', '/logistics/tracking'),
@@ -92,6 +101,21 @@ export const appMenuItems: MenuItem[] = [
   getItem('通知管理', '/notification', <NotificationOutlined />),
   getItem('审批中心', '/approval', <AuditOutlined />),
   getItem('审计日志', '/audit', <SafetyCertificateOutlined />),
+  getItem('电商中心', 'group-ecommerce', <ShoppingOutlined />, [
+    getItem('会员管理', '/ecommerce/members'),
+    getItem('优惠券', '/ecommerce/coupons', <GiftOutlined />),
+    getItem('秒杀活动', '/ecommerce/flash-sales'),
+    getItem('拼团活动', '/ecommerce/group-buys'),
+    getItem('支付单', '/ecommerce/payments', <WalletOutlined />),
+    getItem('退款单', '/ecommerce/refunds'),
+    getItem('订单中心', '/ecommerce/orders', <ContainerOutlined />),
+    getItem('履约单', '/ecommerce/fulfillments'),
+    getItem('物流跟踪', '/ecommerce/tracking'),
+    getItem('搜索运营', '/ecommerce/search', <SearchOutlined />),
+    getItem('商品评价', '/ecommerce/reviews'),
+    getItem('卖家管理', '/ecommerce/sellers'),
+  ]),
+  getItem('商城前台', '/shop', <ShopOutlined />),
 ]
 
 const labelMap: Record<string, string> = {}
