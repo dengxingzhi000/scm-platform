@@ -193,7 +193,9 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- Spring Framework 7 logs through commons-logging; context-based unit tests need it. -->
+        <!-- Spring Framework 7 logs through commons-logging, and
+             spring-security-oauth2-authorization-server excludes it from spring-core,
+             but AbstractEnvironment (and therefore MockEnvironment) needs it at runtime -->
         <dependency>
             <groupId>commons-logging</groupId>
             <artifactId>commons-logging</artifactId>

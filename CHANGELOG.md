@@ -74,6 +74,72 @@ from order events, and audit records finally reach `db_audit`.
   a real SMTP host; neither blocks the API.
 - Audit entries produced before authentication exists (e.g. failed logins) fall
   back to the application log because the record endpoint requires a token.
+- **`API_SECRET_INTERNAL_SERVICE` is now mandatory.** scm-audit refuses to
+  start without it, and every service that reports audit records signs with
+  it. Set it to one random value of at least 32 characters on all of them;
+  `docker-compose.yml` and the k8s manifests read it from `.env` / `scm-secrets`.
+
+## [Unreleased] - 2026-11-03
+
+API-contract hardening across the business services, plus the fixes a code
+review of that work surfaced.
+
+### Added
+
+- **Append-only audit log** — the HTTP delete routes on the audit controllers
+  are gone and `POST /sys-audit-log` is guarded by `AuditWriteRequestGuard`,
+  which verifies the shared HMAC signature (and normalises the request path
+  first, so `/sys-audit-log;x=1` cannot slip through). Rejections are counted
+  in `security_audit_write_rejected_total` and logged at ERROR.
+- **Tenant-scoped document and file access** — the document, template, file and
+  version operations resolve the tenant from the request context instead of
+  accepting it from the caller.
+- **Order dashboard summary** — `GET /api/v1/orders/dashboard/summary`
+  aggregates revenue, order counts, status counts and backlog in PostgreSQL
+  instead of paging through orders in the browser.
+
+### Fixed
+
+- **The audit write channel was protected by a committed constant.** The
+  signing secret resolved to `your-internal-secret-key`; signer and verifier
+  now share one resolver (`InternalSignatureSecretResolver`) and scm-audit
+  refuses to start when the secret is blank or still a placeholder.
+- **An unauthenticated "mark as paid" RPC.** `PaymentDubboService` exposed
+  `handlePaymentCallback`, which reached `applyPaid` with no signature, amount
+  or channel check. It is deleted — the verified callback is now the only path
+  to a paid payment.
+- **Alipay callbacks could be replayed indefinitely.** The 5 minute replay
+  window that WeChat had now applies to Alipay as well.
+- **Payment amounts were neither normalised nor bounded.** The amount is
+  stored at scale 2, an amount with more than two decimals is rejected, and
+  the ceiling is a named constant.
+- **The reservation routes leaked the exception text to the client.** The
+  catch-and-rethrow wrappers are gone; the service exception propagates
+  unchanged and the global handler returns a generic message with the trace id.
+- **Flyway migrations could never run.** Spring Boot 4 moved the
+  auto-configuration into `spring-boot-flyway`, so the eleven modules that
+  owned migrations but declared only `flyway-core` silently skipped them. They
+  now declare the starter, get an explicit `spring.flyway` block
+  (`baseline-on-migrate`, `baseline-version: 0`) and are covered by a build
+  guard that fails any module with migrations and no auto-configuration.
+- **scm-file could not start on a bootstrap-created schema.** Its migration is
+  idempotent now and it has its own Flyway history table (shared with
+  scm-message).
+- **scm-message stored the tenant as a BIGINT** while the platform writes a
+  UUID string, so every message query failed. The column and the Java side
+  are now `VARCHAR(36)` / `String`.
+- **Three modules were red.** `scm-file`'s test sources did not compile, and
+  the new `scm-logistics` and `scm-supplier` tests never reached the code they
+  claimed to cover.
+
+### Changed
+
+- The business services moved their business rules out of the controllers and
+  into the service layer: the route id is now authoritative, entity-to-DTO
+  mapping happens in the query services, and the controllers only translate
+  between HTTP and the service.
+- `ci_validate_tenant_id.sql` covers the `db_permission` tables that carry a
+  `tenant_id` column.
 
 ## [1.5.0] - 2026-10-26
 

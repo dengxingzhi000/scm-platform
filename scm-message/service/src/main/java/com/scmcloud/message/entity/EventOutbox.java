@@ -17,7 +17,7 @@ public class EventOutbox {
     private Integer maxRetries;
     private String status;
     private String errorMessage;
-    private Long tenantId;
+    private String tenantId;
     private Date createTime;
     private Date publishedAt;
     private Date nextRetryAt;

@@ -23,7 +23,7 @@ public class InventoryChangedEvent implements DomainEvent {
     private Integer newQuantity;
     private String changeType;
     @Getter(onMethod_ = @Override)
-    private Long tenantId;
+    private String tenantId;
     @Getter(onMethod_ = @Override)
     private Date timestamp;
     
@@ -55,7 +55,7 @@ public class InventoryChangedEvent implements DomainEvent {
     
     public static InventoryChangedEvent of(String skuId, String warehouseId, 
                                             Integer quantityChange, Integer newQuantity,
-                                            String changeType, Long tenantId) {
+                                            String changeType, String tenantId) {
         return InventoryChangedEvent.builder()
                 .eventId(UUID.randomUUID().toString())
                 .skuId(skuId)

@@ -14,11 +14,11 @@ public interface IPaymentOrderService extends IService<PaymentOrder> {
 
     void cancelPayment(String paymentNo);
 
-    void handlePaymentCallback(String paymentNo, String transactionId);
-
     /**
      * Applies a channel callback after its signature was verified, additionally
      * checking that the channel and paid amount match the local payment order.
+     * <p>This is the only way a payment may become paid: there is deliberately no
+     * unverified variant, so an RPC caller cannot mark a payment paid on its own.</p>
      */
     void handleVerifiedPaymentCallback(String paymentNo, String transactionId,
                                        BigDecimal paidAmount, String paymentChannel);

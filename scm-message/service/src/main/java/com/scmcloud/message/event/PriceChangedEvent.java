@@ -24,7 +24,7 @@ public class PriceChangedEvent implements DomainEvent {
     private BigDecimal newPrice;
     private String priceListId;
     @Getter(onMethod_ = @Override)
-    private Long tenantId;
+    private String tenantId;
     @Getter(onMethod_ = @Override)
     private Date timestamp;
     
@@ -56,7 +56,7 @@ public class PriceChangedEvent implements DomainEvent {
     
     public static PriceChangedEvent of(String productId, String skuId, 
                                         BigDecimal oldPrice, BigDecimal newPrice,
-                                        String priceListId, Long tenantId) {
+                                        String priceListId, String tenantId) {
         return PriceChangedEvent.builder()
                 .eventId(UUID.randomUUID().toString())
                 .productId(productId)

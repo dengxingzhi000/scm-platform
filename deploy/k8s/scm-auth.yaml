@@ -41,6 +41,11 @@ spec:
                   name: scm-secrets
                   key: db-username
             - name: DB_PASSWORD
+            - name: API_SECRET_INTERNAL_SERVICE
+              valueFrom:
+                secretKeyRef:
+                  name: scm-secrets
+                  key: api-secret-internal-service
               valueFrom:
                 secretKeyRef:
                   name: scm-secrets
@@ -107,3 +112,6 @@ data:
   db-password: YWRtaW4xMjM=      # admin123 (base64)
   redis-password: cmVkaXMxMjM=   # redis123 (base64)
   jwt-secret: c2NtLWp3dC1zZWNyZXQta2V5LTIwMjY=  # scm-jwt-secret-key-2026 (base64)
+  # 服务间调用签名密钥。占位值会让 scm-audit 拒绝启动——请在部署前替换成
+  # 至少 32 位随机值，并在所有上报审计记录的服务上使用同一个值。
+  api-secret-internal-service: Y2hhbmdlbWU=  # changeme (base64) - MUST be replaced
