@@ -44,7 +44,7 @@ class OutboxPollerTest {
 
         poller.publishEvent(event);
 
-        verify(kafkaPublisher).send(eq("scm.ordorder"), eq("order-1"), any(MessageEnvelope.class));
+        verify(kafkaPublisher).send(eq("cognora.ordorder"), eq("order-1"), any(MessageEnvelope.class));
     }
 
     @Test
@@ -55,7 +55,7 @@ class OutboxPollerTest {
 
         poller.publishEvent(event);
 
-        verify(kafkaPublisher).send(eq("scm.inventory"), eq("inv-1"), any(MessageEnvelope.class));
+        verify(kafkaPublisher).send(eq("cognora.inventory"), eq("inv-1"), any(MessageEnvelope.class));
     }
 
     @Test

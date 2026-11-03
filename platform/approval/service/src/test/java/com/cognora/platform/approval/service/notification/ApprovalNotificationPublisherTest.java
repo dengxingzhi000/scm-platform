@@ -22,7 +22,7 @@ import static org.mockito.Mockito.when;
 
 class ApprovalNotificationPublisherTest {
 
-    private static final String TOPIC = "scm.notify.events";
+    private static final String TOPIC = "cognora.notify.events";
     private static final UUID TENANT = UUID.fromString("019a0aee-0000-7000-8000-000000000002");
 
     @SuppressWarnings("unchecked")

@@ -53,7 +53,7 @@ xxl:
     executor:
       appname: platform-tenant-executor
       port: 9993
-      logpath: ${user.home}/logs/scm-tenant/xxl-job
+      logpath: ${user.home}/logs/platform-tenant/xxl-job
       logretentiondays: 30
     accessToken: ${XXL_JOB_ACCESS_TOKEN:}
 

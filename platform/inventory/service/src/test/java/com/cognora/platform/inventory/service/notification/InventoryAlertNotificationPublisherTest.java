@@ -20,7 +20,7 @@ import static org.mockito.Mockito.when;
 
 class InventoryAlertNotificationPublisherTest {
 
-    private static final String TOPIC = "scm.notify.events";
+    private static final String TOPIC = "cognora.notify.events";
 
     @SuppressWarnings("unchecked")
     private final KafkaTemplate<String, Object> kafkaTemplate = mock(KafkaTemplate.class);

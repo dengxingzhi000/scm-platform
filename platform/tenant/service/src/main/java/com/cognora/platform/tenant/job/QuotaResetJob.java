@@ -19,7 +19,7 @@ import java.util.UUID;
  * 3. 支持参数化重置单个租户（用于手动触发）。
  *
  * XXL-Job 配置示例：
- * - 执行器：scm-tenant-executor
+ * - 执行器：platform-tenant-executor
  * - JobHandler：quotaResetJob
  * - Cron：0 5 0 * * ?
  * - 运行模式：BEAN

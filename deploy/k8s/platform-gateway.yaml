@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: platform-gateway
+  namespace: scm-platform
+  labels:
+    app: platform-gateway
+    tier: infrastructure
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: platform-gateway
+  template:
+    metadata:
+      labels:
+        app: platform-gateway
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8761"
+    spec:
+      containers:
+        - name: platform-gateway
+          image: scm-platform/platform-gateway:latest
+          ports:
+            - containerPort: 8761
+              name: http
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "kubernetes"
+            - name: NACOS_SERVER_ADDR
+              valueFrom:
+                configMapKeyRef:
+                  name: scm-config
+                  key: nacos-server
+            - name: NACOS_NAMESPACE
+              valueFrom:
+                configMapKeyRef:
+                  name: scm-config
+                  key: nacos-namespace
+            - name: JAVA_OPTS
+              value: "-Xms512m -Xmx512m -XX:+UseG1GC"
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8761
+            initialDelaySeconds: 60
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8761
+            initialDelaySeconds: 30
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: platform-gateway
+  namespace: scm-platform
+spec:
+  selector:
+    app: platform-gateway
+  ports:
+    - port: 8761
+      targetPort: 8761
+      name: http
+  type: ClusterIP
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scm-config
+  namespace: scm-platform
+data:
+  nacos-server: "nacos-headless.nacos:8848"
+  nacos-namespace: "scm-platform"
+  db-host: "postgresql.postgres:5432"
+  redis-host: "redis-master.redis:6379"
+  kafka-bootstrap: "kafka-headless.kafka:9092"
+  elasticsearch-uris: "http://elasticsearch-master.elasticsearch:9200"
+  seata-server: "seata-server.seata:8091"

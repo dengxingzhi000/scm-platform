@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Subscribes to business CDC topics published by the outbox poller
- * ({@code scm.ordorder}, {@code scm.inventory}) and feeds transformed rows
+ * ({@code cognora.ordorder}, {@code cognora.inventory}) and feeds transformed rows
  * into a thread-safe bounded queue drained by {@link #flushPending()}.
  *
  * <p>Design notes:
@@ -57,8 +57,8 @@ public class OdsIngestConsumer {
     public static final int DEFAULT_QUEUE_CAPACITY = 10_000;
     public static final int MAX_CONSECUTIVE_FLUSH_FAILURES = 5;
     public static final long OFFER_TIMEOUT_SECONDS = 5L;
-    public static final String TOPIC_ORDER = "scm.ordorder";
-    public static final String TOPIC_INVENTORY = "scm.inventory";
+    public static final String TOPIC_ORDER = "cognora.ordorder";
+    public static final String TOPIC_INVENTORY = "cognora.inventory";
 
     private final ClickHouseOdsWriter writer;
     private final OdsDedupService dedupService;

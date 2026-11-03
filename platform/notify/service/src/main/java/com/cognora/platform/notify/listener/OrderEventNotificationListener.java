@@ -24,7 +24,7 @@ public class OrderEventNotificationListener {
     private final ISysUserNotificationService notificationService;
 
     @KafkaListener(
-            topics = "${notify.order-events-topic:scm.ordorder}",
+            topics = "${notify.order-events-topic:cognora.ordorder}",
             groupId = "${spring.kafka.consumer.group-id:notify-order-events}")
     public void onOrderEvent(String message) throws Exception {
         JsonNode envelope = objectMapper.readTree(message);

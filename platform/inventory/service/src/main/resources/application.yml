@@ -178,7 +178,7 @@ integration:
     bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
 
 notify:
-  request-topic: ${NOTIFY_REQUEST_TOPIC:scm.notify.events}
+  request-topic: ${NOTIFY_REQUEST_TOPIC:cognora.notify.events}
 
 cognora:
   inventory:

@@ -52,7 +52,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 @SpringJUnitConfig(classes = OdsIngestConsumerTest.TestConfig.class)
-@EmbeddedKafka(topics = {"scm.ordorder", "scm.inventory"}, partitions = 1)
+@EmbeddedKafka(topics = {"cognora.ordorder", "cognora.inventory"}, partitions = 1)
 @TestPropertySource(properties = {
         "clickhouse.url=http://localhost:8123",
         "clickhouse.database=analytics",

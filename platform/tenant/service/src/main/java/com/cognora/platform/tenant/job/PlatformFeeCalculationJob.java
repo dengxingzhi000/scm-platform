@@ -28,7 +28,7 @@ import java.util.UUID;
  * 5. 发送账单通知邮件
  *
  * XXL-Job 配置示例：
- * - 执行器：scm-tenant-executor
+ * - 执行器：platform-tenant-executor
  * - JobHandler：platformFeeCalculationJob
  * - Cron：0 0 2 1 * ?
  * - 运行模式：BEAN

@@ -248,21 +248,21 @@ jobs:
     strategy:
       matrix:
         include:
-          - service: scm-auth
+          - service: platform-auth
             path: platform/auth
-          - service: scm-gateway
+          - service: platform-gateway
             path: platform/gateway
-          - service: scm-system
+          - service: platform-system
             path: platform/system
-          - service: scm-product
+          - service: platform-product
             path: platform/product
-          - service: scm-inventory
+          - service: platform-inventory
             path: platform/inventory
           - service: scm-order
             path: scm/order
           - service: scm-warehouse
             path: scm/warehouse
-          - service: scm-logistics
+          - service: lms-tms
             path: lms/tms
           - service: scm-supplier
             path: scm/supplier
@@ -270,13 +270,13 @@ jobs:
             path: scm/finance
           - service: scm-purchase
             path: scm/purchase
-          - service: scm-approval
+          - service: platform-approval
             path: platform/approval
-          - service: scm-audit
+          - service: platform-audit
             path: platform/audit
-          - service: scm-notify
+          - service: platform-notify
             path: platform/notify
-          - service: scm-tenant
+          - service: platform-tenant
             path: platform/tenant
 
     steps:
@@ -352,18 +352,18 @@ jobs:
 
       - name: Deploy to dev namespace
         run: |
-          kubectl set image deployment/scm-auth scm-auth=${{ secrets.DOCKERHUB_USERNAME }}/scm-auth:develop-${{ github.sha }} -n scm-dev
-          kubectl set image deployment/scm-gateway scm-gateway=${{ secrets.DOCKERHUB_USERNAME }}/scm-gateway:develop-${{ github.sha }} -n scm-dev
-          kubectl set image deployment/scm-system scm-system=${{ secrets.DOCKERHUB_USERNAME }}/scm-system:develop-${{ github.sha }} -n scm-dev
-          kubectl rollout status deployment/scm-auth -n scm-dev
-          kubectl rollout status deployment/scm-gateway -n scm-dev
-          kubectl rollout status deployment/scm-system -n scm-dev
+          kubectl set image deployment/platform-auth platform-auth=${{ secrets.DOCKERHUB_USERNAME }}/platform-auth:develop-${{ github.sha }} -n scm-dev
+          kubectl set image deployment/platform-gateway platform-gateway=${{ secrets.DOCKERHUB_USERNAME }}/platform-gateway:develop-${{ github.sha }} -n scm-dev
+          kubectl set image deployment/platform-system platform-system=${{ secrets.DOCKERHUB_USERNAME }}/platform-system:develop-${{ github.sha }} -n scm-dev
+          kubectl rollout status deployment/platform-auth -n scm-dev
+          kubectl rollout status deployment/platform-gateway -n scm-dev
+          kubectl rollout status deployment/platform-system -n scm-dev
 
       - name: Verify deployment
         run: |
-          kubectl get pods -n scm-dev -l app=scm-auth
-          kubectl get pods -n scm-dev -l app=scm-gateway
-          kubectl get pods -n scm-dev -l app=scm-system
+          kubectl get pods -n scm-dev -l app=platform-auth
+          kubectl get pods -n scm-dev -l app=platform-gateway
+          kubectl get pods -n scm-dev -l app=platform-system
 
   deploy-prod:
     name: Deploy to Production
@@ -385,15 +385,15 @@ jobs:
 
       - name: Deploy to production namespace
         run: |
-          kubectl set image deployment/scm-auth scm-auth=${{ secrets.DOCKERHUB_USERNAME }}/scm-auth:master-${{ github.sha }} -n scm-prod
-          kubectl set image deployment/scm-gateway scm-gateway=${{ secrets.DOCKERHUB_USERNAME }}/scm-gateway:master-${{ github.sha }} -n scm-prod
-          kubectl set image deployment/scm-system scm-system=${{ secrets.DOCKERHUB_USERNAME }}/scm-system:master-${{ github.sha }} -n scm-prod
-          kubectl rollout status deployment/scm-auth -n scm-prod
-          kubectl rollout status deployment/scm-gateway -n scm-prod
-          kubectl rollout status deployment/scm-system -n scm-prod
+          kubectl set image deployment/platform-auth platform-auth=${{ secrets.DOCKERHUB_USERNAME }}/platform-auth:master-${{ github.sha }} -n scm-prod
+          kubectl set image deployment/platform-gateway platform-gateway=${{ secrets.DOCKERHUB_USERNAME }}/platform-gateway:master-${{ github.sha }} -n scm-prod
+          kubectl set image deployment/platform-system platform-system=${{ secrets.DOCKERHUB_USERNAME }}/platform-system:master-${{ github.sha }} -n scm-prod
+          kubectl rollout status deployment/platform-auth -n scm-prod
+          kubectl rollout status deployment/platform-gateway -n scm-prod
+          kubectl rollout status deployment/platform-system -n scm-prod
 
       - name: Verify deployment
         run: |
-          kubectl get pods -n scm-prod -l app=scm-auth
-          kubectl get pods -n scm-prod -l app=scm-gateway
-          kubectl get pods -n scm-prod -l app=scm-system
+          kubectl get pods -n scm-prod -l app=platform-auth
+          kubectl get pods -n scm-prod -l app=platform-gateway
+          kubectl get pods -n scm-prod -l app=platform-system

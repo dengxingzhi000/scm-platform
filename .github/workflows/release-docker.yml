@@ -38,10 +38,9 @@ jobs:
           services=$(find platform scm ecom lms -mindepth 2 -maxdepth 2 -name Dockerfile -printf '%h\n' 2>/dev/null \
             | sort \
             | while read -r dir; do
-                case "$dir" in
-                  lms/tms) service="scm-logistics" ;;
-                  *) service="scm-$(basename "$dir")" ;;
-                esac
+                project="${dir%%/*}"
+                domain="${dir#*/}"
+                service="${project}-${domain}"
                 printf '{"service":"%s","path":"%s"}\n' "$service" "$dir"
               done \
             | jq -s -c '.')

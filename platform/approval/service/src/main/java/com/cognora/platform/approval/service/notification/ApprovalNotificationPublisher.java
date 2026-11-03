@@ -25,7 +25,7 @@ public class ApprovalNotificationPublisher {
 
     public ApprovalNotificationPublisher(
             KafkaTemplate<String, Object> kafkaTemplate,
-            @Value("${notify.request-topic:scm.notify.events}") String topic) {
+            @Value("${notify.request-topic:cognora.notify.events}") String topic) {
         this.kafkaTemplate = kafkaTemplate;
         this.topic = topic;
     }

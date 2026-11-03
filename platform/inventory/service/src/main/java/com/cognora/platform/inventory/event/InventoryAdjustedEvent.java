@@ -9,7 +9,7 @@ import java.util.UUID;
  *
  * <p>Carried as the {@code payload} of an outbox row written in the same DB
  * transaction as the inventory mutation. The outbox row is relayed to Kafka
- * topic {@code scm.inventory} by the {@code OutboxPoller} running in the
+ * topic {@code cognora.inventory} by the {@code OutboxPoller} running in the
  * inventory service.</p>
  */
 @Getter

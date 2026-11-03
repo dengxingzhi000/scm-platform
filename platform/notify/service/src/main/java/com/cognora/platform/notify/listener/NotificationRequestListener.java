@@ -30,7 +30,7 @@ public class NotificationRequestListener {
     private final ISysUserNotificationService notificationService;
 
     @KafkaListener(
-            topics = "${notify.request-topic:scm.notify.events}",
+            topics = "${notify.request-topic:cognora.notify.events}",
             groupId = "${notify.request-group-id:notify-requests}")
     public void onNotificationRequest(String message) throws Exception {
         NotificationRequest request = objectMapper.readValue(message, NotificationRequest.class);
