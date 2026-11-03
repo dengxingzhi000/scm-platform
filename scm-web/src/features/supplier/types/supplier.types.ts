@@ -101,6 +101,8 @@ export interface SupplierBankAccount {
 export interface SupplierCertificate {
   id: string
   supplierId?: string | null
+  /** 到期预警接口回填的供应商名称；证照详情接口不回填。 */
+  supplierName?: string | null
   certificateType?: string | null
   certificateName?: string | null
   certificateNo?: string | null

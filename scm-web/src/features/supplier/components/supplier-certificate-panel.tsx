@@ -55,6 +55,7 @@ import {
   labelOf,
   variantOf,
 } from "../lib/constants";
+import { expiryDaysClass } from "../lib/expiry";
 import { formatDate } from "../lib/mappers";
 import type { SupplierCertificate } from "../types";
 import SupplierField from "./supplier-field";
@@ -73,17 +74,6 @@ const ERROR_STRIP =
 /** `<input type="date">` 的值 —— 后端给的是日期串，取前 10 位即可。 */
 const toDateValue = (value?: string | null): string =>
   value ? dayjs(value).format("YYYY-MM-DD") : "";
-
-/**
- * 剩余天数的着色：已过期（<= 0）与一周内到期（1..7）都是红色，
- * 一个月内（8..30）是琥珀色，更远的是中性色。
- */
-const daysClassOf = (days: number | null): string => {
-  if (days === null) return "text-muted-foreground";
-  if (days <= 7) return "text-[var(--color-error-text)]";
-  if (days <= 30) return "text-[var(--color-warning-text)]";
-  return "text-muted-foreground";
-};
 
 interface CertificateFormDialogProps {
   open: boolean;
@@ -445,7 +435,7 @@ export default function SupplierCertificatePanel({
                       {formatDate(certificate.validTo)}
                     </TableCell>
                     <TableCell
-                      className={cn("font-mono tabular-nums", daysClassOf(days))}
+                      className={cn("font-mono tabular-nums", expiryDaysClass(days))}
                     >
                       {days === null ? MISSING : days}
                     </TableCell>

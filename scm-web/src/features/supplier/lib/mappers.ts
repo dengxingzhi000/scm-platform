@@ -155,6 +155,7 @@ export const toSupplierCertificate = (
 ): SupplierCertificate => ({
   id: dto.id ?? "",
   supplierId: dto.supplierId ?? undefined,
+  supplierName: dto.supplierName ?? undefined,
   certificateType: dto.certificateType ?? undefined,
   certificateName: dto.certificateName ?? undefined,
   certificateNo: dto.certificateNo ?? undefined,
