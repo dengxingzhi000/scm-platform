@@ -33,8 +33,14 @@ function createFallbackId(): string {
   }
 
   fallbackCounter += 1
-  const seed = `${Date.now().toString(36)}${(hash >>> 0).toString(36)}${fallbackCounter.toString(36)}`
-  const base = seed.padStart(32, '0').slice(0, 32)
+  // Hex keeps the result shaped like an RFC 4122 UUID, which the tests and the
+  // backend both accept: timestamp, UA hash and counter cover uniqueness.
+  const seed = [
+    Date.now().toString(16),
+    (hash >>> 0).toString(16).padStart(8, '0'),
+    fallbackCounter.toString(16).padStart(4, '0'),
+  ].join('')
+  const base = seed.padEnd(32, '0').slice(0, 32)
   return `${base.slice(0, 8)}-${base.slice(8, 12)}-4${base.slice(12, 15)}-8${base.slice(
     15,
     18
