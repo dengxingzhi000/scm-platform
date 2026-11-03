@@ -8,7 +8,7 @@
     <parent>
         <groupId>com.cognora</groupId>
         <artifactId>scm-order</artifactId>
-        <version>1.0.0-beta.1</version>
+        <version>2.0.0</version>
     </parent>
 
     <artifactId>scm-order-api</artifactId>

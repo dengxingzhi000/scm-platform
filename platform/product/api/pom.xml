@@ -8,7 +8,7 @@
     <parent>
         <groupId>com.cognora</groupId>
         <artifactId>platform-product</artifactId>
-        <version>1.0.0-beta.1</version>
+        <version>2.0.0</version>
     </parent>
 
     <artifactId>platform-product-api</artifactId>
@@ -20,7 +20,7 @@
         <dependency>
             <groupId>com.cognora</groupId>
             <artifactId>platform-common-core</artifactId>
-            <version>1.0.0-beta.1</version>
+            <version>2.0.0</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>

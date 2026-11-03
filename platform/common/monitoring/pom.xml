@@ -4,7 +4,7 @@
     <parent>
         <groupId>com.cognora</groupId>
         <artifactId>platform-common</artifactId>
-        <version>1.0.0-beta.1</version>
+        <version>2.0.0</version>
     </parent>
 
     <artifactId>platform-common-monitoring</artifactId>
@@ -23,12 +23,12 @@
         <dependency>
             <groupId>com.cognora</groupId>
             <artifactId>platform-common-core</artifactId>
-            <version>1.0.0-beta.1</version>
+            <version>2.0.0</version>
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
             <artifactId>platform-common-security-core</artifactId>
-            <version>1.0.0-beta.1</version>
+            <version>2.0.0</version>
         </dependency>
 
         <dependency>
