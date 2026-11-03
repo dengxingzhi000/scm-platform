@@ -42,7 +42,7 @@ export default function ShopProductDetail({ productId }: { productId: string }) 
 
   const spu = spuQuery.data
   const skus = useMemo(
-    () => (skusQuery.data ?? []).filter((sku) => sku.status !== 0),
+    () => (skusQuery.data ?? []).filter((sku) => (sku.status ?? 1) === 1),
     [skusQuery.data]
   )
   const selectedSku =

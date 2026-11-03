@@ -286,7 +286,7 @@ export const paymentApi = {
 export const orderCenterApi = {
   page: (query: OrderQuery) =>
     get<MpPage<OcOrder>>(`${ORDER_CENTER_BASE}/page`, query),
-  create: (order: OcOrder, items: OcOrderItem[]) =>
+  create: (order: Omit<OcOrder, "id">, items: OcOrderItem[]) =>
     post<OcOrder>(ORDER_CENTER_BASE, { order, items }),
   get: (orderNo: string) =>
     get<OcOrder>(`${ORDER_CENTER_BASE}/${encodeURIComponent(orderNo)}`),

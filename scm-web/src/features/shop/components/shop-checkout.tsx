@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { message } from 'antd'
 import dayjs from 'dayjs'
@@ -28,6 +29,7 @@ import { cartTotal, loadCartLines } from '../lib/cart'
 
 export default function ShopCheckout() {
   const userId = useAuthStore((state) => state.user?.id ?? null)
+  const router = useRouter()
   const [receiverName, setReceiverName] = useState('')
   const [receiverPhone, setReceiverPhone] = useState('')
   const [receiverAddress, setReceiverAddress] = useState('')
@@ -50,6 +52,9 @@ export default function ShopCheckout() {
       if (lines.length === 0) throw new Error('购物车为空')
 
       const total = cartTotal(lines)
+      if (total <= 0 || lines.some((line) => line.price <= 0)) {
+        throw new Error('购物车中存在未定价商品，请先维护商品价格后再结算')
+      }
       const orderNo = `SO${dayjs().format('YYYYMMDDHHmmss')}${Math.floor(
         Math.random() * 9000 + 1000
       )}`
@@ -103,7 +108,7 @@ export default function ShopCheckout() {
       orderCenterApi.pay(result!.order.orderNo, result!.payment.paymentNo),
     onSuccess: () => {
       message.success('订单已标记为已支付')
-      window.location.href = '/shop/orders'
+      router.push('/shop/orders')
     },
     onError: (error) => message.error(toApiError(error).message),
   })

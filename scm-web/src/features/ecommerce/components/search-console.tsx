@@ -100,7 +100,8 @@ export default function SearchConsole() {
   const productsQuery = useQuery({
     queryKey: ["ecommerce", "search", "products", filters, page],
     queryFn: () =>
-      searchApi.products({ ...filters, page, size: PAGE_SIZE }),
+      // Spring Data pagination is 0-based while the toolbar shows 1-based pages.
+      searchApi.products({ ...filters, page: page - 1, size: PAGE_SIZE }),
   });
 
   const similarQuery = useQuery({
@@ -288,7 +289,7 @@ export default function SearchConsole() {
           ),
         }),
       ]),
-    [removeProduct.isPending, removeProduct.mutate]
+    [removeProduct]
   );
 
   const table = useTable({

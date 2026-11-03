@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowRight, Search, Sparkles } from 'lucide-react'
 
@@ -13,6 +14,7 @@ import { ProductCard } from './product-card'
 const PAGE_SIZE = 12
 
 export default function ShopHome() {
+  const router = useRouter()
   const [keyword, setKeyword] = useState('')
 
   const latestQuery = useQuery({
@@ -63,9 +65,11 @@ export default function ShopHome() {
             onSubmit={(event) => {
               event.preventDefault()
               const trimmed = keyword.trim()
-              window.location.href = trimmed
-                ? `/shop/search?keyword=${encodeURIComponent(trimmed)}`
-                : '/shop/search'
+              router.push(
+                trimmed
+                  ? `/shop/search?keyword=${encodeURIComponent(trimmed)}`
+                  : '/shop/search'
+              )
             }}
           >
             <div className="relative flex-1">
