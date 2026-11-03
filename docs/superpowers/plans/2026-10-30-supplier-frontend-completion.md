@@ -2048,8 +2048,9 @@ git commit -m "feat(supplier): wire routes, suspense boundary and the supplier m
  */
 ```
 
-必须覆盖到全部 48 个。其中 **46 个有界面调用点**，2 个是**已记录的设计例外**
-（`GET /suppliers/active`、`DELETE /supplier-categories/{id}`）——
+必须覆盖到全部 48 个。**执行期勘误**：原文预检把有界面调用点记为 **46 个**；实际核对
+（见 ledger Task 15 rulings）的结果是 **43 个有界面调用点 + 2 个设计例外 + 3 个契约/服务层无组件调用**
+（`GET /suppliers/search`、`GET /supplier-evaluations/{id}`、`GET /supplier-evaluations/supplier/{supplierId}`）——
 理由要写在表里，不能静默漏掉。
 
 - [ ] **Step 2: 删掉遗留的 mock service 模块**
