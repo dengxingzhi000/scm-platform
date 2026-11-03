@@ -68,7 +68,11 @@ export const appMenuItems: MenuItem[] = [
     getItem('询价管理', '/purchase/rfq'),
     getItem('报价管理', '/purchase/quotation'),
   ]),
-  getItem('供应商管理', '/supplier', <TeamOutlined />),
+  getItem('供应商管理', 'group-supplier', <TeamOutlined />, [
+    getItem('供应商列表', '/supplier'),
+    getItem('准入审核', '/supplier/audit'),
+    getItem('分类字典', '/supplier/category'),
+  ]),
   getItem('物流管理', 'group-logistics', <CarOutlined />, [
     getItem('运单管理', '/logistics'),
     getItem('物流跟踪', '/logistics/tracking'),
