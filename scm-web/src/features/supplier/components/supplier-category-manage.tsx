@@ -180,7 +180,7 @@ function CategoryFormDialog({
   const [form, setForm] = useState(() => ({
     categoryCode: category?.categoryCode ?? "",
     categoryName: category?.categoryName ?? "",
-    parentId: category?.parentId || presetParentId || NO_PARENT,
+    parentId: category?.parentId ?? presetParentId ?? NO_PARENT,
     sortOrder: String(category?.sortOrder ?? 0),
     enabled: category?.enabled ?? true,
   }));
