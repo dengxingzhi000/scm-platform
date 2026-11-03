@@ -804,7 +804,7 @@ public class OrderJobHandler {
 ### 4.1 服务划分
 
 ```
-scm-platform/
+cognora-aura-platform/
 ├── scm-gateway/              # API网关（已有）
 ├── scm-auth/                 # 认证授权服务（已有）
 ├── scm-user/                 # 用户服务（已有）
@@ -1193,8 +1193,8 @@ groups:
 ```bash
 # 1. 创建本地目录
 cd D:/ProgramProject
-mkdir scm-platform
-cd scm-platform
+mkdir cognora-aura-platform
+cd cognora-aura-platform
 
 # 2. 初始化Git
 git init
@@ -1239,7 +1239,7 @@ target/
 EOF
 
 # 5. 创建GitHub仓库
-gh repo create scm-platform --public --description "Enterprise Supply Chain Management Platform | 企业级供应链管理平台"
+gh repo create cognora-aura-platform --public --description "Enterprise Supply Chain Management Platform | 企业级供应链管理平台"
 
 # 6. 提交并推送
 git add .
@@ -1254,7 +1254,7 @@ git commit -m "feat: 初始化供应链管理平台项目
 参考架构: 阿里菜鸟、京东物流、美团配送"
 
 git branch -M main
-git remote add origin https://github.com/你的用户名/scm-platform.git
+git remote add origin https://github.com/你的用户名/cognora-aura-platform.git
 git push -u origin main
 ```
 
@@ -1282,7 +1282,7 @@ cp -r ../NewNearSync/system ./scm-user
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.scm</groupId>
-    <artifactId>scm-platform</artifactId>
+    <artifactId>cognora-aura-platform</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
@@ -1366,7 +1366,7 @@ cp -r ../NewNearSync/system ./scm-user
 
 ```bash
 # 使用Maven Archetype创建服务模块
-cd scm-platform
+cd cognora-aura-platform
 
 # 创建商品服务
 mvn archetype:generate \

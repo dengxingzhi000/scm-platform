@@ -252,8 +252,16 @@ axios 因此 reject，`unwrap` 根本不执行。
 
 ### 4.9 URL 筛选同步需要 Suspense 边界
 
-`next build` 在客户端组件里用 `useSearchParams()` 而没有 Suspense 边界会失败
+`next build` 在客户端组件里用 `useSearchParams()` 而没有 Suspense 边界**有可能**失败
 （`missing-suspense-with-csr-bailout`）。
+
+> **2026-10-30 实施后修正**：这个前提在本项目里**不成立**。`scm-web` 的 `[locale]` 路由树是
+> 动态渲染的（`.next/prerender-manifest.json` 里没有任何 `[locale]` 路由），所以
+> `useSearchParams()` 不会触发预渲染 bailout —— `app/[locale]/(app)/notification/page.tsx`
+> 就是同一个形状（裸 `'use client'` 页面 + 组件里用 `useSearchParams`）且构建正常。
+> **仍然给 `/supplier` 加 `<Suspense>` 边界**，理由是与 `order/page.tsx` 保持一致，
+> 而不是构建需要它。
+
 参照 `src/app/[locale]/(app)/order/page.tsx`：
 **`supplier/page.tsx` 必须改成 `<Suspense fallback={<Skeleton/>}>` 包住列表组件。**
 

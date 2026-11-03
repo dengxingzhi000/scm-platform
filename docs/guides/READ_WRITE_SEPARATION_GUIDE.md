@@ -118,7 +118,7 @@ spring:
 - `@Slave(fallbackToMaster=false)` 在从库不可用时抛 `ReadWriteRoutingException`，
   不会静默回退主库。
 - **`@DS` 与读写路由互斥（启动期强制校验）**：rw 开启时，如果应用里存在任意
-  `@DS`（类或方法，限 `com.scmcloud` 包），或 `spring.datasource.dynamic.enabled`
+  `@DS`（类或方法，限 `com.cognora` 包），或 `spring.datasource.dynamic.enabled`
   处于开启状态且配置了不是 rw group 的 `spring.datasource.dynamic.datasource.*`，
   `ReadWriteDatasourceConflictChecker` 会在 `afterSingletonsInstantiated` 抛
   `IllegalStateException` 并**启动失败**，错误信息会列出冲突的 Bean/方法/数据源名。

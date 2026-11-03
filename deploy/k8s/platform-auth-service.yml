@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: platform-auth
+  namespace: scm-prod
+spec:
+  selector:
+    app: platform-auth
+  ports:
+    - port: 8106
+      targetPort: 8106
+  type: ClusterIP

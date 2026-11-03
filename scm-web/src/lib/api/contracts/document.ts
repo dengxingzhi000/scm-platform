@@ -1,6 +1,6 @@
 import type { MpPage } from "./page";
 
-/** `com.scmcloud.document.template.domain.entity.DocTemplate`. */
+/** `com.cognora.platform.document.template.domain.entity.DocTemplate`. */
 export interface DocTemplateDTO {
   id: string;
   templateCode?: string | null;
@@ -17,7 +17,7 @@ export interface DocTemplateDTO {
   updateTime?: string | null;
 }
 
-/** `com.scmcloud.document.template.domain.entity.DocTemplateSchema`. */
+/** `com.cognora.platform.document.template.domain.entity.DocTemplateSchema`. */
 export interface DocTemplateSchemaDTO {
   id?: string | null;
   templateId?: string | null;
@@ -31,7 +31,7 @@ export interface DocTemplateSchemaDTO {
   createTime?: string | null;
 }
 
-/** `com.scmcloud.document.document.domain.entity.DocDocument`. */
+/** `com.cognora.platform.document.document.domain.entity.DocDocument`. */
 export interface DocDocumentDTO {
   id: string;
   docCode?: string | null;
@@ -48,7 +48,7 @@ export interface DocDocumentDTO {
   updateTime?: string | null;
 }
 
-/** `com.scmcloud.document.file.domain.entity.DocumentFile`. */
+/** `com.cognora.platform.document.file.domain.entity.DocumentFile`. */
 export interface DocumentFileDTO {
   id: string;
   originalName?: string | null;
@@ -61,7 +61,7 @@ export interface DocumentFileDTO {
   updateTime?: string | null;
 }
 
-/** `com.scmcloud.document.template.domain.entity.DocTemplateVersion`. */
+/** `com.cognora.platform.document.template.domain.entity.DocTemplateVersion`. */
 export interface DocTemplateVersionDTO {
   id: string;
   templateId?: string | null;
@@ -75,7 +75,7 @@ export interface DocTemplateVersionDTO {
   publishedAt?: string | null;
 }
 
-/** `com.scmcloud.document.document.domain.entity.DocDocumentVersion`. */
+/** `com.cognora.platform.document.document.domain.entity.DocDocumentVersion`. */
 export interface DocDocumentVersionDTO {
   id: string;
   documentId?: string | null;
@@ -85,7 +85,7 @@ export interface DocDocumentVersionDTO {
   createTime?: string | null;
 }
 
-/** `com.scmcloud.document.document.domain.entity.DocDocumentAudit`. */
+/** `com.cognora.platform.document.document.domain.entity.DocDocumentAudit`. */
 export interface DocDocumentAuditDTO {
   id: string;
   documentId?: string | null;
@@ -100,7 +100,7 @@ export interface DocDocumentAuditDTO {
   createTime?: string | null;
 }
 
-/** `com.scmcloud.document.template.domain.dto.TemplateVariable`. */
+/** `com.cognora.platform.document.template.domain.dto.TemplateVariable`. */
 export interface TemplateVariableDTO {
   name: string;
   type?: string | null;

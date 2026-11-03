@@ -1,0 +1,2 @@
+org.springframework.boot.EnvironmentPostProcessor=\
+com.cognora.platform.common.config.OpenApiPropertiesEnvironmentPostProcessor

@@ -11,6 +11,8 @@ export const supplierKeys = {
   all: ["suppliers"] as const,
   list: (params?: unknown) => ["suppliers", "list", params] as const,
   detail: (id: string) => ["suppliers", "detail", id] as const,
+  /** 编辑表单的原始 DTO（GET /{id}），与 detail 的 UI 形状分开缓存。 */
+  formDetail: (id: string) => ["suppliers", "form-detail", id] as const,
   profile: (id: string) => ["suppliers", "profile", id] as const,
   performance: (id: string) => ["suppliers", "performance", id] as const,
   stats: ["suppliers", "stats"] as const,

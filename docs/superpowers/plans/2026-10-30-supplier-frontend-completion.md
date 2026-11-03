@@ -1309,8 +1309,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const h = vi.hoisted(() => ({ assign: vi.fn(), setPrimary: vi.fn(), remove: vi.fn() }));
 
 vi.mock("../hooks", () => ({
-  useSupplierCategories: () => ({ data: [{ id: "c-1", categoryCode: "RAW", categoryName: "原材料", level: 1, enabled: true, sortOrder: 10, createTime: null, remark: null }] }),
-  useSupplierAssignedCategories: () => ({ data: [{ id: "c-1", categoryCode: "RAW", categoryName: "原材料", level: 1, enabled: true, sortOrder: 10, createTime: null, remark: null }] }),
+  useSupplierCategories: () => ({ data: [
+    { id: "c-1", categoryCode: "RAW", categoryName: "原材料", level: 1, enabled: true, sortOrder: 10, createTime: null, remark: null },
+    { id: "c-2", categoryCode: "RAW_ELEC", categoryName: "电子元器件", level: 2, enabled: true, sortOrder: 11, createTime: null, remark: null },
+  ] }),
+  useSupplierAssignedCategories: () => ({ data: [] }),
   useAssignSupplierCategories: () => ({ mutateAsync: h.assign, isPending: false }),
   useSupplierContacts: () => ({ data: [{ id: "ct-1", supplierId: "s-1", contactName: "张伟", contactTitle: "销售经理", contactRole: "SALES", contactPhone: "13800002210", contactEmail: "z@example.com", contactAddress: null, isPrimary: true, enabled: true, sortOrder: 0, createTime: "2026-01-01", remark: null }] }),
   useSetPrimarySupplierContact: () => ({ mutateAsync: h.setPrimary, isPending: false }),
@@ -1348,7 +1351,15 @@ Run: `npx vitest run src/features/supplier/components/supplier-panels.test.tsx` 
 - 列出当前已关联的分类：用 `useSupplierAssignedCategories(supplierId)`（`GET /suppliers/{id}/categories`）
 - 「设置分类」按钮打开 `Dialog`：里面是 `useSupplierCategories()`（分类字典）构成的 `Checkbox` 列表
   （子分类缩进），每个 checkbox 的 `aria-label` 是分类名；
-  勾选初值 = 已关联分类的 id 集合
+  **勾选初值 = 已关联分类的 id 集合**
+
+> **勾选状态怎么来（2026-10-30 实施后修正）**：**不要用 `useEffect` 把服务端已关联集合同步进
+> 本地 state** —— 那会让测试里的点击变成空操作（mock 每次返回新数组 → effect 依赖每次都变 →
+> 点击后立刻被还原），也���引入 `react-hooks/set-state-in-effect` 警告。
+> 正确做法：**只在 Dialog 打开时挂载勾选列表**，用 `useState(assignedIds)` 做初始值，
+> 和 `supplier-contact-panel.tsx` 的 `ContactFormDialog` 同一个模式。
+> 勾选的"当前值"用 `overrides[id] ?? assignedIds.includes(id)` 这类派生式，
+> 或者干脆在打开时拷贝一次 —— 两种都不需要 effect。
 - 「保存」→ `assign.mutateAsync({ id: supplierId, categoryIds: selected })`
 - 失败时行内显示 `errorMessage(error)`
 
@@ -1454,10 +1465,11 @@ git commit -m "feat(supplier): bank account and certificate sections"
 - [ ] **Step 1: 追加失败的测试**
 
 ```tsx
-it("shows the weighted total next to the four dimension scores", async () => {
+it("shows the backend total score next to the four dimension scores", async () => {
   render(<SupplierEvaluationPanel supplierId="s-1" />);
-  expect(await screen.findByText("加权总分")).toBeInTheDocument();
-  expect(screen.getByText("预估")).toBeInTheDocument();
+  expect(await screen.findByText("总评")).toBeInTheDocument();
+  expect(screen.getByText("86.5")).toBeInTheDocument();
+  expect(screen.queryByText("预估")).not.toBeInTheDocument();
 });
 
 it("labels a change log entry with no operator as the system", async () => {
@@ -1466,18 +1478,18 @@ it("labels a change log entry with no operator as the system", async () => {
 });
 ```
 
-mock 里 `useSupplierEvaluations` 返回一条四维度都有分的记录，`useSupplierChangeLogs` 返回一条 `operatorName` 为 null 的记录。
+mock 里 `useSupplierEvaluations` 返回一条四维度都有分、`totalScore` 为 86.5 的记录；`useSupplierAverageScore` 返回 88.5；`useSupplierChangeLogs` 返回一条 `operatorName` 为 null 的记录。
 
 - [ ] **Step 2: 跑测试确认失败** → FAIL
 
 - [ ] **Step 3: 实现 `components/supplier-evaluation-panel.tsx`**
 
 - 头部显示 `useSupplierAverageScore(supplierId)` 的平均分
-- 表格列：评价周期 / 质量 / 交付 / 服务 / 价格 / 加权总分 / 采购次数 / 准时交付率 / 质量合格率 / 评价人 / 评价时间 / 操作
-- **加权总分用前端算的「预估」值**：权重与 `SupplierScoreCalculator` 一致
-  （质量 0.30 / 交付 0.30 / 服务 0.20 / 价格 0.20），四维缺失的项按 0 计入并归一化权重。
-  表格里该列显示「预估」小字标签；**最终值以后端回写的 `totalScore` 为准**，
-  两列并排（`总评` 用后端值，`加权总分（预估）` 用前端值）。
+- 表格列：评价周期 / 质量 / 交付 / 服务 / 价格 / 总评 / 采购次数 / 准时交付率 / 质量合格率 / 评价人 / 评价时间 / 操作
+- **总评直接显示后端回写的 `totalScore`**（`createEvaluation` / `updateEvaluation` 都会写入），
+  前端**不复算**加权总分 —— 与 Global Constraints「不在前端复刻后端的评分」及 spec §4.6 一致。
+  `totalScore` 为空时显示 `-`。
+- **删除**动作：`ConfirmDialog` 二次确认后调 `useDeleteSupplierEvaluation`。
 - 「新增评价」Dialog：评价周期（`YYYY-MM`）、起止日期、四维打分（0–100 的 number input）、
   采购次数、总金额、准时交付率、质量合格率、评价人、改进建议
 - **编辑**动作：先调 `supplierApiService.evaluations.getById(id)` 拿到完整记录再打开 Dialog
@@ -1506,15 +1518,21 @@ git commit -m "feat(supplier): performance evaluation and change log sections"
 
 **Files:**
 - Create: `src/features/supplier/components/supplier-form.tsx`
+- Create: `src/features/supplier/hooks/use-supplier-form-detail.ts`
 - Create: `src/app/[locale]/(app)/supplier/new/page.tsx`
 - Create: `src/app/[locale]/(app)/supplier/[id]/edit/page.tsx`
+- Modify: `src/features/supplier/hooks/index.ts`（导出新 hook）
+- Modify: `src/features/supplier/lib/query-keys.ts`（新增 `formDetail` key）
+- Modify: `src/features/supplier/lib/supplier-form-schema.ts`（导出 `CREDIT_RATINGS`）
+- Modify: `src/features/supplier/components/index.ts`（具名导出 `SupplierForm`）
 - Test: `src/features/supplier/components/supplier-form.test.tsx`
 
 **Interfaces:**
 - Consumes: Task 4 的 `supplierFormSchema` / `toSupplierFormValues` / `toSupplierPayload` / `supplierFormDefaults`、
-  Task 5 的 `useCreateSupplier` / `useUpdateSupplier` / `useSupplierDetail`、Task 3 的 `errorMessage`
+  Task 5 的 `useCreateSupplier` / `useUpdateSupplier`、Task 3 的 `errorMessage`
 - Produces:
   - `components/supplier-form.tsx` 导出 `default function SupplierForm({ id }: { id?: string })`
+  - `hooks/use-supplier-form-detail.ts` 导出 `useSupplierFormDetail(id: string)` —— 返回 **`SupplierDTO`**（不是 UI `Supplier`）
 
 - [ ] **Step 1: 写失败的测试**
 
@@ -1523,11 +1541,16 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const h = vi.hoisted(() => ({ push: vi.fn(), create: vi.fn(), update: vi.fn() }));
+const h = vi.hoisted(() => ({
+  push: vi.fn(),
+  create: vi.fn(),
+  update: vi.fn(),
+  detail: undefined as Record<string, unknown> | undefined,
+}));
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: h.push }) }));
 vi.mock("../hooks", () => ({
-  useSupplierDetail: () => ({ data: undefined }),
+  useSupplierFormDetail: () => ({ data: h.detail, isLoading: false, isError: false }),
   useCreateSupplier: () => ({ mutateAsync: h.create, isPending: false }),
   useUpdateSupplier: () => ({ mutateAsync: h.update, isPending: false }),
 }));
@@ -1535,7 +1558,12 @@ vi.mock("../hooks", () => ({
 import SupplierForm from "./supplier-form";
 
 describe("SupplierForm", () => {
-  beforeEach(() => { h.push.mockReset(); h.create.mockReset().mockResolvedValue({ id: "s-1" }); });
+  beforeEach(() => {
+    h.push.mockReset();
+    h.detail = undefined;
+    h.create.mockReset().mockResolvedValue({ id: "s-1" });
+    h.update.mockReset().mockResolvedValue({ id: "s-1" });
+  });
 
   it("requires a supplier name before submitting", async () => {
     render(<SupplierForm />);
@@ -1559,6 +1587,32 @@ describe("SupplierForm", () => {
     await userEvent.click(screen.getByRole("button", { name: "保存" }));
     expect(await screen.findByText(/供应商编码已存在/)).toBeInTheDocument();
   });
+
+  it("loads an existing supplier into the edit form and submits an update", async () => {
+    h.detail = {
+      id: "s-1",
+      supplierCode: "SUP-0001",
+      supplierName: "深圳华强电子有限公司",
+      creditRating: "A",
+      registeredCapital: 5000000,
+    };
+    render(<SupplierForm id="s-1" />);
+
+    expect(await screen.findByDisplayValue("深圳华强电子有限公司")).toBeInTheDocument();
+    expect(screen.getByLabelText("供应商编码")).toBeDisabled();
+
+    await userEvent.clear(screen.getByLabelText("供应商名称"));
+    await userEvent.type(screen.getByLabelText("供应商名称"), "华强电子（深圳）");
+    await userEvent.click(screen.getByRole("button", { name: "保存" }));
+
+    await waitFor(() =>
+      expect(h.update).toHaveBeenCalledWith({
+        id: "s-1",
+        data: expect.objectContaining({ supplierName: "华强电子（深圳）" }),
+      })
+    );
+    expect(h.create).not.toHaveBeenCalled();
+  });
 });
 ```
 
@@ -1567,13 +1621,28 @@ describe("SupplierForm", () => {
 - [ ] **Step 3: 实现 `components/supplier-form.tsx`**
 
 - `useForm<SupplierFormValues>({ resolver: zodResolver(supplierFormSchema), defaultValues: supplierFormDefaults, mode: "onBlur" })`
-- 编辑模式：`useSupplierDetail(id)` 拿到 DTO 后 `form.reset(toSupplierFormValues(dto))`
-  （`useEffect` 依赖 `[data, form]`）
+- 编辑模式：`useSupplierFormDetail(id ?? "")` 拿到 **`SupplierDTO`** 后
+  `form.reset(toSupplierFormValues(dto))`（`useEffect` 依赖 `[dto, form]`）；
+  查询在途时显示 `Skeleton`，失败时显示 `errorMessage(error)` + 「返回列表」。
+  **不要用 `useSupplierDetail`**：它返回的是 UI `Supplier`（`code` / `name` / `contactPerson`），
+  缺少 `bankName` / `bankAccount` / `businessLicense` / `certificates` 等表单字段，而且目前没有任何调用点；
+  它的文件里还有别的 agent 未提交的改动，本次不要碰。新 hook 直接返回
+  `supplierApiService.getById(id)` 的 `SupplierDTO`，query key 用新增的
+  `supplierKeys.formDetail(id)`，避免以后和 `detail` 的 UI 形状撞车。
 - 4 张 `Card`：基本信息 / 联系信息 / 结算信息 / 其他，栅格 `grid gap-4 md:grid-cols-2`
 - 字段与 `SupplierFormValues` 一一对应；`supplierType` 用 `Select`（`SUPPLIER_TYPES`），
-  `creditRating` 用 `Select`（空串选项 + 6 个等级），`registeredCapital` / `sortOrder` 用 `type="number"`，
+  `creditRating` 用 `Select`，`registeredCapital` / `sortOrder` 用 `type="number"`，
   `establishmentDate` 用 `type="date"`，`registeredCapital` 与 `sortOrder` 在表单里保持**字符串**，
   提交时由 `toSupplierPayload` 转数字
+- **两个 `Select` 都不能用空串作为 `SelectItem` 的 value** —— Radix 会直接抛
+  「A <Select.Item /> must have a value prop that is not an empty string」。用 `__none__`
+  哨兵表示「未选择」，`onValueChange` 时映射回 `""`（既有 `product-form.tsx` 的
+  `NO_BRAND = "__none__"` 是同一手法）。
+- `creditRating` 的 6 个等级从 `supplier-form-schema.ts` **导出的** `CREDIT_RATINGS` 读取
+  （把现有的私有常量改成 `export`），不要在表单里再抄一份。
+  **编辑模式下如果当前已有信用等级，不要提供「未评级」选项** —— `credit_rating` 上的
+  CHECK 约束拒绝空串，`null` 又被 MyBatis-Plus 的 `NOT_NULL` 跳过，这个 API 根本清不掉
+  信用等级（Task 4 的 ruling）。给出空选项会让用户以为能清空，保存后却原值复现。
 - 编辑模式下 `supplierCode` 的 `Input` 加 `disabled`
 - 顶部：错误提示块（`submitError` 样式）+ 「取消」`Button variant="outline"`（`router.push("/supplier")`）+ 「保存」`Button type="submit"`
 - 提交：`const payload = toSupplierPayload(values)`；`id ? update.mutateAsync({ id, data: payload }) : create.mutateAsync(payload)`；
@@ -1603,12 +1672,21 @@ import { SupplierForm } from "@/features/supplier/components";
 
 export default function SupplierEditPage() {
   const pathname = usePathname();
-  const id = pathname.split("/").pop() ?? "";
+  // 路径是 /{locale}/supplier/{id}/edit，最后一段是 "edit"，id 在倒数第二段。
+  // 不能照抄详情页的 split("/").pop() —— 那会拿到 "edit"。
+  const segments = pathname.split("/").filter(Boolean);
+  const id = segments[segments.length - 2] ?? "";
   return <SupplierForm id={id} />;
 }
 ```
 
-（与既有 `src/app/[locale]/(app)/supplier/[id]/page.tsx` 的取 id 方式保持一致）
+`components/index.ts` 增加一行具名导出，路由用的 `import { SupplierForm }` 才能成立：
+
+```ts
+export { default as SupplierForm } from './supplier-form'
+```
+
+（`supplier-form.tsx` 本身仍是 default export。）
 
 - [ ] **Step 5: 跑测试 + 类型检查 + 提交**
 
@@ -1616,7 +1694,7 @@ Run: `npx vitest run src/features/supplier/components/supplier-form.test.tsx` �
 Run: `npm run typecheck` → 无错误
 
 ```bash
-git add src/features/supplier/components/supplier-form.tsx src/features/supplier/components/supplier-form.test.tsx "src/app/[locale]/(app)/supplier/new/page.tsx" "src/app/[locale]/(app)/supplier/[id]/edit/page.tsx"
+git add src/features/supplier/components/supplier-form.tsx src/features/supplier/components/supplier-form.test.tsx src/features/supplier/components/index.ts src/features/supplier/hooks/use-supplier-form-detail.ts src/features/supplier/hooks/index.ts src/features/supplier/lib/query-keys.ts src/features/supplier/lib/supplier-form-schema.ts "src/app/[locale]/(app)/supplier/new/page.tsx" "src/app/[locale]/(app)/supplier/[id]/edit/page.tsx"
 git commit -m "feat(supplier): create and edit supplier master data form"
 ```
 
@@ -1970,8 +2048,9 @@ git commit -m "feat(supplier): wire routes, suspense boundary and the supplier m
  */
 ```
 
-必须覆盖到全部 48 个。其中 **46 个有界面调用点**，2 个是**已记录的设计例外**
-（`GET /suppliers/active`、`DELETE /supplier-categories/{id}`）——
+必须覆盖到全部 48 个。**执行期勘误**：原文预检把有界面调用点记为 **46 个**；实际核对
+（见 ledger Task 15 rulings）的结果是 **43 个有界面调用点 + 2 个设计例外 + 3 个契约/服务层无组件调用**
+（`GET /suppliers/search`、`GET /supplier-evaluations/{id}`、`GET /supplier-evaluations/supplier/{supplierId}`）——
 理由要写在表里，不能静默漏掉。
 
 - [ ] **Step 2: 删掉遗留的 mock service 模块**

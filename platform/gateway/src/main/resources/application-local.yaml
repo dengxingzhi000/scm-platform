@@ -1,0 +1,64 @@
+server:
+  port: 9095
+
+spring:
+  application:
+    name: platform-gateway
+  cloud:
+    nacos:
+      server-addr: ${NACOS_SERVER:127.0.0.1:8848}
+      config:
+        enabled: false
+    gateway:
+      server:
+        webflux:
+          discovery:
+            locator:
+              enabled: false
+          routes:
+            - id: platform-auth
+              uri: http://localhost:8106
+              predicates:
+                - Path=/platform-auth/**
+              filters:
+                - StripPrefix=1
+            - id: platform-system
+              uri: http://localhost:8107
+              predicates:
+                - Path=/platform-system/**
+              filters:
+                - StripPrefix=1
+
+security:
+  oauth2:
+    resource-server:
+      jwk-set-uri: http://localhost:8106/oauth2/jwks
+  signature:
+    enabled: true
+    default-version: HMAC-SHA256-V2
+    allowed-clock-skew: 5m
+    nonce-ttl: 5m
+    nonce-key-prefix: "api:nonce:"
+    whitelist:
+      - /platform-auth/**
+      - /public/**
+      - /actuator/**
+    # Local dev app secrets, replace with config-center values in production
+    app-secrets:
+      local-web: local-web-secret
+      local-mobile: local-mobile-secret
+  ip-access:
+    enabled: true
+    whitelist-only: false
+    cache-max-size: 10000
+    cache-ttl: 1m
+    forwarded-headers:
+      - X-Forwarded-For
+      - X-Real-IP
+    trusted-proxies:
+      - 127.0.0.1/32
+      - 10.0.0.0/8
+
+logging:
+  level:
+    com.cognora.platform.gateway: INFO

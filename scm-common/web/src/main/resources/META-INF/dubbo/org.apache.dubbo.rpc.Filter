@@ -1,2 +1,0 @@
-tenantContextFilter=com.scmcloud.common.dubbo.TenantContextFilter
-hopCountFilter=com.scmcloud.common.dubbo.HopCountFilter

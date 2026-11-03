@@ -19,6 +19,67 @@ import type {
   SupplierUpsertPayload,
 } from "../contracts/supplier";
 
+/**
+ * 供应商端点覆盖表（scm-supplier 共 62 个端点，其中 48 个在范围内；
+ * 对账 /api/v1/settlements 与采购明细 /api/v1/purchase-order-items 属财务与采购域，不在本模块）。
+ *
+ * 调用点按实际组件 / hook 填写。本模块无界面调用点共 5 行：2 个是 spec 裁定的设计例外，
+ * 3 个是契约与服务层已暴露、但补齐范围内未安排 UI（useSupplierSearch、
+ * useSupplierEvaluationDetail、supplierApiService.evaluations.bySupplier 均无组件消费）
+ * —— 不臆断调用点，留档待裁决（见 SDD ledger Task 15 rulings）。
+ *
+ * | 端点 | 调用点 |
+ * |---|---|
+ * | GET  /suppliers | useSupplierList（列表页 /supplier；审核队列 /supplier/audit） |
+ * | GET  /suppliers/active | 仅暴露契约与服务层，供跨模块的供应商选择器取用，本模块无界面调用点（设计例外 1/2） |
+ * | GET  /suppliers/search | 仅暴露契约与服务层（useSupplierSearch）；列表页用 useSupplierList 的 keyword 过滤，本模块无界面调用点 |
+ * | GET  /suppliers/{id} | useSupplierFormDetail（编辑页初值 /supplier/[id]/edit）；useSupplierDetail 未被组件消费 |
+ * | GET  /suppliers/{id}/profile | useSupplierProfile（概览分区 /supplier/[id]） |
+ * | GET  /suppliers/{id}/performance | useSupplierPerformance（绩效评价分区 /supplier/[id]） |
+ * | GET  /suppliers/{id}/change-logs | useSupplierChangeLogs（变更留痕分区 /supplier/[id]） |
+ * | GET  /suppliers/stats | useSupplierStats（列表页 KPI；审核工作台已驳回计数） |
+ * | GET  /suppliers/{id}/categories | useSupplierAssignedCategories（分类分区 /supplier/[id]） |
+ * | POST /suppliers | useCreateSupplier（新建 /supplier/new） |
+ * | PUT  /suppliers/{id} | useUpdateSupplier（编辑保存 /supplier/[id]/edit） |
+ * | DELETE /suppliers/{id} | useDeleteSupplier（列表页删除 /supplier；详情页删除 /supplier/[id]） |
+ * | PUT  /suppliers/{id}/enable | useEnableSupplier（启停；/supplier） |
+ * | PUT  /suppliers/{id}/disable | useDisableSupplier（启停；/supplier） |
+ * | POST /suppliers/{id}/submit-audit | useSubmitSupplierAudit（提交审核；/supplier、/supplier/[id]） |
+ * | PUT  /suppliers/{id}/audit | useAuditSupplier（审核工作台 /supplier/audit；列表行内） |
+ * | PUT  /suppliers/{id}/blacklist | useBlacklistSupplier（黑名单；/supplier、/supplier/[id]） |
+ * | PUT  /suppliers/{id}/unblacklist | useUnblacklistSupplier（移出黑名单；/supplier、/supplier/[id]） |
+ * | PUT  /suppliers/{id}/risk-level | useChangeSupplierRiskLevel（风险级别；/supplier、/supplier/[id]） |
+ * | PUT  /suppliers/{id}/cooperation-status | useChangeCooperationStatus（合作状态；/supplier、/supplier/[id]） |
+ * | PUT  /suppliers/{id}/categories | useAssignSupplierCategories（分类分区确认保存） |
+ * | GET  /supplier-evaluations | useSupplierEvaluations（绩效评价分区 /supplier/[id]） |
+ * | GET  /supplier-evaluations/{id} | 仅暴露契约与服务层（useSupplierEvaluationDetail），绩效评价分区改用带 supplierId 的分页列表，本模块无界面调用点 |
+ * | POST /supplier-evaluations | useCreateSupplierEvaluation（评价新建 / 评价弹窗） |
+ * | PUT  /supplier-evaluations/{id} | useUpdateSupplierEvaluation（评价编辑） |
+ * | DELETE /supplier-evaluations/{id} | useDeleteSupplierEvaluation（评价删除） |
+ * | GET  /supplier-evaluations/supplier/{supplierId} | 仅暴露契约与服务层（supplierApiService.evaluations.bySupplier），前端用 ?supplierId= 分页代替，本模块无界面调用点 |
+ * | GET  /supplier-evaluations/supplier/{supplierId}/average-score | useSupplierAverageScore（平均分 / 绩效评价分区） |
+ * | GET  /suppliers/{supplierId}/contacts | useSupplierContacts（联系人分区 /supplier/[id]） |
+ * | POST /suppliers/{supplierId}/contacts | useCreateSupplierContact（联系人新建） |
+ * | PUT  /suppliers/{supplierId}/contacts/{id} | useUpdateSupplierContact（联系人编辑） |
+ * | DELETE /suppliers/{supplierId}/contacts/{id} | useDeleteSupplierContact（联系人删除） |
+ * | PUT  /suppliers/{supplierId}/contacts/{id}/primary | useSetPrimarySupplierContact（设为主要联系人） |
+ * | GET  /suppliers/{supplierId}/bank-accounts | useSupplierBankAccounts（银行账户分区 /supplier/[id]） |
+ * | POST /suppliers/{supplierId}/bank-accounts | useCreateSupplierBankAccount（银行账户新建） |
+ * | PUT  /suppliers/{supplierId}/bank-accounts/{id} | useUpdateSupplierBankAccount（银行账户编辑） |
+ * | DELETE /suppliers/{supplierId}/bank-accounts/{id} | useDeleteSupplierBankAccount（银行账户删除） |
+ * | PUT  /suppliers/{supplierId}/bank-accounts/{id}/default | useSetDefaultSupplierBankAccount（设为默认账户） |
+ * | GET  /suppliers/{supplierId}/certificates | useSupplierCertificates（证照分区 /supplier/[id]） |
+ * | POST /suppliers/{supplierId}/certificates | useCreateSupplierCertificate（证照新建） |
+ * | PUT  /suppliers/{supplierId}/certificates/{id} | useUpdateSupplierCertificate（证照编辑） |
+ * | PUT  /suppliers/{supplierId}/certificates/{id}/verify | useVerifySupplierCertificate（证照核验） |
+ * | DELETE /suppliers/{supplierId}/certificates/{id} | useDeleteSupplierCertificate（证照删除） |
+ * | GET  /supplier-certificates/expiring | useExpiringCertificates（审核工作台到期预警 /supplier/audit） |
+ * | GET  /supplier-categories | useSupplierCategories（列表筛选 /supplier；分类字典 /supplier/category） |
+ * | POST /supplier-categories | useCreateSupplierCategory（分类字典新建） |
+ * | PUT  /supplier-categories/{id} | useUpdateSupplierCategory（分类字典编辑） |
+ * | DELETE /supplier-categories/{id} | 仅暴露契约与服务层；分类字典页不暴露删除按钮（设计例外 2/2） |
+ */
+
 const SUPPLIER_BASE = "/scm-supplier/api/v1/suppliers";
 const CATEGORY_BASE = "/scm-supplier/api/v1/supplier-categories";
 const EVALUATION_BASE = "/scm-supplier/api/v1/supplier-evaluations";

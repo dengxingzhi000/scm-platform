@@ -5,6 +5,52 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-11-03
+
+Breaking change: the repository is now `cognora-aura-platform`, split into four
+domain reactors, and every service identity follows the new artifact semantics.
+
+### Changed
+
+- **Repository layout** — modules moved under `platform/`, `scm/`, `ecom/` and
+  `lms/`; the root POM artifactId is `cognora-aura-platform`.
+- **Maven coordinates** — groupId `com.cognora`; `platform-common-*`,
+  `platform-*` services, `ecom-*` services, `lms-tms*`, SCM stays `scm-*`;
+  internal BOM is `com.cognora:cognora-bom:2.0.0`.
+- **Java packages** — `com.cognora.platform.*`, `com.cognora.scm.*`,
+  `com.cognora.ecom.*` and `com.cognora.lms.*`.
+- **Configuration prefixes** — `scm.*` and `frog.*` became `cognora.*`
+  (`cognora.tenant`, `cognora.cache`, `cognora.security`, `cognora.mybatis`, …).
+- **Runtime identity** — `spring.application.name` / Nacos service IDs use
+  `platform-gateway`, `platform-auth`, `platform-system`, `platform-*`,
+  `ecom-*`, `lms-tms`; SCM keeps `scm-order` … `scm-finance`.
+- **Gateway prefixes** — `/platform-auth/**`, `/platform-system/**`,
+  `/platform-common/**`, `/<project>-<domain>/**`; the payment callback
+  whitelist is `/ecom-payment/api/v1/payments/callback/**`.
+- **Deployment descriptors** — compose service keys / containers, k8s manifests,
+  Prometheus jobs, Seata tx-groups, XXL executor names and Kafka topics /
+  consumer groups use the new names.
+- **Frontend** — npm package `@cognora/aura-web`; added ecommerce payment,
+  refund, order-center, fulfillment and tracking screens.
+
+### Migration
+
+- Replace old service IDs (`auth-service`, `gateway-service`,
+  `system-service`, and the `scm-*` platform/ecommerce/logistics names) with
+  their new names.
+- Replace old gateway paths (`/auth/**`, `/system/**`, `/scm-<service>/**`)
+  with `/platform-auth/**`, `/platform-system/**` and
+  `/<project>-<domain>/**`.
+- Rebuild **all** services and recreate containers together. Old and new images
+  must not run mixed, because Nacos names, gateway paths, Dubbo application
+  names and Kafka topic names all changed.
+
+### Unchanged
+
+- Database schema and table names.
+- SCM service artifact IDs (`scm-order`, `scm-warehouse`, `scm-purchase`,
+  `scm-supplier`, `scm-finance`).
+
 ## [Unreleased] - 2026-10-30
 
 Fixes that make the running stack usable end to end: business APIs are
@@ -74,6 +120,18 @@ from order events, and audit records finally reach `db_audit`.
   a real SMTP host; neither blocks the API.
 - Audit entries produced before authentication exists (e.g. failed logins) fall
   back to the application log because the record endpoint requires a token.
+- **The tenant SQL filter needs a schema migration on the platform tables.**
+  `TenantInterceptor` is now registered for every service, so every
+  SELECT/UPDATE/DELETE is rewritten with a `tenant_id` predicate. The business
+  tables carry the column, but `sys_user`, `sys_user_oauth`, `webauthn_credential`,
+  `sys_dept`, `sys_permission` and the RBAC join tables do not — the column is
+  added by `scripts/db/migrations/004_transform_permission_system_multi_tenant.sql`,
+  which `init-all-databases` never runs. On a database initialised that way the
+  management screens fail with *column "tenant_id" does not exist*. Apply the
+  migration, or add the columns to the bootstrap scripts, before using the
+  management screens. The predicate is also equality-only, so the platform rows
+  (`sys_role.tenant_id IS NULL` means "platform role, visible to every tenant")
+  are filtered out; those tables need `tenant_id IS NULL OR tenant_id = ?`.
 - **`API_SECRET_INTERNAL_SERVICE` is now mandatory.** scm-audit refuses to
   start without it, and every service that reports audit records signs with
   it. Set it to one random value of at least 32 characters on all of them;

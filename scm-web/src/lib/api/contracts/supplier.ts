@@ -1,6 +1,6 @@
 import type { MpPage } from "./page";
 
-/** `com.scmcloud.supplier.domain.entity.SupSupplier`. */
+/** `com.cognora.scm.supplier.domain.entity.SupSupplier`. */
 export interface SupplierDTO {
   id: string;
   tenantId?: string | null;
@@ -79,7 +79,7 @@ export interface OperatorParams {
   operatorName?: string;
 }
 
-/** `com.scmcloud.supplier.dto.SupplierAuditRequest` — the only body of `PUT /{id}/audit`. */
+/** `com.cognora.scm.supplier.dto.SupplierAuditRequest` — the only body of `PUT /{id}/audit`. */
 export interface SupplierAuditPayload {
   action: "APPROVE" | "REJECT";
   operatorId?: string;
@@ -88,7 +88,7 @@ export interface SupplierAuditPayload {
 }
 
 /**
- * `com.scmcloud.supplier.dto.SupplierUpsertRequest` — the body of `POST /` and
+ * `com.cognora.scm.supplier.dto.SupplierUpsertRequest` — the body of `POST /` and
  * `PUT /{id}`. Server-managed fields (level, audit status, blacklist, scores)
  * are deliberately absent.
  */
@@ -121,7 +121,7 @@ export interface SupplierUpsertPayload {
   remark?: string;
 }
 
-/** `com.scmcloud.supplier.domain.entity.SupSupplierContact`. */
+/** `com.cognora.scm.supplier.domain.entity.SupSupplierContact`. */
 export interface SupplierContactDTO {
   id?: string | null;
   supplierId?: string | null;
@@ -138,7 +138,7 @@ export interface SupplierContactDTO {
   remark?: string | null;
 }
 
-/** `com.scmcloud.supplier.domain.entity.SupSupplierBankAccount`. */
+/** `com.cognora.scm.supplier.domain.entity.SupSupplierBankAccount`. */
 export interface SupplierBankAccountDTO {
   id?: string | null;
   supplierId?: string | null;
@@ -156,7 +156,7 @@ export interface SupplierBankAccountDTO {
 }
 
 /**
- * `com.scmcloud.supplier.domain.entity.SupSupplierCertificate`.
+ * `com.cognora.scm.supplier.domain.entity.SupSupplierCertificate`.
  * `daysToExpiry` and `supplierName` are transient — the backend fills them in
  * on the way out.
  */
@@ -179,7 +179,7 @@ export interface SupplierCertificateDTO {
   supplierName?: string | null;
 }
 
-/** `com.scmcloud.supplier.domain.entity.SupSupplierCategory`. */
+/** `com.cognora.scm.supplier.domain.entity.SupSupplierCategory`. */
 export interface SupplierCategoryDTO {
   id?: string | null;
   categoryCode?: string | null;
@@ -192,7 +192,7 @@ export interface SupplierCategoryDTO {
   remark?: string | null;
 }
 
-/** `com.scmcloud.supplier.domain.entity.SupSupplierEvaluation`. */
+/** `com.cognora.scm.supplier.domain.entity.SupSupplierEvaluation`. */
 export interface SupplierEvaluationDTO {
   id?: string | null;
   supplierId?: string | null;
@@ -216,7 +216,7 @@ export interface SupplierEvaluationDTO {
   remark?: string | null;
 }
 
-/** `com.scmcloud.supplier.domain.entity.SupSupplierChangeLog`. */
+/** `com.cognora.scm.supplier.domain.entity.SupSupplierChangeLog`. */
 export interface SupplierChangeLogDTO {
   id?: string | null;
   supplierId?: string | null;
@@ -228,7 +228,7 @@ export interface SupplierChangeLogDTO {
   createTime?: string | null;
 }
 
-/** `com.scmcloud.supplier.dto.SupplierProfileVO` — the envelope of `GET /{id}/profile`. */
+/** `com.cognora.scm.supplier.dto.SupplierProfileVO` — the envelope of `GET /{id}/profile`. */
 export interface SupplierProfileDTO {
   supplier: SupplierDTO;
   contacts: SupplierContactDTO[];
@@ -238,7 +238,7 @@ export interface SupplierProfileDTO {
   changeLogs: SupplierChangeLogDTO[];
 }
 
-/** `com.scmcloud.supplier.dto.SupplierStatsVO` — the envelope of `GET /stats`. */
+/** `com.cognora.scm.supplier.dto.SupplierStatsVO` — the envelope of `GET /stats`. */
 export interface SupplierStatsDTO {
   total: number;
   enabled: number;
@@ -250,7 +250,7 @@ export interface SupplierStatsDTO {
   byAuditStatus: Record<number, number>;
 }
 
-/** `com.scmcloud.supplier.dto.SupplierPerformanceVO` — the envelope of `GET /{id}/performance`. */
+/** `com.cognora.scm.supplier.dto.SupplierPerformanceVO` — the envelope of `GET /{id}/performance`. */
 export interface SupplierPerformanceDTO {
   supplierId: string;
   supplierName?: string | null;

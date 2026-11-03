@@ -1,0 +1,27 @@
+package com.cognora.scm.order.service.impl;
+
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import com.cognora.scm.order.domain.entity.OrdStatusHistory;
+import com.cognora.scm.order.mapper.OrdStatusHistoryMapper;
+import com.cognora.scm.order.service.IOrdStatusHistoryService;
+
+import java.util.List;
+import java.util.UUID;
+
+@Slf4j
+@Service
+public class OrdStatusHistoryServiceImpl extends ServiceImpl<OrdStatusHistoryMapper, OrdStatusHistory> implements IOrdStatusHistoryService {
+
+    @Override
+    public List<OrdStatusHistory> listByOrderId(UUID orderId) {
+        log.debug("Query order status history: orderId={}", orderId);
+        LambdaQueryWrapper<OrdStatusHistory> wrapper = Wrappers.lambdaQuery();
+        wrapper.eq(OrdStatusHistory::getOrderId, orderId)
+                .orderByDesc(OrdStatusHistory::getTransitionedAt);
+        return list(wrapper);
+    }
+}

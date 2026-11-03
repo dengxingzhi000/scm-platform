@@ -1,0 +1,133 @@
+server:
+  port: 8761
+
+spring:
+  main:
+    web-application-type: reactive
+  application:
+    name: platform-gateway
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:127.0.0.1}:5432/db_user?stringtype=unspecified
+    driver-class-name: org.postgresql.Driver
+    username: ${DB_USERNAME:admin}
+    password: ${DB_PASSWORD:admin123}
+    dynamic:
+      enabled: false
+  profiles:
+    active: dev
+  cloud:
+    nacos:
+      server-addr: ${NACOS_SERVER:127.0.0.1:8848}
+      discovery:
+        enabled: true
+        namespace: ${NACOS_NAMESPACE:public}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+    gateway:
+      server:
+        webflux:
+          discovery:
+            locator:
+              enabled: true
+              lower-case-service-id: true
+          # The SPA is served from another origin in dev (localhost:3000), and the
+          # gateway is the only public entry point, so it answers the CORS preflight.
+          globalcors:
+            add-to-simple-url-handler-mapping: true
+            cors-configurations:
+              '[/**]':
+                allowedOriginPatterns:
+                  - "http://localhost:*"
+                allowedMethods: "*"
+                allowedHeaders: "*"
+                allowCredentials: true
+                maxAge: 3600
+          routes:
+            # Explicit routes must win over the discovery locator, which also
+            # exposes /<service-id>/** for platform-auth and platform-system.
+            - id: platform-auth
+              uri: lb://platform-auth
+              predicates:
+                - Path=/platform-auth/**
+              filters:
+                - StripPrefix=1
+              order: -1
+            - id: platform-system
+              uri: lb://platform-system
+              predicates:
+                - Path=/platform-system/**
+              filters:
+                - StripPrefix=1
+              order: -1
+            # Legacy route kept for callers that still use /common/**; no
+            # provider registers as platform-common today.
+            - id: platform-common
+              uri: lb://platform-common
+              predicates:
+                - Path=/platform-common/**
+              filters:
+                - StripPrefix=1
+              order: -1
+
+security:
+  signature:
+    enabled: true
+    default-version: HMAC-SHA256-V2
+    allowed-clock-skew: 5m
+    nonce-ttl: 5m
+    nonce-key-prefix: "api:nonce:"
+    whitelist:
+      - /platform-auth/**
+      - /public/**
+      - /actuator/**
+      # Payment channels call without the platform HMAC headers; the payment
+      # service verifies the Alipay RSA2 / WeChat Pay v3 signature instead.
+      - /ecom-payment/api/v1/payments/callback/**
+    app-secrets:
+      # SECURITY: Secrets MUST be provided via environment variables in production
+      # Remove default values to enforce secure configuration
+      web-app: ${API_SECRET_WEB_APP:}
+      internal-service: ${API_SECRET_INTERNAL_SERVICE:}
+  ip-access:
+    enabled: true
+    whitelist-only: false
+    cache-max-size: 20000
+    cache-ttl: 1m
+    block-message: Request blocked by gateway policy
+    forwarded-headers:
+      - X-Forwarded-For
+      - X-Real-IP
+    trusted-proxies:
+      - 10.0.0.0/8
+      - 192.168.0.0/16
+  identity:
+    enabled: true
+    identity-token-header: X-Identity-Token
+    user-id-header: X-User-Id
+    username-header: X-User-Name
+    device-id-header: X-Device-Id
+    roles-header: X-User-Roles
+    user-id-claim: userId
+    username-claim: username
+    device-id-claim: deviceId
+    # SECURITY: MUST be set via environment variable in production
+    signature-secret: ${IDENTITY_SIGNATURE_SECRET:changeit-identity-secret}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+  health:
+    db:
+      enabled: false
+    redis:
+      enabled: true
+    diskspace:
+      enabled: true

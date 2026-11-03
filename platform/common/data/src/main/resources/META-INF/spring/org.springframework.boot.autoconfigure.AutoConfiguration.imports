@@ -1,0 +1,7 @@
+com.cognora.platform.common.data.rw.config.ReadWriteAutoConfiguration
+com.cognora.platform.common.data.rw.web.ReadWriteWebAutoConfiguration
+<<<<<<< C:\Users\Deng\AppData\Local\Temp\merge-du\ours
+com.cognora.platform.common.mybatisPlus.config.DataPermissionAutoConfiguration
+=======
+com.cognora.platform.common.mybatisPlus.config.DataPermissionAutoConfiguration
+>>>>>>> C:\Users\Deng\AppData\Local\Temp\merge-du\theirs

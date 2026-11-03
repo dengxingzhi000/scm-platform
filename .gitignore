@@ -57,3 +57,16 @@ application-local.yaml
 
 # Superpowers brainstorming mockups
 .superpowers/
+
+# Local build/test output
+body2.txt
+response_body.txt
+dev-server.txt
+typecheck.txt
+npm-build.txt
+npm-lint.txt
+npm-typecheck.txt
+scm-web/build-root.txt
+scm-web/lint-root.txt
+scm-web/npm-test-output.txt
+scm-web/typecheck-root.txt

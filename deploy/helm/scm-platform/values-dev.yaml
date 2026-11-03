@@ -50,4 +50,4 @@ config:
     namespace: "scm-dev"
   logging:
     level:
-      com.scmcloud: DEBUG
+      com.cognora: DEBUG

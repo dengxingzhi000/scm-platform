@@ -432,8 +432,8 @@ receivers:
 receivers:
   - name: 'email-alerts'
     email_configs:
-      - to: 'ops@scm-platform.com'
-        from: 'alerts@scm-platform.com'
+      - to: 'ops@cognora-aura-platform.com'
+        from: 'alerts@cognora-aura-platform.com'
 ```
 
 ---
@@ -451,7 +451,7 @@ receivers:
 ## Support
 
 - Documentation: [docs/development/](.)
-- Runbooks: `https://docs.scm-platform.com/runbooks/`
+- Runbooks: `https://docs.cognora-aura-platform.com/runbooks/`
 - Team: Platform Team
 - Slack: `#scm-monitoring`
 

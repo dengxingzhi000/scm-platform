@@ -1,6 +1,6 @@
 import type { MpPage } from "./page";
 
-/** `com.scmcloud.audit.domain.entity.SysAuditLog`. */
+/** `com.cognora.platform.audit.domain.entity.SysAuditLog`. */
 export interface SysAuditLogDTO {
   id: string;
   userId?: string | null;
@@ -29,7 +29,7 @@ export interface SysAuditLogDTO {
   createTime?: string | null;
 }
 
-/** `com.scmcloud.audit.domain.entity.SysSensitiveOperationLog`. */
+/** `com.cognora.platform.audit.domain.entity.SysSensitiveOperationLog`. */
 export interface SysSensitiveOperationLogDTO {
   id: string;
   userId?: string | null;

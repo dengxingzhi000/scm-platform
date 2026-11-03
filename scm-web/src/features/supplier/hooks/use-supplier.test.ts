@@ -55,7 +55,7 @@ describe('supplier hooks', () => {
   })
 
   it('falls back to the username when there is no display name', async () => {
-    h.user = { id: 'u-2', username: 'lisi', displayName: '' } as never
+    h.user = { id: 'u-2', username: 'lisi', displayName: '' }
     const { result } = renderHook(() => useAuditSupplier(), { wrapper })
     await result.current.mutateAsync({ id: 's-1', action: 'REJECT', remark: '资料不全' })
     expect(h.audit).toHaveBeenCalledWith('s-1', expect.objectContaining({ operatorName: 'lisi' }))

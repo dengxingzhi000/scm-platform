@@ -2,60 +2,24 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>com.scmcloud</groupId>
-  <artifactId>scm-platform</artifactId>
-  <version>1.0.0-beta.1</version>
+  <groupId>com.cognora</groupId>
+  <artifactId>cognora-aura-platform</artifactId>
+  <version>2.0.0</version>
   <packaging>pom</packaging>
 
-  <name>SCM Platform</name>
+  <name>CognoraAura Platform</name>
   <description>Enterprise Supply Chain Management Platform based on Spring Cloud 2025</description>
-  <url>https://github.com/dengxingzhi000/scm-platform</url>
+  <url>https://github.com/dengxingzhi000/cognora-aura-platform</url>
 
   <modules>
-    <!-- Common Shared Modules -->
-    <module>../scm-common</module>
+    <!-- Internal artifact version alignment -->
+    <module>../bom</module>
 
-    <!-- Infrastructure Services -->
-    <module>../scm-gateway</module>
-    <module>../scm-auth</module>
-    <module>../scm-system</module>
-
-    <!-- Base Infrastructure Layer -->
-    <module>../scm-approval</module>
-    <module>../scm-audit</module>
-    <module>../scm-notify</module>
-    <module>../scm-tenant</module>
-
-    <!-- Supply Chain Core Layer -->
-    <module>../scm-product</module>
-    <module>../scm-inventory</module>
-    <module>../scm-order</module>
-    <module>../scm-warehouse</module>
-    <module>../scm-logistics</module>
-    <module>../scm-purchase</module>
-
-    <!-- Supplier & Finance Layer -->
-    <module>../scm-supplier</module>
-    <module>../scm-finance</module>
-
-    <!-- File Service -->
-    <module>../scm-file</module>
-
-    <!-- Document Platform Service (file / template / document domains) -->
-    <module>../scm-document</module>
-
-    <!-- Message Service -->
-    <module>../scm-message</module>
-
-    <!-- E-Commerce Layer (Year 1) -->
-    <module>../scm-member</module>
-    <module>../scm-promotion</module>
-    <module>../scm-payment</module>
-    <module>../scm-search</module>
-    <module>../scm-order-center</module>
-    <module>../scm-mall</module>
-    <module>../scm-fulfillment</module>
-    <module>../scm-analytics</module>
+    <!-- Domain aggregators -->
+    <module>../platform</module>
+    <module>../scm</module>
+    <module>../ecom</module>
+    <module>../lms</module>
   </modules>
 
   <parent>
@@ -630,10 +594,10 @@
         <version>1.30.1</version>
         <configuration>
           <targetClasses>
-            <param>com.scmcloud.*</param>
+            <param>com.cognora.*</param>
           </targetClasses>
           <targetTests>
-            <param>com.scmcloud.*</param>
+            <param>com.cognora.*</param>
           </targetTests>
           <outputFormats>
             <outputFormat>HTML</outputFormat>

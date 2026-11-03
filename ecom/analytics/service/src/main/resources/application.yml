@@ -1,0 +1,93 @@
+server:
+  port: 8308
+
+spring:
+  application:
+    name: ecom-analytics
+
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_SERVER:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:}
+        group: DEFAULT_GROUP
+
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://${DB_HOST:localhost}:5432/db_analytics?stringtype=unspecified
+    username: ${DB_USERNAME:admin}
+    password: ${DB_PASSWORD:admin123}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: 0
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9093}
+    consumer:
+      group-id: analytics-ods
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    baseline-version: 0
+    validate-on-migrate: true
+    out-of-order: false
+    table: flyway_schema_history
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+  global-config:
+    db-config:
+      id-type: assign_uuid
+
+clickhouse:
+  url: http://${CH_HOST:localhost}:8123
+  database: analytics
+  username: ${CH_USERNAME:default}
+  password: ${CH_PASSWORD:}
+  query-timeout-seconds: ${CH_QUERY_TIMEOUT:30}
+  batch-size: ${CH_BATCH_SIZE:1000}
+
+xxl:
+  job:
+    admin:
+      addresses: ${XXL_JOB_ADMIN:http://localhost:8088/xxl-job-admin}
+    executor:
+      appname: ecom-analytics-executor
+      address:
+      ip:
+      port: ${XXL_JOB_EXECUTOR_PORT:9997}
+      logpath: /data/applogs/xxl-job/jobhandler
+      logretentiondays: 30
+    accessToken: ${XXL_JOB_TOKEN:default_token}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    root: INFO
+    com.cognora.ecom.analytics: DEBUG

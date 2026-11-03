@@ -1,0 +1,3 @@
+com.cognora.platform.common.config.OpenApiConfig
+com.cognora.platform.common.access.PermissionAccessAutoConfiguration
+com.cognora.platform.common.log.config.AuditLogAutoConfiguration

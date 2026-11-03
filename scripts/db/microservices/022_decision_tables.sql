@@ -2,7 +2,7 @@
 -- Decision matrix configuration tables (scm-system, db_permission)
 --
 -- sys_decision_rule / sys_weight_profile are read and written by
--- com.scmcloud.system.repository.Mybatis*Repository via the "permission" datasource.
+-- com.cognora.platform.system.repository.Mybatis*Repository via the "permission" datasource.
 -- The other three tables are declared for the experiment/feedback features, which
 -- are not wired to a repository yet.
 --

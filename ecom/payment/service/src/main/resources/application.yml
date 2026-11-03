@@ -1,0 +1,95 @@
+server:
+  port: 8304
+
+spring:
+  application:
+    name: ecom-payment
+
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_SERVER:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:}
+        group: DEFAULT_GROUP
+      config:
+        server-addr: ${NACOS_SERVER:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:}
+        group: DEFAULT_GROUP
+        file-extension: yml
+
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/db_finance?stringtype=unspecified
+    username: ${DB_USERNAME:admin}
+    password: ${DB_PASSWORD:changeme}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    baseline-version: 0
+    validate-on-migrate: true
+    table: flyway_history_payment
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: 0
+
+payment:
+  alipay:
+    # RSA2 验签公钥（支付宝开放平台应用公钥，PEM 或裸 Base64）。未配置时回调一律拒绝。
+    public-key: ${ALIPAY_PUBLIC_KEY:}
+    # 本平台在支付宝开放平台登记的 app_id；用于校验回调归属。
+    app-id: ${ALIPAY_APP_ID:}
+    # 可选的 seller_id；配置后回调中的 seller_id 必须一致。
+    seller-id: ${ALIPAY_SELLER_ID:}
+    charset: UTF-8
+    # 支付宝 notify_time 使用的时区（商户本地时间，默认东八区）。回调重放窗口按此时区换算。
+    timezone: ${ALIPAY_TIMEZONE:Asia/Shanghai}
+  wechat:
+    # 微信支付 v3 平台证书（PEM，也接受平台公钥）。未配置时回调一律拒绝。
+    platform-certificate: ${WECHAT_PAY_PLATFORM_CERT:}
+    # 可选的 Wechatpay-Serial；配置后必须与请求头一致。
+    platform-certificate-serial: ${WECHAT_PAY_PLATFORM_CERT_SERIAL:}
+    # API v3 密钥，必须是 32 字节；用于解密 resource.ciphertext。
+    api-v3-key: ${WECHAT_PAY_API_V3_KEY:}
+    # 本平台在微信支付登记的商户号；用于校验回调归属。
+    mch-id: ${WECHAT_PAY_MCH_ID:}
+
+# 支付渠道回调不带平台租户头，验签由渠道完成；放行回调路径的租户校验，
+# 其余接口仍要求 X-Tenant-Id。
+cognora:
+  tenant:
+    exclude-paths:
+      - /actuator/**
+      - /v3/api-docs/**
+      - /api/v1/payments/callback/**
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+  global-config:
+    db-config:
+      id-type: assign_id
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    root: INFO
+    com.cognora.ecom.payment: DEBUG

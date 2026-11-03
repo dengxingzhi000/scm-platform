@@ -1,6 +1,6 @@
 import type { MpPage } from "./page";
 
-/** `com.scmcloud.purchase.domain.entity.PurOrder`. */
+/** `com.cognora.scm.purchase.domain.entity.PurOrder`. */
 export interface PurOrderDTO {
   id: string;
   orderNo?: string | null;
@@ -31,7 +31,7 @@ export interface PurOrderDTO {
   remark?: string | null;
 }
 
-/** `com.scmcloud.purchase.domain.entity.PurOrderItem`. */
+/** `com.cognora.scm.purchase.domain.entity.PurOrderItem`. */
 export interface PurOrderItemDTO {
   id: string;
   orderId?: string | null;
@@ -66,7 +66,7 @@ export interface PurOrderQuery {
   supplierId?: string;
 }
 
-/** `com.scmcloud.purchase.domain.entity.PurRfq`. */
+/** `com.cognora.scm.purchase.domain.entity.PurRfq`. */
 export interface PurRfqDTO {
   id: string;
   tenantId?: string | null;
@@ -91,7 +91,7 @@ export interface PurRfqDTO {
   remark?: string | null;
 }
 
-/** `com.scmcloud.purchase.domain.entity.PurRfqItem`. */
+/** `com.cognora.scm.purchase.domain.entity.PurRfqItem`. */
 export interface PurRfqItemDTO {
   id: string;
   tenantId?: string | null;
@@ -109,7 +109,7 @@ export interface PurRfqItemDTO {
   remark?: string | null;
 }
 
-/** `com.scmcloud.purchase.domain.entity.PurQuotation`. */
+/** `com.cognora.scm.purchase.domain.entity.PurQuotation`. */
 export interface PurQuotationDTO {
   id: string;
   tenantId?: string | null;
@@ -145,7 +145,7 @@ export interface PurQuotationDTO {
   remark?: string | null;
 }
 
-/** `com.scmcloud.purchase.domain.entity.PurQuotationItem`. */
+/** `com.cognora.scm.purchase.domain.entity.PurQuotationItem`. */
 export interface PurQuotationItemDTO {
   id: string;
   tenantId?: string | null;
@@ -186,7 +186,7 @@ export interface PurQuotationQuery {
   rfqId?: string;
 }
 
-/** `com.scmcloud.purchase.domain.entity.PurRequest`. */
+/** `com.cognora.scm.purchase.domain.entity.PurRequest`. */
 export interface PurRequestDTO {
   id: string;
   requestNo?: string | null;
@@ -217,7 +217,7 @@ export interface PurRequestDTO {
   remark?: string | null;
 }
 
-/** `com.scmcloud.purchase.domain.entity.PurRequestItem`. */
+/** `com.cognora.scm.purchase.domain.entity.PurRequestItem`. */
 export interface PurRequestItemDTO {
   id: string;
   requestId?: string | null;

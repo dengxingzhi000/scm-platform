@@ -1,0 +1,367 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: platform-system
+  config:
+    import:
+      - optional:nacos:${spring.application.name}.yaml?server-addr=${spring.cloud.nacos.server-addr}
+      - optional:nacos:common.yaml?server-addr=${spring.cloud.nacos.server-addr}
+  cloud:
+    nacos:
+      server-addr: ${NACOS_SERVER:127.0.0.1:8848}
+      config:
+        enabled: true
+        namespace: ${NACOS_NAMESPACE:public}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+  # ========== 多数据源配置 ==========
+  datasource:
+    dynamic:
+      primary: user                    # Default datasource
+      strict: true                     # Strict matching, error if not found
+
+      # HikariCP Connection Pool Configuration
+      hikari:
+        minimum-idle: 5
+        maximum-pool-size: 20
+        idle-timeout: 30000
+        max-lifetime: 1800000
+        connection-timeout: 30000
+
+      datasource:
+        # User datasource - sys_user, sys_user_oauth, webauthn_credential
+        user:
+          driver-class-name: org.postgresql.Driver
+          url: jdbc:postgresql://${DB_HOST:localhost}:5432/db_user?stringtype=unspecified
+          username: ${DB_USERNAME:admin}
+          password: ${DB_PASSWORD:changeme}
+
+        # Org datasource - sys_dept
+        org:
+          driver-class-name: org.postgresql.Driver
+          url: jdbc:postgresql://${DB_HOST:localhost}:5432/db_org?stringtype=unspecified
+          username: ${DB_USERNAME:admin}
+          password: ${DB_PASSWORD:changeme}
+
+        # Permission datasource - sys_role, sys_permission, sys_user_role, etc.
+        permission:
+          driver-class-name: org.postgresql.Driver
+          url: jdbc:postgresql://${DB_HOST:localhost}:5432/db_permission?stringtype=unspecified
+          username: ${DB_USERNAME:admin}
+          password: ${DB_PASSWORD:changeme}
+
+        # Approval datasource - sys_permission_approval
+        approval:
+          driver-class-name: org.postgresql.Driver
+          url: jdbc:postgresql://${DB_HOST:localhost}:5432/db_approval?stringtype=unspecified
+          username: ${DB_USERNAME:admin}
+          password: ${DB_PASSWORD:changeme}
+
+        # Audit datasource - sys_audit_log, sys_sensitive_operation_log
+        audit:
+          driver-class-name: org.postgresql.Driver
+          url: jdbc:postgresql://${DB_HOST:localhost}:5432/db_audit?stringtype=unspecified
+          username: ${DB_USERNAME:admin}
+          password: ${DB_PASSWORD:changeme}
+
+        # Notify datasource - sys_notification_audit, sys_notification_template, etc.
+        notify:
+          driver-class-name: org.postgresql.Driver
+          url: jdbc:postgresql://${DB_HOST:localhost}:5432/db_notify?stringtype=unspecified
+          username: ${DB_USERNAME:admin}
+          password: ${DB_PASSWORD:changeme}
+
+    # ========== Read-Write Separation (Master-Slave) ==========
+    # Uses common/data ReadWriteRoutingDataSource for per-datasource master/slave routing
+    # @DS annotation still handles user/org/permission/... datasource selection
+    rw:
+      enabled: ${RW_ENABLED:true}
+
+      # Load balance strategy: ROUND_ROBIN, WEIGHTED_ROUND_ROBIN, RANDOM, WEIGHTED_RANDOM, LEAST_CONNECTIONS
+      load-balance: WEIGHTED_ROUND_ROBIN
+
+      # Read-master-after-write duration (solves read-after-write consistency)
+      read-master-after-write: 2s
+
+      # Replication lag tolerance (forces master read when exceeded)
+      replication-lag-tolerance: 1s
+
+      # Health check configuration
+      health-check-enabled: true
+      health-check-interval: 30s
+      failure-threshold: 3
+
+      groups:
+        # User datasource
+        user:
+          master:
+            url: jdbc:postgresql://${DB_MASTER_HOST:localhost}:5432/db_user?stringtype=unspecified
+            username: ${DB_USERNAME:admin}
+            password: ${DB_PASSWORD:changeme}
+            driver-class-name: org.postgresql.Driver
+            minimum-idle: 5
+            maximum-pool-size: 20
+          slaves:
+            - name: slave1
+              url: jdbc:postgresql://${DB_SLAVE1_HOST:localhost}:5432/db_user?stringtype=unspecified
+              username: ${DB_USERNAME:admin}
+              password: ${DB_PASSWORD:changeme}
+              driver-class-name: org.postgresql.Driver
+              weight: 2
+              minimum-idle: 3
+              maximum-pool-size: 15
+            - name: slave2
+              url: jdbc:postgresql://${DB_SLAVE2_HOST:localhost}:5432/db_user?stringtype=unspecified
+              username: ${DB_USERNAME:admin}
+              password: ${DB_PASSWORD:changeme}
+              driver-class-name: org.postgresql.Driver
+              weight: 1
+              minimum-idle: 3
+              maximum-pool-size: 15
+
+        # Org datasource
+        org:
+          master:
+            url: jdbc:postgresql://${DB_MASTER_HOST:localhost}:5432/db_org?stringtype=unspecified
+            username: ${DB_USERNAME:admin}
+            password: ${DB_PASSWORD:changeme}
+            driver-class-name: org.postgresql.Driver
+            minimum-idle: 5
+            maximum-pool-size: 20
+          slaves:
+            - name: slave1
+              url: jdbc:postgresql://${DB_SLAVE1_HOST:localhost}:5432/db_org?stringtype=unspecified
+              username: ${DB_USERNAME:admin}
+              password: ${DB_PASSWORD:changeme}
+              driver-class-name: org.postgresql.Driver
+              weight: 2
+            - name: slave2
+              url: jdbc:postgresql://${DB_SLAVE2_HOST:localhost}:5432/db_org?stringtype=unspecified
+              username: ${DB_USERNAME:admin}
+              password: ${DB_PASSWORD:changeme}
+              driver-class-name: org.postgresql.Driver
+              weight: 1
+
+        # Permission datasource
+        permission:
+          master:
+            url: jdbc:postgresql://${DB_MASTER_HOST:localhost}:5432/db_permission?stringtype=unspecified
+            username: ${DB_USERNAME:admin}
+            password: ${DB_PASSWORD:changeme}
+            driver-class-name: org.postgresql.Driver
+            minimum-idle: 5
+            maximum-pool-size: 20
+          slaves:
+            - name: slave1
+              url: jdbc:postgresql://${DB_SLAVE1_HOST:localhost}:5432/db_permission?stringtype=unspecified
+              username: ${DB_USERNAME:admin}
+              password: ${DB_PASSWORD:changeme}
+              driver-class-name: org.postgresql.Driver
+              weight: 2
+            - name: slave2
+              url: jdbc:postgresql://${DB_SLAVE2_HOST:localhost}:5432/db_permission?stringtype=unspecified
+              username: ${DB_USERNAME:admin}
+              password: ${DB_PASSWORD:changeme}
+              driver-class-name: org.postgresql.Driver
+              weight: 1
+
+        # Approval datasource
+        approval:
+          master:
+            url: jdbc:postgresql://${DB_MASTER_HOST:localhost}:5432/db_approval?stringtype=unspecified
+            username: ${DB_USERNAME:admin}
+            password: ${DB_PASSWORD:changeme}
+            driver-class-name: org.postgresql.Driver
+            minimum-idle: 3
+            maximum-pool-size: 10
+          slaves:
+            - name: slave1
+              url: jdbc:postgresql://${DB_SLAVE1_HOST:localhost}:5432/db_approval?stringtype=unspecified
+              username: ${DB_USERNAME:admin}
+              password: ${DB_PASSWORD:changeme}
+              driver-class-name: org.postgresql.Driver
+              weight: 1
+
+        # Audit datasource
+        audit:
+          master:
+            url: jdbc:postgresql://${DB_MASTER_HOST:localhost}:5432/db_audit?stringtype=unspecified
+            username: ${DB_USERNAME:admin}
+            password: ${DB_PASSWORD:changeme}
+            driver-class-name: org.postgresql.Driver
+            minimum-idle: 3
+            maximum-pool-size: 10
+          slaves:
+            - name: slave1
+              url: jdbc:postgresql://${DB_SLAVE1_HOST:localhost}:5432/db_audit?stringtype=unspecified
+              username: ${DB_USERNAME:admin}
+              password: ${DB_PASSWORD:changeme}
+              driver-class-name: org.postgresql.Driver
+              weight: 1
+
+        # Notify datasource
+        notify:
+          master:
+            url: jdbc:postgresql://${DB_MASTER_HOST:localhost}:5432/db_notify?stringtype=unspecified
+            username: ${DB_USERNAME:admin}
+            password: ${DB_PASSWORD:changeme}
+            driver-class-name: org.postgresql.Driver
+            minimum-idle: 3
+            maximum-pool-size: 10
+          slaves:
+            - name: slave1
+              url: jdbc:postgresql://${DB_SLAVE1_HOST:localhost}:5432/db_notify?stringtype=unspecified
+              username: ${DB_USERNAME:admin}
+              password: ${DB_PASSWORD:changeme}
+              driver-class-name: org.postgresql.Driver
+              weight: 1
+  kafka:
+    bootstrap-servers: ${KAFKA_HOST:127.0.0.1}:${KAFKA_PORT:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+  security:
+    default-password: ${DEFAULT_PASSWORD:changeme}
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    baseline-version: 0
+    validate-on-migrate: true
+    out-of-order: false
+    table: flyway_schema_history
+
+mybatis-plus:
+  # Mapper XML 文件位置
+  mapper-locations: classpath*:/mapper/**/*.xml
+  # 实体类包路径
+  type-aliases-package: com.cognora.platform.system.entity
+  # 全局配置
+  global-config:
+    db-config:
+      # 表名前缀
+      table-prefix: tbl_
+      # 逻辑删除字段
+      logic-delete-field: deleted
+      # Logic delete value (boolean column in every db_* schema)
+      logic-delete-value: true
+      # Logic not-delete value
+      logic-not-delete-value: false
+  configuration:
+    # Enable camel-case mapping
+    map-underscore-to-camel-case: true
+    # SQL日志输出
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    # 缓存
+    cache-enabled: false
+
+dubbo:
+  application:
+    name: ${spring.application.name}
+  protocol:
+    name: dubbo
+    port: -1
+  registry:
+    address: nacos://${spring.cloud.nacos.server-addr}
+
+# ========== Monitoring & Metrics Configuration ==========
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+  health:
+    db:
+      enabled: true
+    redis:
+      enabled: true
+    diskspace:
+      enabled: true
+
+  # Micrometer metrics configuration
+  metrics:
+    tags:
+      application: ${spring.application.name}
+      service: system-service
+      environment: ${ENVIRONMENT:dev}
+
+    # Enable percentile histograms for accurate P95/P99 calculations
+    distribution:
+      percentiles-histogram:
+        "[cross_db_query]": true
+        "[http.server.requests]": true
+
+      # Service Level Objectives (SLO) boundaries in nanoseconds
+      slo:
+        "[cross_db_query]": 50000000,100000000,200000000,500000000,1000000000,2000000000
+        "[http.server.requests]": 100000000,200000000,500000000,1000000000,2000000000,5000000000
+
+      # Minimum expected value (for histogram optimization) in nanoseconds
+      minimum-expected-value:
+        "[cross_db_query]": 1000000
+
+      # Maximum expected value (for histogram optimization) in nanoseconds
+      maximum-expected-value:
+        "[cross_db_query]": 5000000000
+
+    # Enable JVM and system metrics
+    enable:
+      jvm: true
+      process: true
+      system: true
+      tomcat: true
+      hikaricp: true
+      logback: true
+
+cognora:
+  security:
+    headers:
+      content-type-options-enabled: true
+      frame-options: DENY
+      hsts-enabled: true
+      hsts-max-age: 31536000
+      hsts-include-subdomains: true
+
+# ========== Logging Configuration ==========
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  level:
+    # Enable debug logging for read-write routing (to verify @Slave/@Master)
+    com.cognora.platform.common.data.rw: INFO
+    com.cognora.platform.system.service.query: ${CQRS_LOG_LEVEL:INFO}
+    com.cognora.platform.system.service.command: ${CQRS_LOG_LEVEL:INFO}
+
+    # HikariCP connection pool logging
+    com.zaxxer.hikari: INFO
+
+    # MyBatis SQL logging (disable in production)
+    com.cognora.platform.system.mapper: ${SQL_LOG_LEVEL:INFO}
+
+app:
+  security:
+    admin-user-id: ${ADMIN_USER_ID:019a0aee-0000-7000-8000-000000000001}
+
+security:
+  permission-checker:
+    enabled: true
+
+# 平台级共享表（字典、状态机）不参与租户过滤：它们以 tenant_id=NULL 存储。
+cognora:
+  tenant:
+    exclude-tables:
+      - sys_dict_type
+      - sys_dict_item
+      - sys_status_dict
+      - sys_status_transition
+
+datasync:
+  enabled: true

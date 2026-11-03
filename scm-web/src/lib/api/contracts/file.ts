@@ -1,6 +1,6 @@
 import type { MpPage } from "./page";
 
-/** `com.scmcloud.file.entity.FileMetadata`. */
+/** `com.cognora.platform.file.entity.FileMetadata`. */
 export interface FileMetadataDTO {
   id: string;
   originalName?: string | null;
@@ -21,7 +21,7 @@ export interface FileMetadataDTO {
   updateTime?: string | null;
 }
 
-/** `com.scmcloud.file.service.ocr.OcrService.InvoiceInfo`. */
+/** `com.cognora.platform.file.service.ocr.OcrService.InvoiceInfo`. */
 export interface InvoiceInfo {
   invoiceNo?: string | null;
   invoiceDate?: string | null;
@@ -31,7 +31,7 @@ export interface InvoiceInfo {
   rawText?: string | null;
 }
 
-/** `com.scmcloud.file.service.ocr.OcrService.ContractInfo`. */
+/** `com.cognora.platform.file.service.ocr.OcrService.ContractInfo`. */
 export interface ContractInfo {
   contractNo?: string | null;
   partyA?: string | null;
@@ -51,7 +51,7 @@ export interface FileQuery {
   bizId?: string;
 }
 
-/** `com.scmcloud.file.api.dto.FileStatsDTO`. */
+/** `com.cognora.platform.file.api.dto.FileStatsDTO`. */
 export interface FileStats {
   totalFiles: number;
   totalSize: number;
@@ -61,7 +61,7 @@ export interface FileStats {
   lastUploadTime?: string | null;
 }
 
-/** `com.scmcloud.file.api.dto.FileUpdateRequest`. Empty strings clear the business link. */
+/** `com.cognora.platform.file.api.dto.FileUpdateRequest`. Empty strings clear the business link. */
 export interface FileUpdatePayload {
   originalName?: string;
   bizType?: string;
