@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.scmcloud</groupId>
+        <groupId>com.cognora</groupId>
         <artifactId>scm-common</artifactId>
         <version>1.0.0-beta.1</version>
     </parent>
@@ -21,7 +21,7 @@
     <dependencies>
         <!-- Internal: core for TenantContextHolder -->
         <dependency>
-            <groupId>com.scmcloud</groupId>
+            <groupId>com.cognora</groupId>
             <artifactId>scm-common-core</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>

@@ -278,14 +278,14 @@ public interface DecisionPlugin {
 scm-decision-matrix/
 ├── api/                          # Public interfaces
 │   └── src/main/java/
-│       └── com/scmcloud/decision/matrix/api/
+│       └── com/cognora/platform/decision/matrix/api/
 │           ├── DecisionNode.java
 │           ├── DecisionChain.java
 │           ├── FusionEngine.java
 │           └── ExecutionMatrix.java
 ├── core/                         # Core implementation
 │   └── src/main/java/
-│       └── com/scmcloud/decision/matrix/core/
+│       └── com/cognora/platform/decision/matrix/core/
 │           ├── chain/
 │           │   ├── DecisionChainOrchestrator.java
 │           │   └── ChainExecutionEngine.java
@@ -302,14 +302,14 @@ scm-decision-matrix/
 │               └── GatewayRouter.java
 ├── nodes/                        # Decision node implementations
 │   └── src/main/java/
-│       └── com/scmcloud/decision/matrix/nodes/
+│       └── com/cognora/platform/decision/matrix/nodes/
 │           ├── pricing/
 │           ├── inventory/
 │           ├── fulfillment/
 │           └── risk/
 └── integration/                  # System integrations
     └── src/main/java/
-        └── com/scmcloud/decision/matrix/integration/
+        └── com/cognora/platform/decision/matrix/integration/
             ├── oms/
             ├── wms/
             └── pms/

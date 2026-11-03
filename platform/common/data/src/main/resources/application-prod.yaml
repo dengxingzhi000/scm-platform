@@ -10,6 +10,6 @@ mybatis-plus:
 logging:
   level:
     root: INFO
-    com.scmcloud: INFO
+    com.cognora: INFO
     com.baomidou.mybatisplus: WARN
     org.springframework: WARN

@@ -1,0 +1,84 @@
+package com.cognora.scm.finance.service.impl;
+
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.cognora.platform.common.util.UUIDv7Util;
+import com.cognora.scm.finance.domain.entity.PlatformServiceFee;
+import com.cognora.scm.finance.mapper.PlatformServiceFeeMapper;
+import com.cognora.scm.finance.service.IPlatformServiceFeeService;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Slf4j
+@Service
+public class PlatformServiceFeeServiceImpl extends ServiceImpl<PlatformServiceFeeMapper, PlatformServiceFee>
+        implements IPlatformServiceFeeService {
+
+    @Override
+    public PlatformServiceFee createFee(PlatformServiceFee fee) {
+        fee.setId(UUIDv7Util.generateString());
+        fee.setStatus(0);
+        fee.setCreateTime(LocalDateTime.now());
+        fee.setUpdateTime(LocalDateTime.now());
+        save(fee);
+        log.info("Platform service fee created successfully: id={}, feeType={}", (fee.getId() + "").replace("\r", "_").replace("\n", "_"), (fee.getFeeType() + "").replace("\r", "_").replace("\n", "_"));
+        return fee;
+    }
+
+    @Override
+    public PlatformServiceFee updateFee(String id, PlatformServiceFee fee) {
+        fee.setId(id);
+        fee.setUpdateTime(LocalDateTime.now());
+        updateById(fee);
+        log.info("Platform service fee updated successfully: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
+        return fee;
+    }
+
+    @Override
+    public List<PlatformServiceFee> listPendingFees() {
+
+        LambdaQueryWrapper<PlatformServiceFee> wrapper = Wrappers.lambdaQuery();
+        wrapper.eq(PlatformServiceFee::getStatus, 0)
+                .orderByDesc(PlatformServiceFee::getCreateTime);
+        return list(wrapper);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public PlatformServiceFee recordPayment(String id, BigDecimal paidAmount) {
+        log.info("Record platform service fee payment: id={}, paidAmount={}", (id + "").replace("\r", "_").replace("\n", "_"), (paidAmount + "").replace("\r", "_").replace("\n", "_"));
+
+        if (paidAmount == null || paidAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Payment amount must be greater than 0");
+        }
+
+        PlatformServiceFee fee = getById(id);
+        if (fee == null) {
+            throw new IllegalArgumentException("Platform service fee record not found: " + id);
+        }
+        if (fee.getStatus() != 0) {
+            throw new IllegalStateException("Only pending payment records can be paid, current status: " + fee.getStatus());
+        }
+
+        BigDecimal finalFee = fee.getFinalFee() != null ? fee.getFinalFee() : fee.getTotalFee();
+        if (paidAmount.compareTo(finalFee) != 0) {
+            throw new IllegalArgumentException(
+                    String.format("Payment amount does not match payable amount: paid=%s, final=%s", paidAmount, finalFee));
+        }
+
+        fee.setPaidAmount(paidAmount);
+        fee.setPaidAt(LocalDateTime.now());
+        fee.setStatus(1);
+        fee.setUpdateTime(LocalDateTime.now());
+
+        updateById(fee);
+        log.info("Platform service fee payment successful: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
+        return fee;
+    }
+}

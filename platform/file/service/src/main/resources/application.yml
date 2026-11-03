@@ -40,7 +40,7 @@ mybatis-plus:
 
 logging:
   level:
-    com.scmcloud.file: DEBUG
+    com.cognora.platform.file: DEBUG
 
 security:
   crypto:

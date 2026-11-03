@@ -39,7 +39,7 @@ spring:
 # MyBatis-Plus
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml
-  type-aliases-package: com.scmcloud.purchase.domain.entity
+  type-aliases-package: com.cognora.scm.purchase.domain.entity
   configuration:
     map-underscore-to-camel-case: true
     cache-enabled: false

@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.scmcloud</groupId>
+        <groupId>com.cognora</groupId>
         <artifactId>scm-system</artifactId>
         <version>1.0.0-beta.1</version>
         <relativePath>../pom.xml</relativePath>
@@ -22,7 +22,7 @@
     <dependencies>
         <!-- common start -->
         <dependency>
-            <groupId>com.scmcloud</groupId>
+            <groupId>com.cognora</groupId>
             <artifactId>scm-common-web</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
@@ -32,37 +32,37 @@
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.scmcloud</groupId>
+            <groupId>com.cognora</groupId>
             <artifactId>scm-common-data</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
-            <groupId>com.scmcloud</groupId>
+            <groupId>com.cognora</groupId>
             <artifactId>scm-common-core</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
-            <groupId>com.scmcloud</groupId>
+            <groupId>com.cognora</groupId>
             <artifactId>scm-common-system-contract</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
-            <groupId>com.scmcloud</groupId>
+            <groupId>com.cognora</groupId>
             <artifactId>scm-common-security-core</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
-            <groupId>com.scmcloud</groupId>
+            <groupId>com.cognora</groupId>
             <artifactId>scm-common-security-api</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
-            <groupId>com.scmcloud</groupId>
+            <groupId>com.cognora</groupId>
             <artifactId>scm-common-integration</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
-            <groupId>com.scmcloud</groupId>
+            <groupId>com.cognora</groupId>
             <artifactId>scm-common-decision-engine</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>

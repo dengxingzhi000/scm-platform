@@ -1,0 +1,135 @@
+package com.cognora.scm.order.service.query;
+
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.cognora.platform.common.data.rw.annotation.Slave;
+import com.cognora.scm.order.domain.entity.OrdOrder;
+import com.cognora.scm.order.domain.entity.OrdOrderItem;
+import com.cognora.scm.order.dto.OrderConverter;
+import com.cognora.scm.order.dto.OrderItemResponse;
+import com.cognora.scm.order.dto.OrderQueryRequest;
+import com.cognora.scm.order.dto.OrderResponse;
+import com.cognora.scm.order.mapper.OrdOrderItemMapper;
+import com.cognora.scm.order.mapper.OrdOrderMapper;
+import com.cognora.scm.order.util.SqlTime;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class OrdOrderQueryService {
+    private final OrdOrderMapper ordOrderMapper;
+    private final OrdOrderItemMapper ordOrderItemMapper;
+
+    @Slave
+    public OrdOrder getById(String id) {
+        return ordOrderMapper.selectById(id);
+    }
+
+    @Slave
+    public List<OrdOrder> list() {
+        return ordOrderMapper.selectList(null);
+    }
+
+    @Slave
+    public Page<OrdOrder> page(Page<OrdOrder> page) {
+        return ordOrderMapper.selectPage(page, null);
+    }
+
+    @Slave
+    public List<OrdOrder> listByUserId(String userId) {
+        LambdaQueryWrapper<OrdOrder> wrapper = Wrappers.lambdaQuery();
+        wrapper.eq(OrdOrder::getUserId, userId)
+                .eq(OrdOrder::getDeleted, false)
+                .orderByDesc(OrdOrder::getCreateTime);
+        return ordOrderMapper.selectList(wrapper);
+    }
+
+    @Slave
+    public Page<OrdOrder> pageByUserId(String userId, Integer pageNum, Integer pageSize) {
+        LambdaQueryWrapper<OrdOrder> wrapper = Wrappers.lambdaQuery();
+        wrapper.eq(OrdOrder::getUserId, userId)
+                .eq(OrdOrder::getDeleted, false)
+                .orderByDesc(OrdOrder::getCreateTime);
+        return ordOrderMapper.selectPage(new Page<>(pageNum, pageSize), wrapper);
+    }
+
+    /**
+     * 自定义条件分页查询。
+     *
+     * @deprecated 调用方应改用 {@link #query(OrderQueryRequest)}，由本服务统一构造查询条件
+     *             （含 {@code deleted = false} 过滤与排序），避免在 controller 中拼装 wrapper。
+     */
+    @Deprecated
+    @Slave
+    public Page<OrdOrder> pageWithWrapper(Page<OrdOrder> page, LambdaQueryWrapper<OrdOrder> wrapper) {
+        return ordOrderMapper.selectPage(page, wrapper);
+    }
+
+    /**
+     * 统一条件分页查询（查询条件构造下沉到服务层）。
+     *
+     * <p>根据 {@link OrderQueryRequest} 拼装过滤条件（订单号/用户/状态/来源/时间区间），
+     * 强制包含 {@code deleted = false} 过滤，并按创建时间倒序。与退款、支付查询服务保持一致。</p>
+     */
+    @Slave
+    public Page<OrdOrder> query(OrderQueryRequest request) {
+        LambdaQueryWrapper<OrdOrder> wrapper = Wrappers.lambdaQuery();
+        Integer statusCode = request.getStatus() == null ? null : request.getStatus().getCode();
+        wrapper.eq(request.getOrderNo() != null, OrdOrder::getOrderNo, request.getOrderNo())
+                .eq(request.getUserId() != null, OrdOrder::getUserId, request.getUserId())
+                .eq(statusCode != null, OrdOrder::getStatus, statusCode)
+                .eq(request.getOrderSource() != null, OrdOrder::getOrderSource, request.getOrderSource())
+                .eq(OrdOrder::getDeleted, false)
+                .orderByDesc(OrdOrder::getCreateTime);
+        // create_time is timestamptz: bind the boundary through the service zone so a
+        // "today" filter sent as a local wall time is not read as UTC by the session.
+        if (request.getStartTime() != null) {
+            wrapper.apply("create_time >= ({0}::timestamptz)", SqlTime.absolute(request.getStartTime()));
+        }
+        if (request.getEndTime() != null) {
+            wrapper.apply("create_time <= ({0}::timestamptz)", SqlTime.absolute(request.getEndTime()));
+        }
+        return ordOrderMapper.selectPage(
+                new Page<>(request.getPageNum(), request.getPageSize()), wrapper);
+    }
+
+    /**
+     * 查询订单的所有明细行。
+     */
+    @Slave
+    public List<OrdOrderItem> listItemsByOrderId(UUID orderId) {
+        if (orderId == null) {
+            return Collections.emptyList();
+        }
+        LambdaQueryWrapper<OrdOrderItem> wrapper = Wrappers.lambdaQuery();
+        wrapper.eq(OrdOrderItem::getOrderId, orderId);
+        return ordOrderItemMapper.selectList(wrapper);
+    }
+
+    @Slave
+    public OrderResponse getResponseById(String id) {
+        return OrderConverter.toResponse(getById(id));
+    }
+
+    @Slave
+    public Page<OrderResponse> queryPage(OrderQueryRequest request) {
+        Page<OrdOrder> page = query(request);
+        Page<OrderResponse> mapped = new Page<>(page.getCurrent(), page.getSize(), page.getTotal());
+        mapped.setRecords(OrderConverter.toResponseList(page.getRecords()));
+        return mapped;
+    }
+
+    @Slave
+    public List<OrderItemResponse> listItemResponses(UUID orderId) {
+        return OrderConverter.toItemResponseList(listItemsByOrderId(orderId));
+    }
+}
+

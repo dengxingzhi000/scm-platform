@@ -1,3 +1,3 @@
 # Spring Boot 自动配置
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-com.scmcloud.common.seata.config.SeataAutoConfiguration
+com.cognora.platform.common.seata.config.SeataAutoConfiguration

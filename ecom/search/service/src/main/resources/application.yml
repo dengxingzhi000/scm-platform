@@ -42,4 +42,4 @@ management:
 logging:
   level:
     root: INFO
-    com.scmcloud.search: DEBUG
+    com.cognora.ecom.search: DEBUG

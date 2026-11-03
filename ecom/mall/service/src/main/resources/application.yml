@@ -62,4 +62,4 @@ management:
 logging:
   level:
     root: INFO
-    com.scmcloud.mall: DEBUG
+    com.cognora.ecom.mall: DEBUG

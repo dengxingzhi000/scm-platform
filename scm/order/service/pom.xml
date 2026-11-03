@@ -6,7 +6,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.scmcloud</groupId>
+        <groupId>com.cognora</groupId>
         <artifactId>scm-order</artifactId>
         <version>1.0.0-beta.1</version>
     </parent>
@@ -19,19 +19,19 @@
     <dependencies>
         <!-- API Module -->
         <dependency>
-            <groupId>com.scmcloud</groupId>
+            <groupId>com.cognora</groupId>
             <artifactId>scm-order-api</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
-            <groupId>com.scmcloud</groupId>
+            <groupId>com.cognora</groupId>
             <artifactId>scm-inventory-api</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
 
         <!-- Common Modules -->
         <dependency>
-            <groupId>com.scmcloud</groupId>
+            <groupId>com.cognora</groupId>
             <artifactId>scm-common-web</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
@@ -41,13 +41,13 @@
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.scmcloud</groupId>
+            <groupId>com.cognora</groupId>
             <artifactId>scm-common-integration</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
 
         <dependency>
-            <groupId>com.scmcloud</groupId>
+            <groupId>com.cognora</groupId>
             <artifactId>scm-common-system-contract</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
@@ -132,7 +132,7 @@
             <id>integration-tests</id>
             <dependencies>
                 <dependency>
-                    <groupId>com.scmcloud</groupId>
+                    <groupId>com.cognora</groupId>
                     <artifactId>scm-inventory-service</artifactId>
                     <version>1.0.0-beta.1</version>
                     <scope>test</scope>

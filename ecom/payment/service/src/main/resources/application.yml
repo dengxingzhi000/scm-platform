@@ -90,4 +90,4 @@ management:
 logging:
   level:
     root: INFO
-    com.scmcloud.payment: DEBUG
+    com.cognora.ecom.payment: DEBUG

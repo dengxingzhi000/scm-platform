@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.scmcloud</groupId>
+        <groupId>com.cognora</groupId>
         <artifactId>scm-platform</artifactId>
         <version>1.0.0-beta.1</version>
         <relativePath>../../com.scm.parent/pom.xml</relativePath>
@@ -22,7 +22,7 @@
     <dependencies>
         <!-- common模块 -->
         <dependency>
-            <groupId>com.scmcloud</groupId>
+            <groupId>com.cognora</groupId>
             <artifactId>scm-common-web</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
@@ -32,22 +32,22 @@
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.scmcloud</groupId>
+            <groupId>com.cognora</groupId>
             <artifactId>scm-common-core</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
-            <groupId>com.scmcloud</groupId>
+            <groupId>com.cognora</groupId>
             <artifactId>scm-common-system-contract</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
-            <groupId>com.scmcloud</groupId>
+            <groupId>com.cognora</groupId>
             <artifactId>scm-common-monitoring</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
-            <groupId>com.scmcloud</groupId>
+            <groupId>com.cognora</groupId>
             <artifactId>scm-common-security-core</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>

@@ -1,2 +1,2 @@
-com.scmcloud.common.monitoring.config.ObservabilityAutoConfiguration
-com.scmcloud.common.sentinel.config.SentinelAutoConfiguration
+com.cognora.platform.common.monitoring.config.ObservabilityAutoConfiguration
+com.cognora.platform.common.sentinel.config.SentinelAutoConfiguration

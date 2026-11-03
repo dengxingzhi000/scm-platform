@@ -115,16 +115,16 @@ mvn verify -f com.scm.parent/pom.xml
 ### Package Structure
 
 ```
-com.scmcloud.{module}.{layer}
+com.cognora.{module}.{layer}
 ```
 
 Examples:
-- `com.scmcloud.order.controller`
-- `com.scmcloud.order.service.impl`
-- `com.scmcloud.order.mapper`
-- `com.scmcloud.common.response.ApiResponse`
+- `com.cognora.scm.order.controller`
+- `com.cognora.scm.order.service.impl`
+- `com.cognora.scm.order.mapper`
+- `com.cognora.platform.common.response.ApiResponse`
 
-GroupId is `com.scmcloud` (not `com.frog`).
+GroupId is `com.cognora` (not `com.frog`).
 
 ### Module Layout
 
@@ -139,7 +139,7 @@ GroupId is `com.scmcloud` (not `com.frog`).
 | Classes | PascalCase | `OrderService`, `InventoryMapper` |
 | Methods | camelCase | `createOrder`, `deductStock` |
 | Constants | UPPER_SNAKE_CASE | `MAX_RETRY_COUNT` |
-| Packages | lowercase | `com.scmcloud.order.service` |
+| Packages | lowercase | `com.cognora.scm.order.service` |
 | Tables | snake_case with prefix | `ord_order`, `inv_stock` |
 | Config files | kebab-case | `application-dev.yml` |
 

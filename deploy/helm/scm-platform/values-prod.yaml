@@ -93,5 +93,5 @@ config:
     namespace: "scm-production"
   logging:
     level:
-      com.scmcloud: WARN
+      com.cognora: WARN
       root: WARN

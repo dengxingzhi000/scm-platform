@@ -62,4 +62,4 @@ management:
 logging:
   level:
     root: INFO
-    com.scmcloud.promotion: DEBUG
+    com.cognora.ecom.promotion: DEBUG

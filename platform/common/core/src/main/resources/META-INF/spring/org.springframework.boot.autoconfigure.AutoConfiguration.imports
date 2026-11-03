@@ -1,2 +1,2 @@
-com.scmcloud.common.tenant.AsyncTenantAutoConfiguration
-com.scmcloud.common.tenant.TenantMybatisAutoConfiguration
+com.cognora.platform.common.tenant.AsyncTenantAutoConfiguration
+com.cognora.platform.common.tenant.TenantMybatisAutoConfiguration

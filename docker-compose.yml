@@ -744,7 +744,7 @@ services:
       SERVER_PORT: 8761
       # 网关不做 URL→权限 的二次校验（它自己的 ApiSignatureFilter 负责入口校验），
       # 而 PermissionAccessAutoConfiguration 强依赖 SysPermissionServiceClient，网关里没有这个 Bean。
-      SPRING_AUTOCONFIGURE_EXCLUDE: com.scmcloud.common.access.PermissionAccessAutoConfiguration
+      SPRING_AUTOCONFIGURE_EXCLUDE: com.cognora.platform.common.access.PermissionAccessAutoConfiguration
     ports:
       - "8761:8761"
 

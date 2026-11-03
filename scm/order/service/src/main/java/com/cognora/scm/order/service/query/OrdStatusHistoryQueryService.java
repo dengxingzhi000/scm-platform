@@ -1,0 +1,45 @@
+package com.cognora.scm.order.service.query;
+
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.cognora.platform.common.data.rw.annotation.Slave;
+import com.cognora.scm.order.domain.entity.OrdStatusHistory;
+import com.cognora.scm.order.dto.OrderConverter;
+import com.cognora.scm.order.dto.StatusHistoryResponse;
+import com.cognora.scm.order.mapper.OrdStatusHistoryMapper;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.UUID;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class OrdStatusHistoryQueryService {
+    private final OrdStatusHistoryMapper ordStatusHistoryMapper;
+
+    @Slave
+    public OrdStatusHistory getById(String id) {
+        return ordStatusHistoryMapper.selectById(id);
+    }
+
+    @Slave
+    public List<OrdStatusHistory> listByOrderId(UUID orderId) {
+        LambdaQueryWrapper<OrdStatusHistory> wrapper = Wrappers.lambdaQuery();
+        wrapper.eq(OrdStatusHistory::getOrderId, orderId)
+                .orderByDesc(OrdStatusHistory::getTransitionedAt);
+        return ordStatusHistoryMapper.selectList(wrapper);
+    }
+
+    @Slave
+    public StatusHistoryResponse getResponseById(String id) {
+        return OrderConverter.toStatusHistoryResponse(getById(id));
+    }
+
+    @Slave
+    public List<StatusHistoryResponse> listResponsesByOrderId(UUID orderId) {
+        return OrderConverter.toStatusHistoryResponseList(listByOrderId(orderId));
+    }
+}

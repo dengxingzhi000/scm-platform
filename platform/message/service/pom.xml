@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.scmcloud</groupId>
+        <groupId>com.cognora</groupId>
         <artifactId>scm-message</artifactId>
         <version>1.0.0-beta.1</version>
     </parent>
@@ -15,17 +15,17 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.scmcloud</groupId>
+            <groupId>com.cognora</groupId>
             <artifactId>scm-message-api</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
-            <groupId>com.scmcloud</groupId>
+            <groupId>com.cognora</groupId>
             <artifactId>scm-common-data</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
-            <groupId>com.scmcloud</groupId>
+            <groupId>com.cognora</groupId>
             <artifactId>scm-common-web</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>

@@ -223,7 +223,7 @@ frog:
 logging:
   level:
     root: INFO
-    com.scmcloud.product: DEBUG
+    com.cognora.platform.product: DEBUG
     io.seata: INFO
     com.xxl.job: INFO
   pattern:

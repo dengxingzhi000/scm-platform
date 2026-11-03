@@ -160,7 +160,7 @@ frog:
 logging:
   level:
     root: INFO
-    com.scmcloud.order: DEBUG
+    com.cognora.scm.order: DEBUG
     io.seata: INFO
     com.xxl.job: INFO
   pattern:

@@ -62,4 +62,4 @@ management:
 logging:
   level:
     root: INFO
-    com.scmcloud.ordercenter: DEBUG
+    com.cognora.ecom.ordercenter: DEBUG

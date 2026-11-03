@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.scmcloud</groupId>
+        <groupId>com.cognora</groupId>
         <artifactId>scm-analytics</artifactId>
         <version>1.0.0-beta.1</version>
     </parent>
@@ -18,19 +18,19 @@
     <dependencies>
         <!-- API Module -->
         <dependency>
-            <groupId>com.scmcloud</groupId>
+            <groupId>com.cognora</groupId>
             <artifactId>scm-analytics-api</artifactId>
             <version>${project.version}</version>
         </dependency>
 
         <!-- Common Modules -->
         <dependency>
-            <groupId>com.scmcloud</groupId>
+            <groupId>com.cognora</groupId>
             <artifactId>scm-common-core</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
-            <groupId>com.scmcloud</groupId>
+            <groupId>com.cognora</groupId>
             <artifactId>scm-common-web</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
@@ -40,17 +40,17 @@
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.scmcloud</groupId>
+            <groupId>com.cognora</groupId>
             <artifactId>scm-common-integration</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
-            <groupId>com.scmcloud</groupId>
+            <groupId>com.cognora</groupId>
             <artifactId>scm-common-cache</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
-            <groupId>com.scmcloud</groupId>
+            <groupId>com.cognora</groupId>
             <artifactId>scm-common-data-rw-stub</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>

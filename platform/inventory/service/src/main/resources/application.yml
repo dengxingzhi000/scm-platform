@@ -189,7 +189,7 @@ scm:
 logging:
   level:
     root: INFO
-    com.scmcloud.inventory: DEBUG
+    com.cognora.platform.inventory: DEBUG
     io.seata: INFO
     com.xxl.job: INFO
   pattern:

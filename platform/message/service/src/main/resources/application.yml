@@ -27,4 +27,4 @@ security:
 
 logging:
   level:
-    com.scmcloud.message: DEBUG
+    com.cognora.platform.message: DEBUG

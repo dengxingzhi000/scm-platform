@@ -168,7 +168,7 @@ frog:
 logging:
   level:
     root: INFO
-    com.scmcloud.warehouse: DEBUG
+    com.cognora.scm.warehouse: DEBUG
     io.seata: INFO
     com.xxl.job: INFO
   pattern:

@@ -1,2 +1,2 @@
-tenantContextFilter=com.scmcloud.common.dubbo.TenantContextFilter
-hopCountFilter=com.scmcloud.common.dubbo.HopCountFilter
+tenantContextFilter=com.cognora.platform.common.dubbo.TenantContextFilter
+hopCountFilter=com.cognora.platform.common.dubbo.HopCountFilter

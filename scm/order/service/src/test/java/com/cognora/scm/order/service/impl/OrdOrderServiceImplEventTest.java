@@ -1,0 +1,166 @@
+package com.cognora.scm.order.service.impl;
+
+import com.cognora.platform.common.domain.Money;
+import com.cognora.platform.common.domain.TenantId;
+import com.cognora.platform.common.integration.outbox.OutboxService;
+import com.cognora.scm.order.domain.entity.OrdOrder;
+import com.cognora.scm.order.domain.entity.OrderStatus;
+import com.cognora.scm.order.event.OrderCreatedEvent;
+import com.cognora.scm.order.event.OrderEvent;
+import com.cognora.scm.order.event.OrderEventStore;
+import com.cognora.scm.order.event.OrderStatusChangedEvent;
+import com.cognora.platform.common.tenant.TenantContextHolder;
+import com.cognora.scm.order.mapper.OrdOrderMapper;
+import com.cognora.scm.order.service.IOrdOrderItemService;
+import com.cognora.scm.order.service.IOrdStatusHistoryService;
+import com.cognora.platform.system.api.StatusMachineDubboService;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import java.math.BigDecimal;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import java.util.UUID;
+
+@ExtendWith(MockitoExtension.class)
+class OrdOrderServiceImplEventTest {
+
+    @Mock private IOrdOrderItemService orderItemService;
+    @Mock private IOrdStatusHistoryService statusHistoryService;
+    @Mock private OrderEventStore eventStore;
+    @Mock private OutboxService outboxService;
+    @Mock private StatusMachineDubboService statusMachine;
+    @Mock private OrdOrderMapper ordOrderMapper;
+
+    private OrdOrderServiceImpl service;
+
+    @BeforeEach
+    void setUp() {
+        service = new OrdOrderServiceImpl(orderItemService, statusHistoryService, eventStore, outboxService);
+        ReflectionTestUtils.setField(service, "baseMapper", ordOrderMapper);
+        ReflectionTestUtils.setField(service, "statusMachine", statusMachine);
+    }
+
+    @AfterEach
+    void tearDown() {
+        TenantContextHolder.clear();
+    }
+
+    private OrdOrder order(int statusCode) {
+        OrdOrder order = new OrdOrder();
+        order.setId(java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"));
+        order.setOrderNo("NO1001");
+        order.setStatus(statusCode);
+        order.setUserId("00000000-0000-0000-0000-000000000001");
+        order.setTenantId(TenantId.generate());
+        order.setTotalAmount(Money.of(new BigDecimal("99.90")));
+        order.setPayableAmount(Money.of(new BigDecimal("89.90")));
+        return order;
+    }
+
+    @Test
+    void createOrderShouldAppendOrderCreatedEvent() {
+        OrdOrder order = order(OrderStatus.PENDING_PAYMENT.getCode());
+        TenantContextHolder.setTenantId(order.getTenantId().toUUID());
+        when(ordOrderMapper.insert(any(OrdOrder.class))).thenReturn(1);
+
+        com.cognora.scm.order.domain.entity.OrdOrderItem item = new com.cognora.scm.order.domain.entity.OrdOrderItem();
+        item.setSubtotal(Money.of(new BigDecimal("99.90")));
+        service.createOrder(order, List.of(item));
+
+        ArgumentCaptor<OrderEvent> captor = ArgumentCaptor.forClass(OrderEvent.class);
+        verify(eventStore).append(captor.capture());
+        OrderCreatedEvent event = assertInstanceOf(OrderCreatedEvent.class, captor.getValue());
+        assertEquals(java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"), event.getOrderId());
+        assertEquals("NO1001", event.getOrderNo());
+        assertEquals(order.getTenantId().toUUID(), event.getTenantId());
+        assertEquals("00000000-0000-0000-0000-000000000001", event.getUserId());
+        assertEquals(new BigDecimal("99.90"), event.getTotalAmount());
+        assertEquals(new BigDecimal("89.90"), event.getPayableAmount());
+    }
+
+    @Test
+    void createOrderShouldWriteOutboxEventWithOrdOrderAggregateType() {
+        OrdOrder order = order(OrderStatus.PENDING_PAYMENT.getCode());
+        TenantContextHolder.setTenantId(order.getTenantId().toUUID());
+        when(ordOrderMapper.insert(any(OrdOrder.class))).thenReturn(1);
+
+        com.cognora.scm.order.domain.entity.OrdOrderItem item = new com.cognora.scm.order.domain.entity.OrdOrderItem();
+        item.setSubtotal(Money.of(new BigDecimal("99.90")));
+        service.createOrder(order, List.of(item));
+
+        verify(outboxService).save(
+                eq("ORDER_CREATED"),
+                eq("OrdOrder"),
+                eq(order.getId().toString()),
+                any(OrderCreatedEvent.class),
+                eq(order.getTenantId().toUUID())
+        );
+    }
+
+    @Test
+    void createOrderShouldPropagateExceptionWhenOutboxSaveFails() {
+        OrdOrder order = order(OrderStatus.PENDING_PAYMENT.getCode());
+        TenantContextHolder.setTenantId(order.getTenantId().toUUID());
+        when(ordOrderMapper.insert(any(OrdOrder.class))).thenReturn(1);
+        doThrow(new RuntimeException("outbox save failed"))
+                .when(outboxService).save(anyString(), anyString(), anyString(), any(), any());
+
+        com.cognora.scm.order.domain.entity.OrdOrderItem item = new com.cognora.scm.order.domain.entity.OrdOrderItem();
+        item.setSubtotal(Money.of(new BigDecimal("99.90")));
+
+        assertThrows(RuntimeException.class, () -> service.createOrder(order, List.of(item)));
+    }
+
+    @Test
+    void updateOrderStatusShouldAppendStatusChangedEvent() {
+        OrdOrder existing = order(OrderStatus.PAID.getCode());
+        when(ordOrderMapper.selectById(java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"))).thenReturn(existing);
+        when(statusMachine.canTransition("ORDER", "PAID", "PENDING_SHIP"))
+                .thenReturn(new StatusMachineDubboService.TransitionCheckDTO(
+                        true, "ORDER", "PAID", "PENDING_SHIP", null));
+        when(ordOrderMapper.updateById(any(OrdOrder.class))).thenReturn(1);
+
+        service.updateOrderStatus(java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"), OrderStatus.PENDING_SHIP.getCode());
+
+        ArgumentCaptor<OrderEvent> captor = ArgumentCaptor.forClass(OrderEvent.class);
+        verify(eventStore).append(captor.capture());
+        OrderStatusChangedEvent event =
+                assertInstanceOf(OrderStatusChangedEvent.class, captor.getValue());
+        assertEquals(OrderStatus.PAID, event.getFromStatus());
+        assertEquals(OrderStatus.PENDING_SHIP, event.getToStatus());
+        assertEquals(existing.getTenantId().toUUID(), event.getTenantId());
+    }
+
+    @Test
+    void updateOrderStatusShouldNotAppendWhenUpdateMisses() {
+        OrdOrder existing = order(OrderStatus.PAID.getCode());
+        when(ordOrderMapper.selectById(java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"))).thenReturn(existing);
+        when(statusMachine.canTransition("ORDER", "PAID", "PENDING_SHIP"))
+                .thenReturn(new StatusMachineDubboService.TransitionCheckDTO(
+                        true, "ORDER", "PAID", "PENDING_SHIP", null));
+        when(ordOrderMapper.updateById(any(OrdOrder.class))).thenReturn(0);
+
+        boolean updated = service.updateOrderStatus(java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"), OrderStatus.PENDING_SHIP.getCode());
+
+        assertFalse(updated);
+        verify(eventStore, never()).append(any());
+    }
+}

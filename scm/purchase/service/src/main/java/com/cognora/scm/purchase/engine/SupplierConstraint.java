@@ -1,0 +1,25 @@
+package com.cognora.scm.purchase.engine;
+
+import com.cognora.platform.decision.constraint.Constraint;
+import com.cognora.platform.decision.engine.ConstraintResult;
+import com.cognora.platform.decision.engine.ConstraintType;
+import com.cognora.scm.purchase.engine.PriceComparisonInput.SupplierQuote;
+
+public class SupplierConstraint implements Constraint<SupplierQuote> {
+    @Override
+    public ConstraintResult validate(SupplierQuote context) {
+        if (!"ACTIVE".equals(context.getSupplierStatus())) {
+            return ConstraintResult.failed(name(), type(), "SUPPLIER_001", "Supplier not active");
+        }
+        return ConstraintResult.passed(name(), type());
+    }
+
+    @Override
+    public String name() { return "supplierEnabled"; }
+
+    @Override
+    public ConstraintType type() { return ConstraintType.HARD; }
+
+    @Override
+    public int priority() { return 1; }
+}

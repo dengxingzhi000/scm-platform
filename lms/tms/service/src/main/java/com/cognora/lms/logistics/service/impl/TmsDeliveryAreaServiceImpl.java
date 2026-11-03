@@ -1,0 +1,100 @@
+package com.cognora.lms.logistics.service.impl;
+
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import com.cognora.lms.logistics.domain.entity.TmsDeliveryArea;
+import com.cognora.lms.logistics.mapper.TmsDeliveryAreaMapper;
+import com.cognora.lms.logistics.service.ITmsDeliveryAreaService;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
+
+@Slf4j
+@Service
+public class TmsDeliveryAreaServiceImpl extends ServiceImpl<TmsDeliveryAreaMapper, TmsDeliveryArea>
+        implements ITmsDeliveryAreaService {
+
+    @Override
+    public Page<TmsDeliveryArea> pageList(int page, int size, String carrierId, String province, String city) {
+        log.debug("Query delivery area list: page={}, size={}, carrierId={}, province={}, city={}", (page + "").replace("\r", "_").replace("\n", "_"), (size + "").replace("\r", "_").replace("\n", "_"), (carrierId + "").replace("\r", "_").replace("\n", "_"), (province + "").replace("\r", "_").replace("\n", "_"), (city + "").replace("\r", "_").replace("\n", "_"));
+
+        LambdaQueryWrapper<TmsDeliveryArea> wrapper = Wrappers.lambdaQuery();
+        if (StringUtils.hasText(carrierId)) {
+            wrapper.eq(TmsDeliveryArea::getCarrierId, carrierId);
+        }
+        if (StringUtils.hasText(province)) {
+            wrapper.eq(TmsDeliveryArea::getProvince, province);
+        }
+        if (StringUtils.hasText(city)) {
+            wrapper.eq(TmsDeliveryArea::getCity, city);
+        }
+        wrapper.eq(TmsDeliveryArea::getDeleted, false);
+        wrapper.orderByDesc(TmsDeliveryArea::getCreateTime);
+
+        return page(new Page<>(page, size), wrapper);
+    }
+
+    @Override
+    public List<TmsDeliveryArea> listByCarrier(String carrierId) {
+        log.debug("Query delivery area by carrier: carrierId={}", (carrierId + "").replace("\r", "_").replace("\n", "_"));
+        return lambdaQuery()
+                .eq(TmsDeliveryArea::getCarrierId, carrierId)
+                .eq(TmsDeliveryArea::getDeleted, false)
+                .list();
+    }
+
+    @Override
+    public boolean checkCoverage(String carrierId, String province, String city, String district) {
+        log.debug("Check area coverage: carrierId={}, province={}, city={}, district={}", (carrierId + "").replace("\r", "_").replace("\n", "_"), (province + "").replace("\r", "_").replace("\n", "_"), (city + "").replace("\r", "_").replace("\n", "_"), (district + "").replace("\r", "_").replace("\n", "_"));
+
+        LambdaQueryWrapper<TmsDeliveryArea> wrapper = Wrappers.lambdaQuery();
+        wrapper.eq(TmsDeliveryArea::getCarrierId, carrierId);
+        wrapper.eq(TmsDeliveryArea::getEnabled, true);
+        wrapper.eq(TmsDeliveryArea::getDeleted, false);
+        wrapper.eq(TmsDeliveryArea::getProvince, province);
+        wrapper.eq(TmsDeliveryArea::getCity, city);
+        if (StringUtils.hasText(district)) {
+            wrapper.and(w -> w.like(TmsDeliveryArea::getDistricts, district)
+                    .or().isNull(TmsDeliveryArea::getDistricts)
+                    .or().eq(TmsDeliveryArea::getDistricts, ""));
+        }
+
+        return count(wrapper) > 0;
+    }
+
+    @Override
+    public TmsDeliveryArea createArea(TmsDeliveryArea area) {
+        log.info("Create delivery area: areaCode={}, areaName={}", (area.getAreaCode() + "").replace("\r", "_").replace("\n", "_"), (area.getAreaName() + "").replace("\r", "_").replace("\n", "_"));
+        area.setId(UUID.randomUUID().toString());
+        area.setDeleted(false);
+        area.setCreateTime(LocalDateTime.now());
+        area.setUpdateTime(LocalDateTime.now());
+        save(area);
+        return area;
+    }
+
+    @Override
+    public TmsDeliveryArea updateArea(String id, TmsDeliveryArea area) {
+        log.info("Update delivery area: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
+        area.setId(id);
+        area.setUpdateTime(LocalDateTime.now());
+        updateById(area);
+        return area;
+    }
+
+    @Override
+    public void deleteArea(String id) {
+        log.info("Delete delivery area: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
+        TmsDeliveryArea area = new TmsDeliveryArea();
+        area.setId(id);
+        area.setDeleted(true);
+        area.setUpdateTime(LocalDateTime.now());
+        updateById(area);
+    }
+}

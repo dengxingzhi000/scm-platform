@@ -1,0 +1,27 @@
+package com.cognora.ecom.ordercenter.service;
+
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.spring.service.IService;
+import com.cognora.ecom.ordercenter.domain.entity.OcOrder;
+import com.cognora.ecom.ordercenter.domain.entity.OcOrderItem;
+
+import java.util.List;
+
+public interface IOrderCenterService extends IService<OcOrder> {
+
+    OcOrder createOrder(OcOrder order, List<OcOrderItem> items);
+
+    OcOrder getOrder(String orderNo);
+
+    Page<OcOrder> pageQuery(int page, int size, String orderNo, String userId, Integer status);
+
+    void cancelOrder(String orderNo, String reason);
+
+    void payOrder(String orderNo, String paymentNo);
+
+    void shipOrder(String orderNo, String logisticsNo);
+
+    void deliverOrder(String orderNo);
+
+    void confirmOrder(String orderNo);
+}

@@ -38,7 +38,7 @@ spring:
       register-mbeans: true
 
 mybatis-plus:
-  type-handlers-package: com.scmcloud.common.handler
+  type-handlers-package: com.cognora.platform.common.handler
   global-config:
     db-config:
       id-type: auto

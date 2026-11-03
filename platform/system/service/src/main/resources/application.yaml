@@ -238,7 +238,7 @@ mybatis-plus:
   # Mapper XML 文件位置
   mapper-locations: classpath*:/mapper/**/*.xml
   # 实体类包路径
-  type-aliases-package: com.scmcloud.system.entity
+  type-aliases-package: com.cognora.platform.system.entity
   # 全局配置
   global-config:
     db-config:
@@ -336,15 +336,15 @@ logging:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
   level:
     # Enable debug logging for read-write routing (to verify @Slave/@Master)
-    com.scmcloud.common.data.rw: INFO
-    com.scmcloud.system.service.query: ${CQRS_LOG_LEVEL:INFO}
-    com.scmcloud.system.service.command: ${CQRS_LOG_LEVEL:INFO}
+    com.cognora.platform.common.data.rw: INFO
+    com.cognora.platform.system.service.query: ${CQRS_LOG_LEVEL:INFO}
+    com.cognora.platform.system.service.command: ${CQRS_LOG_LEVEL:INFO}
 
     # HikariCP connection pool logging
     com.zaxxer.hikari: INFO
 
     # MyBatis SQL logging (disable in production)
-    com.scmcloud.system.mapper: ${SQL_LOG_LEVEL:INFO}
+    com.cognora.platform.system.mapper: ${SQL_LOG_LEVEL:INFO}
 
 app:
   security:

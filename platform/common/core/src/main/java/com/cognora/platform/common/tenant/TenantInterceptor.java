@@ -1,0 +1,232 @@
+package com.cognora.platform.common.tenant;
+
+import com.baomidou.mybatisplus.core.toolkit.PluginUtils;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import lombok.extern.slf4j.Slf4j;
+import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.expression.StringValue;
+import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
+import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
+import net.sf.jsqlparser.parser.CCJSqlParserUtil;
+import net.sf.jsqlparser.schema.Column;
+import net.sf.jsqlparser.schema.Table;
+import net.sf.jsqlparser.statement.Statement;
+import net.sf.jsqlparser.statement.delete.Delete;
+import net.sf.jsqlparser.statement.select.PlainSelect;
+import net.sf.jsqlparser.statement.select.Select;
+import net.sf.jsqlparser.statement.select.SetOperationList;
+import net.sf.jsqlparser.statement.update.Update;
+import org.apache.ibatis.executor.statement.StatementHandler;
+import org.apache.ibatis.mapping.BoundSql;
+import org.apache.ibatis.mapping.MappedStatement;
+import org.apache.ibatis.mapping.SqlCommandType;
+import org.apache.ibatis.plugin.Interceptor;
+import org.apache.ibatis.plugin.Intercepts;
+import org.apache.ibatis.plugin.Invocation;
+import org.apache.ibatis.plugin.Plugin;
+import org.apache.ibatis.plugin.Signature;
+import org.apache.ibatis.reflection.MetaObject;
+import org.apache.ibatis.reflection.SystemMetaObject;
+
+import java.sql.Connection;
+import java.time.Duration;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
+
+@Slf4j
+@Intercepts({
+        @Signature(
+                type = StatementHandler.class,
+                method = "prepare",
+                args = {Connection.class, Integer.class}
+        )
+})
+public class TenantInterceptor implements Interceptor {
+
+    private static final String TENANT_COLUMN = "tenant_id";
+
+    /**
+     * Tables that must never carry a tenant predicate: the tenant registry itself, plus the
+     * framework tables whose schema the platform does not own (Seata undo log, Flyway history,
+     * XXL-Job/Quartz schedules, Flowable engine).
+     * <p>A trailing {@code *} matches a prefix.
+     */
+    private static final Set<String> BUILT_IN_EXCLUDES = Set.of(
+            "tenant", "tenant_package", "tenant_subscription",
+            "tenant_resource_quota", "tenant_config", "tenant_feature", "tenant_operation_log",
+            "undo_log", "flyway_schema_history", "qrtz_*", "xxl_job_*", "act_*", "flw_*");
+
+    private final Set<String> excludeTables;
+
+    private final TenantProperties properties;
+
+    private final Cache<String, String> rewrittenSqlCache = Caffeine.newBuilder()
+            .maximumSize(1024)
+            .expireAfterWrite(Duration.ofMinutes(10))
+            .build();
+
+    public TenantInterceptor(TenantProperties properties) {
+        this.properties = properties;
+        Set<String> merged = new HashSet<>(BUILT_IN_EXCLUDES);
+        if (properties != null) {
+            properties.excludeTables().stream()
+                    .filter(name -> name != null && !name.isBlank())
+                    .map(name -> name.trim().toLowerCase())
+                    .forEach(merged::add);
+        }
+        this.excludeTables = Set.copyOf(merged);
+    }
+
+    @Override
+    public Object intercept(Invocation invocation) throws Throwable {
+        StatementHandler statementHandler = PluginUtils.realTarget(invocation.getTarget());
+        MetaObject metaObject = SystemMetaObject.forObject(statementHandler);
+
+        MappedStatement mappedStatement = (MappedStatement) metaObject.getValue("delegate.mappedStatement");
+        SqlCommandType sqlCommandType = mappedStatement.getSqlCommandType();
+
+        if (!SqlCommandType.SELECT.equals(sqlCommandType)
+                && !SqlCommandType.UPDATE.equals(sqlCommandType)
+                && !SqlCommandType.DELETE.equals(sqlCommandType)
+                && !SqlCommandType.INSERT.equals(sqlCommandType)) {
+            return invocation.proceed();
+        }
+
+        UUID tenantId = TenantContextHolder.getTenantId();
+        if (tenantId == null) {
+            log.debug("Tenant ID is null, skipping tenant filter for SQL: {}", mappedStatement.getId());
+            return invocation.proceed();
+        }
+
+        BoundSql boundSql = statementHandler.getBoundSql();
+        String originalSql = boundSql.getSql();
+        String cacheKey = mappedStatement.getId() + "::" + tenantId + "::" + originalSql;
+        String cached = rewrittenSqlCache.getIfPresent(cacheKey);
+        final String newSql;
+        if (cached != null) {
+            newSql = cached;
+        } else {
+            newSql = rewriteSql(originalSql, tenantId);
+            rewrittenSqlCache.put(cacheKey, newSql);
+        }
+        metaObject.setValue("delegate.boundSql.sql", newSql);
+
+        return invocation.proceed();
+    }
+
+    /**
+     * Rewrite SQL to inject tenant_id condition. Package-private for testing.
+     *
+     * @throws TenantParseException when failOnParseError is true and SQL is unparseable
+     */
+    String rewriteSql(String originalSql, UUID tenantId) {
+        try {
+            Statement statement = CCJSqlParserUtil.parse(originalSql);
+
+            if (statement instanceof Select select) {
+                handleSelect(select, tenantId);
+            } else if (statement instanceof Update update) {
+                handleUpdate(update, tenantId);
+            } else if (statement instanceof Delete delete) {
+                handleDelete(delete, tenantId);
+            }
+            // INSERT handled by AuditMetaObjectHandler, no rewrite here
+            return statement.toString();
+        } catch (Exception e) {
+            if (properties != null && properties.failOnParseError()) {
+                throw new TenantParseException(
+                        "Failed to inject tenant_id into SQL: " + originalSql, e);
+            }
+            log.warn("Failed to inject tenant_id into SQL (skipping): {}", originalSql, e);
+            return originalSql;
+        }
+    }
+
+    private void handleSelect(Select select, UUID tenantId) {
+        if (select instanceof SetOperationList setOp) {
+            for (Object body : setOp.getSelects()) {
+                if (body instanceof PlainSelect ps) {
+                    injectIntoPlainSelect(ps, tenantId);
+                }
+            }
+        } else if (select instanceof PlainSelect plainSelect) {
+            injectIntoPlainSelect(plainSelect, tenantId);
+        }
+    }
+
+    private void injectIntoPlainSelect(PlainSelect plainSelect, UUID tenantId) {
+        if (!(plainSelect.getFromItem() instanceof Table table)) {
+            // Derived tables, VALUES lists and function calls have no tenant_id to qualify.
+            return;
+        }
+        if (isExcludeTable(table.getName())) {
+            log.debug("Table {} is excluded from tenant filter", table.getName());
+            return;
+        }
+        if (plainSelect.getJoins() != null && !plainSelect.getJoins().isEmpty()) {
+            log.warn("Table {} is joined: only the driving table gets the tenant predicate",
+                    table.getName());
+        }
+        // Qualified with the alias: a bare tenant_id is ambiguous as soon as the statement
+        // gains a join, and silently wrong if the alias hides another table's column.
+        String qualifier = table.getAlias() != null ? table.getAlias().getName() : table.getName();
+        EqualsTo condition = buildTenantCondition(tenantId, qualifier);
+        Expression where = plainSelect.getWhere();
+        plainSelect.setWhere(where == null ? condition : new AndExpression(where, condition));
+    }
+
+    private void handleUpdate(Update update, UUID tenantId) {
+        Table table = update.getTable();
+        if (table == null || isExcludeTable(table.getName())) {
+            return;
+        }
+        EqualsTo condition = buildTenantCondition(tenantId, table.getName());
+        Expression where = update.getWhere();
+        update.setWhere(where == null ? condition : new AndExpression(where, condition));
+    }
+
+    private void handleDelete(Delete delete, UUID tenantId) {
+        Table table = delete.getTable();
+        if (table == null || isExcludeTable(table.getName())) {
+            return;
+        }
+        EqualsTo condition = buildTenantCondition(tenantId, table.getName());
+        Expression where = delete.getWhere();
+        delete.setWhere(where == null ? condition : new AndExpression(where, condition));
+    }
+
+    private EqualsTo buildTenantCondition(UUID tenantId, String qualifier) {
+        EqualsTo condition = new EqualsTo();
+        condition.setLeftExpression(new Column(qualifier + "." + TENANT_COLUMN));
+        condition.setRightExpression(new StringValue(tenantId.toString()));
+        return condition;
+    }
+
+    private boolean isExcludeTable(String tableName) {
+        String actual = tableName == null ? "" : tableName.trim();
+        if (actual.contains(".")) {
+            actual = actual.substring(actual.lastIndexOf('.') + 1);
+        }
+        actual = actual.toLowerCase();
+        for (String pattern : excludeTables) {
+            if (pattern.endsWith("*")) {
+                if (actual.startsWith(pattern.substring(0, pattern.length() - 1))) {
+                    return true;
+                }
+            } else if (pattern.equals(actual)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public Object plugin(Object target) {
+        if (target instanceof StatementHandler) {
+            return Plugin.wrap(target, this);
+        }
+        return target;
+    }
+}

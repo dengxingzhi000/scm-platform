@@ -61,4 +61,4 @@ security:
 
 logging:
   level:
-    com.scmcloud.gateway: INFO
+    com.cognora.platform.gateway: INFO
