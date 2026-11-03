@@ -66,7 +66,8 @@ public class TmsCarrierController {
 
     @Operation(summary = "更新承运商", description = "根据主键 ID 更新承运商信息并返回更新后的数据。")
     @PutMapping("/{id}")
-    public ApiResponse<TmsCarrier> update(@Parameter(description = "承运商主键 ID") @PathVariable String id, @RequestBody TmsCarrier carrier) {
+    public ApiResponse<TmsCarrier> update(@Parameter(description = "承运商主键 ID") @PathVariable String id,
+                                          @RequestBody TmsCarrier carrier) {
         TmsCarrier updated = carrierService.updateCarrier(id, carrier);
         return ApiResponse.success(updated);
     }
@@ -80,7 +81,8 @@ public class TmsCarrierController {
 
     @Operation(summary = "启用或停用承运商", description = "根据传入的启用标识切换指定承运商的启用状态。")
     @PutMapping("/{id}/enable")
-    public ApiResponse<Void> toggleEnabled(@Parameter(description = "承运商主键 ID") @PathVariable String id, @Parameter(description = "是否启用，true 为启用、false 为停用") @RequestParam boolean enabled) {
+    public ApiResponse<Void> toggleEnabled(@Parameter(description = "承运商主键 ID") @PathVariable String id,
+                                           @Parameter(description = "是否启用，true 为启用、false 为停用") @RequestParam boolean enabled) {
         carrierService.toggleEnabled(id, enabled);
         return ApiResponse.success();
     }
