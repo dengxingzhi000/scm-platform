@@ -1,14 +1,14 @@
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
-  name: scm-platform-alerts
+  name: cognora-aura-platform-alerts
   namespace: scm-platform
   labels:
-    app: scm-platform
+    app: cognora-aura-platform
     prometheus: kube-prometheus
 spec:
   groups:
-    - name: scm-platform.rules
+    - name: cognora-aura-platform.rules
       interval: 30s
       rules:
         # High order failure rate

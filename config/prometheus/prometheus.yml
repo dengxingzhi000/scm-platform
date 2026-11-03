@@ -1,11 +1,11 @@
 # Prometheus configuration
-# Scrapes SCM Platform service metrics
+# Scrapes Cognora Aura Platform service metrics
 
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
   external_labels:
-    cluster: 'scm-platform'
+    cluster: 'cognora-aura-platform'
     environment: 'dev'
 
 # Alert rules
