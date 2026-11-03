@@ -110,6 +110,13 @@
     <!-- Database Migration -->
     <flyway.version>13.11.1</flyway.version>
 
+    <!-- Modules that own Flyway migrations but are temporarily exempt from the
+         Flyway auto-configuration guard, because their migration to
+         spring-boot-starter-flyway is part of another change.
+         Comma-separated artifactIds; drop an entry once the module is fixed.
+         Empty means every module with migrations must have the starter. -->
+    <flyway.guard.exempt></flyway.guard.exempt>
+
     <!-- API Documentation (3.2.0 targets Spring Boot 4.1.2) -->
     <springdoc.version>3.2.0</springdoc.version>
 
@@ -522,6 +529,50 @@
                   <message>Project uses Jakarta EE (jakarta.servlet), not old javax.servlet!</message>
                 </bannedDependencies>
               </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <version>3.1.0</version>
+        <executions>
+          <execution>
+            <id>enforce-flyway-autoconfiguration</id>
+            <phase>validate</phase>
+            <goals>
+              <goal>run</goal>
+            </goals>
+            <configuration>
+              <target>
+                <!-- Boot 4 split the Flyway auto-configuration out of
+                     spring-boot-autoconfigure into spring-boot-flyway, which only
+                     the spring-boot-starter-flyway starter brings in. A module
+                     that owns migrations but lacks the auto-configuration starts
+                     normally and silently never runs them, so fail the build. -->
+                <resourcecount property="flyway.migration.count">
+                  <fileset dir="${basedir}/src/main/resources/db/migration" includes="*.sql" erroronmissingdir="false" />
+                </resourcecount>
+                <pathconvert property="flyway.compile.classpath" pathsep=",">
+                  <path refid="maven.compile.classpath" />
+                </pathconvert>
+                <fail message="Module ${project.artifactId} owns Flyway migrations (src/main/resources/db/migration/*.sql) but does not have the Boot 4 Flyway auto-configuration on its classpath. Add org.springframework.boot:spring-boot-starter-flyway to this module's pom.xml.">
+                  <condition>
+                    <and>
+                      <not>
+                        <equals arg1="${flyway.migration.count}" arg2="0" />
+                      </not>
+                      <not>
+                        <contains string="${flyway.compile.classpath}" substring="spring-boot-flyway" />
+                      </not>
+                      <not>
+                        <contains string=",${flyway.guard.exempt}," substring=",${project.artifactId}," />
+                      </not>
+                    </and>
+                  </condition>
+                </fail>
+              </target>
             </configuration>
           </execution>
         </executions>

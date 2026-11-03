@@ -28,7 +28,23 @@ DECLARE
         'doc_template_schema', 'doc_document', 'doc_document_version',
         'doc_document_audit',
         -- Audit (scm-audit, db_audit)
-        'sys_audit_log', 'sys_sensitive_operation_log'
+        'sys_audit_log', 'sys_sensitive_operation_log',
+        -- Permission / Organization / User (scm-system, db_permission)
+        --
+        -- Only the tables that the bootstrap scripts really give a tenant_id
+        -- are listed here, so the check matches the schema instead of a guess:
+        --   * sys_role           -> 003_db_permission.sql
+        --   * sys_decision_rule  -> 022_decision_tables.sql
+        --   * sys_weight_profile -> 022_decision_tables.sql
+        --
+        -- The remaining tenant-scoped tables of db_user / db_org / db_permission
+        -- (sys_user, sys_user_oauth, webauthn_credential, sys_dept,
+        -- sys_permission, sys_user_role, sys_role_permission, sys_role_dept,
+        -- sys_data_permission_rule, sys_role_data_rule, sys_temp_permission)
+        -- have NO tenant_id in those scripts. It is only added by
+        -- scripts/db/migrations/004_transform_permission_system_multi_tenant.sql,
+        -- which init-all-databases never runs, so they cannot be listed here yet.
+        'sys_role', 'sys_decision_rule', 'sys_weight_profile'
     ];
     rec RECORD;
 BEGIN
