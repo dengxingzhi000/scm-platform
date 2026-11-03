@@ -27,6 +27,12 @@ public class PaymentProperties {
         private String sellerId;
         /** Charset used to build the signed content, UTF-8 by default. */
         private String charset = "UTF-8";
+        /**
+         * Timezone Alipay renders {@code notify_time} in. Alipay sends that
+         * field in the merchant's local time, which is Asia/Shanghai for a
+         * mainland merchant; the replay window is checked against it.
+         */
+        private String timezone = "Asia/Shanghai";
     }
 
     @Data

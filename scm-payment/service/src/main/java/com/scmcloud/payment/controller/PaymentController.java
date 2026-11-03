@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.scmcloud.payment.callback.PaymentCallbackException;
 import com.scmcloud.payment.callback.PaymentCallbackVerifier;
 import com.scmcloud.payment.callback.VerifiedPayment;
+import com.scmcloud.payment.domain.PaymentAmount;
 import com.scmcloud.payment.domain.entity.PaymentOrder;
 import com.scmcloud.payment.service.IPaymentOrderService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -170,8 +171,8 @@ public class PaymentController {
         private String userId;
 
         @NotNull(message = "支付金额不能为空")
-        @DecimalMin(value = "0.01", message = "支付金额必须大于 0")
-        @DecimalMax(value = "99999999.99", message = "支付金额超出上限")
+        @DecimalMin(value = PaymentAmount.MIN_AMOUNT, message = "支付金额必须大于 0")
+        @DecimalMax(value = PaymentAmount.MAX_AMOUNT, message = "支付金额超出上限")
         private BigDecimal amount;
 
         @NotBlank(message = "支付渠道不能为空")

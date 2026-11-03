@@ -3,7 +3,9 @@ package com.scmcloud.payment.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
+import com.scmcloud.common.domain.Money;
 import com.scmcloud.payment.callback.PaymentCallbackException;
+import com.scmcloud.payment.domain.PaymentAmount;
 import com.scmcloud.payment.domain.entity.PaymentOrder;
 import com.scmcloud.payment.mapper.PaymentOrderMapper;
 import com.scmcloud.payment.service.IPaymentOrderService;
@@ -25,9 +27,19 @@ public class PaymentOrderServiceImpl extends ServiceImpl<PaymentOrderMapper, Pay
     private static final int STATUS_PENDING = 1;
     private static final int STATUS_PAID = 2;
     private static final int STATUS_CANCELLED = 4;
-    private static final BigDecimal MAX_PAYMENT_AMOUNT = new BigDecimal("99999999.99");
     private static final int MAX_PAGE_SIZE = 100;
 
+    /**
+     * Creates a payable payment order.
+     *
+     * <p>The amount arrives from the caller and this service cannot reach the
+     * authoritative order amount today: the order RPC contract on the classpath
+     * exposes {@code totalAmount} only, not the payable amount left after
+     * discount and freight, so it cannot serve as the authority without a new
+     * cross-service call. The amount is therefore validated and normalised here,
+     * and the verified channel callback stays the last line of defence - it
+     * compares the amount the channel actually charged against the stored one.</p>
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public PaymentOrder createPayment(String orderNo, String userId, BigDecimal amount, String paymentChannel) {
@@ -46,12 +58,21 @@ public class PaymentOrderServiceImpl extends ServiceImpl<PaymentOrderMapper, Pay
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("payment amount must be greater than zero");
         }
-        if (amount.compareTo(MAX_PAYMENT_AMOUNT) > 0) {
+        if (amount.scale() > PaymentAmount.SCALE) {
+            // A channel settles in cents. Rounding here would store an amount the
+            // channel never charged, and the callback comparison would then
+            // reject the amount it really paid, so the request is refused.
+            throw new IllegalArgumentException("payment amount must not carry more than "
+                    + PaymentAmount.SCALE + " decimal places");
+        }
+        if (amount.compareTo(PaymentAmount.MAX_AMOUNT_VALUE) > 0) {
             throw new IllegalArgumentException("payment amount exceeds the supported maximum");
         }
         if (!StringUtils.hasText(paymentChannel)) {
             throw new IllegalArgumentException("paymentChannel is required");
         }
+        // Money keeps every monetary value at scale two, rounding HALF_UP.
+        BigDecimal payableAmount = Money.of(amount).toBigDecimal();
 
         // Idempotency: the same order + channel must not create a second payable payment.
         PaymentOrder existing = getOne(new LambdaQueryWrapper<PaymentOrder>()
@@ -64,9 +85,9 @@ public class PaymentOrderServiceImpl extends ServiceImpl<PaymentOrderMapper, Pay
             if (existing.getStatus() == STATUS_PAID) {
                 throw new IllegalStateException("Order already paid: " + orderNo);
             }
-            if (existing.getAmount() != null && existing.getAmount().compareTo(amount) != 0) {
+            if (existing.getAmount() != null && existing.getAmount().compareTo(payableAmount) != 0) {
                 throw new IllegalStateException("Pending payment amount mismatch, existing="
-                        + existing.getAmount() + ", requested=" + amount);
+                        + existing.getAmount() + ", requested=" + payableAmount);
             }
             log.info("Reusing pending payment: paymentNo={}, orderNo={}", existing.getPaymentNo(), orderNo);
             return existing;
@@ -76,7 +97,7 @@ public class PaymentOrderServiceImpl extends ServiceImpl<PaymentOrderMapper, Pay
         payment.setPaymentNo("PAY" + System.currentTimeMillis() + UUID.randomUUID().toString().substring(0, 8));
         payment.setOrderNo(orderNo);
         payment.setUserId(userId);
-        payment.setAmount(amount);
+        payment.setAmount(payableAmount);
         payment.setCurrency("CNY");
         payment.setPaymentChannel(paymentChannel);
         payment.setStatus(STATUS_PENDING);
@@ -112,13 +133,15 @@ public class PaymentOrderServiceImpl extends ServiceImpl<PaymentOrderMapper, Pay
         log.info("Payment cancelled: paymentNo={}", (paymentNo + "").replace("\r", "_").replace("\n", "_"));
     }
 
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public void handlePaymentCallback(String paymentNo, String transactionId) {
-        PaymentOrder payment = requirePayment(paymentNo);
-        applyPaid(payment, transactionId);
-    }
-
+    /**
+     * Applies a channel callback whose signature was already verified.
+     *
+     * <p>This is the only path that can mark a payment paid. The amount the
+     * channel reports is compared against the stored amount with
+     * {@code compareTo}, so it is scale-insensitive but never tolerant of a
+     * different value - it is the last line of defence against a payment order
+     * that was created for the wrong amount.</p>
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void handleVerifiedPaymentCallback(String paymentNo, String transactionId,
