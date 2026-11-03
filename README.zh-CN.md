@@ -2,7 +2,7 @@
 
 **English** · [简体中文](./README.zh-CN.md)
 
-# SCM Platform
+# Cognora Aura Platform
 
 ### 面向高并发电商场景的云原生供应链中台。
 
@@ -22,13 +22,13 @@
 
 [快速开始](#快速开始) · [项目亮点](#项目亮点) · [技术栈](#技术栈) · [架构](#架构) · [覆盖场景](#平台覆盖场景) · [模块](#模块) · [架构模式](#关键架构模式) · [部署](#kubernetes-部署) · [运维](#运维) · [FAQ](#faq) · [文档](#文档)
 
-<code>docker-compose up -d && PGPASSWORD=admin123 ./scripts/db/init-all-databases.sh</code>
+<code>docker-compose up -d && PG_ADMIN_USER=admin PG_ADMIN_PASSWORD=admin123 ./scripts/db/init-all-databases.sh</code>
 
 </div>
 
 > [!IMPORTANT]
-> **默认本地启动存在三处端口冲突。** `scm-file` ↔ `scm-product` 都占用 8201，
-> `scm-message` ↔ `scm-approval` 都占用 8209，`docker-compose.yml` 中 Grafana
+> **默认本地启动存在三处端口冲突。** `platform-message` ↔ `platform-approval` 都占用 8209，
+> `schema-registry` ↔ `platform-system` 都占用 8081，`docker-compose.yml` 中 Grafana
 > 映射 `3000:3000`，与 Next.js 开发服务器端口相同。对不需要的服务通过
 > `server.port` 覆盖即可；若想同时使用看板与前端，请重新映射 Grafana 端口。
 
@@ -37,7 +37,7 @@
 做供应链软件意味着要在无法共享事务的系统之间协调库存、订单、供应商、仓储、
 承运商与资金。而在秒杀流量下把这些做对、并证明它是对的，是其中最贵的部分。
 
-SCM Platform 是一份可运行的参考实现。API 网关背后是 26 个可独立部署的后端服务，
+Cognora Aura Platform 是一份可运行的参考实现。API 网关背后是 26 个可独立部署的后端服务，
 真正扛得住生产流量的模式已经接好：Redis Lua 原子扣减库存、Seata AT 保证跨服务一致性、
 `@Master`/`@Slave` 读写分离、枚举驱动的订单状态流转、按租户路由的数据源，
 以及把跨库读从写路径上剥离出去的 CQRS 拆分。
@@ -49,7 +49,7 @@ SCM Platform 是一份可运行的参考实现。API 网关背后是 26 个可�
 
 > [!NOTE]
 > **启动顺序有讲究。** 基础设施 → 网关 → 认证 → 系统 → 业务服务。Nacos 未就绪前
-> 网关无法正确路由；`scm-system` 未启动前，业务服务解析不到权限相关的 Dubbo 调用。
+> 网关无法正确路由；`platform-system` 未启动前，业务服务解析不到权限相关的 Dubbo 调用。
 
 ### 环境依赖
 
@@ -74,39 +74,43 @@ docker-compose up -d
 set PGPASSWORD=admin123 && cd scripts\db && init-all-databases.bat
 
 # Linux/Mac
-export PGPASSWORD=admin123 && ./scripts/db/init-all-databases.sh
+export PG_ADMIN_USER=admin PG_ADMIN_PASSWORD=admin123 && ./scripts/db/init-all-databases.sh
 ```
 
 ### 3. 构建
 
 ```bash
+# 先安装内部 BOM（每次克隆只需一次）
+mvn install -DskipTests -f bom/pom.xml
+
 # 全量构建
 mvn clean install -DskipTests -f com.scm.parent/pom.xml
 
-# 单模块构建
-mvn clean package -pl scm-order/service -am -f com.scm.parent/pom.xml
+# 单模块构建（-pl 路径相对于 com.scm.parent/）
+mvn clean package -pl ../scm/order/service -am -f com.scm.parent/pom.xml
 ```
 
 > [!NOTE]
 > **仓库根目录没有 `pom.xml`。** 每条 Maven 命令都需要 `-f com.scm.parent/pom.xml`，
-> 父 POM 通过 `../scm-*` 相对路径引用各模块。漏掉这个参数是这里最常见的构建错误。
+> 父 POM 通过 `../platform`、`../scm`、`../ecom`、`../lms` 相对路径引用各模块。
+> 漏掉这个参数是这里最常见的构建错误；跳过 `bom` 安装则会让全新克隆的依赖解析失败。
 
 ### 4. 启动服务
 
 ```bash
 # 网关（必须最先启动）
-cd scm-gateway && mvn spring-boot:run
+cd platform/gateway && mvn spring-boot:run
 
 # 认证（HTTPS）
-cd scm-auth && mvn spring-boot:run
+cd platform/auth && mvn spring-boot:run
 
 # 系统
-cd scm-system/service && mvn spring-boot:run
+cd platform/system/service && mvn spring-boot:run
 
 # 业务服务（任意顺序）
-cd scm-product/service && mvn spring-boot:run
-cd scm-inventory/service && mvn spring-boot:run
-cd scm-order/service && mvn spring-boot:run
+cd platform/product/service && mvn spring-boot:run
+cd platform/inventory/service && mvn spring-boot:run
+cd scm/order/service && mvn spring-boot:run
 ```
 
 ### 5. 前端
@@ -117,7 +121,8 @@ npm install
 npm run dev
 ```
 
-前端默认运行在 **http://localhost:3000**，内置 zh-CN 与 en-US 国际化。
+前端是 `@cognora/aura-web` npm 包，仍位于本仓库的 `scm-web/` 目录（抽独立仓库是计划，
+尚未执行），默认运行在 **http://localhost:3000**，内置 zh-CN 与 en-US 国际化。
 
 | 路由         | 页面                         |
 | ------------ | ---------------------------- |
@@ -173,7 +178,7 @@ npm run dev
 | 🧠   | **决策引擎**     | 电商决策矩阵，支持智能定价、库存预测、A/B 测试                            |
 | 📊   | **可观测性**     | Sentinel 熔断、SkyWalking 链路追踪、Prometheus 指标、Grafana 看板         |
 | 🏢   | **多租户**       | 租户隔离、动态数据源路由、可配置特性开关                                  |
-| 🖥️   | **现代化前端**   | Next.js 15 App Router、Ant Design 5 Pro、Zustand 状态管理、TanStack Query |
+| 🖥️   | **现代化前端**   | Next.js 16 App Router、shadcn/ui + Ant Design 6（迁移中）、Zustand、TanStack Query |
 | 📦   | **领域驱动设计** | 清晰的 CQRS 分离、聚合根、通过 Kafka/RabbitMQ 传递领域事件                |
 | ☸️   | **云原生**       | 核心服务的 Kubernetes 清单、Helm Chart、ArgoCD GitOps、灰度发布（auth）   |
 
@@ -181,16 +186,16 @@ npm run dev
 
 | 层级        | 组件                                                                                              |
 | ----------- | ------------------------------------------------------------------------------------------------- |
-| **后端**    | Java 21（虚拟线程）、Spring Boot 4.0.6、Spring Cloud 2025.1.2                                     |
+| **后端**    | Java 21（虚拟线程）、Spring Boot 4.1.2、Spring Cloud 2025.1.4                                     |
 | **Alibaba** | Spring Cloud Alibaba 2025.1.0.0（Nacos、Sentinel、Seata）                                         |
-| **数据库**  | PostgreSQL、MyBatis-Plus 3.5.15、ShardingSphere 5.5.1                                             |
+| **数据库**  | PostgreSQL、MyBatis-Plus 3.5.17、ShardingSphere 5.5.1                                             |
 | **缓存**    | Redis（分布式缓存，Lua 脚本实现原子操作）                                                         |
 | **搜索**    | Elasticsearch 8.11.4、Canal 1.1.7（Binlog 同步）                                                  |
 | **消息**    | Kafka（事件流）、RabbitMQ（可靠队列）                                                             |
 | **RPC**     | Apache Dubbo 3.3.6（内部服务调用）                                                                |
-| **调度**    | XXL-Job 3.3.1（分布式任务调度）                                                                   |
+| **调度**    | XXL-Job 3.5.0（分布式任务调度）                                                                   |
 | **监控**    | Sentinel、SkyWalking 9.3.0、Micrometer + Prometheus                                               |
-| **前端**    | Next.js 15（App Router）、React 19、Ant Design 5、Zustand 5、TanStack Query 5、ECharts、next-intl |
+| **前端**    | Next.js 16（App Router）、React 19、shadcn/ui、Ant Design 6、Zustand 5、TanStack Query 5、ECharts、next-intl |
 | **DevOps**  | Docker、Kubernetes、Helm、ArgoCD、GitHub Actions、SonarCloud、OWASP                               |
 | **测试**    | JUnit 5、k6 压测、Pact 契约测试、Playwright E2E、PIT 变异测试                                     |
 
@@ -204,13 +209,13 @@ npm run dev
             │
    ┌────────▼─────────┐
    │  API 网关        │
-   │  scm-gateway     │
+   │  platform-gateway│
    │  :8761           │
    └────────┬─────────┘
             │
    ┌────────▼───────────────────────────────────────────────┐
    │  供应链核心层 — Dubbo RPC 经 Nacos 注册中心              │
-   │  auth :8106 · system :8081 · file :8201⚠ · product :8201⚠│
+   │  auth :8106 · system :8081 · file :8214 · product :8201 │
    │  inventory :8202 · order :8203 · warehouse :8204        │
    │  logistics :8205 · supplier :8206 · purchase :8207      │
    │  finance :8208 · message :8209⚠ · approval :8209⚠       │
@@ -248,10 +253,10 @@ npm run dev
 | 商品检索     | 由 Binlog 而非应用写入保持同步的 Elasticsearch 全文检索   | `search` 8307、Canal → Elasticsearch                                                      |
 | 数据分析     | ClickHouse OLAP + PostgreSQL 元数据 + Kafka ODS 接入      | `analytics` 8308 —— ClickHouse 8123                                                       |
 | 身份与权限   | OAuth2 + JWT + WebAuthn 无密码登录、带行级数据范围的 RBAC | `auth` 8106、`system` 8081                                                                |
-| 文档生命周期 | DOCX 模板渲染并留审计痕迹，字节存储代理至文件服务         | `document` 8213 → `file` 8201                                                             |
+| 文档生命周期 | DOCX 模板渲染并留审计痕迹，字节存储代理至文件服务         | `document` 8213 → `file` 8214                                                             |
 
 > [!NOTE]
-> 决策引擎（`scm-common/decision-engine`、`scm-common/decision-matrix`）是一个
+> 决策引擎（`platform/common/decision-engine`、`platform/common/decision-matrix`）是一个
 > **公共库**，不是独立部署的服务。它由 `promotion`、`order`、`analytics` 引用，
 > 自身不监听端口。
 
@@ -259,85 +264,91 @@ npm run dev
 
 > [!NOTE]
 > **8201–8213** 端口区间为供应链核心，**8301–8308** 区间为电商业务层。
-> `scm-tenant` 通过动态数据源路由，不绑定公开端口。业务服务采用 **api / service 拆分**
+> `platform-tenant` 通过动态数据源路由，不绑定公开端口。业务服务采用 **api / service 拆分**
 > —— `api/` 承载 Dubbo RPC 接口与 DTO，`service/` 为可部署的 Spring Boot 工程。
-> `scm-gateway`、`scm-auth`、`scm-system` 以及 `scm-common` 下的子模块为单模块结构。
+> `platform-gateway`、`platform-auth`、`platform-system`、`lms-tms` 以及 `platform/common`
+> 下的子模块为单模块结构。
 
-| 模块               | 端口   | 描述                                                                                     |
-| ------------------ | ------ | ---------------------------------------------------------------------------------------- |
-| `scm-web`          | 3000 ⚠ | 前端 —— Next.js 15、Ant Design 5、Zustand、TanStack Query                                |
-| `scm-gateway`      | 8761   | API 网关 —— 路由、限流、横切关注点                                                       |
-| `scm-auth`         | 8106   | 认证服务 —— OAuth2、JWT、WebAuthn 无密码登录                                             |
-| `scm-system`       | 8081   | 系统管理 —— 用户、角色、权限、部门                                                       |
-| `scm-file`         | 8201 ⚠ | 文件服务 —— 上传、存储抽象（S3/MinIO/本地）、病毒扫描                                    |
-| `scm-product`      | 8201 ⚠ | 商品中心 —— SPU/SKU、分类、品牌、属性                                                    |
-| `scm-inventory`    | 8202   | 库存 —— 实时库存、预占、预警、快照                                                       |
-| `scm-order`        | 8203   | 订单 —— 生命周期状态机、支付、退款                                                       |
-| `scm-warehouse`    | 8204   | 仓储 —— 出入库、波次拣货、库位管理                                                       |
-| `scm-logistics`    | 8205   | 物流 —— 承运商、运单、轨迹、路径优化                                                     |
-| `scm-supplier`     | 8206   | 供应商 —— 入驻、评估、结算                                                               |
-| `scm-purchase`     | 8207   | 采购 —— RFQ、报价、合同、采购单                                                          |
-| `scm-finance`      | 8208   | 财务 —— 结算、发票、运费规则、对账                                                       |
-| `scm-message`      | 8209 ⚠ | 消息通道 —— 短信 / 邮件 / 推送，分发与渠道适配                                           |
-| `scm-approval`     | 8209 ⚠ | 审批流 —— 可配置的审批流程                                                               |
-| `scm-audit`        | 8210   | 审计 —— 操作日志、敏感操作追踪                                                           |
-| `scm-notify`       | 8211   | 站内通知 —— 模板、多渠道投递                                                             |
-| `scm-tenant`       | —      | 多租户 —— 租户生命周期、套餐、特性开关                                                   |
-| `scm-document`     | 8213   | 文档生命周期 —— DOCX 渲染 + 审计追踪，代理 `scm-file` 提供字节传输                       |
-| `scm-mall`         | 8301   | 商城 —— 电商前台、商品展示、购物车                                                       |
-| `scm-member`       | 8302   | 会员 —— 资料、地址、积分、忠诚度                                                         |
-| `scm-promotion`    | 8303   | 营销 —— 活动、优惠券、折扣、秒杀                                                         |
-| `scm-payment`      | 8304   | 支付 —— 支付处理、退款、对账                                                             |
-| `scm-order-center` | 8305   | 订单中心 —— 集中式订单编排                                                               |
-| `scm-fulfillment`  | 8306   | 履约 —— 订单履约、出库、配送跟踪                                                         |
-| `scm-search`       | 8307   | 搜索 —— Elasticsearch 全文检索                                                           |
-| `scm-analytics`    | 8308   | 数据分析 —— ClickHouse OLAP + PostgreSQL 元数据、Kafka ODS 接入                          |
-| `scm-common`       | —      | 公共库 —— core、data、data-rw、cache、web、monitoring、integration、decision-*、security |
+| 模块                            | 端口   | 描述                                                                                     |
+| ------------------------------- | ------ | ---------------------------------------------------------------------------------------- |
+| `scm-web`（`@cognora/aura-web`）| 3000 ⚠ | 前端 —— Next.js 16、shadcn/ui + Ant Design 6、Zustand、TanStack Query                    |
+| `platform-gateway`              | 8761   | API 网关 —— 路由、限流、横切关注点                                                       |
+| `platform-auth`                 | 8106   | 认证服务 —— OAuth2、JWT、WebAuthn 无密码登录                                             |
+| `platform-system`               | 8081   | 系统管理 —— 用户、角色、权限、部门                                                       |
+| `platform-file`                 | 8214   | 文件服务 —— 上传、存储抽象（S3/MinIO/本地）、病毒扫描                                    |
+| `platform-product`              | 8201   | 商品中心 —— SPU/SKU、分类、品牌、属性                                                    |
+| `platform-inventory`            | 8202   | 库存 —— 实时库存、预占、预警、快照                                                       |
+| `scm-order`                     | 8203   | 订单 —— 生命周期状态机、支付、退款                                                       |
+| `scm-warehouse`                 | 8204   | 仓储 —— 出入库、波次拣货、库位管理                                                       |
+| `lms-tms`                       | 8205   | 物流 —— 承运商、运单、轨迹、路径优化                                                     |
+| `scm-supplier`                  | 8206   | 供应商 —— 入驻、评估、结算                                                               |
+| `scm-purchase`                  | 8207   | 采购 —— RFQ、报价、合同、采购单                                                          |
+| `scm-finance`                   | 8208   | 财务 —— 结算、发票、运费规则、对账                                                       |
+| `platform-message`              | 8209 ⚠ | 消息通道 —— 短信 / 邮件 / 推送，分发与渠道适配                                           |
+| `platform-approval`             | 8209 ⚠ | 审批流 —— 可配置的审批流程                                                               |
+| `platform-audit`                | 8210   | 审计 —— 操作日志、敏感操作追踪                                                           |
+| `platform-notify`               | 8211   | 站内通知 —— 模板、多渠道投递                                                             |
+| `platform-tenant`               | —      | 多租户 —— 租户生命周期、套餐、特性开关                                                   |
+| `platform-document`             | 8213   | 文档生命周期 —— DOCX 渲染 + 审计追踪，代理 `platform-file` 提供字节传输                  |
+| `ecom-mall`                     | 8301   | 商城 —— 电商前台、商品展示、购物车                                                       |
+| `ecom-member`                   | 8302   | 会员 —— 资料、地址、积分、忠诚度                                                         |
+| `ecom-promotion`                | 8303   | 营销 —— 活动、优惠券、折扣、秒杀                                                         |
+| `ecom-payment`                  | 8304   | 支付 —— 支付处理、退款、对账                                                             |
+| `ecom-order-center`             | 8305   | 订单中心 —— 集中式订单编排                                                               |
+| `ecom-fulfillment`              | 8306   | 履约 —— 订单履约、出库、配送跟踪                                                         |
+| `ecom-search`                   | 8307   | 搜索 —— Elasticsearch 全文检索                                                           |
+| `ecom-analytics`                | 8308   | 数据分析 —— ClickHouse OLAP + PostgreSQL 元数据、Kafka ODS 接入                          |
+| `platform-common`               | —      | 公共库 —— core、data、data-rw、cache、web、monitoring、integration、decision-*、security |
 
 ### 项目结构
 
 ```
 cognora-aura-platform/
+├── bom/                     # 内部 BOM —— 先执行 mvn install -f bom/pom.xml
 ├── com.scm.parent/          # 父 POM（依赖管理）—— 构建时始终通过 -f 指定
-├── scm-web/                 # 前端（Next.js 15、React 19、Ant Design 5）—— 独立 npm 工程
-├── scm-common/              # 公共库（无 Spring Boot 启动类）
-│   ├── core/                # 工具类、异常、租户上下文
-│   ├── data/                # MyBatis-Plus 集成、动态数据源路由
-│   ├── data-rw/             # @Master / @Slave 读写分离
-│   ├── data-rw-stub/        # 测试用存根实现
-│   ├── cache/               # Caffeine + Redis、Lua 脚本中心、幂等、分布式锁
-│   ├── web/                 # Web 过滤器、REST 客户端、安全配置
-│   ├── monitoring/          # Sentinel 熔断
-│   ├── integration/         # Kafka / RabbitMQ 消息（JacksonJsonSerializer）
-│   ├── decision-matrix/     # 决策引擎核心类型
-│   ├── decision-engine/     # 加权融合引擎、A/B 测试
-│   └── security/            # 安全核心 + API
-├── scm-gateway/             # API 网关（Spring Cloud Gateway，单模块）
-├── scm-auth/                # 认证（OAuth2、JWT、WebAuthn，单模块）
-├── scm-system/              # 系统管理（用户、角色、权限）
-├── scm-approval/            # 审批流
-├── scm-audit/               # 审计日志
-├── scm-notify/              # 站内通知
-├── scm-tenant/              # 多租户管理
-├── scm-product/             # 商品中心（api + service）
-├── scm-inventory/           # 库存（api + service，Redis Lua 热路径）
-├── scm-order/               # 订单处理（api + service，状态机）
-├── scm-warehouse/           # 仓储作业
-├── scm-logistics/           # 物流轨迹
-├── scm-purchase/            # 采购
-├── scm-supplier/            # 供应商管理
-├── scm-finance/             # 财务结算
-├── scm-file/                # 文件服务（上传、存储抽象、OCR）
-├── scm-document/            # 文档生命周期与 DOCX 模板（v1.3.0）
-├── scm-message/             # 短信 / 邮件 / 推送分发
-├── scm-member/              # 会员管理
-├── scm-promotion/           # 营销（活动、优惠券、折扣）
-├── scm-payment/             # 支付处理
-├── scm-search/              # Elasticsearch 全文搜索
-├── scm-order-center/        # 集中式订单编排
-├── scm-mall/                # 电商前台
-├── scm-fulfillment/         # 订单履约与配送
-├── scm-analytics/           # ClickHouse OLAP + PG 元数据
+├── scm-web/                 # 前端（@cognora/aura-web）—— 独立 npm 工程
+├── platform/                # 平台域
+│   ├── common/              # 公共库（无 Spring Boot 启动类）
+│   │   ├── core/            # 工具类、异常、租户上下文
+│   │   ├── data/            # MyBatis-Plus 集成、动态数据源路由
+│   │   ├── data-rw/         # @Master / @Slave 读写分离
+│   │   ├── data-rw-stub/    # 测试用存根实现
+│   │   ├── cache/           # Caffeine + Redis、Lua 脚本中心、幂等、分布式锁
+│   │   ├── web/             # Web 过滤器、REST 客户端、安全配置
+│   │   ├── monitoring/      # Sentinel 熔断
+│   │   ├── integration/     # Kafka / RabbitMQ 消息（JacksonJsonSerializer）
+│   │   ├── decision-matrix/ # 决策引擎核心类型
+│   │   ├── decision-engine/ # 加权融合引擎、A/B 测试
+│   │   └── security/        # 安全核心 + API
+│   ├── gateway/             # API 网关（Spring Cloud Gateway，单模块）
+│   ├── auth/                # 认证（OAuth2、JWT、WebAuthn，单模块）
+│   ├── system/              # 系统管理（用户、角色、权限）
+│   ├── file/                # 文件服务（上传、存储抽象、OCR）
+│   ├── product/             # 商品中心（api + service）
+│   ├── inventory/           # 库存（api + service，Redis Lua 热路径）
+│   ├── approval/            # 审批流
+│   ├── audit/               # 审计日志
+│   ├── notify/              # 站内通知
+│   ├── tenant/              # 多租户管理
+│   ├── document/            # 文档生命周期与 DOCX 模板
+│   └── message/             # 短信 / 邮件 / 推送分发
+├── scm/                     # 供应链域
+│   ├── order/               # 订单处理（api + service，状态机）
+│   ├── warehouse/           # 仓储作业
+│   ├── supplier/            # 供应商管理
+│   ├── purchase/            # 采购
+│   └── finance/             # 财务结算
+├── ecom/                    # 电商域
+│   ├── mall/                # 电商前台
+│   ├── member/              # 会员管理
+│   ├── promotion/           # 营销（活动、优惠券、折扣）
+│   ├── payment/             # 支付处理
+│   ├── order-center/        # 集中式订单编排
+│   ├── fulfillment/         # 订单履约与配送
+│   ├── search/              # Elasticsearch 全文搜索
+│   └── analytics/           # ClickHouse OLAP + PG 元数据
+├── lms/                     # 物流域
+│   └── tms/                 # 运输管理（lms-tms）
 ├── deploy/                  # K8s 清单、Helm、ArgoCD、PgBouncer、Redis、Istio、混沌工程
 ├── scripts/                 # 数据库初始化、分区管理、压测、保留策略、质量检查
 └── docs/                    # 架构、运维手册、设计规范、审计文档
@@ -424,25 +435,26 @@ public enum OrderStatus {
 ## Kubernetes 部署
 
 > [!WARNING]
-> **电商业务层目前仅有 Docker Compose。** `deploy/k8s/` 下的清单覆盖基础设施与供应链
-> 核心层。`scm-mall`、`scm-member`、`scm-promotion`、`scm-payment`、
-> `scm-order-center`、`scm-fulfillment`、`scm-search`、`scm-analytics` 与
-> `scm-message` 需要补齐清单后才能部署到集群。
+> **电商业务层目前仅有 Docker Compose。** `deploy/k8s/` 下的清单覆盖基础设施、
+> 平台层与供应链核心层。`ecom-mall`、`ecom-member`、`ecom-promotion`、
+> `ecom-payment`、`ecom-order-center`、`ecom-fulfillment`、`ecom-search` 与
+> `ecom-analytics` 需要补齐清单后才能部署到集群。
 
 ```bash
 # 应用全部 K8s 资源
 kubectl apply -f deploy/k8s/namespace.yml
 kubectl apply -f deploy/k8s/configmap.yml
 kubectl apply -f deploy/k8s/secrets.yml
-kubectl apply -f deploy/k8s/scm-*-deployment.yml
-kubectl apply -f deploy/k8s/scm-*-service.yml
+kubectl apply -f deploy/k8s/platform-*.yaml
+kubectl apply -f deploy/k8s/*-deployment.yml
+kubectl apply -f deploy/k8s/*-service.yml
 
 # 灰度（仅 auth）
-kubectl apply -f deploy/k8s/scm-auth-canary-deployment.yml
-kubectl apply -f deploy/k8s/scm-auth-canary-service.yml
+kubectl apply -f deploy/k8s/platform-auth-canary-deployment.yml
+kubectl apply -f deploy/k8s/platform-auth-canary-service.yml
 
-# 或使用 Helm
-helm install cognora-aura-platform deploy/helm/cognora-aura-platform/
+# 或使用 Helm（Chart 目录仍叫 scm-platform，改名尚未执行）
+helm install cognora-aura-platform deploy/helm/scm-platform/
 
 # ArgoCD GitOps
 kubectl apply -f deploy/argocd/application.yaml
@@ -450,19 +462,19 @@ kubectl apply -f deploy/argocd/application.yaml
 
 ### 已具备 K8s 清单的服务
 
-| 服务            | 端口   | 备注                    |
-| --------------- | ------ | ----------------------- |
-| `scm-gateway`   | 8761   | 已启用 HPA              |
-| `scm-system`    | 8081   |                         |
-| `scm-auth`      | 8106   | 另有灰度部署            |
-| `scm-product`   | 8201 ⚠ | 与 `scm-file` 共用 8201 |
-| `scm-inventory` | 8202   |                         |
-| `scm-warehouse` | 8204   |                         |
-| `scm-logistics` | 8205   |                         |
-| `scm-supplier`  | 8206   |                         |
-| `scm-purchase`  | 8207   |                         |
-| `scm-finance`   | 8208   |                         |
-| `scm-document`  | 8213   | v1.3.0 新增             |
+| 服务                 | 端口   | 备注                    |
+| -------------------- | ------ | ----------------------- |
+| `platform-gateway`   | 8761   | 已启用 HPA              |
+| `platform-system`    | 8081   |                         |
+| `platform-auth`      | 8106   | 另有灰度部署            |
+| `platform-product`   | 8201   |                         |
+| `platform-inventory` | 8202   |                         |
+| `scm-warehouse`      | 8204   |                         |
+| `lms-tms`            | 8205   |                         |
+| `scm-supplier`       | 8206   |                         |
+| `scm-purchase`       | 8207   |                         |
+| `scm-finance`        | 8208   |                         |
+| `platform-document`  | 8213   |                         |
 
 ## 运维
 
@@ -480,7 +492,7 @@ kubectl apply -f deploy/argocd/application.yaml
 
 ```bash
 # 初始化全部数据库
-export PGPASSWORD=admin123 && ./scripts/db/init-all-databases.sh
+export PG_ADMIN_USER=admin PG_ADMIN_PASSWORD=admin123 && ./scripts/db/init-all-databases.sh
 
 # 创建未来 3 个月的分区
 ./scripts/db/partition/create-partitions.sh
@@ -505,11 +517,11 @@ export PGPASSWORD=admin123 && ./scripts/db/init-all-databases.sh
 ### 测试
 
 ```bash
-# 单元测试
-mvn test -pl scm-order/service -f com.scm.parent/pom.xml
+# 单元测试（-pl 路径相对于 com.scm.parent/）
+mvn test -pl ../scm/order/service -f com.scm.parent/pom.xml
 
 # 单测试方法
-mvn test -Dtest=OrderServiceTest -pl scm-order/service -f com.scm.parent/pom.xml
+mvn test -Dtest=OrderServiceTest -pl ../scm/order/service -f com.scm.parent/pom.xml
 
 # 完整 CI 检查（测试 + JaCoCo 覆盖率门槛）
 mvn verify -Djacoco.skip=false -f com.scm.parent/pom.xml
@@ -533,21 +545,23 @@ cd scm-web && npx playwright test
 <summary><strong>为什么每条 Maven 命令都要带 <code>-f com.scm.parent/pom.xml</code>？</strong></summary>
 
 因为本仓库根目录没有 `pom.xml`。`com.scm.parent/pom.xml` 才是父 POM，它通过
-`../scm-*` 相对路径声明各模块。在仓库根目录执行 `mvn` 而不带该参数时，
-Maven 会去找一个并不存在的 POM。
+`../platform`、`../scm`、`../ecom`、`../lms` 相对路径声明各模块。在仓库根目录执行
+`mvn` 而不带该参数时，Maven 会去找一个并不存在的 POM。`-pl` 参数同样相对于
+`com.scm.parent/` 解析，因此要以 `../` 开头。
 
-根目录的 `build.bat` 正是为此固定了 GraalVM JDK 21 与本地 Maven 3.9.16 路径 ——
-在 Windows 开发机上，Maven 与 JDK 默认并不在 `PATH` 中。
+根目录的 `build.bat` 正是为此固定了 GraalVM JDK 21 与本地 Maven 路径 ——
+在 Windows 开发机上，Maven 与 JDK 默认并不在 `PATH` 中，且这些路径是本机专用。
 
 </details>
 
 <details>
-<summary><strong>为什么 <code>scm-file</code> 和 <code>scm-product</code> 都占用 8201？</strong></summary>
+<summary><strong>为什么有几个服务抢同一个端口？</strong></summary>
 
-这是签入配置中真实存在的冲突，不是文档错误。`scm-message` 与 `scm-approval` 同为 8209，
+这是签入配置中真实存在的冲突，不是文档错误。`platform-message` 与
+`platform-approval` 同为 8209，`schema-registry` 与 `platform-system` 同为 8081，
 Grafana 映射 `3000:3000` 而 Next.js 开发服务器也需要 3000。
 
-三处都有办法绕开：对不运行的服务覆盖 `server.port`，或修改 `docker-compose.yml`
+都有办法绕开：对不运行的服务覆盖 `server.port`，或修改 `docker-compose.yml`
 中 Grafana 的宿主机端口映射。
 
 </details>
@@ -572,20 +586,21 @@ Spring State Machine 依赖在父 POM 中已声明但并未使用。流转规则
 `OrdOrder.transitionTo()` 负责校验。
 
 对十个枚举常量使用 switch 表达式，可被检索、无需 Spring 上下文即可单元测试，
-并让规则归属于聚合。对其他实体类型，通用路径是 `scm-common/web` 中的
-`StatusValidator`，它委托给 `scm-system` 的 `StatusMachineDubboService`。
+并让规则归属于聚合。对其他实体类型，通用路径是 `platform/common/web` 中的
+`StatusValidator`，它委托给 `platform-system` 的 `StatusMachineDubboService`。
 
 </details>
 
 <details>
-<summary><strong>为什么我的 PR 在测试失败的情况下仍然是绿的？</strong></summary>
+<summary><strong>为什么我的 PR 因为测试失败而变红？</strong></summary>
 
-这是有意为之。`.github/workflows/maven-build.yml` 在 PR 构建中使用
-`-Dmaven.test.failure.ignore=true`，以便变更仍在评审阶段时 CI 保持绿色。
-推送到 `master` 与 `develop` 的构建会执行完整的 `mvn verify`，外加一项 schema
-校验：任何列出的表若缺少 `tenant_id` 列即失败。
+因为 PR 会跑真实测试。`.github/workflows/maven-build.yml` 在 PR 上执行
+`mvn clean test-compile test`，单元测试失败会让必检项 **Build and Test** 失败；
+同一个 job 还会跑前端门禁（`npm ci`、`typecheck`、`lint`、`test`、`build`）。
+推送到 `master`/`develop` 的构建会执行 `mvn clean verify`，外加一项 schema 校验：
+任何列出的表若缺少 `tenant_id` 列即失败（14 个数据库）。
 
-不要依赖 PR 检查来拦截回归 —— 请在本地跑测试。
+不要依赖排队或被取消的运行来拦截回归 —— 请先在本地跑测试。
 
 </details>
 
@@ -593,7 +608,7 @@ Spring State Machine 依赖在父 POM 中已声明但并未使用。流转规则
 <summary><strong>启动核心服务需要 Elasticsearch、ClickHouse 或 Canal 吗？</strong></summary>
 
 不需要。核心供应链服务依赖 PostgreSQL、Redis 与 Nacos。Elasticsearch 支撑
-`scm-search`，ClickHouse 支撑 `scm-analytics`，Canal 负责向 Elasticsearch 投递
+`ecom-search`，ClickHouse 支撑 `ecom-analytics`，Canal 负责向 Elasticsearch 投递
 Binlog —— 只有运行依赖它们的服务时才需要。
 
 </details>
@@ -607,14 +622,14 @@ Binlog —— 只有运行依赖它们的服务时才需要。
 `*CrossDatabaseQueryService` CQRS 类。
 
 所有业务表都必须带 `tenant_id` 列。这一点由 CI
-（`scripts/db/ci_validate_tenant_id.sql`）在全部 16 个数据库上强制校验，缺失则构建失败。
+（`scripts/db/ci_validate_tenant_id.sql`）在 14 个数据库上强制校验，缺失则构建失败。
 
 </details>
 
 <details>
 <summary><strong>服务起不来该怎么排查？</strong></summary>
 
-先确认启动顺序 —— 基础设施、网关、认证、系统，然后才是业务服务。先于 `scm-system`
+先确认启动顺序 —— 基础设施、网关、认证、系统，然后才是业务服务。先于 `platform-system`
 启动的服务会因 Dubbo 调用无法解析而失败，先于 Nacos 就绪启动的服务则无法注册。
 
 之后确认端口是否真的空闲。考虑到上面三处已知冲突，端口绑定失败是最常见的诱因。
@@ -645,7 +660,7 @@ Binlog —— 只有运行依赖它们的服务时才需要。
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=dengxingzhi000/cognora-aura-platform&amp;type=date&amp;theme=dark&amp;legend=top-left" />
     <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=dengxingzhi000/cognora-aura-platform&amp;type=date" />
-    <img alt="SCM Platform GitHub star 历程" src="https://api.star-history.com/chart?repos=dengxingzhi000/cognora-aura-platform&amp;type=date" />
+    <img alt="Cognora Aura Platform GitHub star 历程" src="https://api.star-history.com/chart?repos=dengxingzhi000/cognora-aura-platform&amp;type=date" />
   </picture>
 </a>
 

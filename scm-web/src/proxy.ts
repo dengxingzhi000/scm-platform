@@ -1,5 +1,6 @@
 import createMiddleware from 'next-intl/middleware'
 import { routing } from './i18n/routing'
+import { stripSameOriginHeader } from './lib/http/origin'
 import { NextRequest, NextResponse } from 'next/server'
 
 const intlMiddleware = createMiddleware(routing)
@@ -24,11 +25,12 @@ function isApiRequest(pathname: string): boolean {
  * original request (including `Origin`) to the backend. Spring's CORS allow-list
  * only covers localhost, so a LAN deployment such as http://192.168.0.121:3000
  * gets `403 Invalid CORS request`. This is a server-side proxy hop, not a browser
- * cross-origin call, so drop `Origin` before the rewrite runs.
+ * cross-origin call, so only a same-origin `Origin` is dropped; a cross-origin
+ * caller keeps the header so the backend CORS policy can still apply.
  */
 function forwardWithoutOrigin(request: NextRequest) {
   const headers = new Headers(request.headers)
-  headers.delete('origin')
+  stripSameOriginHeader(headers)
   return NextResponse.next({ request: { headers } })
 }
 
@@ -72,7 +74,7 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // API prefixes must reach this proxy so the forwarded request can drop
-  // `Origin`; page routes still go through the locale + auth middleware.
+  // API prefixes must reach this proxy so the forwarded request can drop a
+  // same-origin `Origin`; page routes still go through the locale + auth middleware.
   matcher: ['/((?!_next|_vercel|.*\\..*).*)'],
 }

@@ -1,4 +1,4 @@
-name: scm-platform CodeQL configuration
+name: cognora-aura-platform CodeQL configuration
 
 # scm-web/src/lib/api/generated holds openapi-generator output. AGENTS.md and
 # scm-web/README.md both say "regenerate, never hand-edit", so the style and

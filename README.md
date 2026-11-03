@@ -2,7 +2,7 @@
 
 **English** · [简体中文](./README.zh-CN.md)
 
-# SCM Platform
+# Cognora Aura Platform
 
 ### A cloud-native supply chain backbone for high-concurrency commerce.
 
@@ -22,16 +22,17 @@ Redis-hot inventory, and a Next.js control tower.**
 
 [Quick start](#quick-start) · [Highlights](#highlights) · [Tech stack](#tech-stack) · [Architecture](#architecture) · [What it covers](#what-it-covers) · [Modules](#modules) · [Patterns](#key-architecture-patterns) · [Deploy](#kubernetes-deployment) · [Operations](#operations) · [FAQ](#faq) · [Docs](#documentation)
 
-<code>docker-compose up -d && PGPASSWORD=admin123 ./scripts/db/init-all-databases.sh</code>
+<code>docker-compose up -d && PG_ADMIN_USER=admin PG_ADMIN_PASSWORD=admin123 ./scripts/db/init-all-databases.sh</code>
 
 </div>
 
 > [!IMPORTANT]
-> **Three ports collide in a default local run.** `scm-file` ↔ `scm-product` both
-> bind 8201, `scm-message` ↔ `scm-approval` both bind 8209, and Grafana in
-> `docker-compose.yml` maps `3000:3000` — the same host port the Next.js dev
-> server wants. Override `server.port` for whichever service you don't need, and
-> remap Grafana if you want both the dashboards and the frontend.
+> **Three ports collide in a default local run.** `platform-message` ↔
+> `platform-approval` both bind 8209, `schema-registry` ↔ `platform-system` both
+> bind 8081, and Grafana in `docker-compose.yml` maps `3000:3000` — the same host
+> port the Next.js dev server wants. Override `server.port` for whichever service
+> you don't need, and remap Grafana if you want both the dashboards and the
+> frontend.
 
 ---
 
@@ -40,7 +41,7 @@ warehouses, carriers, and money across systems that cannot share a transaction.
 Getting that right under flash-sale traffic — and then proving it works — is the
 expensive part.
 
-SCM Platform is a working reference implementation. Twenty-six deployable backend
+Cognora Aura Platform is a working reference implementation. Twenty-six deployable backend
 services behind an API gateway, with the patterns that actually carry load in
 production already wired in: Redis Lua for atomic stock deduction, Seata AT for
 cross-service consistency, `@Master`/`@Slave` read-write separation, enum-driven
@@ -55,7 +56,7 @@ and the frontend is on port 3000 with no cloud account and no paid dependency.
 > [!NOTE]
 > **Start order matters.** Infrastructure → Gateway → Auth → System → business
 > services. The gateway will not route correctly until Nacos is healthy, and
-> business services will fail to resolve `scm-system` for permission checks until
+> business services will fail to resolve `platform-system` for permission checks until
 > it is up.
 
 ### Prerequisites
@@ -82,40 +83,45 @@ docker-compose up -d
 set PGPASSWORD=admin123 && cd scripts\db && init-all-databases.bat
 
 # Linux/Mac
-export PGPASSWORD=admin123 && ./scripts/db/init-all-databases.sh
+export PG_ADMIN_USER=admin PG_ADMIN_PASSWORD=admin123 && ./scripts/db/init-all-databases.sh
 ```
 
 ### 3. Build
 
 ```bash
+# Install the internal BOM first (once per clone)
+mvn install -DskipTests -f bom/pom.xml
+
 # Build all modules
 mvn clean install -DskipTests -f com.scm.parent/pom.xml
 
-# Build a single module
-mvn clean package -pl scm-order/service -am -f com.scm.parent/pom.xml
+# Build a single module (-pl paths are relative to com.scm.parent/)
+mvn clean package -pl ../scm/order/service -am -f com.scm.parent/pom.xml
 ```
 
 > [!NOTE]
 > **There is no root `pom.xml`.** Every Maven command needs
-> `-f com.scm.parent/pom.xml`, which references its modules through `../scm-*`
-> paths. Dropping the flag is the single most common build error here.
+> `-f com.scm.parent/pom.xml`, which references its modules through `../platform`,
+> `../scm`, `../ecom` and `../lms` paths. Dropping the flag is the single most
+> common build error here, and skipping the `bom` install makes dependency
+> resolution fail on a fresh clone.
 
 ### 4. Start services
 
 ```bash
 # Gateway (must be first)
-cd scm-gateway && mvn spring-boot:run
+cd platform/gateway && mvn spring-boot:run
 
 # Auth (HTTPS)
-cd scm-auth && mvn spring-boot:run
+cd platform/auth && mvn spring-boot:run
 
 # System
-cd scm-system/service && mvn spring-boot:run
+cd platform/system/service && mvn spring-boot:run
 
 # Business services (any order)
-cd scm-product/service && mvn spring-boot:run
-cd scm-inventory/service && mvn spring-boot:run
-cd scm-order/service && mvn spring-boot:run
+cd platform/product/service && mvn spring-boot:run
+cd platform/inventory/service && mvn spring-boot:run
+cd scm/order/service && mvn spring-boot:run
 ```
 
 ### 5. Frontend
@@ -126,7 +132,9 @@ npm install
 npm run dev
 ```
 
-The frontend runs at **http://localhost:3000** with built-in zh-CN and en-US
+The frontend is the `@cognora/aura-web` npm package. It still lives in `scm-web/`
+inside this repository — extracting it into its own repository is planned, not
+done — and runs at **http://localhost:3000** with built-in zh-CN and en-US
 language support.
 
 | Route        | Page                       |
@@ -185,7 +193,7 @@ setting anything. Override via your shell or a `.env` file — never commit one:
 | 🧠   | **Decision Engine**     | E-commerce decision matrix with intelligent pricing, inventory prediction, and A/B testing    |
 | 📊   | **Observability**       | Sentinel circuit breaking, SkyWalking tracing, Prometheus metrics, Grafana dashboards         |
 | 🏢   | **Multi-Tenant**        | Tenant isolation with dynamic data source routing and configurable feature flags              |
-| 🖥️   | **Modern Frontend**     | Next.js 15 App Router, Ant Design 5 Pro, Zustand state management, TanStack Query             |
+| 🖥️   | **Modern Frontend**     | Next.js 16 App Router, shadcn/ui + Ant Design 6 (migration in progress), Zustand, TanStack Query |
 | 📦   | **Domain-Driven**       | Clean CQRS separation, aggregate roots, domain events via Kafka/RabbitMQ                      |
 | ☸️   | **Cloud Native**        | Kubernetes manifests for core services, Helm charts, ArgoCD GitOps, canary deployments (auth) |
 
@@ -193,16 +201,16 @@ setting anything. Override via your shell or a `.env` file — never commit one:
 
 | Layer          | Components                                                                                       |
 | -------------- | ------------------------------------------------------------------------------------------------ |
-| **Backend**    | Java 21 (Virtual Threads), Spring Boot 4.0.6, Spring Cloud 2025.1.2                              |
+| **Backend**    | Java 21 (Virtual Threads), Spring Boot 4.1.2, Spring Cloud 2025.1.4                              |
 | **Alibaba**    | Spring Cloud Alibaba 2025.1.0.0 (Nacos, Sentinel, Seata)                                         |
-| **Database**   | PostgreSQL, MyBatis-Plus 3.5.15, ShardingSphere 5.5.1                                            |
+| **Database**   | PostgreSQL, MyBatis-Plus 3.5.17, ShardingSphere 5.5.1                                            |
 | **Cache**      | Redis (distributed cache, Lua scripts for atomic operations)                                     |
 | **Search**     | Elasticsearch 8.11.4, Canal 1.1.7 (binlog sync)                                                  |
 | **Messaging**  | Kafka (event streaming), RabbitMQ (reliable queue)                                               |
 | **RPC**        | Apache Dubbo 3.3.6 (internal service calls)                                                      |
-| **Scheduling** | XXL-Job 3.3.1 (distributed task scheduling)                                                      |
+| **Scheduling** | XXL-Job 3.5.0 (distributed task scheduling)                                                      |
 | **Monitoring** | Sentinel, SkyWalking 9.3.0, Micrometer + Prometheus                                              |
-| **Frontend**   | Next.js 15 (App Router), React 19, Ant Design 5, Zustand 5, TanStack Query 5, ECharts, next-intl |
+| **Frontend**   | Next.js 16 (App Router), React 19, shadcn/ui, Ant Design 6, Zustand 5, TanStack Query 5, ECharts, next-intl |
 | **DevOps**     | Docker, Kubernetes, Helm, ArgoCD, GitHub Actions, SonarCloud, OWASP                              |
 | **Testing**    | JUnit 5, k6 load testing, Pact contract testing, Playwright E2E, PIT mutation                    |
 
@@ -216,13 +224,13 @@ setting anything. Override via your shell or a `.env` file — never commit one:
             │
    ┌────────▼─────────┐
    │  API Gateway     │
-   │  scm-gateway     │
+   │  platform-gateway│
    │  :8761           │
    └────────┬─────────┘
             │
    ┌────────▼───────────────────────────────────────────────┐
    │  Supply-chain core — Dubbo RPC over Nacos registry      │
-   │  auth :8106 · system :8081 · file :8201⚠ · product :8201⚠│
+   │  auth :8106 · system :8081 · file :8214 · product :8201 │
    │  inventory :8202 · order :8203 · warehouse :8204        │
    │  logistics :8205 · supplier :8206 · purchase :8207      │
    │  finance :8208 · message :8209⚠ · approval :8209⚠       │
@@ -262,10 +270,10 @@ names the constraint that actually shapes the design, not just the config.
 | Product search            | Elasticsearch full-text search kept current by binlog, not by application writes              | `search` 8307, Canal → Elasticsearch                                                                |
 | Analytics                 | ClickHouse OLAP with PostgreSQL metadata and Kafka ODS ingestion                              | `analytics` 8308 — ClickHouse 8123                                                                  |
 | Identity and access       | OAuth2 + JWT + WebAuthn passwordless, RBAC with row-level data scope                          | `auth` 8106, `system` 8081                                                                          |
-| Document lifecycle        | DOCX template rendering with an audit trail, byte storage proxied to the file service         | `document` 8213 → `file` 8201                                                                       |
+| Document lifecycle        | DOCX template rendering with an audit trail, byte storage proxied to the file service         | `document` 8213 → `file` 8214                                                                       |
 
 > [!NOTE]
-> The decision engine (`scm-common/decision-engine`, `scm-common/decision-matrix`)
+> The decision engine (`platform/common/decision-engine`, `platform/common/decision-matrix`)
 > is a **library**, not a separately deployed service. It's consumed by
 > `promotion`, `order`, and `analytics` rather than running on its own port.
 
@@ -273,87 +281,92 @@ names the constraint that actually shapes the design, not just the config.
 
 > [!NOTE]
 > Ports in the **8201–8213** range form the supply-chain core; **8301–8308** is
-> the e-commerce layer. `scm-tenant` carries a per-database routing flag rather
+> the e-commerce layer. `platform-tenant` carries a per-database routing flag rather
 > than a public port. Business services follow an **api / service split** — `api/`
 > holds the Dubbo RPC interfaces and DTOs, `service/` is the deployable Spring
-> Boot app. `scm-gateway`, `scm-auth`, `scm-system`, and everything under
-> `scm-common` are flat, single modules.
+> Boot app. `platform-gateway`, `platform-auth`, `platform-system`, `lms-tms`
+> and everything under `platform/common` are flat, single modules.
 
-| Module             | Port   | Description                                                                                       |
-| ------------------ | ------ | ------------------------------------------------------------------------------------------------- |
-| `scm-web`          | 3000 ⚠ | Frontend — Next.js 15, Ant Design 5, Zustand, TanStack Query                                      |
-| `scm-gateway`      | 8761   | API Gateway — routing, rate limiting, cross-cutting concerns                                      |
-| `scm-auth`         | 8106   | Authentication — OAuth2, JWT, WebAuthn passwordless login                                         |
-| `scm-system`       | 8081   | System management — users, roles, permissions, departments                                        |
-| `scm-file`         | 8201 ⚠ | File service — upload, storage abstraction (S3/MinIO/local), virus scan                           |
-| `scm-product`      | 8201 ⚠ | Product catalog — SPU/SKU, categories, brands, attributes                                         |
-| `scm-inventory`    | 8202   | Inventory — real-time stock, reservations, alerts, snapshots                                      |
-| `scm-order`        | 8203   | Orders — lifecycle state machine, payments, refunds                                               |
-| `scm-warehouse`    | 8204   | Warehouse — inbound/outbound, wave picking, location management                                   |
-| `scm-logistics`    | 8205   | Logistics — carriers, waybills, tracking, route optimization                                      |
-| `scm-supplier`     | 8206   | Suppliers — onboarding, evaluation, settlements                                                   |
-| `scm-purchase`     | 8207   | Procurement — RFQ, quotations, contracts, purchase orders                                         |
-| `scm-finance`      | 8208   | Finance — settlements, invoices, freight rules, reconciliation                                    |
-| `scm-message`      | 8209 ⚠ | Messaging — SMS / email / push dispatch, channel adapters                                         |
-| `scm-approval`     | 8209 ⚠ | Approval workflows — configurable approval processes                                              |
-| `scm-audit`        | 8210   | Audit — operation logs, sensitive operation tracking                                              |
-| `scm-notify`       | 8211   | In-app notifications — templates, multi-channel delivery                                          |
-| `scm-tenant`       | —      | Multi-tenant — tenant lifecycle, packages, feature flags                                          |
-| `scm-document`     | 8213   | Document lifecycle — DOCX rendering + audit trail, proxies `scm-file` for byte transfer           |
-| `scm-mall`         | 8301   | Mall — e-commerce storefront, product display, cart                                               |
-| `scm-member`       | 8302   | Member management — profiles, addresses, points, loyalty programs                                 |
-| `scm-promotion`    | 8303   | Promotions — campaigns, coupons, discounts, flash sales                                           |
-| `scm-payment`      | 8304   | Payment — payment processing, refunds, reconciliation                                             |
-| `scm-order-center` | 8305   | Order center — centralized order orchestration                                                    |
-| `scm-fulfillment`  | 8306   | Fulfillment — order fulfillment, shipping, delivery tracking                                      |
-| `scm-search`       | 8307   | Search — Elasticsearch-powered full-text product search                                           |
-| `scm-analytics`    | 8308   | Analytics — ClickHouse OLAP + PostgreSQL metadata, Kafka ODS ingestion                            |
-| `scm-common`       | —      | Shared libraries — core, data, data-rw, cache, web, monitoring, integration, decision-*, security |
+| Module                          | Port   | Description                                                                                       |
+| ------------------------------- | ------ | ------------------------------------------------------------------------------------------------- |
+| `scm-web` (`@cognora/aura-web`) | 3000 ⚠ | Frontend — Next.js 16, shadcn/ui + Ant Design 6, Zustand, TanStack Query                          |
+| `platform-gateway`              | 8761   | API Gateway — routing, rate limiting, cross-cutting concerns                                      |
+| `platform-auth`                 | 8106   | Authentication — OAuth2, JWT, WebAuthn passwordless login                                         |
+| `platform-system`               | 8081   | System management — users, roles, permissions, departments                                        |
+| `platform-file`                 | 8214   | File service — upload, storage abstraction (S3/MinIO/local), virus scan                           |
+| `platform-product`              | 8201   | Product catalog — SPU/SKU, categories, brands, attributes                                         |
+| `platform-inventory`            | 8202   | Inventory — real-time stock, reservations, alerts, snapshots                                      |
+| `scm-order`                     | 8203   | Orders — lifecycle state machine, payments, refunds                                               |
+| `scm-warehouse`                 | 8204   | Warehouse — inbound/outbound, wave picking, location management                                   |
+| `lms-tms`                       | 8205   | Transport management — carriers, waybills, tracking, route optimization                           |
+| `scm-supplier`                  | 8206   | Suppliers — onboarding, evaluation, settlements                                                   |
+| `scm-purchase`                  | 8207   | Procurement — RFQ, quotations, contracts, purchase orders                                         |
+| `scm-finance`                   | 8208   | Finance — settlements, invoices, freight rules, reconciliation                                    |
+| `platform-message`              | 8209 ⚠ | Messaging — SMS / email / push dispatch, channel adapters                                         |
+| `platform-approval`             | 8209 ⚠ | Approval workflows — configurable approval processes                                              |
+| `platform-audit`                | 8210   | Audit — operation logs, sensitive operation tracking                                              |
+| `platform-notify`               | 8211   | In-app notifications — templates, multi-channel delivery                                          |
+| `platform-tenant`               | —      | Multi-tenant — tenant lifecycle, packages, feature flags                                          |
+| `platform-document`             | 8213   | Document lifecycle — DOCX rendering + audit trail, proxies `platform-file` for byte transfer      |
+| `ecom-mall`                     | 8301   | Mall — e-commerce storefront, product display, cart                                               |
+| `ecom-member`                   | 8302   | Member management — profiles, addresses, points, loyalty programs                                 |
+| `ecom-promotion`                | 8303   | Promotions — campaigns, coupons, discounts, flash sales                                           |
+| `ecom-payment`                  | 8304   | Payment — payment processing, refunds, reconciliation                                             |
+| `ecom-order-center`             | 8305   | Order center — centralized order orchestration                                                    |
+| `ecom-fulfillment`              | 8306   | Fulfillment — order fulfillment, shipping, delivery tracking                                      |
+| `ecom-search`                   | 8307   | Search — Elasticsearch-powered full-text product search                                           |
+| `ecom-analytics`                | 8308   | Analytics — ClickHouse OLAP + PostgreSQL metadata, Kafka ODS ingestion                            |
+| `platform-common`               | —      | Shared libraries — core, data, data-rw, cache, web, monitoring, integration, decision-*, security |
 
 ### Project structure
 
 ```
 cognora-aura-platform/
+├── bom/                     # Internal BOM — install first (mvn install -f bom/pom.xml)
 ├── com.scm.parent/          # Parent POM (dependency management) — always build via -f
-├── scm-web/                 # Frontend (Next.js 15, React 19, Ant Design 5) — separate npm project
-├── scm-common/              # Shared libraries (no Spring Boot main)
-│   ├── core/                # Utilities, exceptions, TenantContextHolder
-│   ├── data/                # MyBatis-Plus integration, dynamic-datasource routing
-│   ├── data-rw/             # @Master / @Slave read-write separation
-│   ├── data-rw-stub/        # Stub variant for tests
-│   ├── cache/               # Caffeine + Redis, Lua script center, idempotency, locks
-│   ├── web/                 # Web filters, REST clients, security config
-│   ├── monitoring/          # Sentinel circuit breaker
-│   ├── integration/         # Kafka / RabbitMQ messaging (JacksonJsonSerializer)
-│   ├── decision-matrix/     # Decision engine core types
-│   ├── decision-engine/     # Weighted-fusion engine, A/B testing
-│   └── security/            # Security core + api
-├── scm-gateway/             # API Gateway (Spring Cloud Gateway, flat module)
-├── scm-auth/                # Authentication (OAuth2, JWT, WebAuthn — flat module)
-├── scm-system/              # System management (users, roles, permissions)
-├── scm-approval/            # Approval workflows
-├── scm-audit/               # Audit logging
-├── scm-notify/              # In-app notifications
-├── scm-tenant/              # Multi-tenant management
-├── scm-product/             # Product catalog (api + service)
-├── scm-inventory/           # Inventory (api + service, Redis Lua hot path)
-├── scm-order/               # Order processing (api + service, state machine)
-├── scm-warehouse/           # Warehouse operations
-├── scm-logistics/           # Logistics tracking
-├── scm-purchase/            # Procurement
-├── scm-supplier/            # Supplier management
-├── scm-finance/             # Financial settlement
-├── scm-file/                # File service (upload, storage abstraction, OCR)
-├── scm-document/            # Document lifecycle & DOCX templates (v1.3.0)
-├── scm-message/             # SMS / email / push dispatch
-├── scm-member/              # Member management
-├── scm-promotion/           # Promotions (campaigns, coupons, discounts)
-├── scm-payment/             # Payment processing
-├── scm-search/              # Elasticsearch full-text search
-├── scm-order-center/        # Centralized order orchestration
-├── scm-mall/                # E-commerce storefront
-├── scm-fulfillment/         # Order fulfillment & shipping
-├── scm-analytics/           # ClickHouse OLAP + PG metadata
+├── scm-web/                 # Frontend (@cognora/aura-web) — separate npm project
+├── platform/                # Platform domain
+│   ├── common/              # Shared libraries (no Spring Boot main)
+│   │   ├── core/            # Utilities, exceptions, TenantContextHolder
+│   │   ├── data/            # MyBatis-Plus integration, dynamic-datasource routing
+│   │   ├── data-rw/         # @Master / @Slave read-write separation
+│   │   ├── data-rw-stub/    # Stub variant for tests
+│   │   ├── cache/           # Caffeine + Redis, Lua script center, idempotency, locks
+│   │   ├── web/             # Web filters, REST clients, security config
+│   │   ├── monitoring/      # Sentinel circuit breaker
+│   │   ├── integration/     # Kafka / RabbitMQ messaging (JacksonJsonSerializer)
+│   │   ├── decision-matrix/ # Decision engine core types
+│   │   ├── decision-engine/ # Weighted-fusion engine, A/B testing
+│   │   └── security/        # Security core + api
+│   ├── gateway/             # API Gateway (Spring Cloud Gateway, flat module)
+│   ├── auth/                # Authentication (OAuth2, JWT, WebAuthn — flat module)
+│   ├── system/              # System management (users, roles, permissions)
+│   ├── file/                # File service (upload, storage abstraction, OCR)
+│   ├── product/             # Product catalog (api + service)
+│   ├── inventory/           # Inventory (api + service, Redis Lua hot path)
+│   ├── approval/            # Approval workflows
+│   ├── audit/               # Audit logging
+│   ├── notify/              # In-app notifications
+│   ├── tenant/              # Multi-tenant management
+│   ├── document/            # Document lifecycle & DOCX templates
+│   └── message/             # SMS / email / push dispatch
+├── scm/                     # Supply-chain domain
+│   ├── order/               # Order processing (api + service, state machine)
+│   ├── warehouse/           # Warehouse operations
+│   ├── supplier/            # Supplier management
+│   ├── purchase/            # Procurement
+│   └── finance/             # Financial settlement
+├── ecom/                    # E-commerce domain
+│   ├── mall/                # E-commerce storefront
+│   ├── member/              # Member management
+│   ├── promotion/           # Promotions (campaigns, coupons, discounts)
+│   ├── payment/             # Payment processing
+│   ├── order-center/        # Centralized order orchestration
+│   ├── fulfillment/         # Order fulfillment & shipping
+│   ├── search/              # Elasticsearch full-text search
+│   └── analytics/           # ClickHouse OLAP + PG metadata
+├── lms/                     # Logistics domain
+│   └── tms/                 # Transport management (lms-tms)
 ├── deploy/                  # K8s manifests, Helm, ArgoCD, PgBouncer, Redis, Istio, chaos
 ├── scripts/                 # DB init, partition mgmt, load tests, retention, quality
 └── docs/                    # Architecture, runbooks, design specs, audits
@@ -442,25 +455,26 @@ transition throws before a write is attempted.
 
 > [!WARNING]
 > **The e-commerce layer is Docker Compose only.** Manifests in `deploy/k8s/`
-> cover the infrastructure and supply-chain core. `scm-mall`, `scm-member`,
-> `scm-promotion`, `scm-payment`, `scm-order-center`, `scm-fulfillment`,
-> `scm-search`, `scm-analytics`, and `scm-message` need manifests written before
-> they can be deployed to a cluster.
+> cover the infrastructure, the platform layer and the supply-chain core.
+> `ecom-mall`, `ecom-member`, `ecom-promotion`, `ecom-payment`,
+> `ecom-order-center`, `ecom-fulfillment`, `ecom-search` and `ecom-analytics`
+> need manifests written before they can be deployed to a cluster.
 
 ```bash
 # Apply all K8s resources
 kubectl apply -f deploy/k8s/namespace.yml
 kubectl apply -f deploy/k8s/configmap.yml
 kubectl apply -f deploy/k8s/secrets.yml
-kubectl apply -f deploy/k8s/scm-*-deployment.yml
-kubectl apply -f deploy/k8s/scm-*-service.yml
+kubectl apply -f deploy/k8s/platform-*.yaml
+kubectl apply -f deploy/k8s/*-deployment.yml
+kubectl apply -f deploy/k8s/*-service.yml
 
 # Canary (auth only)
-kubectl apply -f deploy/k8s/scm-auth-canary-deployment.yml
-kubectl apply -f deploy/k8s/scm-auth-canary-service.yml
+kubectl apply -f deploy/k8s/platform-auth-canary-deployment.yml
+kubectl apply -f deploy/k8s/platform-auth-canary-service.yml
 
-# Or use Helm
-helm install cognora-aura-platform deploy/helm/cognora-aura-platform/
+# Or use Helm (chart directory is still named scm-platform — rename is pending)
+helm install cognora-aura-platform deploy/helm/scm-platform/
 
 # ArgoCD GitOps
 kubectl apply -f deploy/argocd/application.yaml
@@ -468,19 +482,19 @@ kubectl apply -f deploy/argocd/application.yaml
 
 ### Services with K8s manifests
 
-| Service         | Port   | Notes                       |
-| --------------- | ------ | --------------------------- |
-| `scm-gateway`   | 8761   | HPA-enabled                 |
-| `scm-system`    | 8081   |                             |
-| `scm-auth`      | 8106   | Plus canary deployment      |
-| `scm-product`   | 8201 ⚠ | Shares 8201 with `scm-file` |
-| `scm-inventory` | 8202   |                             |
-| `scm-warehouse` | 8204   |                             |
-| `scm-logistics` | 8205   |                             |
-| `scm-supplier`  | 8206   |                             |
-| `scm-purchase`  | 8207   |                             |
-| `scm-finance`   | 8208   |                             |
-| `scm-document`  | 8213   | Added in v1.3.0             |
+| Service              | Port   | Notes                 |
+| -------------------- | ------ | --------------------- |
+| `platform-gateway`   | 8761   | HPA-enabled           |
+| `platform-system`    | 8081   |                       |
+| `platform-auth`      | 8106   | Plus canary deployment |
+| `platform-product`   | 8201   |                       |
+| `platform-inventory` | 8202   |                       |
+| `scm-warehouse`      | 8204   |                       |
+| `lms-tms`            | 8205   |                       |
+| `scm-supplier`       | 8206   |                       |
+| `scm-purchase`       | 8207   |                       |
+| `scm-finance`        | 8208   |                       |
+| `platform-document`  | 8213   |                       |
 
 ## Operations
 
@@ -498,7 +512,7 @@ kubectl apply -f deploy/argocd/application.yaml
 
 ```bash
 # Initialize all databases
-export PGPASSWORD=admin123 && ./scripts/db/init-all-databases.sh
+export PG_ADMIN_USER=admin PG_ADMIN_PASSWORD=admin123 && ./scripts/db/init-all-databases.sh
 
 # Create partitions (next 3 months)
 ./scripts/db/partition/create-partitions.sh
@@ -524,11 +538,11 @@ create_time)`, `inv_reservation(reservation_no, reserved_at)`,
 ### Testing
 
 ```bash
-# Unit tests
-mvn test -pl scm-order/service -f com.scm.parent/pom.xml
+# Unit tests (-pl paths are relative to com.scm.parent/)
+mvn test -pl ../scm/order/service -f com.scm.parent/pom.xml
 
 # Single test
-mvn test -Dtest=OrderServiceTest -pl scm-order/service -f com.scm.parent/pom.xml
+mvn test -Dtest=OrderServiceTest -pl ../scm/order/service -f com.scm.parent/pom.xml
 
 # Full CI check (tests + JaCoCo coverage gates)
 mvn verify -Djacoco.skip=false -f com.scm.parent/pom.xml
@@ -552,24 +566,26 @@ cd scm-web && npx playwright test
 <summary><strong>Why does every Maven command need <code>-f com.scm.parent/pom.xml</code>?</strong></summary>
 
 There is no root `pom.xml` in this repository. `com.scm.parent/pom.xml` is the
-parent POM and it declares its modules with `../scm-*` relative paths. If you run
-`mvn` from the repository root without the flag, Maven looks for a POM that isn't
-there.
+parent POM and it declares its modules with `../platform`, `../scm`, `../ecom`
+and `../lms` relative paths. If you run `mvn` from the repository root without
+the flag, Maven looks for a POM that isn't there. `-pl` arguments are resolved
+relative to `com.scm.parent/` too, so they start with `../`.
 
-The root `build.bat` pins a GraalVM JDK 21 and a local Maven 3.9.16 path for
+The root `build.bat` pins a GraalVM JDK 21 and a local Maven path for
 this reason — Maven and the JDK are not on `PATH` by default on Windows dev
-machines.
+machines, and those paths are machine-specific.
 
 </details>
 
 <details>
-<summary><strong>Why do <code>scm-file</code> and <code>scm-product</code> both want port 8201?</strong></summary>
+<summary><strong>Why do several services want the same port?</strong></summary>
 
-This is a real collision in the checked-in configuration, not a doc error.
-`scm-message` and `scm-approval` both want 8209, and Grafana maps `3000:3000`
-while the Next.js dev server also wants 3000.
+These are real collisions in the checked-in configuration, not doc errors.
+`platform-message` and `platform-approval` both want 8209, `schema-registry`
+and `platform-system` both want 8081, and Grafana maps `3000:3000` while the
+Next.js dev server also wants 3000.
 
-All three are safe to work around: override `server.port` for whichever service
+All of them are safe to work around: override `server.port` for whichever service
 you aren't running, or remap the Grafana host port in `docker-compose.yml`.
 
 </details>
@@ -597,21 +613,23 @@ switch, and `OrdOrder.transitionTo()` validates against it inside the aggregate.
 
 A switch expression over ten enum constants is greppable, unit-testable without a
 Spring context, and gives the aggregate ownership of the rule. For other entity
-types the generic path is `StatusValidator` in `scm-common/web`, which delegates
-to `StatusMachineDubboService` in `scm-system`.
+types the generic path is `StatusValidator` in `platform/common/web`, which delegates
+to `StatusMachineDubboService` in `platform-system`.
 
 </details>
 
 <details>
-<summary><strong>Why did my pull request go green even though a test failed?</strong></summary>
+<summary><strong>Why did my pull request go red on tests?</strong></summary>
 
-By design. `.github/workflows/maven-build.yml` runs pull request builds with
-`-Dmaven.test.failure.ignore=true` so that CI stays green while the change is
-still in review. Push builds to `master` and `develop` run the full `mvn verify`
-plus a schema validation that fails if any listed table is missing a `tenant_id`
-column.
+Because pull requests run the real test suite. `.github/workflows/maven-build.yml`
+runs `mvn clean test-compile test` on PRs, so a failing unit test fails the
+required **Build and Test** check, and the same job additionally runs the frontend
+gates (`npm ci`, `typecheck`, `lint`, `test`, `build`). Push builds to
+`master`/`develop` run `mvn clean verify` plus a schema validation that fails if
+any listed table is missing a `tenant_id` column (14 databases).
 
-Don't rely on the PR check to catch a regression — run the suite locally.
+Don't rely on a queued or cancelled run to catch a regression — run the suite
+locally first.
 
 </details>
 
@@ -619,7 +637,7 @@ Don't rely on the PR check to catch a regression — run the suite locally.
 <summary><strong>Do I need Elasticsearch, ClickHouse, or Canal running to start the core services?</strong></summary>
 
 No. The core supply-chain services need PostgreSQL, Redis, and Nacos. Elasticsearch
-backs `scm-search`, ClickHouse backs `scm-analytics`, and Canal feeds binlog sync
+backs `ecom-search`, ClickHouse backs `ecom-analytics`, and Canal feeds binlog sync
 into Elasticsearch — those three are only required if you're running the modules
 that depend on them.
 
@@ -634,7 +652,7 @@ from `TenantContextHolder`. There are no cross-database joins; cross-database
 reads go through the per-entity `*CrossDatabaseQueryService` CQRS classes.
 
 Every business table must carry a `tenant_id` column. This is enforced by CI
-(`scripts/db/ci_validate_tenant_id.sql`) across all 16 databases, and the build
+(`scripts/db/ci_validate_tenant_id.sql`) across 14 databases, and the build
 fails without it.
 
 </details>
@@ -643,7 +661,7 @@ fails without it.
 <summary><strong>What should I do if a service won't start?</strong></summary>
 
 Check the start order first — infrastructure, then Gateway, Auth, System, then
-business services. A service started before `scm-system` will fail to resolve
+business services. A service started before `platform-system` will fail to resolve
 permission lookups over Dubbo, and one started before Nacos is healthy will fail
 to register.
 
@@ -677,7 +695,7 @@ Report vulnerabilities through [SECURITY.md](./SECURITY.md).
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=dengxingzhi000/cognora-aura-platform&amp;type=date&amp;theme=dark&amp;legend=top-left" />
     <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=dengxingzhi000/cognora-aura-platform&amp;type=date" />
-    <img alt="SCM Platform GitHub star history" src="https://api.star-history.com/chart?repos=dengxingzhi000/cognora-aura-platform&amp;type=date" />
+    <img alt="Cognora Aura Platform GitHub star history" src="https://api.star-history.com/chart?repos=dengxingzhi000/cognora-aura-platform&amp;type=date" />
   </picture>
 </a>
 

@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 $ErrorActionPreference = "Stop"
 
-$PROJECT_ROOT = "D:\ProgramProject\scm-platform"
+$PROJECT_ROOT = Split-Path -Parent $PSScriptRoot
 
 function Update-FileContent {
     param($FilePath, $OldPattern, $NewPattern)
