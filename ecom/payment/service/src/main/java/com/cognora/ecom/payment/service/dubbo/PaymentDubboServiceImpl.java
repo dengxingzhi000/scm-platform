@@ -11,6 +11,14 @@ import org.apache.dubbo.config.annotation.DubboService;
 
 import java.math.BigDecimal;
 
+/**
+ * RPC entry point of the payment service.
+ *
+ * <p>It exposes no operation that marks a payment paid. A payment is completed
+ * only by a verified channel callback, which is reached over HTTP - the RPC
+ * path has no gateway in front of it and must not offer a shortcut around the
+ * signature, channel and amount checks.</p>
+ */
 @Slf4j
 @DubboService
 @RequiredArgsConstructor
@@ -23,12 +31,6 @@ public class PaymentDubboServiceImpl implements PaymentDubboService {
     public String createPayment(String orderNo, String userId, BigDecimal amount, String paymentChannel) {
         PaymentOrder payment = paymentOrderService.createPayment(orderNo, userId, amount, paymentChannel);
         return payment.getPaymentNo();
-    }
-
-    @Override
-    public boolean handlePaymentCallback(String paymentNo, String transactionId) {
-        paymentOrderService.handlePaymentCallback(paymentNo, transactionId);
-        return true;
     }
 
     @Override

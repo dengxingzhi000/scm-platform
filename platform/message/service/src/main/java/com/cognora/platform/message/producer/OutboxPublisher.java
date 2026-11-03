@@ -78,7 +78,7 @@ public class OutboxPublisher {
             @Override
             public String getAggregateId() { return outbox.getAggregateId(); }
             @Override
-            public Long getTenantId() { return outbox.getTenantId(); }
+            public String getTenantId() { return outbox.getTenantId(); }
             @Override
             public Date getTimestamp() { return outbox.getCreateTime(); }
             @Override

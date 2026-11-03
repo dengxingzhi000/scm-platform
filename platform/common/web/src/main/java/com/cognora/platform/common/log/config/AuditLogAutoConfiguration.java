@@ -6,6 +6,7 @@ import com.cognora.platform.common.log.service.ISysAuditLogService;
 import com.cognora.platform.common.log.service.LoggingSysAuditLogService;
 import com.cognora.platform.common.log.service.RemoteSysAuditLogService;
 import com.cognora.platform.common.rest.client.SysAuditServiceClient;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -23,9 +24,12 @@ public class AuditLogAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(ISysAuditLogService.class)
-    public ISysAuditLogService sysAuditLogService(ObjectProvider<SysAuditServiceClient> auditClientProvider) {
+    public ISysAuditLogService sysAuditLogService(ObjectProvider<SysAuditServiceClient> auditClientProvider,
+                                                  ObjectProvider<MeterRegistry> meterRegistryProvider) {
         SysAuditServiceClient client = auditClientProvider.getIfAvailable();
-        return client != null ? new RemoteSysAuditLogService(client) : new LoggingSysAuditLogService();
+        return client != null
+                ? new RemoteSysAuditLogService(client, meterRegistryProvider.getIfAvailable())
+                : new LoggingSysAuditLogService();
     }
 
     @Bean

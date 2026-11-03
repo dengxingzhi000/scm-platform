@@ -2,14 +2,15 @@ package com.cognora.platform.common.rest.interceptor;
 
 import cn.hutool.crypto.SecureUtil;
 import cn.hutool.crypto.digest.HmacAlgorithm;
+import com.cognora.platform.common.rest.signature.InternalSignatureSecretResolver;
 import com.cognora.platform.common.util.UUIDv7Util;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpRequest;
 import org.springframework.http.client.ClientHttpRequestExecution;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -49,11 +50,25 @@ import java.util.stream.Collectors;
 @Slf4j
 public class RestClientRequestSignatureInterceptor implements ClientHttpRequestInterceptor {
 
-    @Value("${security.feign.app-id:${API_SECRET_INTERNAL_SERVICE:internal-service}}")
-    private String appId;
+    /**
+     * The secret is resolved through {@link InternalSignatureSecretResolver} so that the signer and
+     * the verifier of the service-to-service channel always read the same value. There is no
+     * built-in fallback any more: a missing secret is a configuration error, not a constant that
+     * ships with the repository.
+     */
+    private final String appId;
+    private final String secretKey;
 
-    @Value("${security.feign.secret-key:${API_SECRET_INTERNAL_SECRET:your-internal-secret-key}}")
-    private String secretKey;
+    public RestClientRequestSignatureInterceptor(InternalSignatureSecretResolver secretResolver) {
+        this.appId = secretResolver.resolveAppId();
+        this.secretKey = secretResolver.resolveSecret();
+        if (!StringUtils.hasText(secretKey)) {
+            log.error("No internal signature secret is configured, so every service-to-service "
+                    + "request is signed with an empty key and the receiving side will reject it. "
+                    + "Set API_SECRET_INTERNAL_SERVICE (or security.signature.app-secrets.internal-service) "
+                    + "to the same random value on every service.");
+        }
+    }
 
     @Override
     public ClientHttpResponse intercept(

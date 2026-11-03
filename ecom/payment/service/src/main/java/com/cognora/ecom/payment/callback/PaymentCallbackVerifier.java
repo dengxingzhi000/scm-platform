@@ -20,7 +20,12 @@ import java.security.Signature;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.spec.X509EncodedKeySpec;
+import java.time.DateTimeException;
 import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Base64;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -35,9 +40,11 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class PaymentCallbackVerifier {
 
-    private static final Duration MAX_WECHAT_CLOCK_SKEW = Duration.ofMinutes(5);
+    private static final Duration MAX_CALLBACK_CLOCK_SKEW = Duration.ofMinutes(5);
     private static final String ALIPAY_SIGN_TYPE = "RSA2";
     private static final String WECHAT_TRADE_SUCCESS = "SUCCESS";
+    private static final DateTimeFormatter ALIPAY_TIME_FORMAT =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private final PaymentProperties properties;
     private final ObjectMapper objectMapper;
@@ -51,6 +58,7 @@ public class PaymentCallbackVerifier {
         if (!verifyAlipaySignature(params)) {
             throw new PaymentCallbackException("Alipay callback signature verification failed");
         }
+        requireFreshAlipayNotification(params);
 
         String appId = params.get("app_id");
         if (!equalsIgnoreCase(appId, properties.getAlipay().getAppId())) {
@@ -96,7 +104,7 @@ public class PaymentCallbackVerifier {
         } catch (NumberFormatException e) {
             throw new PaymentCallbackException("Wechatpay-Timestamp header is not a number", e);
         }
-        if (Math.abs(nowSeconds - callbackSeconds) > MAX_WECHAT_CLOCK_SKEW.toSeconds()) {
+        if (Math.abs(nowSeconds - callbackSeconds) > MAX_CALLBACK_CLOCK_SKEW.toSeconds()) {
             throw new PaymentCallbackException("WeChat callback timestamp is outside the allowed window");
         }
 
@@ -146,6 +154,49 @@ public class PaymentCallbackVerifier {
             }
         }
         return new VerifiedPayment(paymentNo, transactionId, paidAmount, merchantId, success);
+    }
+
+    /**
+     * Bounds the age of an Alipay notification.
+     *
+     * <p>Alipay signs {@code notify_time} together with the rest of the
+     * notification, so a captured notification cannot be re-dated without the
+     * platform key. A notification issued outside the allowed window is
+     * refused: it is either a replay or a stale retry. Without this check an
+     * Alipay notification could be replayed indefinitely.</p>
+     */
+    private void requireFreshAlipayNotification(Map<String, String> params) {
+        String notifyTime = params.get("notify_time");
+        if (!StringUtils.hasText(notifyTime)) {
+            throw new PaymentCallbackException("Alipay callback has no notify_time");
+        }
+        LocalDateTime issuedAt;
+        try {
+            issuedAt = LocalDateTime.parse(notifyTime.trim(), ALIPAY_TIME_FORMAT);
+        } catch (DateTimeParseException e) {
+            throw new PaymentCallbackException("Alipay callback notify_time is not a valid timestamp", e);
+        }
+        long issuedAtMillis = issuedAt.atZone(alipayZone()).toInstant().toEpochMilli();
+        if (Math.abs(System.currentTimeMillis() - issuedAtMillis) > MAX_CALLBACK_CLOCK_SKEW.toMillis()) {
+            throw new PaymentCallbackException("Alipay callback timestamp is outside the allowed window");
+        }
+    }
+
+    /**
+     * Timezone Alipay renders {@code notify_time} in, falling back to the system
+     * default when it is not configured or cannot be resolved.
+     */
+    private ZoneId alipayZone() {
+        String configured = properties.getAlipay().getTimezone();
+        if (!StringUtils.hasText(configured)) {
+            return ZoneId.systemDefault();
+        }
+        try {
+            return ZoneId.of(configured.trim());
+        } catch (DateTimeException e) {
+            log.warn("Configured Alipay timezone cannot be resolved, using the system default: {}", configured);
+            return ZoneId.systemDefault();
+        }
     }
 
     private void requireAlipayConfiguration() {

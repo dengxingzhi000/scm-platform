@@ -45,6 +45,11 @@ spec:
                 secretKeyRef:
                   name: scm-secrets
                   key: db-password
+            - name: API_SECRET_INTERNAL_SERVICE
+              valueFrom:
+                secretKeyRef:
+                  name: scm-secrets
+                  key: api-secret-internal-service
             - name: REDIS_HOST
               valueFrom:
                 configMapKeyRef:

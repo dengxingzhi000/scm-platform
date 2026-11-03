@@ -33,14 +33,22 @@ function createFallbackId(): string {
   }
 
   fallbackCounter += 1
-  // Hex keeps the result shaped like an RFC 4122 UUID, which the tests and the
-  // backend both accept: timestamp, UA hash and counter cover uniqueness.
-  const seed = [
-    Date.now().toString(16),
-    (hash >>> 0).toString(16).padStart(8, '0'),
-    fallbackCounter.toString(16).padStart(4, '0'),
-  ].join('')
-  const base = seed.padEnd(32, '0').slice(0, 32)
+  const seed = `${Date.now().toString(36)}${(hash >>> 0).toString(36)}${fallbackCounter.toString(36)}`
+
+  // The seed is base36, but the value has to stay a valid UUID: the backend
+  // binds the JWT to the device id it saw at login and parses it as a UUID,
+  // and the transport headers carry it as an X-Request-Id. So the seed is
+  // folded into 32 hexadecimal characters instead of being used as-is.
+  const hex: string[] = []
+  let acc = 0
+  for (let i = 0; i < seed.length; i += 1) {
+    acc = (acc * 31 + seed.charCodeAt(i)) | 0
+    hex.push(((acc >>> 0) % 16).toString(16))
+  }
+  while (hex.length < 32) {
+    hex.push('0')
+  }
+  const base = hex.slice(0, 32).join('')
   return `${base.slice(0, 8)}-${base.slice(8, 12)}-4${base.slice(12, 15)}-8${base.slice(
     15,
     18

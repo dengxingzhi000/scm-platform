@@ -20,7 +20,7 @@ public class OrderCreatedEvent implements DomainEvent {
     private String orderId;
     private String orderNo;
     @Getter(onMethod_ = @Override)
-    private Long tenantId;
+    private String tenantId;
     @Getter(onMethod_ = @Override)
     private Date timestamp;
     
@@ -47,7 +47,7 @@ public class OrderCreatedEvent implements DomainEvent {
         return payload;
     }
     
-    public static OrderCreatedEvent of(String orderId, String orderNo, Long tenantId) {
+    public static OrderCreatedEvent of(String orderId, String orderNo, String tenantId) {
         return OrderCreatedEvent.builder()
                 .eventId(UUID.randomUUID().toString())
                 .orderId(orderId)

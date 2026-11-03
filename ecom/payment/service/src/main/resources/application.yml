@@ -51,6 +51,8 @@ payment:
     # 可选的 seller_id；配置后回调中的 seller_id 必须一致。
     seller-id: ${ALIPAY_SELLER_ID:}
     charset: UTF-8
+    # 支付宝 notify_time 使用的时区（商户本地时间，默认东八区）。回调重放窗口按此时区换算。
+    timezone: ${ALIPAY_TIMEZONE:Asia/Shanghai}
   wechat:
     # 微信支付 v3 平台证书（PEM，也接受平台公钥）。未配置时回调一律拒绝。
     platform-certificate: ${WECHAT_PAY_PLATFORM_CERT:}

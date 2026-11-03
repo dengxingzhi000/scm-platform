@@ -20,7 +20,7 @@ class MessageIntegrationTest {
     @Test
     void shouldSaveEventToOutbox() {
         // Given
-        DomainEvent event = OrderCreatedEvent.of("order-1", "ORD001", 1L);
+        DomainEvent event = OrderCreatedEvent.of("order-1", "ORD001", "019a0aee-0000-7000-8000-000000000002");
         
         // When
         var result = outboxService.saveEvent(event);

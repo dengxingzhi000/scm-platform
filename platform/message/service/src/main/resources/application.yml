@@ -13,6 +13,16 @@ spring:
           url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/db_system?stringtype=unspecified
           username: ${DB_USERNAME:admin}
           password: ${DB_PASSWORD:admin123}
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    baseline-version: 0
+    validate-on-migrate: true
+    out-of-order: false
+    # db_system is shared with scm-file; a dedicated history table keeps the two
+    # services from validating each other's migrations.
+    table: flyway_history_message
   kafka:
     bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
 

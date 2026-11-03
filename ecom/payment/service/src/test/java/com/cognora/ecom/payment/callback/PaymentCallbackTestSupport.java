@@ -11,6 +11,10 @@ import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.Signature;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -23,6 +27,10 @@ public final class PaymentCallbackTestSupport {
     public static final String APP_ID = "app-1";
     public static final String SELLER_ID = "seller-1";
     public static final String MCH_ID = "mch-1";
+    /** Alipay renders notify_time in the merchant's local time. */
+    public static final ZoneId ALIPAY_ZONE = ZoneId.of("Asia/Shanghai");
+    public static final DateTimeFormatter ALIPAY_TIME_FORMAT =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     public static final KeyPair KEY_PAIR = generateKeyPair();
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -35,6 +43,7 @@ public final class PaymentCallbackTestSupport {
                 KEY_PAIR.getPublic().getEncoded()));
         properties.getAlipay().setAppId(APP_ID);
         properties.getAlipay().setSellerId(SELLER_ID);
+        properties.getAlipay().setTimezone(ALIPAY_ZONE.getId());
         properties.getWechat().setPlatformCertificate(Base64.getEncoder().encodeToString(
                 KEY_PAIR.getPublic().getEncoded()));
         properties.getWechat().setApiV3Key(API_V3_KEY);
@@ -52,7 +61,13 @@ public final class PaymentCallbackTestSupport {
         params.put("app_id", APP_ID);
         params.put("seller_id", SELLER_ID);
         params.put("sign_type", "RSA2");
+        params.put("notify_time", alipayNotifyTime(Instant.now()));
         return params;
+    }
+
+    /** Renders an instant the way Alipay renders {@code notify_time}. */
+    public static String alipayNotifyTime(Instant instant) {
+        return LocalDateTime.ofInstant(instant, ALIPAY_ZONE).format(ALIPAY_TIME_FORMAT);
     }
 
     public static String signAlipay(Map<String, String> params) {
@@ -109,6 +124,11 @@ public final class PaymentCallbackTestSupport {
 
     public static String timestamp() {
         return String.valueOf(System.currentTimeMillis() / 1000);
+    }
+
+    /** A Wechatpay-Timestamp header value that is the given seconds in the past. */
+    public static String timestampSecondsAgo(long seconds) {
+        return String.valueOf(System.currentTimeMillis() / 1000 - seconds);
     }
 
     private static String sign(String content) {

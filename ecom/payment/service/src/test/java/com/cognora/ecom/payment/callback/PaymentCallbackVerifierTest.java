@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -130,5 +132,72 @@ class PaymentCallbackVerifierTest {
         params.put("sign", PaymentCallbackTestSupport.signAlipay(params));
 
         assertThrows(PaymentCallbackException.class, () -> verifier.verifyAlipay(params));
+    }
+
+    @Test
+    void acceptsAlipayCallbackIssuedInsideTheReplayWindow() {
+        Map<String, String> params = PaymentCallbackTestSupport.alipayParams(
+                "PAY-1", "ALI-9", "10.00", "TRADE_SUCCESS");
+        params.put("notify_time", PaymentCallbackTestSupport.alipayNotifyTime(Instant.now()));
+        params.put("sign", PaymentCallbackTestSupport.signAlipay(params));
+
+        VerifiedPayment verified = verifier.verifyAlipay(params);
+
+        assertTrue(verified.success());
+        assertEquals("PAY-1", verified.paymentNo());
+    }
+
+    @Test
+    void rejectsAlipayCallbackIssuedOutsideTheReplayWindow() {
+        Map<String, String> params = PaymentCallbackTestSupport.alipayParams(
+                "PAY-1", "ALI-9", "10.00", "TRADE_SUCCESS");
+        params.put("notify_time", PaymentCallbackTestSupport.alipayNotifyTime(
+                Instant.now().minus(Duration.ofMinutes(10))));
+        params.put("sign", PaymentCallbackTestSupport.signAlipay(params));
+
+        PaymentCallbackException exception = assertThrows(PaymentCallbackException.class,
+                () -> verifier.verifyAlipay(params));
+
+        assertTrue(exception.getMessage().contains("window"));
+    }
+
+    @Test
+    void rejectsAlipayCallbackWithoutNotifyTime() {
+        Map<String, String> params = PaymentCallbackTestSupport.alipayParams(
+                "PAY-1", "ALI-9", "10.00", "TRADE_SUCCESS");
+        params.remove("notify_time");
+        params.put("sign", PaymentCallbackTestSupport.signAlipay(params));
+
+        PaymentCallbackException exception = assertThrows(PaymentCallbackException.class,
+                () -> verifier.verifyAlipay(params));
+
+        assertTrue(exception.getMessage().contains("notify_time"));
+    }
+
+    @Test
+    void acceptsWechatCallbackIssuedInsideTheReplayWindow() {
+        String body = PaymentCallbackTestSupport.wechatBody(
+                "PAY-1", "WX-1", new BigDecimal("10.00"), "SUCCESS");
+        String timestamp = PaymentCallbackTestSupport.timestamp();
+        String nonce = "nonce-1";
+        String signature = PaymentCallbackTestSupport.signWechat(timestamp, nonce, body);
+
+        VerifiedPayment verified = verifier.verifyWechat(body, timestamp, nonce, signature, null);
+
+        assertTrue(verified.success());
+    }
+
+    @Test
+    void rejectsWechatCallbackIssuedOutsideTheReplayWindow() {
+        String body = PaymentCallbackTestSupport.wechatBody(
+                "PAY-1", "WX-1", new BigDecimal("10.00"), "SUCCESS");
+        String timestamp = PaymentCallbackTestSupport.timestampSecondsAgo(600);
+        String nonce = "nonce-1";
+        String signature = PaymentCallbackTestSupport.signWechat(timestamp, nonce, body);
+
+        PaymentCallbackException exception = assertThrows(PaymentCallbackException.class,
+                () -> verifier.verifyWechat(body, timestamp, nonce, signature, null));
+
+        assertTrue(exception.getMessage().contains("window"));
     }
 }

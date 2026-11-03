@@ -51,8 +51,8 @@ rest:
     # HMAC 绛惧悕閰嶇疆
     signature:
       enabled: true
-      app-id: ${API_APP_ID:scm-internal-service}
-      secret-key: ${API_SECRET_INTERNAL_SERVICE:your-secret-key-here}
+      app-id: ${API_APP_ID:internal-service}
+      secret-key: ${API_SECRET_INTERNAL_SERVICE:}
       # 绛惧悕绠楁硶: HmacSHA256, HmacSHA512
       algorithm: HmacSHA256
       # 绛惧悕鏈夋晥鏈燂紙绉掞級锛岄槻姝㈤噸鏀炬敾鍑?      max-age: 300

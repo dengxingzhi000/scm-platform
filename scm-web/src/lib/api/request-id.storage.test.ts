@@ -8,6 +8,7 @@ function storageDenied() {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
   vi.resetModules();
   window.localStorage.clear();
 });
@@ -15,10 +16,10 @@ afterEach(() => {
 describe("resolveDeviceId with unavailable storage", () => {
   it("falls back to a module-level id when localStorage throws SecurityError", async () => {
     // Private mode, disabled cookies and some WebViews throw on every access.
-    const getItem = vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+    vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
       throw storageDenied();
     });
-    const setItem = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
       throw storageDenied();
     });
 
@@ -29,7 +30,10 @@ describe("resolveDeviceId with unavailable storage", () => {
 
     expect(first).toMatch(/^[0-9a-f]{32}$/);
     expect(second).toBe(first);
-    expect(getItem).toHaveBeenCalledWith(DEVICE_ID_KEY);
-    expect(setItem).toHaveBeenCalledWith(DEVICE_ID_KEY, first);
+    expect(window.localStorage.getItem).toHaveBeenCalled();
+    expect(vi.mocked(window.localStorage.setItem)).toHaveBeenCalledWith(
+      DEVICE_ID_KEY,
+      first
+    );
   });
 });

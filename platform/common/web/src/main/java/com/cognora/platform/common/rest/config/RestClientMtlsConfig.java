@@ -57,12 +57,6 @@ public class RestClientMtlsConfig {
     @Value("${security.mtls.truststore-password:${TRUSTSTORE_PASSWORD:changeit}}")
     private String truststorePassword;
 
-    @Value("${security.feign.app-id:${API_SECRET_INTERNAL_SERVICE:internal-service}}")
-    private String appId;
-
-    @Value("${security.feign.secret-key:${API_SECRET_INTERNAL_SECRET:your-internal-secret-key}}")
-    private String secretKey;
-
     @Value("${spring.http.client.connect-timeout:10000}")
     private int connectTimeout;
 

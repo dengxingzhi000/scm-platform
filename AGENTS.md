@@ -239,18 +239,49 @@ no service overrides them.
   (`POST /sys-audit-log`, Nacos name `scm-audit`); the RestClient interceptor
   forwards `X-Tenant-Id` and the caller's JWT, so the row lands in the caller's
   tenant. scm-audit persists directly.
-- Records with `riskLevel >= 3` (password reset, role/permission grant, delete,
-  lock, force logout) are additionally mirrored into
-  `sys_sensitive_operation_log` by `SysAuditLogServiceImpl.record()`; that table
-  has no other producer, so without this it stays empty. A mirror is skipped
-  when the record has no `userId` (`user_id` is NOT NULL) and never loses the
-  general audit row.
+- **The audit log is append-only and has no HTTP delete route.** `POST
+  /sys-audit-log` is the service-to-service write channel and is guarded by
+  `AuditWriteRequestGuard` (platform-audit): it verifies the shared HMAC signature
+  (`X-Timestamp`/`X-Nonce`/`X-Signature`/`X-App-Id`, HMAC-SHA256 over
+  timestamp+nonce+appId+uri+sorted query params, 5 minute clock-skew window)
+  and rejects anything unsigned with 403 through
+  `SecurityErrorResponseWriter`. The guard normalises the path before
+  comparing it (matrix parameters stripped, percent-decoded, trailing slash
+  dropped) because Spring matches on the *parsed* path — a raw
+  `getRequestURI()` comparison let `/sys-audit-log;x=1` through.
+  `POST /sys-sensitive-operation-log` was removed with it; the only producer is
+  `SysAuditLogServiceImpl.recordSensitiveOperation`.
+- **The signing secret is shared and mandatory.**
+  `InternalSignatureSecretResolver` (platform/common/web) resolves it from
+  `security.signature.app-secrets.internal-service` →
+  `API_SECRET_INTERNAL_SERVICE` → `security.feign.secret-key` →
+  `API_SECRET_INTERNAL_SECRET`, first non-blank wins. The signer
+  (`RestClientRequestSignatureInterceptor`) and the verifier
+  (`AuditWriteRequestGuard`) go through that one class, so they cannot drift.
+  `AuditWriteSecurityValidator` makes **the audit service refuse to start** when the
+  secret is blank or still a shipped placeholder — otherwise the write channel
+  would be protected by a public constant. Set `API_SECRET_INTERNAL_SERVICE` to
+  the same random value (>= 32 chars) on every service that reports audit
+  records; `docker-compose.yml` and the k8s manifests pass it from
+  `scm-secrets` / `.env`. The k8s Secret ships the placeholder `changeme`,
+  which the validator rejects on purpose.
 - **Delivery is best-effort.** `RemoteSysAuditLogService` logs and swallows any
   failure, and the aspect swallows the sink's exceptions in `finally`. A
   committed high-risk operation can therefore have no audit row when scm-audit is
   unreachable, and login/logout audits have no (or a revoked) token to forward.
   Fail-closed pre-writing or routing through the outbox is an open decision, not
   existing behaviour.
+- **Watch the two audit metrics.** `security_audit_delivery_failed_total` on
+  each caller counts swallowed delivery failures, and
+  `security_audit_write_rejected_total` on scm-audit counts rejected writes
+  (logged at ERROR with the caller id and remote address). A non-zero value on
+  either means auditing has stopped on that path.
+- Records with `riskLevel >= 3` (password reset, role/permission grant, delete,
+  lock, force logout) are additionally mirrored into
+  `sys_sensitive_operation_log` by `SysAuditLogServiceImpl.record()`; that table
+  has no other producer, so without this it stays empty. A mirror is skipped
+  when the record has no `userId` (`user_id` is NOT NULL) and never loses the
+  general audit row.
 - `AuditMetaObjectHandler` only fills properties the entity actually declares
   (`tenantId`, `createTime`, `updateTime`, `createBy`, `updateBy`, `deleted` are
   all optional) — append-only tables like the two audit logs and the join tables
@@ -372,6 +403,19 @@ chain bypass advice entirely — answer through
   (set in `scm-system`), `tenant.quota-checker.enabled`,
   `cognora.cache.two-level.enabled` and `datasync.enabled` (default off since its
   `KafkaTemplate<String,String>` injection can never resolve).
+- **There is exactly one way to mark a payment paid, and it is verified.**
+  `PaymentCallbackVerifier` checks the channel signature (Alipay RSA2, WeChat
+  RSA2 + AES-256-GCM resource), the merchant identity and a 5 minute replay
+  window on the callback timestamp (both channels). Only
+  `PaymentOrderServiceImpl.handleVerifiedPaymentCallback` may call
+  `applyPaid`; it matches channel *and* amount against the stored order. The
+  Dubbo API deliberately exposes **no** callback method — there is no
+  unauthenticated RPC that can mark a payment paid, because Dubbo calls carry
+  no gateway in front of them.
+- Payment amounts are normalised to two decimals (`BigDecimal` scale 2) and an
+  amount with more than two decimals is rejected rather than silently rounded;
+  the channels expect exactly two. The ceiling is
+  `PaymentAmount.MAX_AMOUNT` (`99999999.99`).
 
 ## Database
 
@@ -448,8 +492,30 @@ notification feed.
   A module that declares only `flyway-core` has no auto-configuration and will
   silently never run its migrations (the schema exists but
   `flyway_schema_history` is absent). Declare
-  `org.springframework.boot:spring-boot-starter-flyway` as well — `scm-supplier`
-  does.
+  `org.springframework.boot:spring-boot-starter-flyway` **and**
+  `org.flywaydb:flyway-database-postgresql` as well — `flyway-core:13.x` ships
+  only the H2 and SQLite database plugins, so without the PostgreSQL one the
+  service starts and then fails with *"No database found to handle
+  jdbc:postgresql…"*.
+  **This is now enforced by the build**: `com.scm.parent/pom.xml` runs a
+  `maven-antrun-plugin` check that fails any module owning
+  `src/main/resources/db/migration/*.sql` without `spring-boot-flyway` on its
+  compile classpath. If you add a migration to a module, add the starter too
+  or the build fails.
+- Every module that owns migrations also needs an explicit `spring.flyway`
+  block, because the databases are created by the bootstrap scripts and are
+  therefore **non-empty** when Flyway first connects:
+  `baseline-on-migrate: true` adopts the existing schema,
+  `baseline-version: 0` makes Flyway run the `V1` migration instead of
+  skipping it (the default `baseline-version: 1` skips it), and
+  `validate-on-migrate: true` + `out-of-order: false` are the platform rules.
+  `platform/file` and `platform/message` share `db_system`, so each uses its own history
+  table (`flyway_history_file`, `flyway_history_message`) — on the default
+  `flyway_schema_history` they would collide on version `1.0.0` with different
+  checksums and neither would start.
+- Migration files must be idempotent (`CREATE TABLE IF NOT EXISTS`,
+  `CREATE INDEX IF NOT EXISTS`, `ADD COLUMN IF NOT EXISTS`) because the
+  bootstrap script and the Flyway migration can both have created the objects.
 
 ### Partition / retention / quality
 

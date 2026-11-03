@@ -9,7 +9,7 @@ public interface DomainEvent {
     String getEventType();
     String getAggregateType();
     String getAggregateId();
-    Long getTenantId();
+    String getTenantId();
     Date getTimestamp();
     Map<String, Object> getPayload();
     

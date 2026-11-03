@@ -74,22 +74,13 @@ class PaymentOrderServiceImplTest {
     }
 
     @Test
-    void callbackIsIdempotentForPaidPayment() {
-        when(paymentOrderMapper.selectOne(any(Wrapper.class), eq(true)))
-                .thenReturn(pendingPayment().setStatus(2));
-
-        paymentService.handlePaymentCallback("PAY-1", "TXN-2");
-
-        verify(paymentOrderMapper, never()).updateById(any(PaymentOrder.class));
-    }
-
-    @Test
-    void callbackMarksPendingPaymentPaidAndStoresTransactionId() {
+    void verifiedCallbackMarksPendingPaymentPaidAndStoresTransactionId() {
         PaymentOrder pending = pendingPayment();
         when(paymentOrderMapper.selectOne(any(Wrapper.class), eq(true))).thenReturn(pending);
         when(paymentOrderMapper.updateById(any(PaymentOrder.class))).thenReturn(1);
 
-        paymentService.handlePaymentCallback("PAY-1", "TXN-1");
+        paymentService.handleVerifiedPaymentCallback(
+                "PAY-1", "TXN-1", new BigDecimal("10.00"), "alipay");
 
         assertEquals(2, pending.getStatus());
         assertEquals("TXN-1", pending.getTransactionId());
@@ -97,12 +88,13 @@ class PaymentOrderServiceImplTest {
     }
 
     @Test
-    void callbackRejectsCancelledPayment() {
+    void verifiedCallbackRejectsCancelledPayment() {
         when(paymentOrderMapper.selectOne(any(Wrapper.class), eq(true)))
                 .thenReturn(pendingPayment().setStatus(4));
 
         assertThrows(IllegalStateException.class,
-                () -> paymentService.handlePaymentCallback("PAY-1", "TXN-1"));
+                () -> paymentService.handleVerifiedPaymentCallback(
+                        "PAY-1", "TXN-1", new BigDecimal("10.00"), "alipay"));
     }
 
     @Test
@@ -139,6 +131,46 @@ class PaymentOrderServiceImplTest {
         assertThrows(IllegalArgumentException.class, () -> paymentService.createPayment(
                 "ORD-1", "user-1", new BigDecimal("100000000.00"), "ALIPAY"));
         verify(paymentOrderMapper, never()).selectOne(any(Wrapper.class), eq(true));
+    }
+
+    @Test
+    void createPaymentRejectsAmountWithMoreThanTwoDecimals() {
+        assertThrows(IllegalArgumentException.class, () -> paymentService.createPayment(
+                "ORD-1", "user-1", new BigDecimal("10.001"), "ALIPAY"));
+        verify(paymentOrderMapper, never()).insert(any(PaymentOrder.class));
+    }
+
+    @Test
+    void createPaymentStoresTheAmountWithTwoDecimals() {
+        when(paymentOrderMapper.selectOne(any(Wrapper.class), eq(true))).thenReturn(null);
+        when(paymentOrderMapper.insert(any(PaymentOrder.class))).thenReturn(1);
+
+        PaymentOrder result = paymentService.createPayment(
+                "ORD-1", "user-1", new BigDecimal("10"), "ALIPAY");
+
+        assertEquals(2, result.getAmount().scale());
+        assertEquals(new BigDecimal("10.00"), result.getAmount());
+    }
+
+    @Test
+    void createPaymentAcceptsTheSmallestAndLargestSupportedAmounts() {
+        when(paymentOrderMapper.selectOne(any(Wrapper.class), eq(true))).thenReturn(null);
+        when(paymentOrderMapper.insert(any(PaymentOrder.class))).thenReturn(1);
+
+        PaymentOrder smallest = paymentService.createPayment(
+                "ORD-1", "user-1", new BigDecimal("0.01"), "ALIPAY");
+        PaymentOrder largest = paymentService.createPayment(
+                "ORD-2", "user-1", new BigDecimal("99999999.99"), "ALIPAY");
+
+        assertEquals(new BigDecimal("0.01"), smallest.getAmount());
+        assertEquals(new BigDecimal("99999999.99"), largest.getAmount());
+    }
+
+    @Test
+    void createPaymentRejectsAmountBelowTheSmallestSupportedAmount() {
+        assertThrows(IllegalArgumentException.class, () -> paymentService.createPayment(
+                "ORD-1", "user-1", new BigDecimal("0.00"), "ALIPAY"));
+        verify(paymentOrderMapper, never()).insert(any(PaymentOrder.class));
     }
 
     @Test

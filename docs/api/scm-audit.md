@@ -6,23 +6,11 @@
 
 ## SensitiveOperationLog
 
-### POST /sys-sensitive-operation-log
-- 说明: 创建敏感操作日志
-- 描述: 写入一条敏感操作日志记录。
-- 请求体: `SysSensitiveOperationLog`
-- 响应: `SysSensitiveOperationLog`
-
 ### GET /sys-sensitive-operation-log/{id}
 - 说明: 查询敏感操作日志
 - 描述: 根据日志 ID 查询敏感操作日志详情。
 - 参数: `id`(path,必填: string)
 - 响应: `SysSensitiveOperationLog`
-
-### DELETE /sys-sensitive-operation-log/{id}
-- 说明: 删除敏感操作日志
-- 描述: 根据日志 ID 删除敏感操作日志记录。
-- 参数: `id`(path,必填: string)
-- 响应: `200,400,401,403,423,429,500`
 
 ### GET /sys-sensitive-operation-log/user/{userId}
 - 说明: 按用户查询敏感操作日志
@@ -55,12 +43,6 @@
 - 描述: 根据日志 ID 查询审计日志详情。
 - 参数: `id`(path,必填: string)
 - 响应: `SysAuditLog`
-
-### DELETE /sys-audit-log/{id}
-- 说明: 删除审计日志
-- 描述: 根据日志 ID 删除审计日志记录。
-- 参数: `id`(path,必填: string)
-- 响应: `200,400,401,403,423,429,500`
 
 ### GET /sys-audit-log/user/{userId}
 - 说明: 按用户查询审计日志
