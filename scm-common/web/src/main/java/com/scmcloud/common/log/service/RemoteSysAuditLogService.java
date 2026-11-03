@@ -2,8 +2,10 @@ package com.scmcloud.common.log.service;
 
 import com.scmcloud.common.log.dto.AuditLogRecord;
 import com.scmcloud.common.rest.client.SysAuditServiceClient;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -18,12 +20,21 @@ import java.util.UUID;
  * <p>Delivery is best-effort: a failed audit call is logged and swallowed so it can never break
  * the business operation. Calls made before a token exists (e.g. login failures) have no
  * authenticated context and will fall back to the log line.
+ *
+ * <p>Because the failure is swallowed, every rejected delivery is counted
+ * ({@code security.audit.delivery.failed}) so an operator can see that auditing stopped on this
+ * service instead of only finding a WARN line in the log.
  */
 @Slf4j
 @RequiredArgsConstructor
 public class RemoteSysAuditLogService implements ISysAuditLogService {
 
+    /** Deliveries that scm-audit refused or that never arrived; watch it per service. */
+    static final String METRIC_DELIVERY_FAILED = "security.audit.delivery.failed";
+
     private final SysAuditServiceClient auditServiceClient;
+
+    private final @Nullable MeterRegistry meterRegistry;
 
     @Override
     public void record(AuditLogRecord record) {
@@ -33,6 +44,9 @@ public class RemoteSysAuditLogService implements ISysAuditLogService {
         try {
             auditServiceClient.create(record);
         } catch (Exception e) {
+            if (meterRegistry != null) {
+                meterRegistry.counter(METRIC_DELIVERY_FAILED).increment();
+            }
             log.warn("Audit record delivery failed: type={}, desc={}, user={}: {}",
                     sanitize(record.getOperationType()), sanitize(record.getOperationDesc()),
                     sanitize(record.getUsername()), e.getMessage());
