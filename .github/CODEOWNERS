@@ -3,8 +3,8 @@
 #
 # NOTE — Dual remote setup:
 #   This repo has two push remotes:
-#     origin  → https://github.com/dengxingzhi000/scm-platform  (personal)
-#     cognora → https://github.com/CognoraAura/scm-platform     (org)
+#     origin  → https://github.com/dengxingzhi000/cognora-aura-platform  (personal)
+#     cognora → https://github.com/CognoraAura/scm-platform              (org)
 #   Team handles below (@CognoraAura/...) only resolve on the `cognora`
 #   remote. When pushing to `origin` (personal), auto-assignment silently
 #   falls back to the repo default reviewer list. If you standardise on
@@ -15,12 +15,12 @@
 * @CognoraAura/developers
 
 # Backend services
-scm-order/ @CognoraAura/developers
-scm-inventory/ @CognoraAura/developers
-scm-product/ @CognoraAura/developers
-scm-auth/ @CognoraAura/developers
-scm-gateway/ @CognoraAura/developers
-scm-common/ @CognoraAura/developers
+scm/order/ @CognoraAura/developers
+platform/inventory/ @CognoraAura/developers
+platform/product/ @CognoraAura/developers
+platform/auth/ @CognoraAura/developers
+platform/gateway/ @CognoraAura/developers
+platform/common/ @CognoraAura/developers
 
 # DevOps and infrastructure
 deploy/ @CognoraAura/ops
