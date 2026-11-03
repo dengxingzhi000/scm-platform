@@ -45,24 +45,31 @@ spring:
                 allowCredentials: true
                 maxAge: 3600
           routes:
-            - id: auth-service
-              uri: lb://auth-service
+            # Explicit routes must win over the discovery locator, which also
+            # exposes /<service-id>/** for platform-auth and platform-system.
+            - id: platform-auth
+              uri: lb://platform-auth
               predicates:
-                - Path=/auth/**
+                - Path=/platform-auth/**
               filters:
                 - StripPrefix=1
-            - id: system-service
-              uri: lb://system-service
+              order: -1
+            - id: platform-system
+              uri: lb://platform-system
               predicates:
-                - Path=/system/**
+                - Path=/platform-system/**
               filters:
                 - StripPrefix=1
-            - id: common-service
-              uri: lb://common-service
+              order: -1
+            # Legacy route kept for callers that still use /common/**; no
+            # provider registers as platform-common today.
+            - id: platform-common
+              uri: lb://platform-common
               predicates:
-                - Path=/common/**
+                - Path=/platform-common/**
               filters:
                 - StripPrefix=1
+              order: -1
 
 security:
   signature:
@@ -72,12 +79,12 @@ security:
     nonce-ttl: 5m
     nonce-key-prefix: "api:nonce:"
     whitelist:
-      - /auth/**
+      - /platform-auth/**
       - /public/**
       - /actuator/**
       # Payment channels call without the platform HMAC headers; the payment
       # service verifies the Alipay RSA2 / WeChat Pay v3 signature instead.
-      - /scm-payment/api/v1/payments/callback/**
+      - /ecom-payment/api/v1/payments/callback/**
     app-secrets:
       # SECURITY: Secrets MUST be provided via environment variables in production
       # Remove default values to enforce secure configuration

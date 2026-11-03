@@ -16,16 +16,16 @@ spring:
             locator:
               enabled: false
           routes:
-            - id: auth-service
+            - id: platform-auth
               uri: http://localhost:8106
               predicates:
-                - Path=/auth/**
+                - Path=/platform-auth/**
               filters:
                 - StripPrefix=1
-            - id: system-service
+            - id: platform-system
               uri: http://localhost:8107
               predicates:
-                - Path=/system/**
+                - Path=/platform-system/**
               filters:
                 - StripPrefix=1
 
@@ -40,7 +40,7 @@ security:
     nonce-ttl: 5m
     nonce-key-prefix: "api:nonce:"
     whitelist:
-      - /auth/**
+      - /platform-auth/**
       - /public/**
       - /actuator/**
     # Local dev app secrets, replace with config-center values in production

@@ -531,10 +531,10 @@ npm run test:e2e     # Playwright
   npm's `.bin/tsc` may point at the TS 6 shim.
 - API base URL: `NEXT_PUBLIC_API_BASE_URL`, consumed by
   `src/lib/api/client.ts`. Gateway routes strip their first segment: auth is
-  `/auth/api/auth/**` → `/api/auth/**`, system is `/system/api/system/**` →
+  `/platform-auth/api/auth/**` → `/api/auth/**`, system is `/platform-system/api/system/**` →
   `/api/system/**`. The local `.env.local` leaves the variable empty so axios
   calls the Next origin and the rewrites in `next.config.ts` proxy each
-  `/scm-<service>/**` prefix to its `API_<SERVICE>_TARGET`. Point it at the
+  `/<project>-<domain>/**` prefix to its `API_<SERVICE>_TARGET`. Point it at the
   gateway (`http://localhost:8761`) to bypass the rewrites. Supplier, purchase,
   warehouse, logistics, finance, notify and analytics have their own targets;
   the defaults are the ports in the Ports table.
@@ -569,14 +569,14 @@ npm run test:e2e     # Playwright
   parameters".
 - Gateway path model: only `auth` / `system` / `common` have explicit routes
   (`StripPrefix=1`), everything else is reached through the Nacos discovery
-  locator as `/scm-<service>/**`. So the frontend calls
-  `/auth/api/auth/**`, `/system/api/system/**`,
-  `/scm-order/api/v1/**`, `/scm-inventory/api/v1/**`,
+  locator as `/<project>-<domain>/**`. So the frontend calls
+  `/platform-auth/api/auth/**`, `/platform-system/api/system/**`,
+  `/scm-order/api/v1/**`, `/platform-inventory/api/v1/**`,
   `/scm-supplier/api/v1/**`, `/scm-purchase/api/v1/**`,
-  `/scm-logistics/api/v1/**`, `/scm-warehouse/wms-*/**`,
-  `/scm-finance/**`, `/scm-notify/**`, `/scm-approval/**`,
-  `/scm-audit/**`, `/scm-tenant/**`, `/scm-document/api/v1/**`,
-  `/scm-file/**` and `/scm-analytics/api/v1/**`.
+  `/lms-tms/api/v1/**`, `/scm-warehouse/wms-*/**`,
+  `/scm-finance/**`, `/platform-notify/**`, `/platform-approval/**`,
+  `/platform-audit/**`, `/platform-tenant/**`, `/platform-document/api/v1/**`,
+  `/platform-file/**` and `/ecom-analytics/api/v1/**`.
 - The business screens are all wired to real gateway APIs now. Dashboard,
   finance, logistics, supplier, notification, purchase and warehouse no longer
   ship in-file mock arrays; their feature services map backend DTOs in

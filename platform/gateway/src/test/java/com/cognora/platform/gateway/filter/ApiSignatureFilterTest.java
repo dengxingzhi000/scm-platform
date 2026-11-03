@@ -126,9 +126,9 @@ class ApiSignatureFilterTest {
 
     @Test
     void bypassesPaymentCallbackPathsThatAreVerifiedDownstream() {
-        properties.setWhitelist(List.of("/scm-payment/api/v1/payments/callback/**"));
+        properties.setWhitelist(List.of("/ecom-payment/api/v1/payments/callback/**"));
         MockServerHttpRequest request = MockServerHttpRequest
-                .post("/scm-payment/api/v1/payments/callback/alipay")
+                .post("/ecom-payment/api/v1/payments/callback/alipay")
                 .build();
         MockServerWebExchange exchange = MockServerWebExchange.from(request);
         AtomicBoolean proceeded = new AtomicBoolean(false);

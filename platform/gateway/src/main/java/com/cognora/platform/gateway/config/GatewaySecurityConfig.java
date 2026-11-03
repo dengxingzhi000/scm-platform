@@ -24,7 +24,7 @@ import java.nio.charset.StandardCharsets;
 /**
  * Gateway OAuth2配置
  *
- * <p>注意：客户端实际通过 {@code /auth/**}、{@code /system/**}、{@code /common/**}
+ * <p>注意：客户端实际通过 {@code /platform-auth/**}、{@code /platform-system/**}、{@code /platform-common/**}
  * 前缀访问网关（路由级 StripPrefix=1 后再转发到下游），因此在网关层放行的路径
  * 必须与这些真实前缀对齐。
  */
@@ -40,13 +40,13 @@ public class GatewaySecurityConfig {
                 .authorizeExchange(exchanges -> exchanges
                         // 认证服务的登录/刷新/OAuth2 授权端点（登录本身不能要求已认证）
                         .pathMatchers(
-                                "/auth/api/auth/login",
-                                "/auth/api/auth/refresh",
-                                "/auth/oauth2/**",
-                                "/auth/api/public/**",
+                                "/platform-auth/api/auth/login",
+                                "/platform-auth/api/auth/refresh",
+                                "/platform-auth/oauth2/**",
+                                "/platform-auth/api/public/**",
                                 // Channel callbacks carry no platform JWT; the payment
                                 // service authenticates them with the channel signature.
-                                "/scm-payment/api/v1/payments/callback/**"
+                                "/ecom-payment/api/v1/payments/callback/**"
                         ).permitAll()
                         .pathMatchers("/actuator/health", "/actuator/info").permitAll()
                         .anyExchange().authenticated()

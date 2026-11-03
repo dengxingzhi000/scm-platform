@@ -18,7 +18,7 @@ groups:
         for: 5m
         labels:
           severity: warning
-          service: system-service
+          service: platform-system
           category: performance
         annotations:
           summary: "High CQRS query latency detected"
@@ -34,7 +34,7 @@ groups:
         for: 2m
         labels:
           severity: critical
-          service: system-service
+          service: platform-system
           category: performance
         annotations:
           summary: "CRITICAL: CQRS query latency exceeds 1s"
@@ -51,7 +51,7 @@ groups:
         for: 3m
         labels:
           severity: warning
-          service: system-service
+          service: platform-system
           category: performance
         annotations:
           summary: "P99 latency spike detected"
@@ -72,7 +72,7 @@ groups:
         for: 5m
         labels:
           severity: warning
-          service: system-service
+          service: platform-system
           category: reliability
         annotations:
           summary: "High CQRS error rate detected"
@@ -90,7 +90,7 @@ groups:
         for: 2m
         labels:
           severity: critical
-          service: system-service
+          service: platform-system
           category: reliability
         annotations:
           summary: "CRITICAL: CQRS error rate exceeds 5%"
@@ -114,7 +114,7 @@ groups:
         for: 1m
         labels:
           severity: warning
-          service: system-service
+          service: platform-system
           category: reliability
         annotations:
           summary: "Sudden spike in CQRS errors detected"
@@ -135,7 +135,7 @@ groups:
         for: 10m
         labels:
           severity: warning
-          service: system-service
+          service: platform-system
           category: performance
         annotations:
           summary: "Low cache hit rate detected"
@@ -153,7 +153,7 @@ groups:
         for: 5m
         labels:
           severity: critical
-          service: system-service
+          service: platform-system
           category: performance
         annotations:
           summary: "CRITICAL: Cache hit rate below 40%"
@@ -167,7 +167,7 @@ groups:
         for: 5m
         labels:
           severity: warning
-          service: system-service
+          service: platform-system
           category: performance
         annotations:
           summary: "High cache eviction rate detected"
@@ -189,7 +189,7 @@ groups:
         for: 5m
         labels:
           severity: warning
-          service: system-service
+          service: platform-system
           category: database
         annotations:
           summary: "High database connection pool usage"
@@ -207,7 +207,7 @@ groups:
         for: 2m
         labels:
           severity: critical
-          service: system-service
+          service: platform-system
           category: database
         annotations:
           summary: "CRITICAL: Connection pool near exhaustion"
@@ -223,7 +223,7 @@ groups:
         for: 5m
         labels:
           severity: warning
-          service: system-service
+          service: platform-system
           category: database
         annotations:
           summary: "Slow database connection acquisition"
@@ -236,7 +236,7 @@ groups:
         for: 3m
         labels:
           severity: warning
-          service: system-service
+          service: platform-system
           category: database
         annotations:
           summary: "Threads waiting for database connections"
@@ -260,7 +260,7 @@ groups:
         for: 10m
         labels:
           severity: critical
-          service: system-service
+          service: platform-system
           category: database
         annotations:
           summary: "Read-write separation failure: No slave traffic detected"
@@ -278,7 +278,7 @@ groups:
         for: 15m
         labels:
           severity: warning
-          service: system-service
+          service: platform-system
           category: database
         annotations:
           summary: "High proportion of master database traffic"
@@ -295,7 +295,7 @@ groups:
         for: 10m
         labels:
           severity: warning
-          service: system-service
+          service: platform-system
           category: availability
         annotations:
           summary: "Unusually low CQRS request rate"
@@ -311,7 +311,7 @@ groups:
         for: 2m
         labels:
           severity: warning
-          service: system-service
+          service: platform-system
           category: security
         annotations:
           summary: "Sudden spike in CQRS request rate"
@@ -330,7 +330,7 @@ groups:
         for: 5m
         labels:
           severity: warning
-          service: system-service
+          service: platform-system
           category: performance
         annotations:
           summary: "Slow menu tree query detected"
@@ -345,7 +345,7 @@ groups:
         for: 5m
         labels:
           severity: warning
-          service: system-service
+          service: platform-system
           category: performance
         annotations:
           summary: "Slow department hierarchy query detected"
@@ -360,7 +360,7 @@ groups:
         for: 5m
         labels:
           severity: warning
-          service: system-service
+          service: platform-system
           category: performance
         annotations:
           summary: "Slow batch user count query detected"
@@ -374,14 +374,14 @@ groups:
       - alert: HighJVMHeapUsage
         expr: |
           (
-            jvm_memory_used_bytes{area="heap",application="system-service"}
+            jvm_memory_used_bytes{area="heap",application="platform-system"}
             /
-            jvm_memory_max_bytes{area="heap",application="system-service"}
+            jvm_memory_max_bytes{area="heap",application="platform-system"}
           ) > 0.85
         for: 5m
         labels:
           severity: warning
-          service: system-service
+          service: platform-system
           category: resource
         annotations:
           summary: "High JVM heap usage detected"
@@ -390,14 +390,14 @@ groups:
       # High GC Pause Time
       - alert: HighGCPauseTime
         expr: |
-          rate(jvm_gc_pause_seconds_sum{application="system-service"}[5m])
+          rate(jvm_gc_pause_seconds_sum{application="platform-system"}[5m])
           /
-          rate(jvm_gc_pause_seconds_count{application="system-service"}[5m])
+          rate(jvm_gc_pause_seconds_count{application="platform-system"}[5m])
           > 0.1
         for: 5m
         labels:
           severity: warning
-          service: system-service
+          service: platform-system
           category: resource
         annotations:
           summary: "High GC pause time detected"
@@ -410,11 +410,11 @@ groups:
       # Service Down
       - alert: SystemServiceDown
         expr: |
-          up{job="scm-system-service"} == 0
+          up{job="platform-platform-system"} == 0
         for: 1m
         labels:
           severity: critical
-          service: system-service
+          service: platform-system
           category: availability
         annotations:
           summary: "System service is down"
@@ -424,10 +424,10 @@ groups:
       # Service Restart Detected
       - alert: SystemServiceRestarted
         expr: |
-          changes(process_start_time_seconds{application="system-service"}[5m]) > 0
+          changes(process_start_time_seconds{application="platform-system"}[5m]) > 0
         labels:
           severity: info
-          service: system-service
+          service: platform-system
           category: availability
         annotations:
           summary: "System service restarted"
