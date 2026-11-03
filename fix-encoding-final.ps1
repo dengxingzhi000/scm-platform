@@ -35,7 +35,7 @@ Get-ChildItem -Recurse -Filter "*.java" | Where-Object {
     if ($changed) {
         [System.IO.File]::WriteAllBytes($path, $bytes)
         $fixedFiles++
-        Write-Host "Fixed: $($path.Replace('D:\ProgramProject\scm-platform\', ''))"
+        Write-Host "Fixed: $(Resolve-Path -LiteralPath $path -Relative)"
     }
 }
 
