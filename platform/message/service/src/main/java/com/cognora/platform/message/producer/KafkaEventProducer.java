@@ -16,7 +16,7 @@ public class KafkaEventProducer {
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper objectMapper;
     
-    private static final String TOPIC_PREFIX = "scm.";
+    private static final String TOPIC_PREFIX = "cognora.";
     
     public CompletableFuture<SendResult<String, String>> send(DomainEvent event) {
         String topic = TOPIC_PREFIX + event.getAggregateType().toLowerCase() + ".events";
