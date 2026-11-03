@@ -11,7 +11,7 @@ public class DomainEventDTO implements Serializable {
     private String eventType;
     private String aggregateType;
     private String aggregateId;
-    private Long tenantId;
+    private String tenantId;
     private Date timestamp;
     private Map<String, Object> payload;
 }
