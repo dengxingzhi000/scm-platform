@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
+import java.util.Locale;
 import java.util.Set;
 
 /**
@@ -49,37 +50,36 @@ public class AuditWriteSecurityValidator {
         String secret = secretResolver.resolveSecret();
 
         if (!StringUtils.hasText(secret)) {
-            throw new IllegalStateException("""
-                    scm-audit refuses to start: the internal audit write channel (POST /sys-audit-log) \
-                    has no signature secret.
-
-                    Set API_SECRET_INTERNAL_SERVICE (or security.signature.app-secrets.internal-service) \
-                    to the same random value on every service that reports audit records, \
-                    then start scm-audit again.""");
+            throw new IllegalStateException(
+                    "the audit service refuses to start: the internal audit write channel "
+                            + "(POST /sys-audit-log) has no signature secret. "
+                            + "Set API_SECRET_INTERNAL_SERVICE (or "
+                            + "security.signature.app-secrets.internal-service) to the same random value "
+                            + "on every service that reports audit records, then start the audit service "
+                            + "again.");
         }
 
         if (FORBIDDEN_SECRETS.contains(secret.trim())) {
-            throw new IllegalStateException("""
-                    scm-audit refuses to start: the internal audit write channel (POST /sys-audit-log) \
-                    still uses a shipped placeholder secret.
-
-                    Set API_SECRET_INTERNAL_SERVICE (or security.signature.app-secrets.internal-service) \
-                    to a random value of at least 32 characters on every service that reports \
-                    audit records, then start scm-audit again.""");
+            throw new IllegalStateException(
+                    "the audit service refuses to start: the internal audit write channel "
+                            + "(POST /sys-audit-log) still uses a shipped placeholder secret. "
+                            + "Set API_SECRET_INTERNAL_SERVICE (or "
+                            + "security.signature.app-secrets.internal-service) to a random value of "
+                            + "at least 32 characters on every service that reports audit records, "
+                            + "then start the audit service again.");
         }
 
-        String lower = secret.toLowerCase(java.util.Locale.ROOT);
+        String lower = secret.toLowerCase(Locale.ROOT);
         for (String fragment : FORBIDDEN_FRAGMENTS) {
             if (lower.contains(fragment)) {
-                throw new IllegalStateException("""
-                        scm-audit refuses to start: the internal audit write channel \
-                        (POST /sys-audit-log) still uses a shipped placeholder secret \
-                        (it contains '""" + fragment + """').
-
-                        Set API_SECRET_INTERNAL_SERVICE (or \
-                        security.signature.app-secrets.internal-service) to a random value of \
-                        at least 32 characters on every service that reports audit records, \
-                        then start scm-audit again.""");
+                throw new IllegalStateException(
+                        "the audit service refuses to start: the internal audit write channel "
+                                + "(POST /sys-audit-log) still uses a shipped placeholder secret "
+                                + "(it contains '" + fragment + "'). "
+                                + "Set API_SECRET_INTERNAL_SERVICE (or "
+                                + "security.signature.app-secrets.internal-service) to a random value of "
+                                + "at least 32 characters on every service that reports audit records, "
+                                + "then start the audit service again.");
             }
         }
 

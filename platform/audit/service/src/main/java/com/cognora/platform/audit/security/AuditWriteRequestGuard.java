@@ -24,13 +24,21 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * 瀹¤鍐欏叆鍏ュ彛鐨勮皟鐢ㄦ柟鏍￠獙銆? *
- * <p>{@code POST /sys-audit-log} 鏄?scm-common 鐨?{@code SysAuditServiceClient} 浣跨敤鐨勬湇鍔￠棿鍐欏叆閫氶亾锛? * 璋冪敤鏂逛細鎼哄甫 {@code RestClientRequestSignatureInterceptor} 鐢熸垚鐨?HMAC 澶淬€傛湰杩囨护鍣ㄥ彧鏀捐甯﹀悎娉? * 绛惧悕鐨勫唴閮ㄨ皟鐢紝闃叉浠绘剰鐧诲綍鐢ㄦ埛浼€?鍒犻櫎瀹¤璁板綍銆傛牎楠岀畻娉曚笌鎷︽埅鍣ㄤ繚鎸佷竴鑷达細
+ * 审计写入入口的调用方校验。
+ *
+ * <p>{@code POST /sys-audit-log} 是 scm-common 的 {@code SysAuditServiceClient} 使用的服务间写入通道，
+ * 调用方会携带 {@code RestClientRequestSignatureInterceptor} 生成的 HMAC 头。本过滤器只放行带合法
+ * 签名的内部调用，防止任意登录用户伪造/删除审计记录。校验算法与拦截器保持一致：
  * <pre>signature = HMAC-SHA256(secretKey, timestamp + nonce + appId + uri + sortedParams)</pre>
  *
- * <p>瀵嗛挜鐢?{@link InternalSignatureSecretResolver} 瑙ｆ瀽锛岀鍚嶆柟涓庢湰鏍￠獙鏂硅鍚屼竴涓€硷紱缂哄け鏃? * {@link AuditWriteSecurityValidator} 浼氳鏈嶅姟鐩存帴鍚姩澶辫触锛岃€屼笉鏄€€鍥炲埌浠撳簱閲岀殑甯搁噺銆? *
- * <p>璺緞鍖归厤鎸?Spring MVC 鐨勮鍒欏綊涓€鍖栵紙瑙ｇ爜銆佸幓鎺夌煩闃靛弬鏁般€佸幓鎺夋湯灏炬枩鏉狅級锛? * {@code /sys-audit-log;x=1}銆亄@code /%73ys-audit-log} 杩欑被鍙樹綋涓嶄細缁曡繃绛惧悕鏍￠獙銆? *
- * <p>鏈牎楠?nonce 閲嶆斁锛歴cm-audit 涓嶄緷璧?Redis銆傛椂闂存埑绐楀彛闄愬埗涓?5 鍒嗛挓銆? */
+ * <p>密钥由 {@link InternalSignatureSecretResolver} 解析，签名方与本校验方读同一个值；缺失时
+ * {@link AuditWriteSecurityValidator} 会让服务直接启动失败，而不是退回到仓库里的常量。
+ *
+ * <p>路径匹配按 Spring MVC 的规则归一化（解码、去掉矩阵参数、去掉末尾斜杠），
+ * {@code /sys-audit-log;x=1}、{@code /%73ys-audit-log} 这类变体不会绕过签名校验。
+ *
+ * <p>未校验 nonce 重放：scm-audit 不依赖 Redis。时间戳窗口限制为 5 分钟。
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -38,7 +46,7 @@ public class AuditWriteRequestGuard extends OncePerRequestFilter {
 
     static final String WRITE_PATH = "/sys-audit-log";
 
-    /** 琚嫆缁濈殑鍐欏叆娆℃暟锛岃繍缁村湪 scm-audit 涓婅瀵熻鎸囨爣銆?*/
+    /** 被拒绝的写入次数，运维在 scm-audit 上观察该指标。 */
     static final String METRIC_REJECTED = "security.audit.write.rejected";
 
     private static final long MAX_CLOCK_SKEW_MILLIS = 5 * 60 * 1000L;
@@ -87,7 +95,8 @@ public class AuditWriteRequestGuard extends OncePerRequestFilter {
             return false;
         }
 
-        // 绛惧悕缁戝畾鐨勬槸鏀跺埌鐨勫師濮嬭姹傜洰鏍囷細鍚屼竴浠界鍚嶆棤娉曡閲嶆斁鍒板彟涓€绉嶅啓娉曚笂銆?        String signContent = timestamp + nonce + appId + request.getRequestURI()
+        // 签名绑定的是收到的原始请求目标：同一份签名无法被重放到另一种写法上。
+        String signContent = timestamp + nonce + appId + request.getRequestURI()
                 + sortAndConcatParams(request.getQueryString());
         String expected = SecureUtil.hmac(HmacAlgorithm.HmacSHA256, secretKey.getBytes(StandardCharsets.UTF_8))
                 .digestHex(signContent);
@@ -96,16 +105,22 @@ public class AuditWriteRequestGuard extends OncePerRequestFilter {
     }
 
     /**
-     * 鍒ゆ柇璇锋眰鏄惁鎸囧悜瀹¤鍐欏叆鍏ュ彛銆?     *
-     * <p>Spring MVC 鐢ㄣ€岃В鐮佸悗銆佸幓鎺夌煩闃靛弬鏁般€嶇殑璺緞鍋氬尮閰嶏紝鎵€浠?{@code /sys-audit-log;x=1}銆?     * {@code /%73ys-audit-log} 涓?{@code /sys-audit-log/} 閮戒細钀藉埌鍚屼竴涓?Controller銆傜洿鎺ユ瘮杈?     * {@code getRequestURI()} 浼氳杩欎簺鍙樹綋缁曡繃绛惧悕鏍￠獙銆?     */
+     * 判断请求是否指向审计写入入口。
+     *
+     * <p>Spring MVC 用「解码后、去掉矩阵参数」的路径做匹配，所以 {@code /sys-audit-log;x=1}、
+     * {@code /%73ys-audit-log} 与 {@code /sys-audit-log/} 都会落到同一个 Controller。直接比较
+     * {@code getRequestURI()} 会让这些变体绕过签名校验。
+     */
     private boolean isAuditWritePath(String rawUri) {
         String normalized = normalizePath(rawUri);
-        // 鏃犳硶瑙ｇ爜鐨勮矾寰勬寜鍐欏叆灏濊瘯澶勭悊锛坒ail closed锛夛細瀹佸彲璇嫆锛屼篃涓嶈兘鏀捐繃銆?        return normalized == null || WRITE_PATH.equals(normalized);
+        // 无法解码的路径按写入尝试处理（fail closed）：宁可误拒，也不能放过。
+        return normalized == null || WRITE_PATH.equals(normalized);
     }
 
     /**
-     * 鎸?Spring 鐨勫尮閰嶈鍒欏綊涓€鍖栬矾寰勶細瑙ｇ爜銆佸幓鎺夌煩闃靛弬鏁般€佸幓鎺夋湯灏炬枩鏉犮€?     *
-     * @return 褰掍竴鍖栧悗鐨勮矾寰勶紱璺緞鏃犳硶瑙ｇ爜鏃惰繑鍥?{@code null}
+     * 按 Spring 的匹配规则归一化路径：解码、去掉矩阵参数、去掉末尾斜杠。
+     *
+     * @return 归一化后的路径；路径无法解码时返回 {@code null}
      */
     static String normalizePath(String rawUri) {
         if (rawUri == null) {

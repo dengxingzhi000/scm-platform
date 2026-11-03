@@ -36,48 +36,48 @@ import java.util.Map;
 @Validated
 @RestController
 @RequestMapping("/api/v1/payments")
-@Tag(name = "鏀粯绠＄悊", description = "鎻愪緵鏀粯鍗曞垱寤恒€佹煡璇€佸垎椤点€佸彇娑堜笌鏀粯娓犻亾鍥炶皟澶勭悊鎺ュ彛銆?)
+@Tag(name = "支付管理", description = "提供支付单创建、查询、分页、取消与支付渠道回调处理接口。")
 public class PaymentController {
 
     private final IPaymentOrderService paymentService;
     private final ObjectMapper objectMapper;
     private final PaymentCallbackVerifier callbackVerifier;
 
-    @Operation(summary = "鍒嗛〉鏌ヨ鏀粯鍗?, description = "鎸夎鍗曞彿銆佺敤鎴枫€佹笭閬撲笌鐘舵€佸垎椤垫煡璇㈡敮浠樺崟銆?)
+    @Operation(summary = "分页查询支付单", description = "按订单号、用户、渠道与状态分页查询支付单。")
     @GetMapping("/page")
     public Page<PaymentOrder> page(
-            @Parameter(description = "椤电爜锛岄粯璁?1") @RequestParam(defaultValue = "1") @Min(1) int page,
-            @Parameter(description = "姣忛〉鏁伴噺锛岄粯璁?20锛屾渶澶?100") @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
-            @Parameter(description = "璁㈠崟鍙凤紙妯＄硦锛?) @RequestParam(required = false) String orderNo,
-            @Parameter(description = "鐢ㄦ埛 ID") @RequestParam(required = false) String userId,
-            @Parameter(description = "鏀粯娓犻亾") @RequestParam(required = false) String paymentChannel,
-            @Parameter(description = "鐘舵€侊細1-寰呮敮浠橈紝2-宸叉敮浠橈紝3-澶辫触锛?-宸插彇娑?) @RequestParam(required = false) Integer status) {
+            @Parameter(description = "页码，默认 1") @RequestParam(defaultValue = "1") @Min(1) int page,
+            @Parameter(description = "每页数量，默认 20，最大 100") @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
+            @Parameter(description = "订单号（模糊）") @RequestParam(required = false) String orderNo,
+            @Parameter(description = "用户 ID") @RequestParam(required = false) String userId,
+            @Parameter(description = "支付渠道") @RequestParam(required = false) String paymentChannel,
+            @Parameter(description = "状态：1-待支付，2-已支付，3-失败，4-已取消") @RequestParam(required = false) Integer status) {
         return paymentService.pageQuery(page, size, orderNo, userId, paymentChannel, status);
     }
 
-    @Operation(summary = "鍒涘缓鏀粯鍗?, description = "鏍规嵁璁㈠崟鍙枫€佺敤鎴枫€侀噾棰濅笌鏀粯娓犻亾鍒涘缓鏀粯鍗曪紱鍚岃鍗曞悓娓犻亾閲嶅璇锋眰杩斿洖宸叉湁寰呮敮浠樺崟銆?)
+    @Operation(summary = "创建支付单", description = "根据订单号、用户、金额与支付渠道创建支付单；同订单同渠道重复请求返回已有待支付单。")
     @PostMapping("/create")
     public PaymentOrder createPayment(@Valid @RequestBody CreatePaymentRequest request) {
         log.info("[API] Create payment: orderNo={}, amount={}", (request.getOrderNo() + "").replace("\r", "_").replace("\n", "_"), (request.getAmount() + "").replace("\r", "_").replace("\n", "_"));
         return paymentService.createPayment(request.getOrderNo(), request.getUserId(), request.getAmount(), request.getPaymentChannel());
     }
 
-    @Operation(summary = "鏌ヨ鏀粯鍗?, description = "鏍规嵁鏀粯鍗曞彿鏌ヨ鏀粯鍗曡鎯呫€?)
+    @Operation(summary = "查询支付单", description = "根据支付单号查询支付单详情。")
     @GetMapping("/{paymentNo}")
-    public PaymentOrder queryPayment(@Parameter(description = "鏀粯鍗曞彿") @PathVariable String paymentNo) {
+    public PaymentOrder queryPayment(@Parameter(description = "支付单号") @PathVariable String paymentNo) {
         log.info("[API] Query payment: paymentNo={}", (paymentNo + "").replace("\r", "_").replace("\n", "_"));
         return paymentService.queryPayment(paymentNo);
     }
 
-    @Operation(summary = "鍙栨秷鏀粯鍗?, description = "鏍规嵁鏀粯鍗曞彿鍙栨秷灏氭湭瀹屾垚鐨勬敮浠樸€?)
+    @Operation(summary = "取消支付单", description = "根据支付单号取消尚未完成的支付。")
     @PostMapping("/{paymentNo}/cancel")
-    public boolean cancelPayment(@Parameter(description = "鏀粯鍗曞彿") @PathVariable String paymentNo) {
+    public boolean cancelPayment(@Parameter(description = "支付单号") @PathVariable String paymentNo) {
         log.info("[API] Cancel payment: paymentNo={}", (paymentNo + "").replace("\r", "_").replace("\n", "_"));
         paymentService.cancelPayment(paymentNo);
         return true;
     }
 
-    @Operation(summary = "鏀粯瀹濇敮浠樺洖璋?, description = "楠岀鏀粯瀹濆紓姝ラ€氱煡锛屾牎楠屽晢鎴峰彿涓庢湰鍦版敮浠樺崟閲戦鍚庡畬鎴愭敮浠樸€?)
+    @Operation(summary = "支付宝支付回调", description = "验签支付宝异步通知，校验商户号与本地支付单金额后完成支付。")
     @PostMapping("/callback/alipay")
     public String alipayCallback(@RequestBody(required = false) String callbackData) {
         log.info("[API] Alipay callback received");
@@ -91,7 +91,7 @@ public class PaymentController {
         }
     }
 
-    @Operation(summary = "寰俊鏀粯鍥炶皟", description = "楠岀骞惰В瀵嗗井淇℃敮浠?v3 閫氱煡锛屾牎楠屽晢鎴峰彿涓庢湰鍦版敮浠樺崟閲戦鍚庡畬鎴愭敮浠樸€?)
+    @Operation(summary = "微信支付回调", description = "验签并解密微信支付 v3 通知，校验商户号与本地支付单金额后完成支付。")
     @PostMapping("/callback/wechat")
     public String wechatCallback(
             @RequestBody(required = false) String callbackData,
@@ -164,18 +164,18 @@ public class PaymentController {
 
     @Data
     public static class CreatePaymentRequest {
-        @NotBlank(message = "璁㈠崟鍙蜂笉鑳戒负绌?)
+        @NotBlank(message = "订单号不能为空")
         private String orderNo;
 
-        @NotBlank(message = "鐢ㄦ埛 ID 涓嶈兘涓虹┖")
+        @NotBlank(message = "用户 ID 不能为空")
         private String userId;
 
-        @NotNull(message = "鏀粯閲戦涓嶈兘涓虹┖")
-        @DecimalMin(value = PaymentAmount.MIN_AMOUNT, message = "鏀粯閲戦蹇呴』澶т簬 0")
-        @DecimalMax(value = PaymentAmount.MAX_AMOUNT, message = "鏀粯閲戦瓒呭嚭涓婇檺")
+        @NotNull(message = "支付金额不能为空")
+        @DecimalMin(value = PaymentAmount.MIN_AMOUNT, message = "支付金额必须大于 0")
+        @DecimalMax(value = PaymentAmount.MAX_AMOUNT, message = "支付金额超出上限")
         private BigDecimal amount;
 
-        @NotBlank(message = "鏀粯娓犻亾涓嶈兘涓虹┖")
+        @NotBlank(message = "支付渠道不能为空")
         private String paymentChannel;
     }
 }
