@@ -43,7 +43,7 @@
         </dependency>
         <dependency>
             <groupId>com.scmcloud</groupId>
-            <artifactId>scm-system-api</artifactId>
+            <artifactId>scm-common-system-contract</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>

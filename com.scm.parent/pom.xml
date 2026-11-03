@@ -12,6 +12,9 @@
   <url>https://github.com/dengxingzhi000/scm-platform</url>
 
   <modules>
+    <!-- Internal artifact version alignment -->
+    <module>../bom</module>
+
     <!-- Common Shared Modules -->
     <module>../scm-common</module>
 

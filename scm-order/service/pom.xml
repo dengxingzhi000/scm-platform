@@ -48,7 +48,7 @@
 
         <dependency>
             <groupId>com.scmcloud</groupId>
-            <artifactId>scm-system-api</artifactId>
+            <artifactId>scm-common-system-contract</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
 
@@ -104,13 +104,6 @@
         </dependency>
 
         <dependency>
-            <groupId>com.scmcloud</groupId>
-            <artifactId>scm-inventory-service</artifactId>
-            <version>1.0.0-beta.1</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
@@ -128,5 +121,47 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <!--
+          Cross-service integration tests live in src/integration-test/java and are
+          excluded from the default build. They need the inventory service
+          implementation on the classpath, which the default build must not depend on.
+        -->
+        <profile>
+            <id>integration-tests</id>
+            <dependencies>
+                <dependency>
+                    <groupId>com.scmcloud</groupId>
+                    <artifactId>scm-inventory-service</artifactId>
+                    <version>1.0.0-beta.1</version>
+                    <scope>test</scope>
+                </dependency>
+            </dependencies>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>build-helper-maven-plugin</artifactId>
+                        <version>3.6.1</version>
+                        <executions>
+                            <execution>
+                                <id>add-integration-test-source</id>
+                                <phase>generate-test-sources</phase>
+                                <goals>
+                                    <goal>add-test-source</goal>
+                                </goals>
+                                <configuration>
+                                    <sources>
+                                        <source>src/integration-test/java</source>
+                                    </sources>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
 </project>
