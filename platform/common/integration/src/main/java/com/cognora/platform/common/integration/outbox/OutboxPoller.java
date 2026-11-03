@@ -39,7 +39,7 @@ public class OutboxPoller {
 
     private static final int BATCH_SIZE = 50;
     private static final long KAFKA_ACK_TIMEOUT_SECONDS = 5;
-    private static final String TOPIC_PREFIX = "scm.";
+    private static final String TOPIC_PREFIX = "cognora.";
 
     @Scheduled(fixedDelayString = "${outbox.poll-interval-ms:1000}")
     public void pollAndPublish() {
