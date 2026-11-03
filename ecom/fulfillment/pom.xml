@@ -12,7 +12,7 @@
         <relativePath>../../com.scm.parent/pom.xml</relativePath>
     </parent>
 
-    <artifactId>scm-fulfillment</artifactId>
+    <artifactId>ecom-fulfillment</artifactId>
     <packaging>pom</packaging>
     <name>SCM Fulfillment Service</name>
     <description>Fulfillment center with 3PL, dropshipping, and routing</description>

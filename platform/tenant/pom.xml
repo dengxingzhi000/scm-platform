@@ -12,7 +12,7 @@
         <relativePath>../../com.scm.parent/pom.xml</relativePath>
     </parent>
 
-    <artifactId>scm-tenant</artifactId>
+    <artifactId>platform-tenant</artifactId>
     <packaging>pom</packaging>
     <name>SCM Tenant Service</name>
     <description>Multi-tenant SaaS management service including quota, billing and configuration</description>

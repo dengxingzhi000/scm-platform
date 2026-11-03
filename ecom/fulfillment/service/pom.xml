@@ -7,11 +7,11 @@
 
     <parent>
         <groupId>com.cognora</groupId>
-        <artifactId>scm-fulfillment</artifactId>
+        <artifactId>ecom-fulfillment</artifactId>
         <version>1.0.0-beta.1</version>
     </parent>
 
-    <artifactId>scm-fulfillment-service</artifactId>
+    <artifactId>ecom-fulfillment-service</artifactId>
     <packaging>jar</packaging>
     <name>SCM Fulfillment Service Implementation</name>
     <description>Fulfillment service implementation with orchestration and 3PL integration</description>
@@ -19,12 +19,12 @@
     <dependencies>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-fulfillment-api</artifactId>
+            <artifactId>ecom-fulfillment-api</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-web</artifactId>
+            <artifactId>platform-common-web</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <!-- OpenAPI documentation (Swagger UI) -->
@@ -34,7 +34,7 @@
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-data</artifactId>
+            <artifactId>platform-common-data</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
@@ -49,12 +49,12 @@
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-inventory-api</artifactId>
+            <artifactId>platform-inventory-api</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-logistics-api</artifactId>
+            <artifactId>lms-tms-api</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
 

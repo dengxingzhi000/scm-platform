@@ -3,11 +3,11 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.cognora</groupId>
-        <artifactId>scm-common</artifactId>
+        <artifactId>platform-common</artifactId>
         <version>1.0.0-beta.1</version>
     </parent>
 
-    <artifactId>scm-common-integration</artifactId>
+    <artifactId>platform-common-integration</artifactId>
     <packaging>jar</packaging>
 
     <name>SCM Common Integration</name>
@@ -21,7 +21,7 @@
         <!-- SCM Common Core -->
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-core</artifactId>
+            <artifactId>platform-common-core</artifactId>
             <version>${project.version}</version>
         </dependency>
 

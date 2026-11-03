@@ -7,11 +7,11 @@
 
     <parent>
         <groupId>com.cognora</groupId>
-        <artifactId>scm-inventory</artifactId>
+        <artifactId>platform-inventory</artifactId>
         <version>1.0.0-beta.1</version>
     </parent>
 
-    <artifactId>scm-inventory-service</artifactId>
+    <artifactId>platform-inventory-service</artifactId>
     <packaging>jar</packaging>
     <name>SCM Inventory Service Implementation</name>
     <description>Inventory service with sharding support</description>
@@ -20,19 +20,19 @@
         <!-- API Module -->
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-inventory-api</artifactId>
+            <artifactId>platform-inventory-api</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
 
         <!-- Common Modules -->
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-cache</artifactId>
+            <artifactId>platform-common-cache</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-web</artifactId>
+            <artifactId>platform-common-web</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <!-- OpenAPI documentation (Swagger UI) -->
@@ -42,17 +42,17 @@
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-integration</artifactId>
+            <artifactId>platform-common-integration</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-notify-api</artifactId>
+            <artifactId>platform-notify-api</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-decision-engine</artifactId>
+            <artifactId>platform-common-decision-engine</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
 

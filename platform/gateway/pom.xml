@@ -8,7 +8,7 @@
         <relativePath>../../com.scm.parent/pom.xml</relativePath>
     </parent>
 
-    <artifactId>scm-gateway</artifactId>
+    <artifactId>platform-gateway</artifactId>
     <packaging>jar</packaging>
 
     <name>SCM Gateway</name>
@@ -22,7 +22,7 @@
         <!-- common -->
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-web</artifactId>
+            <artifactId>platform-common-web</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
 

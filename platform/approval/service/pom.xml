@@ -7,11 +7,11 @@
 
     <parent>
         <groupId>com.cognora</groupId>
-        <artifactId>scm-approval</artifactId>
+        <artifactId>platform-approval</artifactId>
         <version>1.0.0-beta.1</version>
     </parent>
 
-    <artifactId>scm-approval-service</artifactId>
+    <artifactId>platform-approval-service</artifactId>
     <packaging>jar</packaging>
     <name>SCM Approval Service Implementation</name>
     <description>Approval service implementation with workflow engine</description>
@@ -19,22 +19,22 @@
     <dependencies>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-approval-api</artifactId>
+            <artifactId>platform-approval-api</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-web</artifactId>
+            <artifactId>platform-common-web</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-integration</artifactId>
+            <artifactId>platform-common-integration</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-notify-api</artifactId>
+            <artifactId>platform-notify-api</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <!-- OpenAPI documentation (Swagger UI) -->

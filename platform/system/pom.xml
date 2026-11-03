@@ -9,7 +9,7 @@
         <relativePath>../../com.scm.parent/pom.xml</relativePath>
     </parent>
 
-    <artifactId>scm-system</artifactId>
+    <artifactId>platform-system</artifactId>
     <packaging>pom</packaging>
     <name>SCM System</name>
     <url>http://maven.apache.org</url>

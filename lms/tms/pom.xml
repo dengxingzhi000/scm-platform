@@ -12,7 +12,7 @@
         <relativePath>../../com.scm.parent/pom.xml</relativePath>
     </parent>
 
-    <artifactId>scm-logistics</artifactId>
+    <artifactId>lms-tms</artifactId>
     <packaging>pom</packaging>
     <name>SCM Logistics Service</name>
     <description>Logistics and shipment tracking service</description>

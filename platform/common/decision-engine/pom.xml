@@ -6,12 +6,12 @@
 
     <parent>
         <groupId>com.cognora</groupId>
-        <artifactId>scm-common</artifactId>
+        <artifactId>platform-common</artifactId>
         <version>1.0.0-beta.1</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>scm-common-decision-engine</artifactId>
+    <artifactId>platform-common-decision-engine</artifactId>
     <packaging>jar</packaging>
     <name>SCM Common Decision Engine</name>
 

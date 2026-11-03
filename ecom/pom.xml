@@ -17,6 +17,18 @@
     <name>Cognora E-Commerce</name>
     <description>E-commerce front-end services</description>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.cognora</groupId>
+                <artifactId>cognora-bom</artifactId>
+                <version>1.0.0-beta.1</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <modules>
         <module>member</module>
         <module>promotion</module>

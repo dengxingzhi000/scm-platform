@@ -7,11 +7,11 @@
 
     <parent>
         <groupId>com.cognora</groupId>
-        <artifactId>scm-order-center</artifactId>
+        <artifactId>ecom-order-center</artifactId>
         <version>1.0.0-beta.1</version>
     </parent>
 
-    <artifactId>scm-order-center-service</artifactId>
+    <artifactId>ecom-order-center-service</artifactId>
     <packaging>jar</packaging>
     <name>SCM Order Center Service Implementation</name>
     <description>Order center implementation with state machine and saga pattern</description>
@@ -19,12 +19,12 @@
     <dependencies>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-order-center-api</artifactId>
+            <artifactId>ecom-order-center-api</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-web</artifactId>
+            <artifactId>platform-common-web</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <!-- OpenAPI documentation (Swagger UI) -->
@@ -34,7 +34,7 @@
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-data</artifactId>
+            <artifactId>platform-common-data</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
@@ -44,12 +44,12 @@
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-inventory-api</artifactId>
+            <artifactId>platform-inventory-api</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-payment-api</artifactId>
+            <artifactId>ecom-payment-api</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
 

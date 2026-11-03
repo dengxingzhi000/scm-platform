@@ -12,7 +12,7 @@
         <relativePath>../../com.scm.parent/pom.xml</relativePath>
     </parent>
 
-    <artifactId>scm-promotion</artifactId>
+    <artifactId>ecom-promotion</artifactId>
     <packaging>pom</packaging>
     <name>SCM Promotion Service</name>
     <description>Promotion center with coupons, flash sales, group buy, and AI recommendations</description>

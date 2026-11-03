@@ -12,7 +12,7 @@
         <relativePath>../../com.scm.parent/pom.xml</relativePath>
     </parent>
 
-    <artifactId>scm-inventory</artifactId>
+    <artifactId>platform-inventory</artifactId>
     <packaging>pom</packaging>
     <name>SCM Inventory Service</name>
     <description>Inventory management and stock control service</description>

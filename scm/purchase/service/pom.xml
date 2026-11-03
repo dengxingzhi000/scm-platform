@@ -21,7 +21,7 @@
         <!-- Common modules -->
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-web</artifactId>
+            <artifactId>platform-common-web</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <!-- OpenAPI documentation (Swagger UI) -->
@@ -31,7 +31,7 @@
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-decision-engine</artifactId>
+            <artifactId>platform-common-decision-engine</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
 

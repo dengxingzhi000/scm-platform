@@ -7,11 +7,11 @@
 
     <parent>
         <groupId>com.cognora</groupId>
-        <artifactId>scm-logistics</artifactId>
+        <artifactId>lms-tms</artifactId>
         <version>1.0.0-beta.1</version>
     </parent>
 
-    <artifactId>scm-logistics-service</artifactId>
+    <artifactId>lms-tms-service</artifactId>
     <packaging>jar</packaging>
     <name>SCM Logistics Service Implementation</name>
     <description>TMS logistics service with tracking</description>
@@ -19,7 +19,7 @@
     <dependencies>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-web</artifactId>
+            <artifactId>platform-common-web</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <!-- OpenAPI documentation (Swagger UI) -->

@@ -12,7 +12,7 @@
         <relativePath>../../com.scm.parent/pom.xml</relativePath>
     </parent>
 
-    <artifactId>scm-mall</artifactId>
+    <artifactId>ecom-mall</artifactId>
     <packaging>pom</packaging>
     <name>SCM Mall Service</name>
     <description>E-Commerce platform with B2C and marketplace features</description>

@@ -12,7 +12,7 @@
         <relativePath>../../com.scm.parent/pom.xml</relativePath>
     </parent>
 
-    <artifactId>scm-search</artifactId>
+    <artifactId>ecom-search</artifactId>
     <packaging>pom</packaging>
     <name>SCM Search Service</name>
     <description>Search center with Elasticsearch, NLP, image, and voice search</description>

@@ -6,11 +6,11 @@
 
     <parent>
         <groupId>com.cognora</groupId>
-        <artifactId>scm-analytics</artifactId>
+        <artifactId>ecom-analytics</artifactId>
         <version>1.0.0-beta.1</version>
     </parent>
 
-    <artifactId>scm-analytics-service</artifactId>
+    <artifactId>ecom-analytics-service</artifactId>
     <packaging>jar</packaging>
     <name>SCM Analytics Service Implementation</name>
     <description>Analytics service with ClickHouse ODS/DWD/DWS/ADS and semantic query engine</description>
@@ -19,19 +19,19 @@
         <!-- API Module -->
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-analytics-api</artifactId>
+            <artifactId>ecom-analytics-api</artifactId>
             <version>${project.version}</version>
         </dependency>
 
         <!-- Common Modules -->
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-core</artifactId>
+            <artifactId>platform-common-core</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-web</artifactId>
+            <artifactId>platform-common-web</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <!-- OpenAPI documentation (Swagger UI) -->
@@ -41,17 +41,17 @@
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-integration</artifactId>
+            <artifactId>platform-common-integration</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-cache</artifactId>
+            <artifactId>platform-common-cache</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-data-rw-stub</artifactId>
+            <artifactId>platform-common-data-rw-stub</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
 

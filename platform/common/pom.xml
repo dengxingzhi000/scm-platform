@@ -12,7 +12,7 @@
         <relativePath>../../com.scm.parent/pom.xml</relativePath>
     </parent>
 
-    <artifactId>scm-common</artifactId>
+    <artifactId>platform-common</artifactId>
     <packaging>pom</packaging>
     <name>SCM Common</name>
     <description>Common modules for SCM Platform</description>

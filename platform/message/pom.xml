@@ -11,7 +11,7 @@
         <relativePath>../../com.scm.parent/pom.xml</relativePath>
     </parent>
 
-    <artifactId>scm-message</artifactId>
+    <artifactId>platform-message</artifactId>
     <packaging>pom</packaging>
 
     <name>SCM Message Service</name>

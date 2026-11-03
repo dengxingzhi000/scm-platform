@@ -4,12 +4,12 @@
 
     <parent>
         <groupId>com.cognora</groupId>
-        <artifactId>scm-system</artifactId>
+        <artifactId>platform-system</artifactId>
         <version>1.0.0-beta.1</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>scm-system-service</artifactId>
+    <artifactId>platform-system-service</artifactId>
     <packaging>jar</packaging>
 
     <name>SCM System Service</name>
@@ -23,7 +23,7 @@
         <!-- common start -->
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-web</artifactId>
+            <artifactId>platform-common-web</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <!-- OpenAPI documentation (Swagger UI) -->
@@ -33,37 +33,37 @@
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-data</artifactId>
+            <artifactId>platform-common-data</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-core</artifactId>
+            <artifactId>platform-common-core</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-system-contract</artifactId>
+            <artifactId>platform-common-system-contract</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-security-core</artifactId>
+            <artifactId>platform-common-security-core</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-security-api</artifactId>
+            <artifactId>platform-common-security-api</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-integration</artifactId>
+            <artifactId>platform-common-integration</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-decision-engine</artifactId>
+            <artifactId>platform-common-decision-engine</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <!-- common end -->

@@ -11,7 +11,7 @@
         <relativePath>../../com.scm.parent/pom.xml</relativePath>
     </parent>
 
-    <artifactId>scm-document</artifactId>
+    <artifactId>platform-document</artifactId>
     <packaging>pom</packaging>
     <name>SCM Document Service</name>
     <description>Document platform: file / template / document domains (modular monolith)</description>

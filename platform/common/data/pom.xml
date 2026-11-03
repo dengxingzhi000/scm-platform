@@ -4,11 +4,11 @@
 
     <parent>
         <groupId>com.cognora</groupId>
-        <artifactId>scm-common</artifactId>
+        <artifactId>platform-common</artifactId>
         <version>1.0.0-beta.1</version>
     </parent>
 
-    <artifactId>scm-common-data</artifactId>
+    <artifactId>platform-common-data</artifactId>
     <packaging>jar</packaging>
 
     <name>SCM Common Data</name>
@@ -21,27 +21,27 @@
     <dependencies>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-core</artifactId>
+            <artifactId>platform-common-core</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-cache</artifactId>
+            <artifactId>platform-common-cache</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-data-rw</artifactId>
+            <artifactId>platform-common-data-rw</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-security-core</artifactId>
+            <artifactId>platform-common-security-core</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-security-api</artifactId>
+            <artifactId>platform-common-security-api</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
 

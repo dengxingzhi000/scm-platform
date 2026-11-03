@@ -7,11 +7,11 @@
 
     <parent>
         <groupId>com.cognora</groupId>
-        <artifactId>scm-mall</artifactId>
+        <artifactId>ecom-mall</artifactId>
         <version>1.0.0-beta.1</version>
     </parent>
 
-    <artifactId>scm-mall-service</artifactId>
+    <artifactId>ecom-mall-service</artifactId>
     <packaging>jar</packaging>
     <name>SCM Mall Service Implementation</name>
     <description>Mall service implementation with cart, checkout, and marketplace</description>
@@ -19,12 +19,12 @@
     <dependencies>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-mall-api</artifactId>
+            <artifactId>ecom-mall-api</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-web</artifactId>
+            <artifactId>platform-common-web</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <!-- OpenAPI documentation (Swagger UI) -->
@@ -34,27 +34,27 @@
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-data</artifactId>
+            <artifactId>platform-common-data</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-product-api</artifactId>
+            <artifactId>platform-product-api</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-member-api</artifactId>
+            <artifactId>ecom-member-api</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-promotion-api</artifactId>
+            <artifactId>ecom-promotion-api</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-order-center-api</artifactId>
+            <artifactId>ecom-order-center-api</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
 

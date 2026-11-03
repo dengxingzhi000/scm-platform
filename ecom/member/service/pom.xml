@@ -7,11 +7,11 @@
 
     <parent>
         <groupId>com.cognora</groupId>
-        <artifactId>scm-member</artifactId>
+        <artifactId>ecom-member</artifactId>
         <version>1.0.0-beta.1</version>
     </parent>
 
-    <artifactId>scm-member-service</artifactId>
+    <artifactId>ecom-member-service</artifactId>
     <packaging>jar</packaging>
     <name>SCM Member Service Implementation</name>
     <description>Member service implementation with registration, profiles, and points</description>
@@ -19,12 +19,12 @@
     <dependencies>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-member-api</artifactId>
+            <artifactId>ecom-member-api</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-web</artifactId>
+            <artifactId>platform-common-web</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <!-- OpenAPI documentation (Swagger UI) -->
@@ -34,7 +34,7 @@
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-data</artifactId>
+            <artifactId>platform-common-data</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
 

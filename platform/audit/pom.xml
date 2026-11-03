@@ -12,7 +12,7 @@
         <relativePath>../../com.scm.parent/pom.xml</relativePath>
     </parent>
 
-    <artifactId>scm-audit</artifactId>
+    <artifactId>platform-audit</artifactId>
     <packaging>pom</packaging>
     <name>SCM Audit Service</name>
     <description>Audit logging, sensitive operations tracking and security monitoring service</description>

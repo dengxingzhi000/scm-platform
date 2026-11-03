@@ -12,7 +12,7 @@
         <relativePath>../../com.scm.parent/pom.xml</relativePath>
     </parent>
 
-    <artifactId>scm-product</artifactId>
+    <artifactId>platform-product</artifactId>
     <packaging>pom</packaging>
     <name>SCM Product Service</name>
     <description>Product catalog and management service</description>

@@ -70,21 +70,26 @@ jobs:
 
       # Two layouts 鈥?both are handled by building from com.scm.parent/pom.xml
       # (the only pom that lists the four domain aggregators, so -am can pull
-      # in platform-common-*, platform-contract-system, etc. that each service depends on):
+      # in platform-common-*, platform-common-system-contract, etc. that each service depends on):
       #   - flat modules (platform/auth, platform/gateway): jar lands at <module>/target/*.jar
       #   - api/service split modules:            jar lands at <module>/service/target/*.jar
       # We select by artifactId, which works regardless of layout:
-      #   - flat       -> artifactId is 'scm-{name}'
-      #   - split      -> service artifactId is 'scm-{name}-service'
+      #   - flat       -> artifactId is '<project>-<domain>'
+      #   - split      -> service artifactId is '<project>-<domain>-service'
+      - name: Install internal BOM
+        run: mvn -q -B -DskipTests install -f bom/pom.xml
+
       - name: Build service JAR (Maven)
         run: |
           set -euo pipefail
           service="${{ matrix.service }}"
           path="${{ matrix.path }}"
+          project="${path%%/*}"
+          domain="${path#*/}"
           if [ -d "${path}/service" ]; then
-            aid="${service}-service"
+            aid="${project}-${domain}-service"
           else
-            aid="${service}"
+            aid="${project}-${domain}"
           fi
           echo "Building ${service} (${path}, artifactId=${aid}) ..."
           mvn -q -B -DskipTests \

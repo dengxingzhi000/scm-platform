@@ -6,11 +6,11 @@
 
     <parent>
         <groupId>com.cognora</groupId>
-        <artifactId>scm-document</artifactId>
+        <artifactId>platform-document</artifactId>
         <version>1.0.0-beta.1</version>
     </parent>
 
-    <artifactId>scm-document-api</artifactId>
+    <artifactId>platform-document-api</artifactId>
     <packaging>jar</packaging>
     <name>SCM Document API</name>
     <description>Document service Dubbo RPC API definitions</description>
@@ -18,7 +18,7 @@
     <dependencies>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-core</artifactId>
+            <artifactId>platform-common-core</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>

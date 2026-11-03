@@ -12,7 +12,7 @@
         <relativePath>../../com.scm.parent/pom.xml</relativePath>
     </parent>
 
-    <artifactId>scm-approval</artifactId>
+    <artifactId>platform-approval</artifactId>
     <packaging>pom</packaging>
     <name>SCM Approval Service</name>
     <description>Approval workflow and permission request management service</description>

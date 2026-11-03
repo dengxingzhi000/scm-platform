@@ -11,6 +11,7 @@ fix this file in the same change.
 under `../platform`, `../scm`, `../ecom` and `../lms`.
 
 ```bash
+mvn install -f bom/pom.xml                                     # install internal BOM (once per clone)
 mvn clean install -f com.scm.parent/pom.xml                    # full build
 mvn clean install -DskipTests -f com.scm.parent/pom.xml        # fast build
 mvn test -pl ../scm/order/service -f com.scm.parent/pom.xml    # one module's tests
@@ -24,8 +25,10 @@ mvn verify -Djacoco.skip=false -f com.scm.parent/pom.xml       # coverage gates 
    fails with *"Could not find the selected project in the reactor"* — use
    `-pl ../scm/order/service` (this is what CI does), or `cd` into the module
    and run Maven there (its POM resolves the parent via `../pom.xml`).
-2. **Fresh clone:** the `platform/common/*` artifacts are not in `~/.m2`, so add
-   `-am` (or run a full `install` first) or dependency resolution fails.
+2. **Fresh clone:** the four aggregators import `cognora-bom`, so run
+   `mvn install -f bom/pom.xml` before any other Maven command. The
+   `platform/common/*` artifacts are also absent from `~/.m2`, so add `-am`
+   (or run a full `install` first) or dependency resolution fails.
 3. **`jacoco.skip=true`** is set in the parent POM — plain `mvn verify` does *not*
    enforce the 70% line / 60% branch gates. Pass `-Djacoco.skip=false`.
 
@@ -38,7 +41,7 @@ add**, otherwise `mvn spring-boot:run` exits 0 without starting the app,
 `mvn package` produces a plain jar, and the Dockerfile
 (`COPY service/target/*.jar app.jar`) fails.
 
-`scm-logistics-service`, `scm-supplier-service` and `scm-warehouse-service`
+`lms-tms-service`, `scm-supplier-service` and `scm-warehouse-service`
 had controllers but no `@SpringBootApplication` class until
 `*ServiceApplication` was added to each; they are deployable again, so a clean
 `mvn install` repackages all of them.
@@ -48,10 +51,10 @@ module compiles against must keep the plain jar installed: give it
 `<classifier>exec</classifier>` and make its Dockerfile copy the exec jar
 explicitly (`COPY service/target/*-exec.jar app.jar`), because two jars now sit
 in `target/` and `COPY *.jar app.jar` fails with "cannot copy to
-non-directory". `scm-inventory-service` and `scm-audit-service` are that case —
+non-directory". `platform-inventory-service` and `platform-audit-service` are that case —
 `scm-order`'s tests import `com.cognora.platform.inventory.*` (dropping the classifier
-broke `mvn test-compile` in CI) and `scm-auth` depends on `scm-audit-service`
-(without the classifier its 149 MB boot jar was nested into scm-auth's fat jar,
+broke `mvn test-compile` in CI) and `platform-auth` depends on `platform-audit-service`
+(without the classifier its 149 MB boot jar was nested into platform-auth's fat jar,
 duplicating `org.springframework.boot.loader.**` and `META-INF/services`
 entries on the classpath).
 

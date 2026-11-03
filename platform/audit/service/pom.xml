@@ -7,11 +7,11 @@
 
     <parent>
         <groupId>com.cognora</groupId>
-        <artifactId>scm-audit</artifactId>
+        <artifactId>platform-audit</artifactId>
         <version>1.0.0-beta.1</version>
     </parent>
 
-    <artifactId>scm-audit-service</artifactId>
+    <artifactId>platform-audit-service</artifactId>
     <packaging>jar</packaging>
     <name>SCM Audit Service Implementation</name>
     <description>Audit service implementation with partitioned logging</description>
@@ -19,12 +19,12 @@
     <dependencies>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-audit-api</artifactId>
+            <artifactId>platform-audit-api</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-web</artifactId>
+            <artifactId>platform-common-web</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <!-- OpenAPI documentation (Swagger UI) -->
@@ -85,8 +85,8 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
                     <skip>false</skip>
-                    <!-- scm-auth compiles against this module, so the plain jar must stay the installed
-                         main artifact; the boot jar gets its own classifier. Without it, scm-auth's
+                    <!-- platform-auth compiles against this module, so the plain jar must stay the installed
+                         main artifact; the boot jar gets its own classifier. Without it, platform-auth's
                          fat jar nests this one (duplicate loader classes and service descriptors). -->
                     <classifier>exec</classifier>
                 </configuration>

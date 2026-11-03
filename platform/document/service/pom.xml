@@ -6,11 +6,11 @@
 
     <parent>
         <groupId>com.cognora</groupId>
-        <artifactId>scm-document</artifactId>
+        <artifactId>platform-document</artifactId>
         <version>1.0.0-beta.1</version>
     </parent>
 
-    <artifactId>scm-document-service</artifactId>
+    <artifactId>platform-document-service</artifactId>
     <packaging>jar</packaging>
     <name>SCM Document Service Implementation</name>
     <description>Document platform service: file/template/document domains</description>
@@ -18,12 +18,12 @@
     <dependencies>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-document-api</artifactId>
+            <artifactId>platform-document-api</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-file-api</artifactId>
+            <artifactId>platform-file-api</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
@@ -42,12 +42,12 @@
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-data</artifactId>
+            <artifactId>platform-common-data</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-web</artifactId>
+            <artifactId>platform-common-web</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <!-- OpenAPI documentation (Swagger UI) -->

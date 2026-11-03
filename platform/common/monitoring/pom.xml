@@ -3,11 +3,11 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.cognora</groupId>
-        <artifactId>scm-common</artifactId>
+        <artifactId>platform-common</artifactId>
         <version>1.0.0-beta.1</version>
     </parent>
 
-    <artifactId>scm-common-monitoring</artifactId>
+    <artifactId>platform-common-monitoring</artifactId>
     <packaging>jar</packaging>
 
     <name>SCM Common Monitoring</name>
@@ -22,12 +22,12 @@
     <dependencies>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-core</artifactId>
+            <artifactId>platform-common-core</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-security-core</artifactId>
+            <artifactId>platform-common-security-core</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
 

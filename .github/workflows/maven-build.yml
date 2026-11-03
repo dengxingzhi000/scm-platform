@@ -60,6 +60,9 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
+      - name: Install internal BOM
+        run: mvn install -B -DskipTests -f bom/pom.xml
+
       - name: Initialize databases
         if: github.event_name == 'push'
         env:
@@ -156,6 +159,9 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
+      - name: Install internal BOM
+        run: mvn install -B -DskipTests -f bom/pom.xml
+
       - name: Cache SonarCloud packages
         uses: actions/cache@v6
         with:
@@ -192,6 +198,9 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: 'temurin'
           cache: 'maven'
+
+      - name: Install internal BOM
+        run: mvn install -B -DskipTests -f bom/pom.xml
 
       - name: Cache OWASP NVD database
         uses: actions/cache@v6
@@ -280,6 +289,9 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: 'temurin'
           cache: 'maven'
+
+      - name: Install internal BOM
+        run: mvn install -B -DskipTests -f bom/pom.xml
 
       - name: Build JAR
         run: |

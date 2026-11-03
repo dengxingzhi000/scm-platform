@@ -12,7 +12,7 @@
         <relativePath>../../com.scm.parent/pom.xml</relativePath>
     </parent>
 
-    <artifactId>scm-notify</artifactId>
+    <artifactId>platform-notify</artifactId>
     <packaging>pom</packaging>
     <name>SCM Notification Service</name>
     <description>Multi-channel notification service (email, SMS, in-app messages)</description>

@@ -11,7 +11,7 @@
         <relativePath>../../com.scm.parent/pom.xml</relativePath>
     </parent>
 
-    <artifactId>scm-analytics</artifactId>
+    <artifactId>ecom-analytics</artifactId>
     <packaging>pom</packaging>
     <name>SCM Analytics</name>
 

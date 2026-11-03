@@ -11,7 +11,7 @@
         <relativePath>../../com.scm.parent/pom.xml</relativePath>
     </parent>
 
-    <artifactId>scm-file</artifactId>
+    <artifactId>platform-file</artifactId>
     <packaging>pom</packaging>
 
     <name>SCM File Service</name>

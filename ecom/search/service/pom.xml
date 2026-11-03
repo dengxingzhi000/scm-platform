@@ -7,11 +7,11 @@
 
     <parent>
         <groupId>com.cognora</groupId>
-        <artifactId>scm-search</artifactId>
+        <artifactId>ecom-search</artifactId>
         <version>1.0.0-beta.1</version>
     </parent>
 
-    <artifactId>scm-search-service</artifactId>
+    <artifactId>ecom-search-service</artifactId>
     <packaging>jar</packaging>
     <name>SCM Search Service Implementation</name>
     <description>Search service implementation with Elasticsearch and AI-powered search</description>
@@ -19,12 +19,12 @@
     <dependencies>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-search-api</artifactId>
+            <artifactId>ecom-search-api</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-web</artifactId>
+            <artifactId>platform-common-web</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <!-- OpenAPI documentation (Swagger UI) -->
@@ -34,7 +34,7 @@
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-product-api</artifactId>
+            <artifactId>platform-product-api</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
 

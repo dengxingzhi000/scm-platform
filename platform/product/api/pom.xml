@@ -7,11 +7,11 @@
 
     <parent>
         <groupId>com.cognora</groupId>
-        <artifactId>scm-product</artifactId>
+        <artifactId>platform-product</artifactId>
         <version>1.0.0-beta.1</version>
     </parent>
 
-    <artifactId>scm-product-api</artifactId>
+    <artifactId>platform-product-api</artifactId>
     <packaging>jar</packaging>
     <name>SCM Product API</name>
     <description>Product service Dubbo RPC API definitions</description>
@@ -19,7 +19,7 @@
     <dependencies>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-core</artifactId>
+            <artifactId>platform-common-core</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>

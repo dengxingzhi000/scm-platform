@@ -9,7 +9,7 @@
         <relativePath>../../com.scm.parent/pom.xml</relativePath>
     </parent>
 
-    <artifactId>scm-auth</artifactId>
+    <artifactId>platform-auth</artifactId>
     <packaging>jar</packaging>
 
     <name>SCM Auth</name>
@@ -23,7 +23,7 @@
         <!-- common模块 -->
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-web</artifactId>
+            <artifactId>platform-common-web</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <!-- OpenAPI documentation (Swagger UI) -->
@@ -33,22 +33,22 @@
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-core</artifactId>
+            <artifactId>platform-common-core</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-system-contract</artifactId>
+            <artifactId>platform-common-system-contract</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-monitoring</artifactId>
+            <artifactId>platform-common-monitoring</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-security-core</artifactId>
+            <artifactId>platform-common-security-core</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
 

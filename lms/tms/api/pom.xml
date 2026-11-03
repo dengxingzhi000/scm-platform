@@ -7,11 +7,11 @@
 
     <parent>
         <groupId>com.cognora</groupId>
-        <artifactId>scm-logistics</artifactId>
+        <artifactId>lms-tms</artifactId>
         <version>1.0.0-beta.1</version>
     </parent>
 
-    <artifactId>scm-logistics-api</artifactId>
+    <artifactId>lms-tms-api</artifactId>
     <packaging>jar</packaging>
     <name>SCM Logistics API</name>
     <description>Logistics service Dubbo RPC API definitions</description>

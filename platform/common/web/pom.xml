@@ -3,11 +3,11 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.cognora</groupId>
-        <artifactId>scm-common</artifactId>
+        <artifactId>platform-common</artifactId>
         <version>1.0.0-beta.1</version>
     </parent>
 
-    <artifactId>scm-common-web</artifactId>
+    <artifactId>platform-common-web</artifactId>
     <packaging>jar</packaging>
 
     <name>SCM Common Web</name>
@@ -40,27 +40,27 @@
     <dependencies>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-core</artifactId>
+            <artifactId>platform-common-core</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-data</artifactId>
+            <artifactId>platform-common-data</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-system-contract</artifactId>
+            <artifactId>platform-common-system-contract</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-security-api</artifactId>
+            <artifactId>platform-common-security-api</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
-            <artifactId>scm-common-security-core</artifactId>
+            <artifactId>platform-common-security-core</artifactId>
             <version>1.0.0-beta.1</version>
         </dependency>
         <!-- common start -->
