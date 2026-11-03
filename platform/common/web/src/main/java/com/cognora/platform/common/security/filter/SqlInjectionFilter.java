@@ -40,7 +40,7 @@ public class SqlInjectionFilter implements Filter {
 
     private static final Pattern SQL_INJECTION_PATTERN = Pattern.compile(
             """
-            (/\\*(?:.|[\\n\\r])*?\\*/)|(?:--[\\s\\S]*?$)|
+            (/\\*[\\s\\S]*?\\*/)|(?:--[\\s\\S]*?$)|
             (\\bunion\\s+(?:all\\s+)?select\\b)|
             ((?:['"]|\\))\\s*(?:or|and)\\s*(?:true|false|\\d+|[a-zA-Z_][a-zA-Z0-9_]*\\s*=\\s*[a-zA-Z0-9_]+))|
             \\b(drop|truncate|exec|execute|declare)\\b
@@ -162,7 +162,7 @@ public class SqlInjectionFilter implements Filter {
                 if (StrUtil.isBlank(paramValue)) continue;
                 String preview = generatePreview(paramValue);
 
-                if (SQL_INJECTION_PATTERN.matcher(paramValue).find()) {
+                if (SQL_INJECTION_PATTERN.matcher(truncateForScan(paramValue)).find()) {
                     log.warn("SQL injection detected! mode={}, traceId={}, param={}, preview={}, ip={}, uri={}",
                             ((monitorOnly ? "ALERT" : "BLOCK") + "").replace("\r", "_").replace("\n", "_"),
                             (request.getHeader("X-Request-ID") + "").replace("\r", "_").replace("\n", "_"), (paramName + "").replace("\r", "_").replace("\n", "_"), (preview + "").replace("\r", "_").replace("\n", "_"),
@@ -231,7 +231,7 @@ public class SqlInjectionFilter implements Filter {
                                        HttpServletResponse resp, boolean monitorOnly) throws IOException {
         if (StrUtil.isBlank(value)) return DetectionState.NONE;
 
-        if (SQL_INJECTION_PATTERN.matcher(value).find()) {
+        if (SQL_INJECTION_PATTERN.matcher(truncateForScan(value)).find()) {
             String preview = generatePreview(value);
             log.warn("SQL injection detected in JSON! mode={}, traceId={}, field={}, preview={}, ip={}, uri={}",
                     ((monitorOnly ? "ALERT" : "BLOCK") + "").replace("\r", "_").replace("\n", "_"),
