@@ -6,9 +6,39 @@ const intlMiddleware = createMiddleware(routing)
 
 const publicPaths = ['/login', '/register', '/forgot-password']
 
+const API_PREFIXES = ['/auth', '/common', '/system/api']
+
+function isApiRequest(pathname: string): boolean {
+  return (
+    pathname === '/api' ||
+    pathname.startsWith('/api/') ||
+    pathname.startsWith('/scm-') ||
+    API_PREFIXES.some(
+      (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+    )
+  )
+}
+
+/**
+ * The browser calls these paths same-origin, but next.config rewrites forward the
+ * original request (including `Origin`) to the backend. Spring's CORS allow-list
+ * only covers localhost, so a LAN deployment such as http://192.168.0.121:3000
+ * gets `403 Invalid CORS request`. This is a server-side proxy hop, not a browser
+ * cross-origin call, so drop `Origin` before the rewrite runs.
+ */
+function forwardWithoutOrigin(request: NextRequest) {
+  const headers = new Headers(request.headers)
+  headers.delete('origin')
+  return NextResponse.next({ request: { headers } })
+}
+
 // Next.js 16 renamed the `middleware` convention to `proxy`.
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
+
+  if (isApiRequest(pathname)) {
+    return forwardWithoutOrigin(request)
+  }
 
   // Extract locale from pathname
   const localeMatch = pathname.match(/^\/([a-z]{2}-[A-Z]{2})(\/.*)?$/)
@@ -42,7 +72,7 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // `system/api` (not `system`) so the 系统管理 pages under /system/* still reach
-  // the locale redirect; only the API subtree must bypass i18n.
-  matcher: ['/((?!api|auth|system/api|common|scm-|_next|_vercel|.*\\..*).*)'],
+  // API prefixes must reach this proxy so the forwarded request can drop
+  // `Origin`; page routes still go through the locale + auth middleware.
+  matcher: ['/((?!_next|_vercel|.*\\..*).*)'],
 }
