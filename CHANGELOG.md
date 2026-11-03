@@ -63,10 +63,18 @@ from order events, and audit records finally reach `db_audit`.
   `scm-common/web` and reported to scm-audit over HTTP (`POST /sys-audit-log`),
   so `scm-system` and `scm-auth` records are persisted. `scm-audit` keeps the
   local persistence implementation; delivery failures only log a warning.
-- **Event-driven notifications** — scm-notify consumes `scm.ordorder` events
+- **Event-driven notifications** — scm-notify consumes `cognora.ordorder` events
   (outbox → Kafka), maps status changes to in-app notifications and deduplicates
   by the stable outbox id (`business_key` + unique index, Flyway V2).
   `OrderStatusChangedEvent` now carries the buyer id.
+
+  Topic migration: the outbox and message producers publish `cognora.<aggregate>`
+  (previously `scm.<aggregate>`, with the message producer briefly adding an
+  `.events` suffix). Only scm-notify (`cognora.ordorder`) and scm-analytics
+  (`cognora.*`) subscribe, so the switch is not a rolling migration: messages
+  left on `scm.*` — or on `cognora.<aggregate>.events` — are not consumed or
+  backfilled and are discarded. Deploy notify/analytics together with the
+  producers that emit the new topic.
 - **Product list SKU counts** — the list loads the SKU catalog and groups counts
   per SPU instead of always rendering 0.
 - **Seed suite** — `scripts/db/seed/` ships idempotent, fixed-UUID data for every

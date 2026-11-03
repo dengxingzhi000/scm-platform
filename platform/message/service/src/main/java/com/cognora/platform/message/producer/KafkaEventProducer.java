@@ -17,9 +17,15 @@ public class KafkaEventProducer {
     private final ObjectMapper objectMapper;
     
     private static final String TOPIC_PREFIX = "cognora.";
-    
+
+    /**
+     * Produces `cognora.<aggregate>`, matching the topics subscribed by
+     * scm-notify (`cognora.ordorder`) and scm-analytics (`cognora.*`).
+     * The previous `cognora.<aggregate>.events` suffix had no subscriber in the
+     * repository, so messages were silently dropped.
+     */
     public CompletableFuture<SendResult<String, String>> send(DomainEvent event) {
-        String topic = TOPIC_PREFIX + event.getAggregateType().toLowerCase() + ".events";
+        String topic = TOPIC_PREFIX + event.getAggregateType().toLowerCase();
         String key = event.getAggregateId();
         
         try {
