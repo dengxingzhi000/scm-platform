@@ -16,6 +16,7 @@ import com.cognora.platform.system.mapper.SysPermissionMapper;
 import com.cognora.platform.system.mapper.SysRolePermissionMapper;
 import com.cognora.platform.system.mapper.SysTempPermissionMapper;
 import com.cognora.platform.system.service.ISysPermissionService;
+import com.cognora.platform.system.service.support.ApiPermissionMatcher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -72,7 +73,8 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
 
     @Override
     public List<String> findPermissionsByUrl(String url, String method) {
-        return getBaseMapper().findPermissionsByUrl(url, method);
+        return ApiPermissionMatcher.resolve(
+                getBaseMapper().findApiPermissionCandidates(url, method), url, method);
     }
 
     /**

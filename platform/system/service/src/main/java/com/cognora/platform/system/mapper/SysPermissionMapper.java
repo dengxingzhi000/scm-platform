@@ -123,16 +123,22 @@ public interface SysPermissionMapper extends BaseMapper<SysPermission> {
     List<PermissionDTO> findChildrenPermissions(@Param("parentId") UUID parentId);
 
     /**
-     * 鏍规嵁 URL鍜屾柟娉曟煡璇㈤渶瑕佺殑鏉冮檺
+     * 查询 URL 权限候选行：字面量精确命中，或带 {@code {var}} / Ant 通配符的模板行。
+     *
+     * <p>模板的最终匹配在 {@code ApiPermissionMatcher} 里完成（SQL 只做候选预筛，
+     * 避免把模板匹配逻辑写进 SQL）。</p>
      */
     @Select("""
-            SELECT permission_code FROM sys_permission
-            WHERE api_path = #{url}
+            SELECT permission_code, api_path, http_method FROM sys_permission
+            WHERE status = 1 AND NOT deleted
+            AND api_path IS NOT NULL
             AND (http_method = #{method} OR http_method = '*')
-            AND status = 1 AND NOT deleted
+            AND (api_path = #{url}
+                 OR api_path LIKE '%{%'
+                 OR api_path LIKE '%*%')
             """)
-    List<String> findPermissionsByUrl(@Param("url") String url,
-                                      @Param("method") String method);
+    List<SysPermission> findApiPermissionCandidates(@Param("url") String url,
+                                                    @Param("method") String method);
 
     /**
      * 妫€鏌ユ潈闄愮紪鐮佹槸鍚﹀瓨锟?
