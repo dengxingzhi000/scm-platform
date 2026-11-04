@@ -111,7 +111,8 @@ public class SysUserQueryServiceImpl implements ISysUserQueryService {
 
     @Override
     @Slave
-    @Cacheable(value = "userDetails", key = "#username")
+    @Cacheable(value = "userDetails",
+               key = "T(com.cognora.platform.common.tenant.TenantCacheKeys).global(#username)")
     public SecurityUser getUserByUsername(String username) {
         SysUser user = userMapper.findByUsername(username);
         if (user == null) {

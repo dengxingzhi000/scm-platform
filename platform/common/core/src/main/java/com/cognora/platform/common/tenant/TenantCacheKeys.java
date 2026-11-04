@@ -43,6 +43,34 @@ public final class TenantCacheKeys {
         return "inventory:detail:" + currentTenantId() + ":" + skuId + ":" + warehouseId;
     }
 
+    /** 批量库存键（warehouse 为空时用 ALL，与旧键语义一致）。 */
+    public static String inventoryBatch(Object warehouseId, Object skuIds) {
+        return "inventory:batch:" + currentTenantId() + ":"
+                + (warehouseId == null ? "ALL" : warehouseId) + ":"
+                + (skuIds == null ? "" : skuIds);
+    }
+
+    /** 库存可用性检查键。 */
+    public static String inventoryCheck(String skuId, String warehouseId, Object quantity) {
+        return inventoryDetail(skuId, warehouseId) + ":available:" + quantity;
+    }
+
+    /**
+     * 通用业务键：{@code namespace:tenantId:parts}。
+     *
+     * <p>Redis 手写键统一使用该约定；中间件前缀（如 {@code inventory:stock:}）由各自的
+     * 专用工厂方法负责，避免调用方直接拼接字符串。</p>
+     */
+    public static String scoped(String namespace, Object... parts) {
+        StringBuilder key = new StringBuilder(namespace).append(':').append(currentTenantId());
+        if (parts != null) {
+            for (Object part : parts) {
+                key.append(':').append(part);
+            }
+        }
+        return key.toString();
+    }
+
     private static String currentTenantId() {
         UUID tenantId = TenantContextHolder.getRequiredTenantId();
         return tenantId.toString();

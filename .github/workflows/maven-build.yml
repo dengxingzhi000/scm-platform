@@ -99,6 +99,9 @@ jobs:
             -f scripts/db/ci_fixture_tenant_admin_scope.sql
           psql -h localhost -U admin -d db_permission -v ON_ERROR_STOP=1 \
             -f scripts/db/migrations/007_strip_tenant_scope_from_tenant_admin.sql
+          # 008 回收非平台角色的 menu:tenant% 菜单权限，校验脚本同时断言控制台门禁。
+          psql -h localhost -U admin -d db_permission -v ON_ERROR_STOP=1 \
+            -f scripts/db/migrations/008_platform_console_gate.sql
           psql -h localhost -U admin -d db_permission -v ON_ERROR_STOP=1 \
             -f scripts/db/ci_validate_tenant_admin_scope.sql
           psql -h localhost -U admin -d db_permission -v ON_ERROR_STOP=1 <<'SQL'

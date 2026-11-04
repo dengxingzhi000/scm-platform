@@ -1,6 +1,7 @@
 package com.cognora.platform.inventory.service.query;
 
 import com.cognora.platform.common.data.rw.annotation.Slave;
+import com.cognora.platform.common.tenant.TenantCacheKeys;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -13,7 +14,7 @@ public class InvReservationQueryService {
 
     private final RedisTemplate<String, Object> redisTemplate;
 
-    private static final String RESERVATION_KEY_PREFIX = "inventory:reservation:";
+    private static final String RESERVATION_KEY_PREFIX = "inventory:reservation";
 
     @Slave
     public boolean checkReservationExists(String businessKey) {
@@ -29,6 +30,6 @@ public class InvReservationQueryService {
     }
 
     private String buildReservationKey(String businessKey) {
-        return RESERVATION_KEY_PREFIX + businessKey;
+        return TenantCacheKeys.scoped(RESERVATION_KEY_PREFIX, businessKey);
     }
 }
