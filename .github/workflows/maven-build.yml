@@ -87,6 +87,37 @@ jobs:
             psql -h localhost -U admin -d "$db" -v ON_ERROR_STOP=1 -f scripts/db/ci_validate_tenant_id.sql || exit 1
           done
 
+      - name: Validate role scope — ROLE_TENANT_ADMIN must not hold tenant:*
+        if: github.event_name == 'push'
+        env:
+          PGPASSWORD: admin123
+        run: |
+          # 端到端断言（真实 PostgreSQL）：
+          # 夹具制造历史越权（tenant:* 已绑定到 ROLE_TENANT_ADMIN）+ 一条对照业务权限，
+          # 007 迁移回收 tenant:*，校验脚本断言 0 条，再断言对照组未被误删。
+          psql -h localhost -U admin -d db_permission -v ON_ERROR_STOP=1 \
+            -f scripts/db/ci_fixture_tenant_admin_scope.sql
+          psql -h localhost -U admin -d db_permission -v ON_ERROR_STOP=1 \
+            -f scripts/db/migrations/007_strip_tenant_scope_from_tenant_admin.sql
+          psql -h localhost -U admin -d db_permission -v ON_ERROR_STOP=1 \
+            -f scripts/db/ci_validate_tenant_admin_scope.sql
+          psql -h localhost -U admin -d db_permission -v ON_ERROR_STOP=1 <<'SQL'
+          DO $$
+          DECLARE kept INT;
+          BEGIN
+              SELECT count(*)
+                INTO kept
+                FROM sys_role_permission rp
+                JOIN sys_role r ON r.id = rp.role_id
+                JOIN sys_permission p ON p.id = rp.permission_id
+               WHERE r.role_code = 'ROLE_TENANT_ADMIN'
+                 AND p.permission_code = 'product:brand:view';
+              IF kept <> 1 THEN
+                  RAISE EXCEPTION '对照权限被误删：product:brand:view 剩余 % 条', kept;
+              END IF;
+          END $$;
+          SQL
+
       - name: Build and Run Unit Tests (PR)
         if: github.event_name == 'pull_request'
         run: mvn clean test-compile test -B -V -f com.scm.parent/pom.xml
