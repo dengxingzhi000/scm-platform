@@ -1,6 +1,7 @@
 package com.cognora.lms.logistics.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.cognora.platform.common.log.annotation.AuditLog;
 import com.cognora.platform.common.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -68,6 +69,7 @@ public class TmsWaybillController {
 
     @Operation(summary = "创建运单", description = "根据订单与承运商信息创建运单并返回创建结果。")
     @PostMapping
+    @AuditLog(operation = "创建物流运单", businessType = "LOGISTICS", riskLevel = 2)
     public ApiResponse<TmsWaybill> create(@RequestBody TmsWaybill waybill) {
         log.info("Create waybill: orderNo={}, carrierId={}", (waybill.getOrderNo() + "").replace("\r", "_").replace("\n", "_"), (waybill.getCarrierId() + "").replace("\r", "_").replace("\n", "_"));
         TmsWaybill created = waybillService.createWaybill(waybill);
@@ -76,6 +78,7 @@ public class TmsWaybillController {
 
     @Operation(summary = "更新运单状态", description = "按目标状态更新指定运单的状态，可记录操作人。")
     @PutMapping("/{id}/status")
+    @AuditLog(operation = "更新物流运单状态", businessType = "LOGISTICS", riskLevel = 3)
     public ApiResponse<Void> updateStatus(
             @Parameter(description = "运单主键 ID") @PathVariable String id,
             @Parameter(description = "目标运单状态码") @RequestParam Integer status,
@@ -87,6 +90,7 @@ public class TmsWaybillController {
 
     @Operation(summary = "取消运单", description = "取消指定运单并记录取消原因与操作人。")
     @PostMapping("/{id}/cancel")
+    @AuditLog(operation = "取消物流运单", businessType = "LOGISTICS", riskLevel = 3)
     public ApiResponse<Void> cancel(
             @Parameter(description = "运单主键 ID") @PathVariable String id,
             @Parameter(description = "取消原因") @RequestParam(required = false) String reason,
@@ -98,6 +102,7 @@ public class TmsWaybillController {
 
     @Operation(summary = "删除运单", description = "根据主键 ID 逻辑删除指定运单。")
     @DeleteMapping("/{id}")
+    @AuditLog(operation = "删除物流运单", businessType = "LOGISTICS", riskLevel = 3)
     public ApiResponse<Void> delete(@Parameter(description = "运单主键 ID") @PathVariable String id) {
         waybillService.deleteWaybill(id);
         return ApiResponse.success();

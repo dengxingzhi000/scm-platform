@@ -13,6 +13,8 @@ import org.springframework.util.StringUtils;
 import com.cognora.lms.logistics.domain.entity.TmsWaybill;
 import com.cognora.lms.logistics.mapper.TmsWaybillMapper;
 import com.cognora.lms.logistics.service.ITmsWaybillService;
+import com.cognora.lms.logistics.support.TenantGuard;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -78,6 +80,7 @@ public class TmsWaybillServiceImpl extends ServiceImpl<TmsWaybillMapper, TmsWayb
     @Transactional(rollbackFor = Exception.class)
     public TmsWaybill createWaybill(TmsWaybill waybill) {
         log.info("鍒涘缓杩愬崟: orderNo={}, carrierId={}", (waybill.getOrderNo() + "").replace("\r", "_").replace("\n", "_"), (waybill.getCarrierId() + "").replace("\r", "_").replace("\n", "_"));
+        TenantGuard.requireTenant();
 
         if (waybill.getId() == null) {
             waybill.setId(UUID.randomUUID().toString());
@@ -104,10 +107,11 @@ public class TmsWaybillServiceImpl extends ServiceImpl<TmsWaybillMapper, TmsWayb
     public boolean updateStatus(String waybillId, Integer status, String operator) {
         log.info("鏇存柊杩愬崟鐘讹拷 waybillId={}, status={}, operator={}", (waybillId + "").replace("\r", "_").replace("\n", "_"), (status + "").replace("\r", "_").replace("\n", "_"), (operator + "").replace("\r", "_").replace("\n", "_"));
 
+        TenantGuard.requireTenant();
         TmsWaybill waybill = getById(waybillId);
         if (waybill == null) {
-            log.warn("Waybill not found: waybillId={}", (waybillId + "").replace("\r", "_").replace("\n", "_"));
-            return false;
+            log.warn("Waybill not found or not visible in current tenant: waybillId={}", (waybillId + "").replace("\r", "_").replace("\n", "_"));
+            throw new AccessDeniedException("Waybill is not accessible in the current tenant");
         }
 
         waybill.setStatus(status);
@@ -130,10 +134,11 @@ public class TmsWaybillServiceImpl extends ServiceImpl<TmsWaybillMapper, TmsWayb
     public boolean cancelWaybill(String waybillId, String reason, String operator) {
         log.info("鍙栨秷杩愬崟: waybillId={}, reason={}, operator={}", (waybillId + "").replace("\r", "_").replace("\n", "_"), (reason + "").replace("\r", "_").replace("\n", "_"), (operator + "").replace("\r", "_").replace("\n", "_"));
 
+        TenantGuard.requireTenant();
         TmsWaybill waybill = getById(waybillId);
         if (waybill == null) {
             log.warn("杩愬崟涓嶅瓨\u200b waybillId={}", (waybillId + "").replace("\r", "_").replace("\n", "_"));
-            return false;
+            throw new AccessDeniedException("Waybill is not accessible in the current tenant");
         }
 
         String implCancelFromStatus;
@@ -164,6 +169,10 @@ public class TmsWaybillServiceImpl extends ServiceImpl<TmsWaybillMapper, TmsWayb
     @Override
     public void deleteWaybill(String id) {
         log.info("Delete waybill: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
+        TenantGuard.requireTenant();
+        if (getById(id) == null) {
+            throw new AccessDeniedException("Waybill is not accessible in the current tenant");
+        }
         TmsWaybill waybill = new TmsWaybill();
         waybill.setId(id);
         waybill.setDeleted(true);

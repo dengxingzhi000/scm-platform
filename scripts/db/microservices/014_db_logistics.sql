@@ -172,6 +172,10 @@ CREATE TABLE IF NOT EXISTS tms_tracking (
     -- 来源
     source VARCHAR(32) DEFAULT 'API',               -- API, MANUAL
 
+    -- 回调幂等
+    event_id VARCHAR(128),                          -- 承运商事件 ID（同租户唯一）
+    payload_hash VARCHAR(64),                       -- 轨迹内容 SHA-256 指纹
+
     -- 元数据
     create_time TIMESTAMP NOT NULL DEFAULT NOW(),
     extra_data JSONB DEFAULT '{}',
@@ -185,6 +189,8 @@ CREATE INDEX idx_tracking_time ON tms_tracking(track_time DESC);
 
 COMMENT ON TABLE tms_tracking IS '物流轨迹表';
 COMMENT ON COLUMN tms_tracking.source IS '来源:API-接口推送,MANUAL-手动录入';
+COMMENT ON COLUMN tms_tracking.event_id IS '承运商回调事件 ID，同租户内唯一，用于幂等';
+COMMENT ON COLUMN tms_tracking.payload_hash IS '轨迹内容 SHA-256 指纹，未传事件 ID 时作为幂等键';
 
 -- ======================================================================
 -- 4. 配送路线表 (tms_route)

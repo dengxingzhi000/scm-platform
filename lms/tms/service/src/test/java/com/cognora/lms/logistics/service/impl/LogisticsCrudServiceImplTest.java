@@ -8,9 +8,13 @@ import com.cognora.lms.logistics.mapper.TmsCarrierMapper;
 import com.cognora.lms.logistics.mapper.TmsDeliveryAreaMapper;
 import com.cognora.lms.logistics.mapper.TmsRouteMapper;
 import com.cognora.lms.logistics.mapper.TmsWaybillMapper;
+import com.cognora.platform.common.tenant.TenantContextHolder;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.test.util.ReflectionTestUtils;
+
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -18,10 +22,18 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class LogisticsCrudServiceImplTest {
+
+    private static final UUID TENANT_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
+
+    @AfterEach
+    void clearTenant() {
+        TenantContextHolder.clear();
+    }
 
     private void attach(Object service, Object mapper) {
         ReflectionTestUtils.setField(service, "baseMapper", mapper);
@@ -133,6 +145,10 @@ class LogisticsCrudServiceImplTest {
         TmsWaybillMapper mapper = mock(TmsWaybillMapper.class);
         TmsWaybillServiceImpl service = new TmsWaybillServiceImpl(null);
         attach(service, mapper);
+        TenantContextHolder.setTenantId(TENANT_ID);
+        TmsWaybill existing = new TmsWaybill();
+        existing.setId("waybill-1");
+        when(mapper.selectById("waybill-1")).thenReturn(existing);
 
         service.deleteWaybill("waybill-1");
 
@@ -145,10 +161,42 @@ class LogisticsCrudServiceImplTest {
     }
 
     @Test
+    void waybillDeleteShouldRejectWaybillOutsideTenant() {
+        TmsWaybillMapper mapper = mock(TmsWaybillMapper.class);
+        TmsWaybillServiceImpl service = new TmsWaybillServiceImpl(null);
+        attach(service, mapper);
+        TenantContextHolder.setTenantId(TENANT_ID);
+        when(mapper.selectById("waybill-1")).thenReturn(null);
+
+        org.springframework.security.access.AccessDeniedException denied =
+                org.junit.jupiter.api.Assertions.assertThrows(
+                        org.springframework.security.access.AccessDeniedException.class,
+                        () -> service.deleteWaybill("waybill-1"));
+
+        assertEquals("Waybill is not accessible in the current tenant", denied.getMessage());
+        verify(mapper, never()).updateById(any(TmsWaybill.class));
+    }
+
+    @Test
+    void waybillMutationShouldRejectMissingTenantContext() {
+        TmsWaybillMapper mapper = mock(TmsWaybillMapper.class);
+        TmsWaybillServiceImpl service = new TmsWaybillServiceImpl(null);
+        attach(service, mapper);
+        TenantContextHolder.clear();
+
+        org.junit.jupiter.api.Assertions.assertThrows(
+                org.springframework.security.access.AccessDeniedException.class,
+                () -> service.createWaybill(new TmsWaybill()));
+
+        verify(mapper, never()).insert(any(TmsWaybill.class));
+    }
+
+    @Test
     void waybillCreateShouldSetStatusAndTimestamps() {
         TmsWaybillMapper mapper = mock(TmsWaybillMapper.class);
         TmsWaybillServiceImpl service = new TmsWaybillServiceImpl(null);
         attach(service, mapper);
+        TenantContextHolder.setTenantId(TENANT_ID);
         // save() reports failure when the insert affects no row, and
         // createWaybill() turns that into an exception.
         when(mapper.insert(any(TmsWaybill.class))).thenReturn(1);
