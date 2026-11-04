@@ -1,5 +1,6 @@
 package com.cognora.scm.finance.controller;
 
+import com.cognora.platform.common.log.annotation.AuditLog;
 import com.cognora.platform.common.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +30,7 @@ public class SettlementItemController {
 
     @Operation(summary = "创建结算明细", description = "新增一条结算明细并生成主键与创建时间。")
     @PostMapping
+    @AuditLog(operation = "创建结算明细", businessType = "FINANCE_SETTLEMENT_ITEM", riskLevel = 3)
     public ApiResponse<SettlementItem> create(@RequestBody SettlementItem item) {
         SettlementItem created = settlementItemService.createItem(item);
         return ApiResponse.success(created);
@@ -36,6 +38,7 @@ public class SettlementItemController {
 
     @Operation(summary = "更新结算明细", description = "按明细 ID 更新结算明细信息。")
     @PutMapping("/{id}")
+    @AuditLog(operation = "修改结算明细", businessType = "FINANCE_SETTLEMENT_ITEM", riskLevel = 3)
     public ApiResponse<SettlementItem> update(@Parameter(description = "结算明细 ID") @PathVariable String id, @RequestBody SettlementItem item) {
         SettlementItem updated = settlementItemService.updateItem(id, item);
         return ApiResponse.success(updated);
@@ -43,6 +46,7 @@ public class SettlementItemController {
 
     @Operation(summary = "删除结算明细", description = "按明细 ID 删除结算明细。")
     @DeleteMapping("/{id}")
+    @AuditLog(operation = "删除结算明细", businessType = "FINANCE_SETTLEMENT_ITEM", riskLevel = 3)
     public ApiResponse<Void> delete(@Parameter(description = "结算明细 ID") @PathVariable String id) {
         settlementItemService.removeById(id);
         log.info("结算明细删除成功: id={}", (id + "").replace("\r", "_").replace("\n", "_"));

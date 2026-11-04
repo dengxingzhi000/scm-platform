@@ -1,5 +1,6 @@
 package com.cognora.scm.finance.controller;
 
+import com.cognora.platform.common.log.annotation.AuditLog;
 import com.cognora.platform.common.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +31,7 @@ public class PlatformServiceFeeController {
 
     @Operation(summary = "创建服务费账单", description = "新增平台服务费账单，生成主键并将状态置为待支付。")
     @PostMapping
+    @AuditLog(operation = "创建平台服务费账单", businessType = "FINANCE_SERVICE_FEE", riskLevel = 3)
     public ApiResponse<PlatformServiceFee> create(@RequestBody PlatformServiceFee fee) {
         PlatformServiceFee created = platformServiceFeeService.createFee(fee);
         return ApiResponse.success(created);
@@ -37,6 +39,7 @@ public class PlatformServiceFeeController {
 
     @Operation(summary = "更新服务费账单", description = "按账单 ID 更新平台服务费账单信息并刷新更新时间。")
     @PutMapping("/{id}")
+    @AuditLog(operation = "修改平台服务费账单", businessType = "FINANCE_SERVICE_FEE", riskLevel = 3)
     public ApiResponse<PlatformServiceFee> update(@Parameter(description = "平台服务费账单 ID") @PathVariable String id, @RequestBody PlatformServiceFee fee) {
         PlatformServiceFee updated = platformServiceFeeService.updateFee(id, fee);
         return ApiResponse.success(updated);
@@ -44,6 +47,7 @@ public class PlatformServiceFeeController {
 
     @Operation(summary = "删除服务费账单", description = "按账单 ID 删除平台服务费账单。")
     @DeleteMapping("/{id}")
+    @AuditLog(operation = "删除平台服务费账单", businessType = "FINANCE_SERVICE_FEE", riskLevel = 4)
     public ApiResponse<Void> delete(@Parameter(description = "平台服务费账单 ID") @PathVariable String id) {
         platformServiceFeeService.removeById(id);
         log.info("Platform service fee deleted successfully: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
@@ -59,6 +63,7 @@ public class PlatformServiceFeeController {
 
     @Operation(summary = "登记服务费付款", description = "按账单 ID 登记本次实付金额并更新账单的已付金额。")
     @PostMapping("/{id}/pay")
+    @AuditLog(operation = "登记平台服务费付款", businessType = "FINANCE_SERVICE_FEE", riskLevel = 4)
     public ApiResponse<PlatformServiceFee> pay(
             @Parameter(description = "平台服务费账单 ID") @PathVariable String id,
             @Parameter(description = "本次实付金额") @RequestParam BigDecimal paidAmount) {

@@ -3,11 +3,13 @@ package com.cognora.scm.finance.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
+import com.cognora.platform.common.tenant.TenantContextHolder;
 import com.cognora.platform.common.util.UUIDv7Util;
 import com.cognora.scm.finance.domain.dto.CreateInvoiceRequest;
 import com.cognora.scm.finance.domain.dto.UpdateInvoiceRequest;
 import com.cognora.scm.finance.domain.entity.Invoice;
 import com.cognora.scm.finance.domain.enums.InvoiceStatus;
+import com.cognora.scm.finance.domain.support.FinanceAmount;
 import com.cognora.scm.finance.mapper.InvoiceMapper;
 import com.cognora.scm.finance.service.IInvoiceService;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -38,9 +41,9 @@ public class InvoiceServiceImpl extends ServiceImpl<InvoiceMapper, Invoice> impl
         invoice.setPartyTaxNo(request.getPartyTaxNo());
         invoice.setInvoiceCode(request.getInvoiceCode());
         invoice.setInvoiceNumber(request.getInvoiceNumber());
-        invoice.setAmount(request.getAmount());
-        invoice.setTaxAmount(request.getTaxAmount());
-        invoice.setTaxRate(request.getTaxRate());
+        // 租户必须取自登录态，忽略请求体里的 tenantId。
+        invoice.setTenantId(TenantContextHolder.getRequiredTenantId().toString());
+        applyAmounts(invoice, request.getAmount(), request.getTaxAmount(), request.getTaxRate());
         invoice.setRelatedOrders(request.getRelatedOrders());
         invoice.setSettlementId(request.getSettlementId());
         invoice.setRemark(request.getRemark());
@@ -62,6 +65,11 @@ public class InvoiceServiceImpl extends ServiceImpl<InvoiceMapper, Invoice> impl
         Invoice invoice = getById(id);
         if (invoice == null || Boolean.TRUE.equals(invoice.getDeleted())) {
             throw new IllegalArgumentException("Invoice not found: " + id);
+        }
+        // 已开具 / 已作废 / 已红冲的发票是会计凭证，不允许再改任何字段。
+        if (invoice.getStatus() != InvoiceStatus.DRAFT.getCode()) {
+            throw new IllegalStateException("Only draft invoices can be updated, current status: "
+                    + InvoiceStatus.fromCode(invoice.getStatus()).getDescription());
         }
 
         if (StringUtils.hasText(request.getInvoiceNo())) {
@@ -91,14 +99,11 @@ public class InvoiceServiceImpl extends ServiceImpl<InvoiceMapper, Invoice> impl
         if (StringUtils.hasText(request.getInvoiceNumber())) {
             invoice.setInvoiceNumber(request.getInvoiceNumber());
         }
-        if (request.getAmount() != null) {
-            invoice.setAmount(request.getAmount());
-        }
-        if (request.getTaxAmount() != null) {
-            invoice.setTaxAmount(request.getTaxAmount());
-        }
-        if (request.getTaxRate() != null) {
-            invoice.setTaxRate(request.getTaxRate());
+        if (request.getAmount() != null || request.getTaxAmount() != null || request.getTaxRate() != null) {
+            applyAmounts(invoice,
+                    request.getAmount() != null ? request.getAmount() : invoice.getAmount(),
+                    request.getTaxAmount() != null ? request.getTaxAmount() : invoice.getTaxAmount(),
+                    request.getTaxRate() != null ? request.getTaxRate() : invoice.getTaxRate());
         }
         if (StringUtils.hasText(request.getRelatedOrders())) {
             invoice.setRelatedOrders(request.getRelatedOrders());
@@ -208,5 +213,21 @@ public class InvoiceServiceImpl extends ServiceImpl<InvoiceMapper, Invoice> impl
         updateById(invoice);
         log.info("Invoice red-flushed: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         return invoice;
+    }
+
+    /**
+     * 金额统一到两位小数，并按「价税合计 = 金额 + 税额」计算 total_amount。
+     *
+     * <p>invoice.total_amount 是 NOT NULL 列；旧实现只写 amount/taxAmount，
+     * 插入时会直接触发非空约束。</p>
+     */
+    private void applyAmounts(Invoice invoice, BigDecimal amount, BigDecimal taxAmount, BigDecimal taxRate) {
+        BigDecimal normalizedAmount = FinanceAmount.positive(amount, "发票金额");
+        BigDecimal normalizedTax = FinanceAmount.optionalOrZero(taxAmount, "税额");
+        BigDecimal normalizedTotal = FinanceAmount.normalize(normalizedAmount.add(normalizedTax), "价税合计");
+        invoice.setAmount(normalizedAmount);
+        invoice.setTaxAmount(normalizedTax);
+        invoice.setTotalAmount(normalizedTotal);
+        invoice.setTaxRate(FinanceAmount.rate(taxRate, "税率"));
     }
 }

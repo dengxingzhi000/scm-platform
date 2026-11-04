@@ -1,6 +1,7 @@
 package com.cognora.scm.finance.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.cognora.platform.common.log.annotation.AuditLog;
 import com.cognora.platform.common.response.ApiResponse;
 import com.cognora.scm.finance.domain.dto.CreateInvoiceRequest;
 import com.cognora.scm.finance.domain.dto.UpdateInvoiceRequest;
@@ -31,6 +32,7 @@ public class InvoiceController {
 
     @Operation(summary = "创建发票", description = "根据请求参数创建一张新的发票记录。")
     @PostMapping
+    @AuditLog(operation = "创建发票", businessType = "FINANCE_INVOICE", riskLevel = 3)
     public ApiResponse<Invoice> create(@RequestBody @Valid CreateInvoiceRequest request) {
         Invoice invoice = invoiceService.create(request);
         return ApiResponse.success(invoice);
@@ -38,6 +40,7 @@ public class InvoiceController {
 
     @Operation(summary = "更新发票", description = "按发票 ID 更新发票中允许修改的开票信息。")
     @PutMapping("/{id}")
+    @AuditLog(operation = "修改发票", businessType = "FINANCE_INVOICE", riskLevel = 3)
     public ApiResponse<Invoice> update(
             @Parameter(description = "发票 ID") @PathVariable String id,
             @RequestBody UpdateInvoiceRequest request) {
@@ -47,6 +50,7 @@ public class InvoiceController {
 
     @Operation(summary = "删除发票", description = "按发票 ID 删除对应的发票记录。")
     @DeleteMapping("/{id}")
+    @AuditLog(operation = "删除发票", businessType = "FINANCE_INVOICE", riskLevel = 4)
     public ApiResponse<Void> delete(@Parameter(description = "发票 ID") @PathVariable String id) {
         invoiceService.delete(id);
         return ApiResponse.success();
@@ -64,6 +68,7 @@ public class InvoiceController {
 
     @Operation(summary = "开具发票", description = "按发票 ID 与开票人姓名将发票置为已开具状态。")
     @PostMapping("/{id}/issue")
+    @AuditLog(operation = "开具发票", businessType = "FINANCE_INVOICE", riskLevel = 3)
     public ApiResponse<Invoice> issue(
             @Parameter(description = "发票 ID") @PathVariable String id,
             @Parameter(description = "开票人姓名") @RequestParam String issuerName) {
@@ -73,6 +78,7 @@ public class InvoiceController {
 
     @Operation(summary = "作废发票", description = "将指定发票作废，作废后该发票不可继续使用。")
     @PostMapping("/{id}/void")
+    @AuditLog(operation = "作废发票", businessType = "FINANCE_INVOICE", riskLevel = 4)
     public ApiResponse<Invoice> voidInvoice(@Parameter(description = "发票 ID") @PathVariable String id) {
         Invoice invoice = invoiceService.voidInvoice(id);
         return ApiResponse.success(invoice);
@@ -80,6 +86,7 @@ public class InvoiceController {
 
     @Operation(summary = "发票红冲", description = "对指定发票执行红冲，生成用于冲销原发票的负数记录。")
     @PostMapping("/{id}/red-flush")
+    @AuditLog(operation = "发票红冲", businessType = "FINANCE_INVOICE", riskLevel = 4)
     public ApiResponse<Invoice> redFlush(@Parameter(description = "发票 ID") @PathVariable String id) {
         Invoice invoice = invoiceService.redFlushInvoice(id);
         return ApiResponse.success(invoice);

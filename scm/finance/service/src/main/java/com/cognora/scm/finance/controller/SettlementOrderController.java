@@ -1,6 +1,7 @@
 package com.cognora.scm.finance.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.cognora.platform.common.log.annotation.AuditLog;
 import com.cognora.platform.common.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +31,7 @@ public class SettlementOrderController {
 
     @Operation(summary = "创建结算单", description = "根据结算数据创建结算单并汇总实际应收应付金额。")
     @PostMapping
+    @AuditLog(operation = "创建结算单", businessType = "FINANCE_SETTLEMENT", riskLevel = 3)
     public ApiResponse<SettlementOrder> create(@RequestBody SettlementOrder order) {
         SettlementOrder created = settlementOrderService.createSettlement(order);
         return ApiResponse.success(created);
@@ -37,6 +39,7 @@ public class SettlementOrderController {
 
     @Operation(summary = "更新结算单", description = "按结算单 ID 更新结算单信息并刷新更新时间。")
     @PutMapping("/{id}")
+    @AuditLog(operation = "修改结算单", businessType = "FINANCE_SETTLEMENT", riskLevel = 3)
     public ApiResponse<SettlementOrder> update(@Parameter(description = "结算单 ID") @PathVariable String id, @RequestBody SettlementOrder order) {
         SettlementOrder updated = settlementOrderService.updateSettlement(id, order);
         return ApiResponse.success(updated);
@@ -44,6 +47,7 @@ public class SettlementOrderController {
 
     @Operation(summary = "删除结算单", description = "按结算单 ID 对结算单执行逻辑删除。")
     @DeleteMapping("/{id}")
+    @AuditLog(operation = "删除结算单", businessType = "FINANCE_SETTLEMENT", riskLevel = 4)
     public ApiResponse<Void> delete(@Parameter(description = "结算单 ID") @PathVariable String id) {
         settlementOrderService.deleteSettlement(id);
         return ApiResponse.success();
@@ -51,6 +55,7 @@ public class SettlementOrderController {
 
     @Operation(summary = "确认结算单", description = "记录审批人并确认结算单，使其进入可付款状态。")
     @PostMapping("/{id}/confirm")
+    @AuditLog(operation = "确认结算单", businessType = "FINANCE_SETTLEMENT", riskLevel = 3)
     public ApiResponse<SettlementOrder> confirm(
             @Parameter(description = "结算单 ID") @PathVariable String id,
             @Parameter(description = "审批人 ID") @RequestParam String approverId,
@@ -61,6 +66,7 @@ public class SettlementOrderController {
 
     @Operation(summary = "登记结算单付款", description = "按结算单 ID 登记付款金额并更新已付与未付金额。")
     @PostMapping("/{id}/pay")
+    @AuditLog(operation = "登记结算付款", businessType = "FINANCE_SETTLEMENT", riskLevel = 4)
     public ApiResponse<SettlementOrder> pay(
             @Parameter(description = "结算单 ID") @PathVariable String id,
             @Parameter(description = "本次付款金额") @RequestParam BigDecimal amount) {

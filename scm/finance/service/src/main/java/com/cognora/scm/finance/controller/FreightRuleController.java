@@ -1,5 +1,6 @@
 package com.cognora.scm.finance.controller;
 
+import com.cognora.platform.common.log.annotation.AuditLog;
 import com.cognora.platform.common.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +31,7 @@ public class FreightRuleController {
 
     @Operation(summary = "新增运费规则", description = "创建一条运费规则，记录创建时间与更新时间后保存。")
     @PostMapping
+    @AuditLog(operation = "新增运费规则", businessType = "FINANCE_FREIGHT_RULE", riskLevel = 3)
     public ApiResponse<FreightRule> create(@RequestBody FreightRule rule) {
         FreightRule created = freightRuleService.createRule(rule);
         return ApiResponse.success(created);
@@ -37,6 +39,7 @@ public class FreightRuleController {
 
     @Operation(summary = "更新运费规则", description = "按规则 ID 覆盖更新运费规则的配置内容并刷新更新时间。")
     @PutMapping("/{id}")
+    @AuditLog(operation = "更新运费规则", businessType = "FINANCE_FREIGHT_RULE", riskLevel = 3)
     public ApiResponse<FreightRule> update(@Parameter(description = "运费规则 ID") @PathVariable String id, @RequestBody FreightRule rule) {
         FreightRule updated = freightRuleService.updateRule(id, rule);
         return ApiResponse.success(updated);
@@ -44,6 +47,7 @@ public class FreightRuleController {
 
     @Operation(summary = "删除运费规则", description = "按规则 ID 对运费规则执行逻辑删除。")
     @DeleteMapping("/{id}")
+    @AuditLog(operation = "删除运费规则", businessType = "FINANCE_FREIGHT_RULE", riskLevel = 3)
     public ApiResponse<Void> delete(@Parameter(description = "运费规则 ID") @PathVariable String id) {
         freightRuleService.deleteRule(id);
         return ApiResponse.success();
