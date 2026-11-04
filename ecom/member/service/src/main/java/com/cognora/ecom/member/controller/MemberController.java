@@ -3,6 +3,7 @@ package com.cognora.ecom.member.controller;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cognora.ecom.member.domain.entity.Member;
 import com.cognora.ecom.member.service.IMemberService;
+import com.cognora.platform.common.web.ownership.OwnershipGuard;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -45,17 +46,19 @@ public class MemberController {
         return memberService.register(request.getUserId(), request.getNickname(), request.getAvatar());
     }
 
-    @Operation(summary = "查询会员信息", description = "按用户 ID 查询会员档案信息。")
+    @Operation(summary = "查询会员信息", description = "查询当前登录用户的会员档案信息。")
     @GetMapping("/{userId}")
     public Member getByUserId(@Parameter(description = "会员用户 ID") @PathVariable String userId) {
+        OwnershipGuard.requireSelfOrThrow(userId);
         log.info("[API] Get member: userId={}", (userId + "").replace("\r", "_").replace("\n", "_"));
         return memberService.getByUserId(userId);
     }
 
-    @Operation(summary = "更新会员信息", description = "按用户 ID 更新昵称、头像、性别与生日；会员号、积分、消费额由系统维护。")
+    @Operation(summary = "更新会员信息", description = "更新当前登录用户的昵称、头像、性别与生日；会员号、积分、消费额由系统维护。")
     @PutMapping("/{userId}")
     public Member update(@Parameter(description = "会员用户 ID") @PathVariable String userId,
                          @Valid @RequestBody UpdateProfileRequest request) {
+        OwnershipGuard.requireSelfOrThrow(userId);
         log.info("[API] Update member: userId={}", (userId + "").replace("\r", "_").replace("\n", "_"));
         return memberService.updateProfile(userId, request.getNickname(), request.getAvatar(),
                 request.getGender(), request.getBirthday());

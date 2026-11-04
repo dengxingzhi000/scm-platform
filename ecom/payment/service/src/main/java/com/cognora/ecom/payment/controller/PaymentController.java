@@ -9,6 +9,8 @@ import com.cognora.ecom.payment.callback.VerifiedPayment;
 import com.cognora.ecom.payment.domain.PaymentAmount;
 import com.cognora.ecom.payment.domain.entity.PaymentOrder;
 import com.cognora.ecom.payment.service.IPaymentOrderService;
+import com.cognora.platform.common.web.ownership.OwnershipGuard;
+import com.cognora.platform.common.web.util.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -55,26 +57,41 @@ public class PaymentController {
         return paymentService.pageQuery(page, size, orderNo, userId, paymentChannel, status);
     }
 
-    @Operation(summary = "创建支付单", description = "根据订单号、用户、金额与支付渠道创建支付单；同订单同渠道重复请求返回已有待支付单。")
+    @Operation(summary = "创建支付单", description = "根据订单号、当前登录用户、金额与支付渠道创建支付单；同订单同渠道重复请求返回已有待支付单。")
     @PostMapping("/create")
     public PaymentOrder createPayment(@Valid @RequestBody CreatePaymentRequest request) {
-        log.info("[API] Create payment: orderNo={}, amount={}", (request.getOrderNo() + "").replace("\r", "_").replace("\n", "_"), (request.getAmount() + "").replace("\r", "_").replace("\n", "_"));
-        return paymentService.createPayment(request.getOrderNo(), request.getUserId(), request.getAmount(), request.getPaymentChannel());
+        // The owner always comes from the authenticated principal, never from the request body.
+        String currentUserId = SecurityUtils.requireCurrentUserUuid().toString();
+        log.info("[API] Create payment: userId={}, orderNo={}, amount={}", (currentUserId + "").replace("\r", "_").replace("\n", "_"),
+                (request.getOrderNo() + "").replace("\r", "_").replace("\n", "_"), (request.getAmount() + "").replace("\r", "_").replace("\n", "_"));
+        return paymentService.createPayment(request.getOrderNo(), currentUserId, request.getAmount(), request.getPaymentChannel());
     }
 
-    @Operation(summary = "查询支付单", description = "根据支付单号查询支付单详情。")
+    @Operation(summary = "查询支付单", description = "根据支付单号查询当前登录用户的支付单详情。")
     @GetMapping("/{paymentNo}")
     public PaymentOrder queryPayment(@Parameter(description = "支付单号") @PathVariable String paymentNo) {
         log.info("[API] Query payment: paymentNo={}", (paymentNo + "").replace("\r", "_").replace("\n", "_"));
-        return paymentService.queryPayment(paymentNo);
+        PaymentOrder payment = paymentService.queryPayment(paymentNo);
+        requirePaymentOwner(payment);
+        return payment;
     }
 
-    @Operation(summary = "取消支付单", description = "根据支付单号取消尚未完成的支付。")
+    @Operation(summary = "取消支付单", description = "根据支付单号取消当前登录用户尚未完成的支付。")
     @PostMapping("/{paymentNo}/cancel")
     public boolean cancelPayment(@Parameter(description = "支付单号") @PathVariable String paymentNo) {
         log.info("[API] Cancel payment: paymentNo={}", (paymentNo + "").replace("\r", "_").replace("\n", "_"));
+        PaymentOrder payment = paymentService.queryPayment(paymentNo);
+        requirePaymentOwner(payment);
         paymentService.cancelPayment(paymentNo);
         return true;
+    }
+
+    private void requirePaymentOwner(PaymentOrder payment) {
+        if (payment == null) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Access denied: payment not found");
+        }
+        OwnershipGuard.requireSelfOrThrow(payment.getUserId());
     }
 
     @Operation(summary = "支付宝支付回调", description = "验签支付宝异步通知，校验商户号与本地支付单金额后完成支付。")
@@ -167,7 +184,9 @@ public class PaymentController {
         @NotBlank(message = "订单号不能为空")
         private String orderNo;
 
-        @NotBlank(message = "用户 ID 不能为空")
+        /**
+         * Retained for backward compatibility; the authenticated user id always wins.
+         */
         private String userId;
 
         @NotNull(message = "支付金额不能为空")

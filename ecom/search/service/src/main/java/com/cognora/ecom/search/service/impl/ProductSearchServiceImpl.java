@@ -72,8 +72,9 @@ public class ProductSearchServiceImpl implements IProductSearchService {
     }
 
     @Override
-    public List<ProductDocument> getPersonalizedResults(Long userId, int limit) {
-        log.info("Getting personalized results: userId={}, limit={}", userId, limit);
+    public List<ProductDocument> getPersonalizedResults(String userId, int limit) {
+        log.info("Getting personalized results: userId={}, limit={}",
+                (userId + "").replace("\r", "_").replace("\n", "_"), limit);
         return productRepository.findByStatus("active")
                 .stream()
                 .limit(limit)

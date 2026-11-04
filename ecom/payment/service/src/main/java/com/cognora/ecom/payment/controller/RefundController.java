@@ -3,6 +3,8 @@ package com.cognora.ecom.payment.controller;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cognora.ecom.payment.domain.entity.Refund;
 import com.cognora.ecom.payment.service.IRefundService;
+import com.cognora.platform.common.web.ownership.OwnershipGuard;
+import com.cognora.platform.common.web.util.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -48,19 +50,27 @@ public class RefundController {
         return refundService.pageQuery(page, size, paymentNo, orderNo, userId, status);
     }
 
-    @Operation(summary = "创建退款", description = "根据支付单号、订单号与退款金额创建退款申请。")
+    @Operation(summary = "创建退款", description = "根据支付单号、订单号与退款金额为当前登录用户创建退款申请。")
     @PostMapping
     public Refund createRefund(@Valid @RequestBody CreateRefundRequest request) {
-        log.info("[API] Create refund: paymentNo={}, amount={}",
+        // The owner always comes from the authenticated principal, never from the request body.
+        String currentUserId = SecurityUtils.requireCurrentUserUuid().toString();
+        log.info("[API] Create refund: userId={}, paymentNo={}, amount={}", (currentUserId + "").replace("\r", "_").replace("\n", "_"),
                 (request.getPaymentNo() + "").replace("\r", "_").replace("\n", "_"), (request.getAmount() + "").replace("\r", "_").replace("\n", "_"));
         return refundService.createRefund(request.getPaymentNo(), request.getOrderNo(),
-                request.getUserId(), request.getAmount(), request.getReason());
+                currentUserId, request.getAmount(), request.getReason());
     }
 
-    @Operation(summary = "查询退款", description = "根据退款单号查询退款详情。")
+    @Operation(summary = "查询退款", description = "根据退款单号查询当前登录用户的退款详情。")
     @GetMapping("/{refundNo}")
     public Refund queryRefund(@Parameter(description = "退款单号") @PathVariable String refundNo) {
-        return refundService.queryRefund(refundNo);
+        Refund refund = refundService.queryRefund(refundNo);
+        if (refund == null) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Access denied: refund not found");
+        }
+        OwnershipGuard.requireSelfOrThrow(refund.getUserId());
+        return refund;
     }
 
     @Operation(summary = "审批通过退款", description = "审批通过指定退款申请并执行退款。")
@@ -86,7 +96,9 @@ public class RefundController {
         @NotBlank(message = "订单号不能为空")
         private String orderNo;
 
-        @NotBlank(message = "用户 ID 不能为空")
+        /**
+         * Retained for backward compatibility; the authenticated user id always wins.
+         */
         private String userId;
 
         @NotNull(message = "退款金额不能为空")

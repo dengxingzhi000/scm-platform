@@ -2,6 +2,7 @@ package com.cognora.ecom.member.controller;
 
 import com.cognora.ecom.member.domain.entity.MemberPointsLog;
 import com.cognora.ecom.member.service.IMemberPointsService;
+import com.cognora.platform.common.web.ownership.OwnershipGuard;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -20,16 +21,18 @@ import java.util.List;
 public class MemberPointsController {
     private final IMemberPointsService pointsService;
 
-    @Operation(summary = "查询积分余额", description = "查询指定会员当前可用的积分余额。")
+    @Operation(summary = "查询积分余额", description = "查询当前登录用户当前可用的积分余额。")
     @GetMapping
     public int getBalance(@Parameter(description = "会员用户 ID") @PathVariable String userId) {
+        OwnershipGuard.requireSelfOrThrow(userId);
         log.info("[API] Get points balance: userId={}", (userId + "").replace("\r", "_").replace("\n", "_"));
         return pointsService.getPointsBalance(userId);
     }
 
-    @Operation(summary = "查询积分明细", description = "查询指定会员的积分变动流水记录。")
+    @Operation(summary = "查询积分明细", description = "查询当前登录用户的积分变动流水记录。")
     @GetMapping("/log")
     public List<MemberPointsLog> getLog(@Parameter(description = "会员用户 ID") @PathVariable String userId) {
+        OwnershipGuard.requireSelfOrThrow(userId);
         log.info("[API] Get points log: userId={}", (userId + "").replace("\r", "_").replace("\n", "_"));
         return pointsService.getByUserId(userId);
     }

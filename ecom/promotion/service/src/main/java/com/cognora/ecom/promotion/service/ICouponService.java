@@ -15,6 +15,13 @@ public interface ICouponService extends IService<Coupon> {
 
     void useCoupon(String couponCode, String orderNo);
 
+    /**
+     * Redeem a coupon on behalf of the authenticated user. Ownership of the coupon is verified
+     * before it is marked used; the service-to-service {@link #useCoupon(String, String)} entry
+     * point is kept for callers that have already established the coupon owner.
+     */
+    void useCouponForUser(String userId, String couponCode, String orderNo);
+
     List<Coupon> getByUserId(String userId);
 
     Page<Coupon> pageQuery(int page, int size, String userId, Integer status);
