@@ -168,7 +168,8 @@ public class InvInventoryController {
    */
   @Operation(summary = "查询库存统计", description = "获取全局库存统计信息，用于总览与监控。")
   @GetMapping("/stats")
-  @Cacheable(value = "inventoryStats", key = "'global'")
+  @Cacheable(value = "inventoryStats",
+      key = "T(com.cognora.platform.common.tenant.TenantCacheKeys).global('inventoryStats')")
   @SentinelResource("inventory.stats")
   public ApiResponse<InventoryStatsResponse> getInventoryStats() {
     return ApiResponse.success(queryService.getInventoryStats());
