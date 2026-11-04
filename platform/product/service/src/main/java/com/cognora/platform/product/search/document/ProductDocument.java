@@ -38,6 +38,12 @@ public class ProductDocument {
     private String id;
 
     /**
+     * 租户 ID（keyword，可过滤），所有查询必须带该条件
+     */
+    @Field(name = "tenant_id", type = FieldType.Keyword)
+    private String tenantId;
+
+    /**
      * SPU 缂栫爜
      */
     @Field(type = FieldType.Keyword)
