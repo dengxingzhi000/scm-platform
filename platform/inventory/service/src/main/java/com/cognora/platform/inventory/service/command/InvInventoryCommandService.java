@@ -33,6 +33,9 @@ public class InvInventoryCommandService {
     @Master(reason = "写操作必须走主库")
     @Transactional(rollbackFor = Exception.class)
     public InventoryResponse adjustInventory(InventoryAdjustRequest request) {
+        UUID tenantId = TenantContextHolder.getRequiredTenantId();
+        int quantity = request.getQuantity() == null ? 0 : request.getQuantity();
+
         Inventory inventory = inventoryMapper.selectOne(
                 new LambdaQueryWrapper<Inventory>()
                         .eq(Inventory::getSkuId, request.getSkuId())
@@ -40,41 +43,45 @@ public class InvInventoryCommandService {
                         .eq(Inventory::getDeleted, false)
         );
         if (inventory == null) {
+            if (quantity < 0) {
+                throw new IllegalArgumentException(
+                        "库存不足，无法扣减。当前库存: 0, 扣减数量: " + Math.abs(quantity));
+            }
             inventory = initInventoryEntity(request.getSkuId(), request.getWarehouseId(), 0);
-        }
-        int beforeStock = inventory.getAvailableStock();
-        int afterStock = beforeStock + request.getQuantity();
-        if (afterStock < 0) {
-            throw new IllegalArgumentException("库存不足，无法扣减。当前库存: " + beforeStock + ", 扣减数量: " + Math.abs(request.getQuantity()));
-        }
-        inventory.setAvailableStock(afterStock);
-        inventory.setTotalStock(inventory.getTotalStock() + request.getQuantity());
-        inventory.setUpdateTime(LocalDateTime.now());
-        inventory.setUpdateBy(request.getOperatorId());
-        if (request.getAdjustType() == 1) {
-            inventory.setLastInboundAt(LocalDateTime.now());
-        } else if (request.getAdjustType() == 2) {
-            inventory.setLastOutboundAt(LocalDateTime.now());
-        }
-        if (inventory.getId() == null) {
             inventoryMapper.insert(inventory);
-        } else {
-            inventoryMapper.updateById(inventory);
         }
-        // — Transactional Outbox: same TX as inventory mutation — mandatory, fail-fast on missing tenant.
-        UUID tenantId = TenantContextHolder.getRequiredTenantId();
+
+        // 条件更新：where available_stock + quantity >= 0，并发下不会丢失更新、不会扣成负数
+        int updated = inventoryMapper.applyAdjustment(
+                inventory.getId(),
+                quantity,
+                request.getAdjustType() == null ? 0 : request.getAdjustType(),
+                request.getOperatorId());
+        if (updated == 0) {
+            throw new IllegalArgumentException(
+                    "库存不足，无法扣减。当前库存: " + inventory.getAvailableStock()
+                            + ", 扣减数量: " + Math.abs(Math.min(quantity, 0)));
+        }
+
+        Inventory fresh = inventoryMapper.selectById(inventory.getId());
+        if (fresh == null) {
+            fresh = inventory;
+            fresh.setAvailableStock(fresh.getAvailableStock() + quantity);
+            fresh.setTotalStock(fresh.getTotalStock() + quantity);
+        }
+
         outboxService.save(
                 "INVENTORY_ADJUSTED",
                 "Inventory",
-                inventory.getId(),
+                fresh.getId(),
                 new InventoryAdjustedEvent(
                         tenantId,
-                        inventory.getSkuId(),
-                        inventory.getWarehouseId(),
-                        request.getQuantity(),
-                        inventory.getAvailableStock()),
+                        fresh.getSkuId(),
+                        fresh.getWarehouseId(),
+                        quantity,
+                        fresh.getAvailableStock()),
                 tenantId);
-        return convertToResponse(inventory);
+        return convertToResponse(fresh);
     }
 
     @Master(reason = "写操作必须走主库")

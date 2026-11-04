@@ -1,29 +1,43 @@
 package com.cognora.platform.inventory.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.cognora.platform.common.data.rw.annotation.Master;
+import com.cognora.platform.common.data.rw.annotation.Slave;
 import com.cognora.platform.common.tenant.TenantCacheKeys;
-import com.cognora.platform.inventory.dto.InventoryReservationRequest;
+import com.cognora.platform.common.tenant.TenantContextHolder;
+import com.cognora.platform.inventory.domain.ReservationStatus;
+import com.cognora.platform.inventory.domain.entity.InvReservationRecord;
 import com.cognora.platform.inventory.domain.entity.Inventory;
+import com.cognora.platform.inventory.dto.InventoryReservationRequest;
 import com.cognora.platform.inventory.lock.DistributedLock;
 import com.cognora.platform.inventory.mapper.InvInventoryMapper;
+import com.cognora.platform.inventory.mapper.InvReservationRecordMapper;
 import com.cognora.platform.inventory.service.IInvReservationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
- * 库存预占服务实现
+ * 库存预占服务实现（DB 持久化状态机 + 条件更新）。
  *
- * <p>基于 Redis + MySQL 实现的库存预占机制
+ * <p>与旧实现的差异：
+ * <ul>
+ *   <li>预占记录落在 {@code inv_reservation_record}，Redis 不再是唯一事实来源；
+ *       Redis TTL 到期不会再把锁定库存“弄丢”。</li>
+ *   <li>幂等键为 (tenant_id, business_key)，重复预占不会二次扣减。</li>
+ *   <li>确认/释放/过期都通过带 {@code status = 'RESERVED'} 守卫的单条 UPDATE
+ *       流转状态，重复调用幂等，非法流转（如释放已确认的预占）被拒绝。</li>
+ *   <li>库存数量变更使用 {@code available_stock >= ?} / {@code locked_stock >= ?}
+ *       守卫的条件更新，并发下不会出现负库存。</li>
+ *   <li>过期预占由 {@link #releaseExpiredReservations()} 真正释放库存。</li>
+ * </ul>
  *
  * @author SCM Platform Team
  * @since 2025-12-26
@@ -33,275 +47,256 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class InvReservationServiceImpl implements IInvReservationService {
 
-  private final RedisTemplate<String, Object> redisTemplate;
-
   private final InvInventoryMapper inventoryMapper;
+
+  private final InvReservationRecordMapper reservationRecordMapper;
 
   private final DistributedLock distributedLock;
 
-  private static final String RESERVATION_KEY_PREFIX = "inventory:reservation";
-  private static final String RESERVATION_INDEX_PREFIX = "inventory:reservation:index";
   private static final int DEFAULT_TIMEOUT_SECONDS = 900; // 15分钟
 
+  private static final int EXPIRY_BATCH_SIZE = 200;
+
   @Override
+  @Master(reason = "写操作必须走主库")
   @Transactional(rollbackFor = Exception.class)
   public boolean reserveInventory(InventoryReservationRequest request) {
-    log.debug("🔵 预占库存: skuId={}, warehouseId={}, quantity={}, businessKey={}",
-        (request.getSkuId() + "").replace("\r", "_").replace("\n", "_"), (request.getWarehouseId() + "").replace("\r", "_").replace("\n", "_"),
-        request.getQuantity(), (request.getBusinessKey() + "").replace("\r", "_").replace("\n", "_"));
+    UUID tenantId = TenantContextHolder.getRequiredTenantId();
+    String tenant = tenantId.toString();
 
-    String reservationKey = buildReservationKey(request.getBusinessKey());
-
-    // 1. 幂等性检查：预占是否已存在
-    if (Boolean.TRUE.equals(redisTemplate.hasKey(reservationKey))) {
-      log.warn("⚠️  预占已存在，幂等返回: businessKey={}", (request.getBusinessKey() + "").replace("\r", "_").replace("\n", "_"));
-      return true;
+    if (request.getQuantity() == null || request.getQuantity() <= 0) {
+      throw new IllegalArgumentException("预占数量必须大于0");
     }
+    int quantity = request.getQuantity();
 
-    // 2. 使用分布式锁防止并发问题
-    String lockKey = "reserve:" + request.getSkuId() + ":" + request.getWarehouseId();
+    log.debug("预占库存: skuId={}, warehouseId={}, quantity={}, businessKey={}",
+        request.getSkuId(), request.getWarehouseId(), quantity, request.getBusinessKey());
+
+    // 同一业务键串行化：幂等检查与写库都在这把锁内完成，避免并发重复预占。
+    String lockKey = TenantCacheKeys.scoped("reserve", request.getBusinessKey());
     DistributedLock.LockHandle lock = distributedLock.tryLock(lockKey, 10, TimeUnit.SECONDS);
-
     if (lock == null) {
-      log.error("❌获取分布式锁失败: lockKey={}", (lockKey + "").replace("\r", "_").replace("\n", "_"));
-      throw new RuntimeException("系统繁忙，请稍后重试");
+      throw new IllegalStateException("系统繁忙，请稍后重试");
     }
 
     try {
-      // 3. 查询库存（行锁）
+      InvReservationRecord existing =
+          reservationRecordMapper.selectByBusinessKey(tenant, request.getBusinessKey());
+      if (existing != null) {
+        assertSameTenant(existing, tenantId);
+        ReservationStatus status = existing.statusEnum();
+        if (status == ReservationStatus.RESERVED || status == ReservationStatus.CONFIRMED) {
+          log.warn("预占已存在，幂等返回: businessKey={}, status={}",
+              request.getBusinessKey(), status);
+          return true;
+        }
+        log.warn("预占已处于终态，拒绝复用业务键: businessKey={}, status={}",
+            request.getBusinessKey(), status);
+        return false;
+      }
+
       Inventory inventory = inventoryMapper.selectOne(
           new LambdaQueryWrapper<Inventory>()
               .eq(Inventory::getSkuId, request.getSkuId())
               .eq(Inventory::getWarehouseId, request.getWarehouseId())
               .eq(Inventory::getDeleted, false)
-              .last("FOR UPDATE")
       );
 
       if (inventory == null) {
-        log.error("❌库存不存在 skuId={}, warehouseId={}",
-            (request.getSkuId() + "").replace("\r", "_").replace("\n", "_"), (request.getWarehouseId() + "").replace("\r", "_").replace("\n", "_"));
+        log.error("库存不存在 skuId={}, warehouseId={}",
+            request.getSkuId(), request.getWarehouseId());
         throw new IllegalArgumentException("商品不存在");
       }
 
-      // 4. 检查库存是否充足
-      if (inventory.getAvailableStock() < request.getQuantity()) {
-        log.error("❌库存不足: skuId={}, available={}, required={}",
-            (request.getSkuId() + "").replace("\r", "_").replace("\n", "_"), inventory.getAvailableStock(), request.getQuantity());
-        throw new RuntimeException(
-            String.format("库存不足: 可用 %d, 需要%d",
-                inventory.getAvailableStock(), request.getQuantity())
-        );
+      int locked = inventoryMapper.lockStock(inventory.getId(), quantity);
+      if (locked == 0) {
+        log.error("库存不足: skuId={}, available={}, required={}",
+            request.getSkuId(), inventory.getAvailableStock(), quantity);
+        throw new IllegalArgumentException(
+            String.format("库存不足: 可用 %d, 需要%d", inventory.getAvailableStock(), quantity));
       }
 
-      // 5. 锁定库存（available_stock -> locked_stock）
-      int updated = inventoryMapper.update(null,
-          new LambdaUpdateWrapper<Inventory>()
-              .setSql("available_stock = available_stock - " + request.getQuantity())
-              .setSql("locked_stock = locked_stock + " + request.getQuantity())
-              .eq(Inventory::getId, inventory.getId())
-              .ge(Inventory::getAvailableStock, request.getQuantity())
-      );
+      InvReservationRecord record = new InvReservationRecord();
+      record.setTenantId(tenant);
+      record.setBusinessKey(request.getBusinessKey());
+      record.setSkuId(request.getSkuId());
+      record.setWarehouseId(request.getWarehouseId());
+      record.setInventoryId(inventory.getId());
+      record.setQuantity(quantity);
+      record.setStatus(ReservationStatus.RESERVED.name());
+      record.setReservedAt(LocalDateTime.now());
 
-      if (updated == 0) {
-        log.error("❌库存锁定失败（并发冲突）: skuId={}", (request.getSkuId() + "").replace("\r", "_").replace("\n", "_"));
-        throw new RuntimeException("库存锁定失败，请重试");
-      }
+      int timeoutSeconds = request.getTimeoutSeconds() != null && request.getTimeoutSeconds() > 0
+          ? request.getTimeoutSeconds() : DEFAULT_TIMEOUT_SECONDS;
+      record.setExpireAt(LocalDateTime.now().plusSeconds(timeoutSeconds));
 
-      // 6. 在Redis中记录预占信息
-      Map<String, Object> reservationData = new HashMap<>();
-      reservationData.put("skuId", request.getSkuId());
-      reservationData.put("warehouseId", request.getWarehouseId());
-      reservationData.put("quantity", request.getQuantity());
-      reservationData.put("businessKey", request.getBusinessKey());
-      reservationData.put("operatorId", request.getOperatorId());
-      reservationData.put("operatorName", request.getOperatorName());
-      reservationData.put("remark", request.getRemark());
-      reservationData.put("createTime", System.currentTimeMillis());
+      reservationRecordMapper.insert(record);
 
-      int timeoutSeconds = request.getTimeoutSeconds() != null ?
-          request.getTimeoutSeconds() : DEFAULT_TIMEOUT_SECONDS;
-
-      redisTemplate.opsForHash().putAll(reservationKey, reservationData);
-      redisTemplate.expire(reservationKey, Duration.ofSeconds(timeoutSeconds));
-
-      // 7. 建立索引（sku:warehouse -> businessKey），方便按SKU查询预占
-      String indexKey = buildIndexKey(request.getSkuId(), request.getWarehouseId());
-      redisTemplate.opsForSet().add(indexKey, request.getBusinessKey());
-      redisTemplate.expire(indexKey, Duration.ofSeconds(timeoutSeconds));
-
-      log.debug("✅库存预占成功: skuId={}, warehouseId={}, quantity={}, businessKey={}, timeout={}s",
-          (request.getSkuId() + "").replace("\r", "_").replace("\n", "_"), (request.getWarehouseId() + "").replace("\r", "_").replace("\n", "_"),
-          request.getQuantity(), (request.getBusinessKey() + "").replace("\r", "_").replace("\n", "_"), timeoutSeconds);
-
+      log.debug("库存预占成功: businessKey={}, quantity={}, expireAt={}",
+          request.getBusinessKey(), quantity, record.getExpireAt());
       return true;
-
     } finally {
       lock.release();
     }
   }
 
   @Override
+  @Master(reason = "写操作必须走主库")
   @Transactional(rollbackFor = Exception.class)
   public boolean confirmReservation(String businessKey) {
-    log.debug("🟢 确认预占: businessKey={}", (businessKey + "").replace("\r", "_").replace("\n", "_"));
+    UUID tenantId = TenantContextHolder.getRequiredTenantId();
+    String tenant = tenantId.toString();
 
-    String reservationKey = buildReservationKey(businessKey);
+    InvReservationRecord record = reservationRecordMapper.selectByBusinessKey(tenant, businessKey);
+    if (record == null) {
+      log.warn("预占不存在或不属于当前租户 businessKey={}", businessKey);
+      return false;
+    }
+    assertSameTenant(record, tenantId);
 
-    // 1. 检查预占是否存在
-    Map<Object, Object> reservationData = redisTemplate.opsForHash().entries(reservationKey);
-
-    if (reservationData.isEmpty()) {
-      log.warn("⚠️  预占不存在或已过期 businessKey={}", (businessKey + "").replace("\r", "_").replace("\n", "_"));
+    ReservationStatus status = record.statusEnum();
+    if (status == ReservationStatus.CONFIRMED) {
+      log.debug("预占已确认，幂等返回: businessKey={}", businessKey);
+      return true;
+    }
+    if (status != ReservationStatus.RESERVED) {
+      log.warn("非法状态流转（确认）: businessKey={}, status={}", businessKey, status);
       return false;
     }
 
-    String skuId = (String) reservationData.get("skuId");
-    String warehouseId = (String) reservationData.get("warehouseId");
-    Integer quantity = (Integer) reservationData.get("quantity");
-
-    // 2. 使用分布式锁
-    String lockKey = "confirm:" + skuId + ":" + warehouseId;
-    DistributedLock.LockHandle lock = distributedLock.tryLock(lockKey, 10, TimeUnit.SECONDS);
-
-    if (lock == null) {
-      log.error("❌获取分布式锁失败: lockKey={}", (lockKey + "").replace("\r", "_").replace("\n", "_"));
-      throw new RuntimeException("系统繁忙，请稍后重试");
+    int moved = reservationRecordMapper.markConfirmed(record.getId(), tenant);
+    if (moved == 0) {
+      // 并发下被其它线程先流转：只有“已确认”才算幂等成功
+      InvReservationRecord latest =
+          reservationRecordMapper.selectByBusinessKey(tenant, businessKey);
+      boolean confirmed = latest != null && latest.statusEnum() == ReservationStatus.CONFIRMED;
+      log.debug("预占确认并发竞态: businessKey={}, confirmed={}", businessKey, confirmed);
+      return confirmed;
     }
 
-    try {
-      // 3. 扣减锁定库存（locked_stock -> 扣减, total_stock -> 扣减）
-      int updated = inventoryMapper.update(null,
-          new LambdaUpdateWrapper<Inventory>()
-              .setSql("locked_stock = locked_stock - " + quantity)
-              .setSql("total_stock = total_stock - " + quantity)
-              .eq(Inventory::getSkuId, skuId)
-              .eq(Inventory::getWarehouseId, warehouseId)
-              .ge(Inventory::getLockedStock, quantity)
-      );
-
-      if (updated == 0) {
-        log.error("❌锁定库存不足: skuId={}, warehouseId={}, quantity={}",
-            skuId, warehouseId, quantity);
-        throw new RuntimeException("锁定库存不足");
-      }
-
-      // 4. 删除 Redis 预占记录
-      redisTemplate.delete(reservationKey);
-
-      // 5. 从索引中移除
-      String indexKey = buildIndexKey(skuId, warehouseId);
-      redisTemplate.opsForSet().remove(indexKey, businessKey);
-
-      log.debug("✅预占确认成功: skuId={}, warehouseId={}, quantity={}, businessKey={}",
-          (skuId + "").replace("\r", "_").replace("\n", "_"), (warehouseId + "").replace("\r", "_").replace("\n", "_"), quantity, (businessKey + "").replace("\r", "_").replace("\n", "_"));
-
-      return true;
-
-    } finally {
-      lock.release();
+    int stockUpdated = inventoryMapper.confirmStock(record.getInventoryId(), record.getQuantity());
+    if (stockUpdated == 0) {
+      throw new IllegalStateException("锁定库存不足，无法确认预占: businessKey=" + businessKey);
     }
+
+    log.debug("预占确认成功: businessKey={}, quantity={}", businessKey, record.getQuantity());
+    return true;
   }
 
   @Override
+  @Master(reason = "写操作必须走主库")
   @Transactional(rollbackFor = Exception.class)
   public boolean releaseReservation(String businessKey) {
-    log.debug("🔴 释放预占: businessKey={}", (businessKey + "").replace("\r", "_").replace("\n", "_"));
+    UUID tenantId = TenantContextHolder.getRequiredTenantId();
+    String tenant = tenantId.toString();
 
-    String reservationKey = buildReservationKey(businessKey);
+    InvReservationRecord record = reservationRecordMapper.selectByBusinessKey(tenant, businessKey);
+    if (record == null) {
+      log.warn("预占不存在或不属于当前租户 businessKey={}", businessKey);
+      return false;
+    }
+    assertSameTenant(record, tenantId);
 
-    // 1. 检查预占是否存在
-    Map<Object, Object> reservationData = redisTemplate.opsForHash().entries(reservationKey);
-
-    if (reservationData.isEmpty()) {
-      log.warn("⚠️  预占不存在 businessKey={}", (businessKey + "").replace("\r", "_").replace("\n", "_"));
+    ReservationStatus status = record.statusEnum();
+    if (status == ReservationStatus.RELEASED || status == ReservationStatus.EXPIRED) {
+      log.debug("预占已释放，幂等返回: businessKey={}, status={}", businessKey, status);
+      return true;
+    }
+    if (status == ReservationStatus.CONFIRMED) {
+      log.warn("非法状态流转（释放已确认预占）: businessKey={}", businessKey);
       return false;
     }
 
-    String skuId = (String) reservationData.get("skuId");
-    String warehouseId = (String) reservationData.get("warehouseId");
-    Integer quantity = (Integer) reservationData.get("quantity");
-
-    // 2. 使用分布式锁
-    String lockKey = "release:" + skuId + ":" + warehouseId;
-    DistributedLock.LockHandle lock = distributedLock.tryLock(lockKey, 10, TimeUnit.SECONDS);
-
-    if (lock == null) {
-      log.error("❌获取分布式锁失败: lockKey={}", (lockKey + "").replace("\r", "_").replace("\n", "_"));
-      throw new RuntimeException("系统繁忙，请稍后重试");
+    int moved = reservationRecordMapper.markReleased(record.getId(), tenant);
+    if (moved == 0) {
+      InvReservationRecord latest =
+          reservationRecordMapper.selectByBusinessKey(tenant, businessKey);
+      boolean alreadyReleased = latest != null
+          && (latest.statusEnum() == ReservationStatus.RELEASED
+              || latest.statusEnum() == ReservationStatus.EXPIRED);
+      log.debug("预占释放并发竞态: businessKey={}, alreadyReleased={}", businessKey, alreadyReleased);
+      return alreadyReleased;
     }
 
-    try {
-      // 3. 释放锁定库存为可用库存（locked_stock -> available_stock）
-      int updated = inventoryMapper.update(null,
-          new LambdaUpdateWrapper<Inventory>()
-              .setSql("available_stock = available_stock + " + quantity)
-              .setSql("locked_stock = locked_stock - " + quantity)
-              .eq(Inventory::getSkuId, skuId)
-              .eq(Inventory::getWarehouseId, warehouseId)
-              .ge(Inventory::getLockedStock, quantity)
-      );
-
-      if (updated == 0) {
-        log.warn("⚠️  锁定库存不足（可能已被释放）: skuId={}, warehouseId={}, quantity={}",
-            skuId, warehouseId, quantity);
-        // 不抛异常，继续删除Redis 记录
-      }
-
-      // 4. 删除 Redis 预占记录
-      redisTemplate.delete(reservationKey);
-
-      // 5. 从索引中移除
-      String indexKey = buildIndexKey(skuId, warehouseId);
-      redisTemplate.opsForSet().remove(indexKey, businessKey);
-
-      log.debug("✅预占释放成功: skuId={}, warehouseId={}, quantity={}, businessKey={}",
-          (skuId + "").replace("\r", "_").replace("\n", "_"), (warehouseId + "").replace("\r", "_").replace("\n", "_"), quantity, (businessKey + "").replace("\r", "_").replace("\n", "_"));
-
-      return true;
-
-    } finally {
-      lock.release();
+    int stockUpdated = inventoryMapper.releaseStock(record.getInventoryId(), record.getQuantity());
+    if (stockUpdated == 0) {
+      throw new IllegalStateException("锁定库存不足，无法释放预占: businessKey=" + businessKey);
     }
+
+    log.debug("预占释放成功: businessKey={}, quantity={}", businessKey, record.getQuantity());
+    return true;
   }
 
   @Override
+  @Slave
   public boolean checkReservationExists(String businessKey) {
-    String reservationKey = buildReservationKey(businessKey);
-    return Boolean.TRUE.equals(redisTemplate.hasKey(reservationKey));
+    String tenant = TenantContextHolder.getRequiredTenantId().toString();
+    InvReservationRecord record = reservationRecordMapper.selectByBusinessKey(tenant, businessKey);
+    return record != null && record.statusEnum() == ReservationStatus.RESERVED;
   }
 
   @Override
+  @Slave
   public Integer getReservedQuantity(String businessKey) {
-    String reservationKey = buildReservationKey(businessKey);
-    Object quantity = redisTemplate.opsForHash().get(reservationKey, "quantity");
-    return quantity != null ? (Integer) quantity : null;
+    String tenant = TenantContextHolder.getRequiredTenantId().toString();
+    InvReservationRecord record = reservationRecordMapper.selectByBusinessKey(tenant, businessKey);
+    if (record == null || record.statusEnum() != ReservationStatus.RESERVED) {
+      return null;
+    }
+    return record.getQuantity();
   }
 
   @Override
+  @Master(reason = "写操作必须走主库")
   @Transactional(rollbackFor = Exception.class)
   public int releaseExpiredReservations() {
-    log.debug("🔄 开始扫描并释放过期预占");
+    List<InvReservationRecord> expired = reservationRecordMapper.selectExpired(EXPIRY_BATCH_SIZE);
+    if (expired.isEmpty()) {
+      return 0;
+    }
 
-    // 注意：Redis 的过期机制是惰性的，不会主动通知过期
-    // 这里的实现是兜底机制，实际过期释放依赖Redis 自动过期 + 监听）
-    // 由于无法直接扫描所有过期的 key，这里只是一个示例实现
-    // 生产环境建议使用 Redis Keyspace Notifications 或定时任务扫描数据库中的预占记录
+    int released = 0;
+    for (InvReservationRecord record : expired) {
+      String tenant = record.getTenantId();
+      UUID tenantId;
+      try {
+        tenantId = UUID.fromString(tenant);
+      } catch (RuntimeException e) {
+        log.error("预占记录 tenant_id 非法，跳过: id={}, tenantId={}", record.getId(), tenant);
+        continue;
+      }
 
-    log.warn("⚠️  当前实现依赖 Redis 自动过期机制，无需手动扫描");
-    return 0;
+      Boolean done = TenantContextHolder.executeInTenantContext(tenantId,
+          () -> expireOne(record, tenant));
+      if (Boolean.TRUE.equals(done)) {
+        released++;
+      }
+    }
+
+    log.info("释放过期预占完成: scanned={}, released={}", expired.size(), released);
+    return released;
   }
 
-  /**
-   * 构建预占记录Redis键
-   */
-  private String buildReservationKey(String businessKey) {
-    return TenantCacheKeys.scoped(RESERVATION_KEY_PREFIX, businessKey);
+  private boolean expireOne(InvReservationRecord record, String tenant) {
+    int moved = reservationRecordMapper.markExpired(record.getId(), tenant);
+    if (moved == 0) {
+      return false;
+    }
+    int stockUpdated = inventoryMapper.releaseStock(record.getInventoryId(), record.getQuantity());
+    if (stockUpdated == 0) {
+      throw new IllegalStateException(
+          "锁定库存不足，无法释放过期预占: businessKey=" + record.getBusinessKey());
+    }
+    log.debug("过期预占已释放: businessKey={}, quantity={}",
+        record.getBusinessKey(), record.getQuantity());
+    return true;
   }
 
-  /**
-   * 构建索引键（sku:warehouse -> Set<businessKey>）
-   */
-  private String buildIndexKey(String skuId, String warehouseId) {
-    return TenantCacheKeys.scoped(RESERVATION_INDEX_PREFIX, skuId, warehouseId);
+  private void assertSameTenant(InvReservationRecord record, UUID tenantId) {
+    if (record.getTenantId() != null && !record.getTenantId().equals(tenantId.toString())) {
+      log.warn("跨租户访问预占记录被拒绝: businessKey={}, ownerTenant={}, callerTenant={}",
+          record.getBusinessKey(), record.getTenantId(), tenantId);
+      throw new AccessDeniedException("预占记录不属于当前租户");
+    }
   }
 }
