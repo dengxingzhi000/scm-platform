@@ -144,6 +144,15 @@ jobs:
             **/target/surefire-reports/
             **/target/site/jacoco/
 
+  # SonarCloud identity is pinned to the historical project key:
+  #   - `sonar.projectKey=scm-platform` is immutable after creation — do not rename it
+  #     (see docs/operations/SONARCLOUD.md for why and what a real rename would cost).
+  #   - `sonar.projectName=Cognora Aura Platform` is the display name, so branding
+  #     changes never require a new Sonar project.
+  #   - the quality gate is configured on NEW CODE only, so legacy debt cannot turn
+  #     every PR red; the gate stays on the SonarCloud side, this job only analyzes.
+  #   - while `vars.SONAR_ORG` is unset the scan step is skipped and the job stays
+  #     green — it must never become a permanently failing job.
   code-quality:
     name: Code Quality Check
     runs-on: ubuntu-latest
@@ -173,6 +182,8 @@ jobs:
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
 
+      # Skipped (not failed) until the repository variable SONAR_ORG exists;
+      # SONAR_TOKEN (a project analysis token) must be present as a secret.
       - name: SonarCloud Scan
         if: vars.SONAR_ORG != ''
         env:
