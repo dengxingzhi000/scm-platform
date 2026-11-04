@@ -14,6 +14,8 @@ public interface IProdBrandService extends IService<ProdBrand> {
 
     Page<ProdBrand> pageByName(String name, Integer page, Integer size);
 
+    ProdBrand getBrand(String id);
+
     ProdBrand createBrand(ProdBrand brand);
 
     void updateBrand(String id, ProdBrand brand);

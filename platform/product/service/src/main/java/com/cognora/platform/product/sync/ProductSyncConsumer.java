@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import com.cognora.platform.product.search.document.ProductDocument;
 import com.cognora.platform.product.search.repository.ProductSearchRepository;
 
@@ -93,10 +94,14 @@ public class ProductSyncConsumer {
         }
 
         ProductDocument document = buildProductDocument(after);
+        if (!StringUtils.hasText(document.getTenantId())) {
+            log.error("[数据同步-Create] 事件缺少 tenant_id，拒绝写入共享索引: id={}", document.getId());
+            return;
+        }
         productSearchRepository.save(document);
 
-        log.info("[数据同步-Create] 新增商品成功: id={}, spuName={}",
-                document.getId(), document.getSpuName());
+        log.info("[数据同步-Create] 新增商品成功: id={}, tenantId={}, spuName={}",
+                document.getId(), document.getTenantId(), document.getSpuName());
     }
 
     /**
@@ -110,10 +115,14 @@ public class ProductSyncConsumer {
         }
 
         ProductDocument document = buildProductDocument(after);
+        if (!StringUtils.hasText(document.getTenantId())) {
+            log.error("[数据同步-Update] 事件缺少 tenant_id，拒绝写入共享索引: id={}", document.getId());
+            return;
+        }
         productSearchRepository.save(document);
 
-        log.info("[数据同步-Update] 更新商品成功: id={}, spuName={}",
-                document.getId(), document.getSpuName());
+        log.info("[数据同步-Update] 更新商品成功: id={}, tenantId={}, spuName={}",
+                document.getId(), document.getTenantId(), document.getSpuName());
     }
 
     /**
@@ -127,9 +136,14 @@ public class ProductSyncConsumer {
         }
 
         String id = before.get("id").asText();
-        productSearchRepository.deleteById(id);
+        String tenantId = getTextValue(before, "tenant_id");
+        if (!StringUtils.hasText(tenantId)) {
+            log.error("[数据同步-Delete] 事件缺少 tenant_id，拒绝删除共享索引文档: id={}", id);
+            return;
+        }
+        productSearchRepository.deleteByTenantIdAndId(tenantId, id);
 
-        log.info("[数据同步-Delete] 删除商品成功: id={}", id);
+        log.info("[数据同步-Delete] 删除商品成功: id={}, tenantId={}", id, tenantId);
     }
 
     /**
@@ -142,6 +156,7 @@ public class ProductSyncConsumer {
 
         // 基础字段
         document.setId(getTextValue(data, "id"));
+        document.setTenantId(getTextValue(data, "tenant_id"));
         document.setSpuCode(getTextValue(data, "spu_code"));
         document.setSpuName(getTextValue(data, "spu_name"));
         document.setCategoryId(getTextValue(data, "category_id"));

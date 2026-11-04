@@ -37,7 +37,7 @@ public class ProdBrandController {
     @Operation(summary = "查询品牌详情", description = "根据品牌ID查询品牌的详细信息。")
     @GetMapping("/{id}")
     public ApiResponse<ProdBrand> getById(@Parameter(description = "品牌ID") @PathVariable String id) {
-        ProdBrand brand = brandService.getById(id);
+        ProdBrand brand = brandService.getBrand(id);
         return ApiResponse.success(brand);
     }
 

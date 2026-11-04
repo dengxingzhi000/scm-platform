@@ -13,6 +13,7 @@ import com.cognora.platform.product.search.document.ProductDocument;
 import com.cognora.platform.product.search.dto.ProductSearchRequest;
 import com.cognora.platform.product.search.dto.ProductSearchResponse;
 import com.cognora.platform.product.search.repository.ProductSearchRepository;
+import com.cognora.platform.product.support.ProductTenantResolver;
 
 /**
  * 商品搜索服务
@@ -32,6 +33,7 @@ import com.cognora.platform.product.search.repository.ProductSearchRepository;
 @RequiredArgsConstructor
 public class ProductSearchService {
     private final ProductSearchRepository productSearchRepository;
+    private final ProductTenantResolver tenantResolver;
 
     /**
      * 商品状态：上架
@@ -53,18 +55,19 @@ public class ProductSearchService {
 
         // 构建分页和排序
         PageRequest pageRequest = buildPageRequest(request);
+        String tenantId = tenantResolver.resolveTenantIdString();
 
         // 执行搜索
         Page<ProductDocument> page;
         if (hasAdvancedFilters(request)) {
             // 高级搜索（多条件组合
-            page = advancedSearch(request, pageRequest);
+            page = advancedSearch(request, pageRequest, tenantId);
         } else if (StringUtils.hasText(request.getKeyword())) {
             // 全文搜索
-            page = productSearchRepository.fullTextSearch(request.getKeyword(), STATUS_ON_SALE, pageRequest);
+            page = productSearchRepository.fullTextSearch(request.getKeyword(), tenantId, STATUS_ON_SALE, pageRequest);
         } else {
             // 默认查询（按销量排序）
-            page = productSearchRepository.findByStatusOrderByTotalSalesDesc(STATUS_ON_SALE, pageRequest);
+            page = productSearchRepository.findByTenantIdAndStatusOrderByTotalSalesDesc(tenantId, STATUS_ON_SALE, pageRequest);
         }
 
         long duration = System.currentTimeMillis() - startTime;
@@ -103,7 +106,8 @@ public class ProductSearchService {
         log.debug("🔥 [热门商品] 查询热门商品: page={}, size={}", page, size);
 
         PageRequest pageRequest = toPageRequest(page, size, "totalSales");
-        Page<ProductDocument> resultPage = productSearchRepository.findByStatusOrderByTotalSalesDesc(STATUS_ON_SALE, pageRequest);
+        Page<ProductDocument> resultPage = productSearchRepository.findByTenantIdAndStatusOrderByTotalSalesDesc(
+                tenantResolver.resolveTenantIdString(), STATUS_ON_SALE, pageRequest);
 
         log.debug("✅[热门商品] 查询完成: 总数={}", resultPage.getTotalElements());
         return resultPage.map(this::convertToResponse);
@@ -123,7 +127,8 @@ public class ProductSearchService {
         log.debug("🆕 [最新商品] 查询最新商品 page={}, size={}", page, size);
 
         PageRequest pageRequest = toPageRequest(page, size, "publishedAt");
-        Page<ProductDocument> resultPage = productSearchRepository.findByStatusOrderByPublishedAtDesc(STATUS_ON_SALE, pageRequest);
+        Page<ProductDocument> resultPage = productSearchRepository.findByTenantIdAndStatusOrderByPublishedAtDesc(
+                tenantResolver.resolveTenantIdString(), STATUS_ON_SALE, pageRequest);
 
         log.debug("✅[最新商品] 查询完成: 总数={}", resultPage.getTotalElements());
         return resultPage.map(this::convertToResponse);
@@ -141,7 +146,8 @@ public class ProductSearchService {
         log.debug("📁 [分类商品] 查询分类商品: categoryId={}, page={}, size={}", (categoryId + "").replace("\r", "_").replace("\n", "_"), (page + "").replace("\r", "_").replace("\n", "_"), (size + "").replace("\r", "_").replace("\n", "_"));
 
         PageRequest pageRequest = toPageRequest(page, size, "totalSales");
-        Page<ProductDocument> resultPage = productSearchRepository.findByCategoryIdAndStatus(categoryId, STATUS_ON_SALE, pageRequest);
+        Page<ProductDocument> resultPage = productSearchRepository.findByTenantIdAndCategoryIdAndStatus(
+                tenantResolver.resolveTenantIdString(), categoryId, STATUS_ON_SALE, pageRequest);
 
         log.debug("✅[分类商品] 查询完成: 总数={}", resultPage.getTotalElements());
         return resultPage.map(this::convertToResponse);
@@ -159,7 +165,8 @@ public class ProductSearchService {
         log.info("🏷[品牌商品] 查询品牌商品: brandId={}, page={}, size={}", (brandId + "").replace("\r", "_").replace("\n", "_"), (page + "").replace("\r", "_").replace("\n", "_"), (size + "").replace("\r", "_").replace("\n", "_"));
 
         PageRequest pageRequest = toPageRequest(page, size, "totalSales");
-        Page<ProductDocument> resultPage = productSearchRepository.findByBrandIdAndStatus(brandId, STATUS_ON_SALE, pageRequest);
+        Page<ProductDocument> resultPage = productSearchRepository.findByTenantIdAndBrandIdAndStatus(
+                tenantResolver.resolveTenantIdString(), brandId, STATUS_ON_SALE, pageRequest);
 
         log.debug("✅[品牌商品] 查询完成: 总数={}", resultPage.getTotalElements());
         return resultPage.map(this::convertToResponse);
@@ -170,7 +177,7 @@ public class ProductSearchService {
     /**
      * 高级搜索（支持多条件组合
      */
-    private Page<ProductDocument> advancedSearch(ProductSearchRequest request, PageRequest pageRequest) {
+    private Page<ProductDocument> advancedSearch(ProductSearchRequest request, PageRequest pageRequest, String tenantId) {
         // 如果有高级过滤条件，使用 advancedSearch 方法
         return productSearchRepository.advancedSearch(
                 StringUtils.hasText(request.getKeyword()) ? request.getKeyword() : "*",
@@ -178,6 +185,7 @@ public class ProductSearchService {
                 request.getBrandId(),
                 request.getMinPrice(),
                 request.getMaxPrice(),
+                tenantId,
                 STATUS_ON_SALE,
                 pageRequest
         );

@@ -16,6 +16,10 @@ import org.apache.ibatis.builder.MapperBuilderAssistant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
+import com.cognora.platform.common.tenant.TenantContextHolder;
+import com.cognora.platform.product.support.ProductTenantResolver;
+
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -124,30 +128,46 @@ class ProdCrudServiceImplTest {
 
     @Test
     void brandCreateShouldInitializeFields() {
-        ProdBrandMapper mapper = mock(ProdBrandMapper.class);
-        ProdBrandServiceImpl service = new ProdBrandServiceImpl();
-        attach(service, mapper);
+        UUID tenantId = UUID.randomUUID();
+        TenantContextHolder.setTenantId(tenantId);
+        try {
+            ProdBrandMapper mapper = mock(ProdBrandMapper.class);
+            ProdBrandServiceImpl service = new ProdBrandServiceImpl(new ProductTenantResolver());
+            attach(service, mapper);
 
-        ProdBrand brand = new ProdBrand();
-        ProdBrand created = service.createBrand(brand);
+            ProdBrand brand = new ProdBrand();
+            ProdBrand created = service.createBrand(brand);
 
-        assertNotNull(created.getId());
-        assertNotNull(created.getCreateTime());
-        assertNotNull(created.getUpdateTime());
-        assertFalse(created.getDeleted());
-        verify(mapper).insert(brand);
+            assertNotNull(created.getId());
+            assertNotNull(created.getCreateTime());
+            assertNotNull(created.getUpdateTime());
+            assertFalse(created.getDeleted());
+            assertEquals(tenantId.toString(), created.getTenantId());
+            verify(mapper).insert(brand);
+        } finally {
+            TenantContextHolder.clear();
+        }
     }
 
     @Test
-    void brandDeleteShouldNotUpdateWhenNothingToDo() {
-        ProdBrandMapper mapper = mock(ProdBrandMapper.class);
-        ProdBrandServiceImpl service = new ProdBrandServiceImpl();
-        attach(service, mapper);
-        when(mapper.update(isNull(), any())).thenReturn(1);
+    void brandDeleteShouldIssueLogicalUpdate() {
+        UUID tenantId = UUID.randomUUID();
+        TenantContextHolder.setTenantId(tenantId);
+        try {
+            ProdBrandMapper mapper = mock(ProdBrandMapper.class);
+            ProdBrandServiceImpl service = new ProdBrandServiceImpl(new ProductTenantResolver());
+            attach(service, mapper);
+            ProdBrand existing = new ProdBrand();
+            existing.setTenantId(tenantId.toString());
+            when(mapper.selectById("brand-1")).thenReturn(existing);
+            when(mapper.update(isNull(), any())).thenReturn(1);
 
-        service.deleteBrand("brand-1");
+            service.deleteBrand("brand-1");
 
-        verify(mapper).update(isNull(), any());
+            verify(mapper).update(isNull(), any());
+        } finally {
+            TenantContextHolder.clear();
+        }
     }
 
     @Test
