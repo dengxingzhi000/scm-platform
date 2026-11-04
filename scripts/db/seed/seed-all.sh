@@ -39,6 +39,8 @@ done <<'EOF'
 db_tenant:001_tenant.sql
 db_permission:002_rbac_permission.sql
 db_permission:005_decision_matrix.sql
+db_permission:019_api_permission_coverage.sql
+db_permission:020_api_permission_coverage.sql
 db_org:003_org_dept.sql
 db_user:004_admin_user.sql
 db_product:010_product.sql
