@@ -11,7 +11,12 @@
 --   - 或登录用户持有 search:index:manage → 放行；
 --   - 两者都无 → 403（见 InternalEndpointSignatureFilter）。
 --
--- 授予：ROLE_SUPER_ADMIN、ROLE_TENANT_ADMIN（租户管理员管理本租户索引）。
+-- 授予：仅 ROLE_SUPER_ADMIN。
+--   复核结论：products 索引是单索引共享（@Document(indexName="products")），
+--   ProductDocument 没有 tenantId 字段，reindexAll 读整个索引再回写、
+--   deleteProduct 只按 productId 删除，查询侧（searchProducts/similar/personalized）
+--   也不带租户过滤 —— 该索引没有租户维度，reindex/删除会作用于全量（跨租户）。
+--   因此不能授予租户管理员；租户维度改造列为 P0 风险（见 PR 说明）。
 -- 幂等：固定 UUID v5 + ON CONFLICT；角色绑定 DO NOTHING。可重复执行。
 -- ======================================================================
 
@@ -52,8 +57,16 @@ JOIN sys_permission p
   ON p.permission_code = 'search:index:manage'
  AND p.status = 1 AND NOT p.deleted
 WHERE r.tenant_id = '019a0aee-0000-7000-8000-000000000002'
-  AND r.role_code IN ('ROLE_SUPER_ADMIN', 'ROLE_TENANT_ADMIN')
+  AND r.role_code IN ('ROLE_SUPER_ADMIN')
 ON CONFLICT (role_id, permission_id) DO NOTHING;
+
+-- 收回曾授予租户管理员的绑定（幂等）：索引没有租户维度，reindex 会跨租户生效。
+DELETE FROM sys_role_permission rp
+USING sys_role r, sys_permission p
+WHERE rp.role_id = r.id
+  AND rp.permission_id = p.id
+  AND p.permission_code = 'search:index:manage'
+  AND r.role_code = 'ROLE_TENANT_ADMIN';
 
 COMMIT;
 
