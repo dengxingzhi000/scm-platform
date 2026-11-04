@@ -18,6 +18,13 @@ public class ProductDocument {
     @Id
     private String id;
 
+    /**
+     * Tenant that owns the document. Written on every index path (HTTP and Dubbo) and
+     * mandatory on every query; it is a keyword so it can be used as a filter term.
+     */
+    @Field(name = "tenant_id", type = FieldType.Keyword)
+    private String tenantId;
+
     @Field(name = "product_id", type = FieldType.Keyword)
     private Long productId;
 

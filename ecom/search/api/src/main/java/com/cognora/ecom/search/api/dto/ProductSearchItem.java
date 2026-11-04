@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 public class ProductSearchItem implements Serializable {
 
     private String id;
+    private String tenantId;
     private Long productId;
     private Long sellerId;
     private String title;

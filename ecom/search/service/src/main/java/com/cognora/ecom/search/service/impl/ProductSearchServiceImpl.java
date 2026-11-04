@@ -1,18 +1,21 @@
 package com.cognora.ecom.search.service.impl;
 
+import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import com.cognora.ecom.search.domain.ProductDocument;
+import com.cognora.ecom.search.query.SearchQueryFactory;
 import com.cognora.ecom.search.repository.ProductDocumentRepository;
 import com.cognora.ecom.search.service.IProductIndexService;
 import com.cognora.ecom.search.service.IProductSearchService;
+import com.cognora.ecom.search.tenant.SearchTenantResolver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.SearchHits;
-import org.springframework.data.elasticsearch.core.query.Criteria;
-import org.springframework.data.elasticsearch.core.query.CriteriaQuery;
+import org.springframework.data.elasticsearch.client.elc.NativeQuery;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -23,28 +26,34 @@ public class ProductSearchServiceImpl implements IProductSearchService {
     private final ProductDocumentRepository productRepository;
     private final ElasticsearchOperations elasticsearchOperations;
     private final IProductIndexService productIndexService;
+    private final SearchTenantResolver tenantResolver;
 
     @Override
     public List<ProductDocument> searchProducts(String keyword, Long categoryId, Long brandId, int page, int size) {
-        log.info("Searching products: keyword={}, categoryId={}, brandId={}", (keyword + "").replace("\r", "_").replace("\n", "_"), (categoryId + "").replace("\r", "_").replace("\n", "_"), (brandId + "").replace("\r", "_").replace("\n", "_"));
+        String tenantId = tenantResolver.resolveTenantIdString();
+        log.info("Searching products: tenantId={}, keyword={}, categoryId={}, brandId={}",
+                tenantId, sanitize(keyword), sanitize(String.valueOf(categoryId)), sanitize(String.valueOf(brandId)));
 
-        Criteria criteria = new Criteria("status").is("active");
-
-        if (keyword != null && !keyword.isEmpty()) {
-            criteria = criteria.and(new Criteria("title").matches(keyword))
-                    .or(new Criteria("description").matches(keyword));
-        }
-
+        List<Query> filters = new ArrayList<>();
+        filters.add(SearchQueryFactory.tenantTerm(tenantId));
+        filters.add(Query.of(q -> q.term(t -> t.field("status").value("active"))));
         if (categoryId != null) {
-            criteria = criteria.and(new Criteria("categoryId").is(categoryId));
+            filters.add(Query.of(q -> q.term(t -> t.field("category_id").value(String.valueOf(categoryId)))));
         }
-
         if (brandId != null) {
-            criteria = criteria.and(new Criteria("brandId").is(brandId));
+            filters.add(Query.of(q -> q.term(t -> t.field("brand_id").value(String.valueOf(brandId)))));
         }
 
-        CriteriaQuery query = new CriteriaQuery(criteria);
-        query.setPageable(PageRequest.of(page, size));
+        var bool = new co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery.Builder();
+        filters.forEach(bool::filter);
+        if (keyword != null && !keyword.isEmpty()) {
+            bool.must(Query.of(q -> q.multiMatch(m -> m.query(keyword).fields("title", "description"))));
+        }
+
+        NativeQuery query = NativeQuery.builder()
+                .withQuery(Query.of(q -> q.bool(bool.build())))
+                .withPageable(PageRequest.of(page, size))
+                .build();
 
         SearchHits<ProductDocument> hits = elasticsearchOperations.search(query, ProductDocument.class);
         return hits.getSearchHits().stream()
@@ -54,17 +63,18 @@ public class ProductSearchServiceImpl implements IProductSearchService {
 
     @Override
     public List<ProductDocument> getSimilarProducts(Long productId, int limit) {
-        log.info("Getting similar products: productId={}, limit={}", productId, limit);
-        List<ProductDocument> source = productRepository.findByProductId(productId);
+        String tenantId = tenantResolver.resolveTenantIdString();
+        log.info("Getting similar products: tenantId={}, productId={}, limit={}", tenantId, productId, limit);
+        List<ProductDocument> source = productRepository.findByTenantIdAndProductId(tenantId, productId);
         if (!source.isEmpty() && source.get(0).getCategoryId() != null) {
             Long categoryId = source.get(0).getCategoryId();
-            return productRepository.findByCategoryId(categoryId).stream()
+            return productRepository.findByTenantIdAndCategoryId(tenantId, categoryId).stream()
                     .filter(product -> !productId.equals(product.getProductId()))
                     .filter(product -> "active".equals(product.getStatus()))
                     .limit(limit)
                     .collect(Collectors.toList());
         }
-        return productRepository.findByStatus("active")
+        return productRepository.findByTenantIdAndStatus(tenantId, "active")
                 .stream()
                 .filter(product -> !productId.equals(product.getProductId()))
                 .limit(limit)
@@ -73,9 +83,10 @@ public class ProductSearchServiceImpl implements IProductSearchService {
 
     @Override
     public List<ProductDocument> getPersonalizedResults(String userId, int limit) {
-        log.info("Getting personalized results: userId={}, limit={}",
-                (userId + "").replace("\r", "_").replace("\n", "_"), limit);
-        return productRepository.findByStatus("active")
+        String tenantId = tenantResolver.resolveTenantIdString();
+        log.info("Getting personalized results: tenantId={}, userId={}, limit={}",
+                tenantId, sanitize(userId), limit);
+        return productRepository.findByTenantIdAndStatus(tenantId, "active")
                 .stream()
                 .limit(limit)
                 .collect(Collectors.toList());
@@ -83,19 +94,35 @@ public class ProductSearchServiceImpl implements IProductSearchService {
 
     @Override
     public void indexProduct(ProductDocument product) {
-        log.info("Indexing product: productId={}", product.getProductId());
+        String tenantId = tenantResolver.resolveTenantIdString();
+        log.info("Indexing product: tenantId={}, productId={}", tenantId, product.getProductId());
+        applyTenant(product, tenantId);
         productRepository.save(product);
     }
 
     @Override
     public void removeProduct(Long productId) {
-        log.info("Removing product from index: productId={}", productId);
-        productIndexService.deleteProduct(productId);
+        String tenantId = tenantResolver.resolveTenantIdString();
+        log.info("Removing product from index: tenantId={}, productId={}", tenantId, productId);
+        productIndexService.deleteProduct(tenantId, productId);
     }
 
     @Override
     public void reindexAll() {
-        log.info("Reindexing all products");
-        productIndexService.reindexAll();
+        String tenantId = tenantResolver.resolveTenantIdString();
+        log.info("Reindexing all products: tenantId={}", tenantId);
+        productIndexService.reindexAll(tenantId);
+    }
+
+    static void applyTenant(ProductDocument product, String tenantId) {
+        if (product.getTenantId() != null && !tenantId.equals(product.getTenantId())) {
+            log.warn("Ignoring client-supplied tenantId on product document: tenantId={}, supplied={}",
+                    tenantId, sanitize(product.getTenantId()));
+        }
+        product.setTenantId(tenantId);
+    }
+
+    private static String sanitize(String value) {
+        return (value + "").replace("\r", "_").replace("\n", "_");
     }
 }
