@@ -96,7 +96,9 @@ public class ProductSearchService {
      * @param size 每页数量
      * @return 商品分页结果
      */
-    @Cacheable(value = "hotProducts", key = "#page + '_' + #size", unless = "#result == null")
+    @Cacheable(value = "hotProducts",
+        key = "T(com.cognora.platform.common.tenant.TenantCacheKeys).paged('hotProducts', #page, #size)",
+        unless = "#result == null")
     public Page<ProductSearchResponse> getHotProducts(Integer page, Integer size) {
         log.debug("🔥 [热门商品] 查询热门商品: page={}, size={}", page, size);
 
@@ -114,7 +116,9 @@ public class ProductSearchService {
      * @param size 每页数量
      * @return 商品分页结果
      */
-    @Cacheable(value = "latestProducts", key = "#page + '_' + #size", unless = "#result == null")
+    @Cacheable(value = "latestProducts",
+        key = "T(com.cognora.platform.common.tenant.TenantCacheKeys).paged('latestProducts', #page, #size)",
+        unless = "#result == null")
     public Page<ProductSearchResponse> getLatestProducts(Integer page, Integer size) {
         log.debug("🆕 [最新商品] 查询最新商品 page={}, size={}", page, size);
 

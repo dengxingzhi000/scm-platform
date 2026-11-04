@@ -1,6 +1,7 @@
 package com.cognora.platform.inventory.service;
 
 import com.cognora.platform.common.redis.script.RedisLuaScriptLoader;
+import com.cognora.platform.common.tenant.TenantCacheKeys;
 import com.cognora.platform.inventory.domain.entity.Inventory;
 import com.cognora.platform.inventory.mapper.InvInventoryMapper;
 import lombok.RequiredArgsConstructor;
@@ -28,8 +29,6 @@ public class RedisInventoryService {
   private final RedisTemplate<String, Object> redisTemplate;
   private final InvInventoryMapper inventoryMapper;
 
-  private static final String INVENTORY_KEY_PREFIX = "inventory:stock:";
-  private static final String INVENTORY_DETAIL_KEY_PREFIX = "inventory:detail:";
   private static final long INVENTORY_CACHE_TTL = 30; // 库存缓存30秒（热数据）
 
   /**
@@ -295,13 +294,13 @@ public class RedisInventoryService {
    * 构建库存数量缓存键
    */
   private String buildStockKey(String skuId, String warehouseId) {
-    return INVENTORY_KEY_PREFIX + skuId + ":" + warehouseId;
+    return TenantCacheKeys.inventoryStock(skuId, warehouseId);
   }
 
   /**
    * 构建库存详情缓存键
    */
   private String buildDetailKey(String skuId, String warehouseId) {
-    return INVENTORY_DETAIL_KEY_PREFIX + skuId + ":" + warehouseId;
+    return TenantCacheKeys.inventoryDetail(skuId, warehouseId);
   }
 }
