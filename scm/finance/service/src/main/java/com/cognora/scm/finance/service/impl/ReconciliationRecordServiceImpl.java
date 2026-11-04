@@ -20,7 +20,7 @@ public class ReconciliationRecordServiceImpl extends ServiceImpl<ReconciliationR
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ReconciliationRecord createReconciliation(ReconciliationRecord record) {
-        log.info("鍒涘缓瀵硅处璁板綍: partyName={}, period={}", (record.getPartyName() + "").replace("\r", "_").replace("\n", "_"), (record.getReconciliationPeriod() + "").replace("\r", "_").replace("\n", "_"));
+        log.info("创建对账记录: partyName={}, period={}", (record.getPartyName() + "").replace("\r", "_").replace("\n", "_"), (record.getReconciliationPeriod() + "").replace("\r", "_").replace("\n", "_"));
 
         record.setId(UUIDv7Util.generateString());
         record.setReconciliationNo(generateReconciliationNo());
@@ -40,7 +40,7 @@ public class ReconciliationRecordServiceImpl extends ServiceImpl<ReconciliationR
 
         boolean success = save(record);
         if (!success) {
-            throw new RuntimeException("鍒涘缓瀵硅处璁板綍澶辫触");
+            throw new RuntimeException("创建对账记录失败");
         }
 
         return record;

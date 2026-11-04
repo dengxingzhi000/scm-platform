@@ -18,7 +18,7 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * 鏉冮檺绠$悊鎺у埗锟?
+ * 权限管理控制类
  *
  * @author Deng
  * createData 2025/10/14 17:47
@@ -32,7 +32,7 @@ public class SysPermissionController {
     private final ISysPermissionService permissionService;
 
     /**
-     * 鏌ヨ鏉冮檺锟?
+     * 查询权限树
      */
     @Operation(summary = "查询权限树", description = "查询完整的权限树形结构，用于权限分配与菜单展示。")
     @GetMapping("/tree")
@@ -44,7 +44,7 @@ public class SysPermissionController {
     }
 
     /**
-     * 鏂板鏉冮檺
+     * 新增权限
      */
     @Operation(summary = "新增权限", description = "新增一条权限并写入高风险审计日志。")
     @PostMapping
@@ -61,13 +61,13 @@ public class SysPermissionController {
     }
 
     /**
-     * 淇敼鏉冮檺
+     * 修改权限
      */
     @Operation(summary = "修改权限", description = "根据权限 ID 更新权限信息并写入审计日志。")
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('system:permission:edit')")
     @AuditLog(
-            operation = "淇敼鏉冮檺",
+            operation = "修改权限",
             businessType = "PERMISSION",
             riskLevel = 4
     )
@@ -79,13 +79,13 @@ public class SysPermissionController {
     }
 
     /**
-     * 鍒犻櫎鏉冮檺
+     * 删除权限
      */
     @Operation(summary = "删除权限", description = "根据权限 ID 删除权限并写入审计日志。")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('system:permission:delete')")
     @AuditLog(
-            operation = "鍒犻櫎鏉冮檺",
+            operation = "删除权限",
             businessType = "PERMISSION",
             riskLevel = 4
     )
@@ -96,7 +96,7 @@ public class SysPermissionController {
     }
 
     /**
-     * 鏍规嵁 id鏌ヨ鏉冮檺
+     * 根据 id查询权限
      */
     @Operation(summary = "查询单个权限", description = "根据权限 ID 查询权限详情。")
     @GetMapping("/{id}")
@@ -108,7 +108,7 @@ public class SysPermissionController {
     }
 
     /**
-     * 鏌ヨ鐢ㄦ埛鏉冮檺锛堢敤锟紽eign 璋冪敤锟?
+     * 查询用户权限（用于 Feign 调用）
      * 瀵瑰簲 Dubbo: PermissionDubboService.findAllPermissionsByUserId
      */
     @Operation(summary = "查询用户权限", description = "查询指定用户拥有的全部权限标识，供其他服务通过 Feign 调用。")
@@ -120,7 +120,7 @@ public class SysPermissionController {
     }
 
     /**
-     * 鏍规嵁 URL 锟紿TTP 鏂规硶鏌ヨ鏉冮檺锛堢敤锟紽eign 璋冪敤锟?
+     * 根据 URL HTTP 方法查询权限（用于 Feign 调用）
      * 瀵瑰簲 Dubbo: PermissionDubboService.findPermissionsByUrl
      */
     @Operation(summary = "按 URL 查询权限", description = "根据请求 URL 与 HTTP 方法查询匹配的权限标识，供网关鉴权调用。")
@@ -131,8 +131,8 @@ public class SysPermissionController {
     }
 
     /**
-     * 鏌ヨ鎵€锟紸PI 鏉冮檺锛堢敤浜庡姩鎬佹潈闄愬姞杞斤級
-     * 鐢ㄤ簬 DynamicPermissionLoader 鍔犺浇鏉冮檺鏄犲皠
+     * 查询所有 API 权限（用于动态权限加载）
+     * 用于 DynamicPermissionLoader 加载权限映射
      */
     @Operation(summary = "查询全部 API 权限", description = "查询全部 API 权限映射关系，用于动态权限加载。")
     @GetMapping("/api")

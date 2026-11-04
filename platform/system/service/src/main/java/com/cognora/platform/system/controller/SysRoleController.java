@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * 瑙掕壊绠$悊鎺у埗锟?
+ * 角色管理控制类
  *
  * @author Deng
  * createData 2025/10/14 18:01
@@ -32,7 +32,7 @@ public class SysRoleController {
     private final ISysRoleService roleService;
 
     /**
-     * 鏌ヨ瑙掕壊鍒楄〃
+     * 查询角色列表
      */
     @Operation(summary = "分页查询角色列表", description = "分页查询角色列表，支持按角色名称模糊筛选。")
     @GetMapping
@@ -46,7 +46,7 @@ public class SysRoleController {
     }
 
     /**
-     * 鏌ヨ鎵€鏈夎鑹诧紙鐢ㄤ簬涓嬫媺閫夋嫨锟?
+     * 查询所有角色（用于下拉选择）
      */
     @Operation(summary = "查询全部角色", description = "查询当前租户下的全部角色，用于下拉选择。")
     @GetMapping("/all")
@@ -58,7 +58,7 @@ public class SysRoleController {
     }
 
     /**
-     * 鏂板瑙掕壊
+     * 新增角色
      */
     @Operation(summary = "新增角色", description = "新增一个角色并写入审计日志。")
     @PostMapping
@@ -75,13 +75,13 @@ public class SysRoleController {
     }
 
     /**
-     * 淇敼瑙掕壊
+     * 修改角色
      */
     @Operation(summary = "修改角色", description = "根据角色 ID 更新角色信息并写入审计日志。")
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('system:role:edit')")
     @AuditLog(
-            operation = "淇敼瑙掕壊",
+            operation = "修改角色",
             businessType = "ROLE",
             riskLevel = 4
     )
@@ -92,13 +92,13 @@ public class SysRoleController {
     }
 
     /**
-     * 鍒犻櫎瑙掕壊
+     * 删除角色
      */
     @Operation(summary = "删除角色", description = "根据角色 ID 删除角色并写入审计日志。")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('system:role:delete')")
     @AuditLog(
-            operation = "鍒犻櫎瑙掕壊",
+            operation = "删除角色",
             businessType = "ROLE",
             riskLevel = 4
     )
@@ -109,13 +109,13 @@ public class SysRoleController {
     }
 
     /**
-     * 鎺堟潈鏉冮檺
+     * 授权权限
      */
     @Operation(summary = "角色授权", description = "为指定角色重新绑定权限，原有权限关系会被覆盖。")
     @PostMapping("/{id}/grant-permissions")
     @PreAuthorize("hasAuthority('system:role:edit')")
     @AuditLog(
-            operation = "瑙掕壊鎺堟潈",
+            operation = "角色授权",
             businessType = "ROLE",
             riskLevel = 4
     )
@@ -126,7 +126,7 @@ public class SysRoleController {
     }
 
     /**
-     * 鏌ヨ瑙掕壊鏉冮檺
+     * 查询角色权限
      */
     @Operation(summary = "查询角色权限", description = "查询指定角色已绑定的权限 ID 列表。")
     @GetMapping("/{id}/permissions")
