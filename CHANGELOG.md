@@ -5,6 +5,62 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-11-04
+
+Covers every merged commit after `v2.0.0` (`8ab47221`) through `5732ab1b`
+(PR #327). Financial changes are **not** part of this release; they land in
+`v2.2.0`.
+
+### Security
+
+- **SQL injection scan no longer backtracks quadratically** — `SqlInjectionFilter`
+  is bounded, so a long crafted query cannot pin a request thread.
+- **Internal write channels are signed** — `InternalEndpointSignatureFilter`
+  verifies the HMAC signature (`X-Timestamp`/`X-Nonce`/`X-Signature`/`X-App-Id`)
+  on internal endpoints, and the audit write channel
+  (`POST /sys-audit-log`) rejects unsigned writes with 403. The signing secret
+  is resolved through one class for both signer and verifier; scm-audit refuses
+  to start with a blank or placeholder secret.
+- **Unregistered endpoints default to deny** — `ApiAccessControlFilter` returns
+  403 with an explicit code, with a report-only fallback for rollout; the
+  exemption list is configurable and internal/self-service routes carry
+  ownership checks.
+- **`search:index:manage` is platform-only** — the permission is granted to the
+  platform super admin and no longer to tenant roles.
+
+### Tenant isolation
+
+- **Product search index carries `tenant_id`** — writes, queries and deletes
+  are filtered by the authenticated tenant; `scripts/es/tenantize-products.sh`
+  bootstraps/backfills the index.
+- **Brands are tenant-scoped** — brand writes reject a foreign `tenantId`,
+  updates cannot rewrite ownership, `/api/v1/prod-brand/{id}` resolves its
+  permission by method + template, and `prod_brand.brand_code` becomes
+  `UNIQUE (tenant_id, brand_code)` via an idempotent migration (verified
+  against the real database, duplicate data aborts instead of being deleted).
+- **Cache keys carry a tenant segment** — `TenantCacheKeys` is the single key
+  factory (inventory detail/batch/check, reservation and index keys,
+  `apiPermissions`, `permissionTree`, `userDetails`), and user-details keys are
+  `<tenantId>:<username>` because usernames are only unique per tenant.
+- **Platform console is gated** — the `menu:tenant%` menu permission is
+  revoked from every role without `tenant:*` (migration `008`), the seed no
+  longer grants it to tenant roles, and CI asserts the gate in PostgreSQL.
+
+### Audit
+
+- **Audit partitions are guaranteed** — `sys_audit_log` partitions are created
+  ahead of time and retention is unified at 24 months.
+- **Mojibake cleanup** — Chinese text lost to GBK double-encoding was restored,
+  and a report-only scanner was added to CI.
+
+### Operations
+
+- **v2 deployment batch 1** — operations notes for the e-commerce, web and
+  infrastructure layers, and the internal signature secret is passed to every
+  service through `.env` / `scm-secrets`.
+- **ES index bootstrap** — the tenant-aware product index can be created and
+  backfilled with the checked-in script.
+
 ## [2.0.0] - 2026-11-03
 
 Breaking change: the repository is now `cognora-aura-platform`, split into four
