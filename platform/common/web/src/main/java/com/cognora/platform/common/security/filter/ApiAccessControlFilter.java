@@ -111,7 +111,7 @@ public class ApiAccessControlFilter extends OncePerRequestFilter {
         }
 
         if (requiredPermissions.isEmpty()) {
-            filterChain.doFilter(request, response);
+            handleUnregisteredEndpoint(request, response, userId, requestUri, method, filterChain);
             return;
         }
 
@@ -161,13 +161,43 @@ public class ApiAccessControlFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
+    /**
+     * No permission row matches the request URL/method. {@code REPORT_ONLY} keeps the historical
+     * pass-through behaviour and records the endpoint so the catalog can be completed before
+     * switching to {@code DENY}, which answers 403 with {@code API_NOT_REGISTERED}.
+     */
+    private void handleUnregisteredEndpoint(HttpServletRequest request, HttpServletResponse response,
+                                            UUID userId, String requestUri, String method,
+                                            FilterChain filterChain) throws ServletException, IOException {
+        String traceId = sanitize(request.getHeader("X-Request-ID"));
+        if (properties.getUnregisteredEndpointPolicy()
+                == ApiAccessControlProperties.UnregisteredEndpointPolicy.REPORT_ONLY) {
+            securityMetrics.increment("security.access.unregistered_endpoint_report");
+            log.warn("Unregistered API endpoint (report-only): traceId={}, userId={}, uri={}, method={}",
+                    traceId, sanitize(userId + ""), sanitize(requestUri), sanitize(method));
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        securityMetrics.increment("security.access.unregistered_endpoint_denied");
+        log.warn("Unregistered API endpoint denied: traceId={}, userId={}, uri={}, method={}",
+                traceId, sanitize(userId + ""), sanitize(requestUri), sanitize(method));
+        SecurityErrorResponseWriter.write(request, response, HttpServletResponse.SC_FORBIDDEN,
+                "API_NOT_REGISTERED",
+                "This API endpoint is not registered in the permission catalog");
+    }
+
     @PostConstruct
     void logEffectiveRules() {
         if (!properties.isLogEffectiveRulesOnStartup()) {
             return;
         }
-        log.warn("API access control effective rules: enabled={}, whitelist={}, exemptPaths={}, internalSignaturePaths={}, signatureOrPermissionPaths={}",
-                properties.isEnabled(), properties.getWhitelist(), properties.getExemptPaths(),
+        log.warn("API access control effective rules: enabled={}, unregisteredEndpointPolicy={}, "
+                        + "whitelist={}, exemptPaths={}, exemptPathExclusions={}, "
+                        + "internalSignaturePaths={}, signatureOrPermissionPaths={}",
+                properties.isEnabled(), properties.getUnregisteredEndpointPolicy(),
+                properties.getWhitelist(), properties.getExemptPaths(),
+                properties.getExemptPathExclusions(),
                 properties.getInternalSignaturePaths(), properties.getSignatureOrPermissionPaths());
     }
 
@@ -176,7 +206,14 @@ public class ApiAccessControlFilter extends OncePerRequestFilter {
     }
 
     private boolean isExempt(String uri) {
-        return RequestPathMatcher.matches(uri, properties.getExemptPaths());
+        String normalized = RequestPathMatcher.normalizePath(uri);
+        if (normalized == null) {
+            return false;
+        }
+        if (RequestPathMatcher.matchesNormalized(normalized, properties.getExemptPathExclusions())) {
+            return false;
+        }
+        return RequestPathMatcher.matchesNormalized(normalized, properties.getExemptPaths());
     }
 
     private boolean shouldBypass(String uri, SecurityUser principal) {
