@@ -11,7 +11,7 @@ import org.springframework.beans.factory.annotation.Value;
 import java.nio.charset.StandardCharsets;
 
 /**
- * AES 鍔犲瘑宸ュ叿锟?
+ * AES 加密工具类
  *
  * @author Deng
  * createData 2025/10/24 15:06
@@ -33,7 +33,7 @@ public class AESEncryptor {
     }
 
     /**
-     * 鍔犲瘑
+     * 加密
      */
     public String encrypt(String plainText) {
         if (plainText == null || plainText.isEmpty()) {
@@ -43,12 +43,12 @@ public class AESEncryptor {
             return aes.encryptBase64(plainText);
         } catch (Exception e) {
             log.error("Encryption failed", e);
-            throw new RuntimeException("鏁版嵁鍔犲瘑澶辫触", e);
+            throw new RuntimeException("数据加密失败", e);
         }
     }
 
     /**
-     * 瑙e瘑
+     * 解密
      */
     public String decrypt(String cipherText) {
         if (cipherText == null || cipherText.isEmpty()) {
@@ -58,7 +58,7 @@ public class AESEncryptor {
             return aes.decryptStr(cipherText);
         } catch (Exception e) {
             log.error("Decryption failed", e);
-            throw new RuntimeException("鏁版嵁瑙e瘑澶辫触", e);
+            throw new RuntimeException("数据解密失败", e);
         }
     }
 }
