@@ -11,6 +11,8 @@ import com.cognora.platform.common.dto.auth.*;
 import com.cognora.platform.common.rest.client.SysUserServiceClient;
 import com.cognora.platform.common.security.properties.JwtProperties;
 import com.cognora.platform.common.security.util.JwtUtils;
+import com.cognora.platform.common.tenant.TenantContextHolder;
+import com.cognora.platform.auth.service.TenantClaimResolver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -36,6 +38,7 @@ public class WebauthnCredentialServiceImpl extends ServiceImpl<WebauthnCredentia
     private final WebauthnCredentialConverter credentialConverter;
     private final WebAuthnValidator webAuthnValidator;
     private final WebAuthnConfig webAuthnConfig;
+    private final TenantClaimResolver tenantClaimResolver;
 
     private static final String WA_CHALLENGE_PREFIX = "webauthn:challenge:";
     private static final String WA_REG_CHALLENGE_PREFIX = "webauthn:reg:challenge:";
@@ -242,8 +245,10 @@ public class WebauthnCredentialServiceImpl extends ServiceImpl<WebauthnCredentia
         Set<String> permissions = userServiceClient.findPermissionsByUserId(userId).data();
 
         List<String> amr = Arrays.asList("pwd", "webauthn");
+        UUID tenantId = TenantContextHolder.getRequiredTenantId();
+        String tenantCode = tenantClaimResolver.resolveTenantCode(tenantId);
         String accessToken = jwtUtils.generateAccessToken(
-                userId, username, roles, permissions, deviceId, ipAddress, amr);
+                userId, username, roles, permissions, deviceId, ipAddress, amr, tenantId, tenantCode);
 
         log.info("Successfully authenticated user={} with WebAuthn", userId);
 

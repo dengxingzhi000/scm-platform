@@ -37,6 +37,10 @@ public class SecurityUser implements UserDetails {
     private String password;
     private String realName;
     private UUID deptId;
+    /** Token 绑定的租户 ID（与请求头租户一致，由 JWT 过滤器写入）。 */
+    private UUID tenantId;
+    /** Token 绑定的租户编码，用于展示/排障。 */
+    private String tenantCode;
     private Integer status;
     private Integer accountType;
     private Integer userLevel;
