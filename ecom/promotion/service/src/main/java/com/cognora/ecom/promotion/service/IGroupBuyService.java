@@ -8,9 +8,9 @@ import java.util.List;
 
 public interface IGroupBuyService extends IService<GroupBuy> {
 
-    GroupBuy createGroup(Long userId, Long activityId, Long productId, Long skuId);
+    GroupBuy createGroup(String userId, Long activityId, Long productId, Long skuId);
 
-    GroupBuy joinGroup(Long userId, Long groupBuyId);
+    GroupBuy joinGroup(String userId, Long groupBuyId);
 
     GroupBuy getById(Long groupBuyId);
 

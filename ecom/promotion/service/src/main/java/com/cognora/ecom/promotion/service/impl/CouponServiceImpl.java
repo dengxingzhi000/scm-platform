@@ -11,6 +11,7 @@ import com.cognora.ecom.promotion.mapper.CouponMapper;
 import com.cognora.ecom.promotion.service.ICouponService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -127,6 +128,27 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
         if (coupon == null) {
             throw new IllegalArgumentException("Coupon not found: " + couponCode);
         }
+        applyCouponUse(coupon, couponCode, orderNo);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void useCouponForUser(String userId, String couponCode, String orderNo) {
+        if (!StringUtils.hasText(userId) || !StringUtils.hasText(couponCode) || !StringUtils.hasText(orderNo)) {
+            throw new IllegalArgumentException("userId, couponCode and orderNo are required");
+        }
+        Coupon coupon = getOne(new LambdaQueryWrapper<Coupon>()
+                .eq(Coupon::getCouponCode, couponCode));
+        if (coupon == null) {
+            throw new IllegalArgumentException("Coupon not found: " + couponCode);
+        }
+        if (coupon.getUserId() == null || !coupon.getUserId().equals(userId)) {
+            throw new AccessDeniedException("Access denied: coupon does not belong to the current user");
+        }
+        applyCouponUse(coupon, couponCode, orderNo);
+    }
+
+    private void applyCouponUse(Coupon coupon, String couponCode, String orderNo) {
         if (coupon.getStatus() != null && coupon.getStatus() == COUPON_USED) {
             // Idempotent replay for the same order; a different order is a conflict.
             if (orderNo.equals(coupon.getOrderNo())) {

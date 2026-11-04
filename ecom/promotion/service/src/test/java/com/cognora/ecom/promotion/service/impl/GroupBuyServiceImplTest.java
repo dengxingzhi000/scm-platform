@@ -51,7 +51,7 @@ class GroupBuyServiceImplTest {
         });
         when(memberMapper.insert(any(GroupBuyMember.class))).thenReturn(1);
 
-        GroupBuy group = groupBuyService.createGroup(1L, 7L, 8L, 9L);
+        GroupBuy group = groupBuyService.createGroup("1", 7L, 8L, 9L);
 
         assertEquals(3, group.getGroupSize());
         assertEquals(1, group.getCurrentSize());
@@ -75,7 +75,7 @@ class GroupBuyServiceImplTest {
         when(memberMapper.insert(any(GroupBuyMember.class))).thenReturn(1);
         when(groupBuyMapper.updateById(any(GroupBuy.class))).thenReturn(1);
 
-        GroupBuy joined = groupBuyService.joinGroup(2L, 100L);
+        GroupBuy joined = groupBuyService.joinGroup("2", 100L);
 
         assertEquals(2, joined.getCurrentSize());
         assertEquals(2, joined.getStatus());
@@ -93,7 +93,7 @@ class GroupBuyServiceImplTest {
         when(memberMapper.selectOne(any(Wrapper.class)))
                 .thenReturn(new GroupBuyMember().setUserId("2"));
 
-        GroupBuy joined = groupBuyService.joinGroup(2L, 100L);
+        GroupBuy joined = groupBuyService.joinGroup("2", 100L);
 
         assertEquals(1, joined.getCurrentSize());
         verify(memberMapper, never()).insert(any(GroupBuyMember.class));
@@ -110,7 +110,7 @@ class GroupBuyServiceImplTest {
         when(groupBuyMapper.selectById(100L)).thenReturn(group);
         when(groupBuyMapper.updateById(any(GroupBuy.class))).thenReturn(1);
 
-        assertThrows(IllegalStateException.class, () -> groupBuyService.joinGroup(2L, 100L));
+        assertThrows(IllegalStateException.class, () -> groupBuyService.joinGroup("2", 100L));
         assertEquals(3, group.getStatus());
     }
 

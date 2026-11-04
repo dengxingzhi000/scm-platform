@@ -37,7 +37,7 @@ public class GroupBuyServiceImpl extends ServiceImpl<GroupBuyMapper, GroupBuy> i
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public GroupBuy createGroup(Long userId, Long activityId, Long productId, Long skuId) {
+    public GroupBuy createGroup(String userId, Long activityId, Long productId, Long skuId) {
         if (userId == null || activityId == null || productId == null) {
             throw new IllegalArgumentException("userId, activityId and productId are required");
         }
@@ -77,7 +77,7 @@ public class GroupBuyServiceImpl extends ServiceImpl<GroupBuyMapper, GroupBuy> i
 
         memberMapper.insert(new GroupBuyMember()
                 .setGroupBuyId(group.getId())
-                .setUserId(String.valueOf(userId))
+                .setUserId(userId)
                 .setStatus(MEMBER_JOINED)
                 .setJoinedAt(now));
         log.info("Group buy created: groupId={}, activityId={}, userId={}, size={}",
@@ -87,7 +87,7 @@ public class GroupBuyServiceImpl extends ServiceImpl<GroupBuyMapper, GroupBuy> i
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public GroupBuy joinGroup(Long userId, Long groupBuyId) {
+    public GroupBuy joinGroup(String userId, Long groupBuyId) {
         if (userId == null || groupBuyId == null) {
             throw new IllegalArgumentException("userId and groupBuyId are required");
         }
@@ -106,7 +106,7 @@ public class GroupBuyServiceImpl extends ServiceImpl<GroupBuyMapper, GroupBuy> i
 
         GroupBuyMember existing = memberMapper.selectOne(new LambdaQueryWrapper<GroupBuyMember>()
                 .eq(GroupBuyMember::getGroupBuyId, groupBuyId)
-                .eq(GroupBuyMember::getUserId, String.valueOf(userId)));
+                .eq(GroupBuyMember::getUserId, userId));
         if (existing != null) {
             return group;
         }
@@ -117,7 +117,7 @@ public class GroupBuyServiceImpl extends ServiceImpl<GroupBuyMapper, GroupBuy> i
 
         memberMapper.insert(new GroupBuyMember()
                 .setGroupBuyId(groupBuyId)
-                .setUserId(String.valueOf(userId))
+                .setUserId(userId)
                 .setStatus(MEMBER_JOINED)
                 .setJoinedAt(LocalDateTime.now()));
 

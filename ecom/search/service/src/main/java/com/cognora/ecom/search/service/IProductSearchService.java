@@ -10,7 +10,7 @@ public interface IProductSearchService {
 
     List<ProductDocument> getSimilarProducts(Long productId, int limit);
 
-    List<ProductDocument> getPersonalizedResults(Long userId, int limit);
+    List<ProductDocument> getPersonalizedResults(String userId, int limit);
 
     void indexProduct(ProductDocument product);
 

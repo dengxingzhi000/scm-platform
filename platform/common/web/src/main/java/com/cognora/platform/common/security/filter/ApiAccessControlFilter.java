@@ -8,10 +8,12 @@ import com.cognora.platform.common.security.config.ApiAccessControlProperties;
 import com.cognora.platform.common.security.metrics.SecurityMetrics;
 import com.cognora.platform.common.security.util.FilterBypassHelper;
 import com.cognora.platform.common.security.util.IpUtils;
+import com.cognora.platform.common.security.util.RequestPathMatcher;
 import com.cognora.platform.common.security.util.SecurityErrorResponseWriter;
 import com.cognora.platform.common.web.domain.SecurityUser;
 import com.cognora.platform.common.web.util.SecurityUtils;
 import jakarta.annotation.Nonnull;
+import jakarta.annotation.PostConstruct;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -64,6 +66,20 @@ public class ApiAccessControlFilter extends OncePerRequestFilter {
         String method = request.getMethod();
 
         if (isWhitelisted(requestUri)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        // Configured exemptions are public or protected by another mechanism (internal HMAC
+        // signature, payment channel verification). They must not go through a permission lookup.
+        if (isExempt(requestUri)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        // A verified service signature already authorised this request; do not demand a permission.
+        if (Boolean.TRUE.equals(request.getAttribute(
+                InternalEndpointSignatureFilter.SIGNATURE_VERIFIED_ATTRIBUTE))) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -145,8 +161,22 @@ public class ApiAccessControlFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
+    @PostConstruct
+    void logEffectiveRules() {
+        if (!properties.isLogEffectiveRulesOnStartup()) {
+            return;
+        }
+        log.warn("API access control effective rules: enabled={}, whitelist={}, exemptPaths={}, internalSignaturePaths={}, signatureOrPermissionPaths={}",
+                properties.isEnabled(), properties.getWhitelist(), properties.getExemptPaths(),
+                properties.getInternalSignaturePaths(), properties.getSignatureOrPermissionPaths());
+    }
+
     private boolean isWhitelisted(String uri) {
         return FilterBypassHelper.matchesAny(uri, properties.getWhitelist());
+    }
+
+    private boolean isExempt(String uri) {
+        return RequestPathMatcher.matches(uri, properties.getExemptPaths());
     }
 
     private boolean shouldBypass(String uri, SecurityUser principal) {

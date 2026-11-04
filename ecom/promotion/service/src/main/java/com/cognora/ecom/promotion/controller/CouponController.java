@@ -3,6 +3,8 @@ package com.cognora.ecom.promotion.controller;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cognora.ecom.promotion.domain.entity.Coupon;
 import com.cognora.ecom.promotion.service.ICouponService;
+import com.cognora.platform.common.web.ownership.OwnershipGuard;
+import com.cognora.platform.common.web.util.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -46,24 +48,28 @@ public class CouponController {
         return couponService.issueCoupon(request.getUserId(), request.getTemplateId());
     }
 
-    @Operation(summary = "校验优惠券", description = "校验用户持有的优惠券对指定订单金额是否可用。")
+    @Operation(summary = "校验优惠券", description = "校验当前登录用户持有的优惠券对指定订单金额是否可用。")
     @PostMapping("/verify")
     public Coupon verifyCoupon(@Valid @RequestBody VerifyCouponRequest request) {
+        // The owner always comes from the authenticated principal, never from the request body.
+        request.setUserId(SecurityUtils.requireCurrentUserUuid().toString());
         log.info("[API] Verify coupon: userId={}, couponCode={}", (request.getUserId() + "").replace("\r", "_").replace("\n", "_"), (request.getCouponCode() + "").replace("\r", "_").replace("\n", "_"));
         return couponService.verifyCoupon(request.getUserId(), request.getCouponCode(), request.getOrderAmount());
     }
 
-    @Operation(summary = "核销优惠券", description = "将指定优惠券在对应订单上标记为已使用；同订单重复核销幂等返回。")
+    @Operation(summary = "核销优惠券", description = "将当前登录用户持有的指定优惠券在对应订单上标记为已使用；同订单重复核销幂等返回。")
     @PostMapping("/use")
     public boolean useCoupon(@Valid @RequestBody UseCouponRequest request) {
-        log.info("[API] Use coupon: couponCode={}, orderNo={}", (request.getCouponCode() + "").replace("\r", "_").replace("\n", "_"), (request.getOrderNo() + "").replace("\r", "_").replace("\n", "_"));
-        couponService.useCoupon(request.getCouponCode(), request.getOrderNo());
+        String currentUserId = SecurityUtils.requireCurrentUserUuid().toString();
+        log.info("[API] Use coupon: userId={}, couponCode={}, orderNo={}", (currentUserId + "").replace("\r", "_").replace("\n", "_"), (request.getCouponCode() + "").replace("\r", "_").replace("\n", "_"), (request.getOrderNo() + "").replace("\r", "_").replace("\n", "_"));
+        couponService.useCouponForUser(currentUserId, request.getCouponCode(), request.getOrderNo());
         return true;
     }
 
-    @Operation(summary = "查询用户优惠券", description = "获取指定用户名下的全部优惠券。")
+    @Operation(summary = "查询用户优惠券", description = "获取当前登录用户名下的全部优惠券。")
     @GetMapping("/user/{userId}")
     public List<Coupon> getByUserId(@Parameter(description = "用户标识") @PathVariable String userId) {
+        OwnershipGuard.requireSelfOrThrow(userId);
         log.info("[API] Get user coupons: userId={}", (userId + "").replace("\r", "_").replace("\n", "_"));
         return couponService.getByUserId(userId);
     }

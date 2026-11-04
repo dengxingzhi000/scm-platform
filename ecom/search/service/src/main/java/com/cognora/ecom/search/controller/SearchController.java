@@ -2,6 +2,7 @@ package com.cognora.ecom.search.controller;
 
 import com.cognora.ecom.search.domain.ProductDocument;
 import com.cognora.ecom.search.service.IProductSearchService;
+import com.cognora.platform.common.web.ownership.OwnershipGuard;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -42,12 +43,13 @@ public class SearchController {
         return searchService.getSimilarProducts(productId, limit);
     }
 
-    @Operation(summary = "查询个性化推荐", description = "根据用户 ID 返回个性化的商品推荐结果。")
+    @Operation(summary = "查询个性化推荐", description = "仅返回当前登录用户的个性化商品推荐结果。")
     @GetMapping("/products/personalized/{userId}")
     public List<ProductDocument> getPersonalizedResults(
-            @Parameter(description = "用户ID") @PathVariable Long userId,
+            @Parameter(description = "用户ID") @PathVariable String userId,
             @Parameter(description = "返回结果数量") @RequestParam(defaultValue = "20") int limit) {
-        log.info("[API] Get personalized results: userId={}, limit={}", userId, limit);
+        OwnershipGuard.requireSelfOrThrow(userId);
+        log.info("[API] Get personalized results: userId={}, limit={}", (userId + "").replace("\r", "_").replace("\n", "_"), limit);
         return searchService.getPersonalizedResults(userId, limit);
     }
 

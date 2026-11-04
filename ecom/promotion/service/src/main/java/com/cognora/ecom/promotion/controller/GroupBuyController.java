@@ -3,6 +3,7 @@ package com.cognora.ecom.promotion.controller;
 import com.cognora.ecom.promotion.domain.entity.GroupBuy;
 import com.cognora.ecom.promotion.domain.entity.GroupBuyMember;
 import com.cognora.ecom.promotion.service.IGroupBuyService;
+import com.cognora.platform.common.web.util.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -27,20 +28,23 @@ public class GroupBuyController {
 
     private final IGroupBuyService groupBuyService;
 
-    @Operation(summary = "发起拼团", description = "为指定商品 SKU 创建新的拼团团组并返回团组信息。")
+    @Operation(summary = "发起拼团", description = "当前登录用户为指定商品 SKU 创建新的拼团团组并返回团组信息。")
     @PostMapping
     public GroupBuy createGroup(@RequestBody CreateGroupRequest request) {
+        String currentUserId = SecurityUtils.requireCurrentUserUuid().toString();
         log.info("[API] Create group buy: userId={}, activityId={}",
-                request.getUserId(), request.getActivityId());
-        return groupBuyService.createGroup(request.getUserId(), request.getActivityId(),
+                (currentUserId + "").replace("\r", "_").replace("\n", "_"), request.getActivityId());
+        return groupBuyService.createGroup(currentUserId, request.getActivityId(),
                 request.getProductId(), request.getSkuId());
     }
 
-    @Operation(summary = "参与拼团", description = "指定用户加入已存在的拼团团组并返回更新后的团组信息。")
+    @Operation(summary = "参与拼团", description = "当前登录用户加入已存在的拼团团组并返回更新后的团组信息。")
     @PostMapping("/{groupBuyId}/join")
-    public GroupBuy joinGroup(@Parameter(description = "拼团团组 ID") @PathVariable Long groupBuyId, @RequestBody JoinGroupRequest request) {
-        log.info("[API] Join group buy: groupBuyId={}, userId={}", groupBuyId, request.getUserId());
-        return groupBuyService.joinGroup(request.getUserId(), groupBuyId);
+    public GroupBuy joinGroup(@Parameter(description = "拼团团组 ID") @PathVariable Long groupBuyId, @RequestBody(required = false) JoinGroupRequest request) {
+        String currentUserId = SecurityUtils.requireCurrentUserUuid().toString();
+        log.info("[API] Join group buy: groupBuyId={}, userId={}", groupBuyId,
+                (currentUserId + "").replace("\r", "_").replace("\n", "_"));
+        return groupBuyService.joinGroup(currentUserId, groupBuyId);
     }
 
     @Operation(summary = "查询拼团详情", description = "根据团组 ID 获取拼团团组的详细信息。")
