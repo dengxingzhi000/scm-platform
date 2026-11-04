@@ -222,6 +222,53 @@ class ApiAccessControlEnforcementTest {
         assertThat(response.getStatus()).isEqualTo(200);
     }
 
+    @Test
+    void tenantAdminIsDeniedPlatformConsoleEndpoint() throws Exception {
+        properties.setWhitelist(List.of());
+        properties.setUnregisteredEndpointPolicy(
+                ApiAccessControlProperties.UnregisteredEndpointPolicy.DENY);
+        // 平台控制台接口登记为 tenant:tenant:page
+        when(permissionService.findPermissionsByUrl(anyString(), anyString()))
+                .thenReturn(List.of("tenant:tenant:page"));
+        // 租户管理员只有业务权限和菜单权限，即使菜单可见也不能调用平台控制台 API
+        when(permissionService.findAllPermissionsByUserId(any(UUID.class)))
+                .thenReturn(Set.of("product:brand:view", "menu:tenant"));
+        authenticate();
+
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/tenant/page");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        AtomicBoolean proceeded = new AtomicBoolean(false);
+        FilterChain chain = (req, res) -> proceeded.set(true);
+
+        buildFilter().doFilter(request, response, chain);
+
+        assertThat(proceeded).isFalse();
+        assertThat(response.getStatus()).isEqualTo(403);
+        assertThat(response.getContentAsString()).contains("ACCESS_DENIED");
+    }
+
+    @Test
+    void platformSuperAdminIsAllowedOnPlatformConsoleEndpoint() throws Exception {
+        properties.setWhitelist(List.of());
+        properties.setUnregisteredEndpointPolicy(
+                ApiAccessControlProperties.UnregisteredEndpointPolicy.DENY);
+        when(permissionService.findPermissionsByUrl(anyString(), anyString()))
+                .thenReturn(List.of("tenant:tenant:page"));
+        when(permissionService.findAllPermissionsByUserId(any(UUID.class)))
+                .thenReturn(Set.of("tenant:tenant:page", "menu:tenant"));
+        authenticate();
+
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/tenant/page");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        AtomicBoolean proceeded = new AtomicBoolean(false);
+        FilterChain chain = (req, res) -> proceeded.set(true);
+
+        buildFilter().doFilter(request, response, chain);
+
+        assertThat(proceeded).isTrue();
+        assertThat(response.getStatus()).isEqualTo(200);
+    }
+
     @SuppressWarnings("unchecked")
     private ApiAccessControlFilter buildFilter() {
         ObjectProvider<ISysAuditLogService> auditLogProvider = Mockito.mock(ObjectProvider.class);

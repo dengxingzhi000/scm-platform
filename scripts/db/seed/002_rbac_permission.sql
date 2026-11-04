@@ -290,6 +290,8 @@ ON CONFLICT (role_id, permission_id) DO NOTHING;
 -- 租户管理员：除 tenant:* 平台管理外的全部权限。
 -- 本脚本会先删除再重建角色绑定，如果把 tenant:* 也写上，重跑种子就会把
 -- 007 迁移回收掉的越权授权重新灌回来，因此这里必须显式排除。
+-- menu:tenant% 是平台控制台菜单（租户管理），同样只能给平台角色；
+-- 008 迁移会回收它，种子重跑也不能再灌回来。
 INSERT INTO sys_role_permission (id, role_id, permission_id, tenant_id, create_time)
 SELECT uuid_generate_v5(uuid_ns_url(), 'scm:rp:' || r.role_code || ':' || p.permission_code),
        r.id, p.id, r.tenant_id, NOW()
@@ -301,9 +303,10 @@ JOIN sys_permission p
 WHERE r.tenant_id = '019a0aee-0000-7000-8000-000000000002'
   AND r.role_code = 'ROLE_TENANT_ADMIN'
   AND p.permission_code NOT LIKE 'tenant:%'
+  AND p.permission_code NOT LIKE 'menu:tenant%'
 ON CONFLICT (role_id, permission_id) DO NOTHING;
 
--- 部门主管：全部菜单 + 用户/部门查看
+-- 部门主管：业务菜单 + 用户/部门查看（不含平台控制台 menu:tenant%）
 INSERT INTO sys_role_permission (id, role_id, permission_id, tenant_id, create_time)
 SELECT uuid_generate_v5(uuid_ns_url(), 'scm:rp:' || r.role_code || ':' || p.permission_code),
        r.id, p.id, r.tenant_id, NOW()
@@ -316,6 +319,7 @@ WHERE r.tenant_id = '019a0aee-0000-7000-8000-000000000002'
   AND r.role_code = 'ROLE_DEPARTMENT_MANAGER'
   AND (p.permission_code LIKE 'menu:%'
        OR p.permission_code IN ('system:user:list', 'system:dept:list'))
+  AND p.permission_code NOT LIKE 'menu:tenant%'
 ON CONFLICT (role_id, permission_id) DO NOTHING;
 
 -- 业务专员：业务菜单（不含系统管理与租户管理）

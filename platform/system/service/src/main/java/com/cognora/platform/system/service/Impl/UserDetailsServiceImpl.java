@@ -32,7 +32,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     @Override
     @Cacheable(
             value = "userDetails",
-            key = "#username",
+            key = "T(com.cognora.platform.common.tenant.TenantCacheKeys).global(#username)",
             unless = "#result == null"
     )
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {

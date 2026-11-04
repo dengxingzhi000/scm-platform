@@ -3,6 +3,7 @@ package com.cognora.platform.inventory.service.command;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.cognora.platform.common.data.rw.annotation.Master;
+import com.cognora.platform.common.tenant.TenantCacheKeys;
 import com.cognora.platform.decision.constraint.Constraint;
 import com.cognora.platform.inventory.dto.InventoryReservationRequest;
 import com.cognora.platform.inventory.domain.entity.Inventory;
@@ -30,8 +31,8 @@ public class InvReservationCommandService {
     private final DistributedLock distributedLock;
     private final InventoryAllocationEngine allocationEngine;
 
-    private static final String RESERVATION_KEY_PREFIX = "inventory:reservation:";
-    private static final String RESERVATION_INDEX_PREFIX = "inventory:reservation:index:";
+    private static final String RESERVATION_KEY_PREFIX = "inventory:reservation";
+    private static final String RESERVATION_INDEX_PREFIX = "inventory:reservation:index";
     private static final int DEFAULT_TIMEOUT_SECONDS = 900;
 
     @Master(reason = "写操作必须走主库")
@@ -171,11 +172,11 @@ public class InvReservationCommandService {
     }
 
     private String buildReservationKey(String businessKey) {
-        return RESERVATION_KEY_PREFIX + businessKey;
+        return TenantCacheKeys.scoped(RESERVATION_KEY_PREFIX, businessKey);
     }
 
     private String buildIndexKey(String skuId, String warehouseId) {
-        return RESERVATION_INDEX_PREFIX + skuId + ":" + warehouseId;
+        return TenantCacheKeys.scoped(RESERVATION_INDEX_PREFIX, skuId, warehouseId);
     }
 
     public AllocationOutput smartAllocate(AllocationInput input) {

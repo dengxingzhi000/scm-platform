@@ -133,7 +133,7 @@ class SysUserCommandServiceImplTest {
         InOrder order = inOrder(userMapper, cache("user"), cache("userDetails"));
         order.verify(userMapper).updateById(any(SysUser.class));
         order.verify(cache("user")).evict(tenantId + ":" + userId);
-        order.verify(cache("userDetails")).evict("tester");
+        order.verify(cache("userDetails")).evict(tenantId + ":tester");
     }
 
     @Test
@@ -154,7 +154,7 @@ class SysUserCommandServiceImplTest {
 
         verify(cache("user")).evict(tenantId + ":" + userId);
         verify(cache("userInfo")).evict(tenantId + ":" + userId);
-        verify(cache("userDetails")).evict("tester");
+        verify(cache("userDetails")).evict(tenantId + ":tester");
     }
 
     @Test
@@ -175,7 +175,7 @@ class SysUserCommandServiceImplTest {
         service.resetPassword(userId);
 
         verify(cache("user")).evict(tenantId + ":" + userId);
-        verify(cache("userDetails")).evict("tester");
+        verify(cache("userDetails")).evict(tenantId + ":tester");
     }
 
     @Test
@@ -236,7 +236,7 @@ class SysUserCommandServiceImplTest {
 
         verify(cache("user")).evict(tenantId + ":" + userId);
         verify(cache("userInfo")).evict(tenantId + ":" + userId);
-        verify(cache("userDetails")).evict("tester");
+        verify(cache("userDetails")).evict(tenantId + ":tester");
         verify(cache("userDeptId")).evict(userId);
         verify(cache("accessibleDeptIds")).clear();
     }
@@ -244,7 +244,7 @@ class SysUserCommandServiceImplTest {
     private void assertAuthorizationEvictions(UUID tenantId, UUID userId, String username) {
         verify(cache("user")).evict(tenantId + ":" + userId);
         verify(cache("userInfo")).evict(tenantId + ":" + userId);
-        verify(cache("userDetails")).evict(username);
+        verify(cache("userDetails")).evict(tenantId + ":" + username);
         verify(cache("userRoles")).evict(userId);
         verify(cache("userRoleCodes")).evict(userId);
         verify(cache("userPermissionCodes")).evict(userId);

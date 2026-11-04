@@ -108,6 +108,25 @@ class UserAuthorizationCacheEvictorTest {
     }
 
     @Test
+    void evictUserDetailsRemovesTenantScopedUsernameKey() {
+        UUID tenantId = UUID.randomUUID();
+        TenantContextHolder.setTenantId(tenantId);
+
+        evictor.evictUserDetails("admin");
+
+        verify(cache("userDetails")).evict(tenantId + ":admin");
+    }
+
+    @Test
+    void evictUserDetailsFallsBackToNoTenantKeyWithoutContext() {
+        TenantContextHolder.clear();
+
+        evictor.evictUserDetails("admin");
+
+        verify(cache("userDetails")).evict("no-tenant:admin");
+    }
+
+    @Test
     void evictRoleDefinitionEvictsRoleKeysByUuidAndClearsRoleList() {
         UUID roleId = UUID.randomUUID();
 

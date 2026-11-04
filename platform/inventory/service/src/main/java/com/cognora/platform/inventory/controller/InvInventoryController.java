@@ -67,7 +67,8 @@ public class InvInventoryController {
    */
   @Operation(summary = "查询单仓库存", description = "查询指定SKU在指定仓库中的当前库存信息。")
   @GetMapping
-  @Cacheable(value = "inventory", key = "#skuId + ':' + #warehouseId",
+  @Cacheable(value = "inventory",
+             key = "T(com.cognora.platform.common.tenant.TenantCacheKeys).inventoryDetail(#skuId, #warehouseId)",
              unless = "#result == null || #result.data() == null")
   @SentinelResource("inventory.get")
   public ApiResponse<InventoryResponse> getInventory(
@@ -86,7 +87,7 @@ public class InvInventoryController {
   @Operation(summary = "批量查询库存", description = "根据SKU列表批量查询库存，可限定仓库，单次最多查询100个SKU。")
   @PostMapping("/batch")
   @Cacheable(value = "inventory",
-             key = "(#warehouseId ?: 'ALL') + ':' + (#skuIds?.toString() ?: '')",
+             key = "T(com.cognora.platform.common.tenant.TenantCacheKeys).inventoryBatch(#warehouseId, #skuIds)",
              unless = "#result == null")
   @SentinelResource("inventory.batchGet")
   public ApiResponse<List<InventoryResponse>> batchGetInventory(
@@ -151,7 +152,8 @@ public class InvInventoryController {
    */
   @Operation(summary = "检查库存是否充足", description = "判断指定SKU在指定仓库的可用库存是否满足所需数量。")
   @GetMapping("/check")
-  @Cacheable(value = "inventory", key = "#skuId + ':' + #warehouseId + ':' + #quantity",
+  @Cacheable(value = "inventory",
+             key = "T(com.cognora.platform.common.tenant.TenantCacheKeys).inventoryCheck(#skuId, #warehouseId, #quantity)",
              unless = "#result == null")
   @SentinelResource("inventory.check")
   public ApiResponse<Boolean> checkStockAvailable(

@@ -122,7 +122,7 @@ class UserRoleCommandServiceImplTest {
     private void assertAuthorizationEvictions(UUID tenantId, UUID userId, String username) {
         verify(cache("user")).evict(tenantId + ":" + userId);
         verify(cache("userInfo")).evict(tenantId + ":" + userId);
-        verify(cache("userDetails")).evict(username);
+        verify(cache("userDetails")).evict(tenantId + ":" + username);
         verify(cache("userRoles")).evict(userId);
         verify(cache("userRoleCodes")).evict(userId);
         verify(cache("userPermissionCodes")).evict(userId);

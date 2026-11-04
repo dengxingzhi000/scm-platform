@@ -82,7 +82,8 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
      * 用于动态权限加载（DynamicPermissionLoader）
      */
     @Override
-    @Cacheable(value = "apiPermissions", key = "'all'")
+    @Cacheable(value = "apiPermissions",
+               key = "T(com.cognora.platform.common.tenant.TenantCacheKeys).global('apiPermissions')")
     public List<ApiPermissionDTO> findApiPermissions() {
         LambdaQueryWrapper<SysPermission> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(SysPermission::getPermissionType, PERMISSION_TYPE_API)
@@ -102,7 +103,8 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
     }
 
     @Override
-    @Cacheable(value = "permissionTree", key = "'all'")
+    @Cacheable(value = "permissionTree",
+               key = "T(com.cognora.platform.common.tenant.TenantCacheKeys).global('permissionTree')")
     public List<PermissionDTO> getPermissionTree() {
         List<SysPermission> permissions = getBaseMapper().findPermissionTree();
 

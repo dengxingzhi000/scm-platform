@@ -28,12 +28,13 @@ import java.util.UUID;
  *       {@code PermissionQueryServiceImpl} 缓存的 String 枚举，{@code scope:<userId>}
  *       是 {@code UserCrossDatabaseQueryService} 缓存的 Integer 码值，
  *       {@code <tenantId>:<userId>} 是 {@code SysUserQueryServiceImpl} 的 KEY_GEN 键；</li>
- *   <li>{@code userDetails} 逻辑键为裸 {@code <username>}；</li>
+ *   <li>{@code userDetails} 逻辑键为 {@code <tenantId>:<username>}（见
+ *       {@code TenantCacheKeys.global}，无租户时的历史键为 {@code no-tenant:<username>}）；</li>
  *   <li>{@code userPermissions} 同时存在 {@code <userId>} 和 {@code <userId>:<permissionCode>}
  *       两种键，{@code accessibleDeptIds} 是 {@code <userId>:<tenantId>:<dataScope>} 复合键，
  *       Cache 接口无法按前缀精确清理，因此整体 {@code clear()}；</li>
  *   <li>{@code role}/{@code rolePermissions}/{@code roleLevel}/{@code permission} 的键是 UUID 对象；
- *       {@code permissionTree}/{@code apiPermissions} 的键是字面量 {@code all}；
+ *       {@code permissionTree}/{@code apiPermissions} 的键是 {@code <tenantId>:<namespace>}；
  *       {@code roles} 的键含方法名和租户，无法枚举，整体 {@code clear()}。</li>
  * </ul>
  */
@@ -187,7 +188,7 @@ public class UserAuthorizationCacheEvictor {
     }
 
     /**
-     * 权限定义新增/删除：permission 按 id 精确失效，permissionTree/apiPermissions 键为 all。
+     * 权限定义新增/删除：permission 按 id 精确失效，permissionTree/apiPermissions 按租户整体失效。
      * 新增/删除权限不允许存在角色或临时权限引用，因此不影响已有用户权限。
      */
     public void evictPermissionDefinition(UUID permissionId) {
@@ -222,7 +223,9 @@ public class UserAuthorizationCacheEvictor {
         }
         Cache cache = cacheManager.getCache(USER_DETAILS);
         if (cache != null) {
-            cache.evict(username);
+            UUID tenantId = TenantContextHolder.getTenantId();
+            String key = (tenantId != null ? tenantId.toString() : "no-tenant") + ":" + username;
+            cache.evict(key);
         }
     }
 

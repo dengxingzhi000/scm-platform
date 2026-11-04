@@ -2,6 +2,7 @@ package com.cognora.platform.inventory.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.cognora.platform.common.tenant.TenantCacheKeys;
 import com.cognora.platform.inventory.dto.InventoryReservationRequest;
 import com.cognora.platform.inventory.domain.entity.Inventory;
 import com.cognora.platform.inventory.lock.DistributedLock;
@@ -38,8 +39,8 @@ public class InvReservationServiceImpl implements IInvReservationService {
 
   private final DistributedLock distributedLock;
 
-  private static final String RESERVATION_KEY_PREFIX = "inventory:reservation:";
-  private static final String RESERVATION_INDEX_PREFIX = "inventory:reservation:index:";
+  private static final String RESERVATION_KEY_PREFIX = "inventory:reservation";
+  private static final String RESERVATION_INDEX_PREFIX = "inventory:reservation:index";
   private static final int DEFAULT_TIMEOUT_SECONDS = 900; // 15分钟
 
   @Override
@@ -294,13 +295,13 @@ public class InvReservationServiceImpl implements IInvReservationService {
    * 构建预占记录Redis键
    */
   private String buildReservationKey(String businessKey) {
-    return RESERVATION_KEY_PREFIX + businessKey;
+    return TenantCacheKeys.scoped(RESERVATION_KEY_PREFIX, businessKey);
   }
 
   /**
    * 构建索引键（sku:warehouse -> Set<businessKey>）
    */
   private String buildIndexKey(String skuId, String warehouseId) {
-    return RESERVATION_INDEX_PREFIX + skuId + ":" + warehouseId;
+    return TenantCacheKeys.scoped(RESERVATION_INDEX_PREFIX, skuId, warehouseId);
   }
 }

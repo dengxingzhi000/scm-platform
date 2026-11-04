@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -35,16 +36,51 @@ class TenantCacheKeysTest {
         String pagedA = TenantCacheKeys.paged("hotProducts", 1, 10);
         String stockA = TenantCacheKeys.inventoryStock(STOCK_SKU, WAREHOUSE);
 
+        String detailA = TenantCacheKeys.inventoryDetail(STOCK_SKU, WAREHOUSE);
+        String batchA = TenantCacheKeys.inventoryBatch(null, STOCK_SKU);
+        String scopedA = TenantCacheKeys.scoped("apiPermissions", "all");
+
         TenantContextHolder.setTenantId(tenantB);
         String globalB = TenantCacheKeys.global("inventoryStats");
         String pagedB = TenantCacheKeys.paged("hotProducts", 1, 10);
         String stockB = TenantCacheKeys.inventoryStock(STOCK_SKU, WAREHOUSE);
+        String detailB = TenantCacheKeys.inventoryDetail(STOCK_SKU, WAREHOUSE);
+        String batchB = TenantCacheKeys.inventoryBatch(null, STOCK_SKU);
+        String scopedB = TenantCacheKeys.scoped("apiPermissions", "all");
 
         assertNotEquals(globalA, globalB);
         assertNotEquals(pagedA, pagedB);
         assertNotEquals(stockA, stockB);
+        assertNotEquals(detailA, detailB);
+        assertNotEquals(batchA, batchB);
+        assertNotEquals(scopedA, scopedB);
         assertTrue(globalA.startsWith(tenantA.toString()));
         assertTrue(globalB.startsWith(tenantB.toString()));
+    }
+
+    @Test
+    void scopedAndBatchKeysWriteByTenantAAreNotReadableByTenantB() {
+        UUID tenantA = UUID.randomUUID();
+        UUID tenantB = UUID.randomUUID();
+        Map<String, Object> cache = new HashMap<>();
+
+        TenantContextHolder.setTenantId(tenantA);
+        cache.put(TenantCacheKeys.scoped("apiPermissions", "all"), "api-perms-of-tenant-a");
+        cache.put(TenantCacheKeys.scoped("inventory:reservation", "ORDER-001"), "reservation-a");
+        cache.put(TenantCacheKeys.inventoryBatch(null, STOCK_SKU), "batch-a");
+        cache.put(TenantCacheKeys.inventoryCheck(STOCK_SKU, WAREHOUSE, 1), 100);
+
+        TenantContextHolder.setTenantId(tenantB);
+        assertFalse(cache.containsKey(TenantCacheKeys.scoped("apiPermissions", "all")));
+        assertFalse(cache.containsKey(TenantCacheKeys.scoped("inventory:reservation", "ORDER-001")));
+        assertFalse(cache.containsKey(TenantCacheKeys.inventoryBatch(null, STOCK_SKU)));
+        assertFalse(cache.containsKey(TenantCacheKeys.inventoryCheck(STOCK_SKU, WAREHOUSE, 1)));
+
+        TenantContextHolder.setTenantId(tenantA);
+        assertEquals("api-perms-of-tenant-a", cache.get(TenantCacheKeys.scoped("apiPermissions", "all")));
+        assertEquals("reservation-a", cache.get(TenantCacheKeys.scoped("inventory:reservation", "ORDER-001")));
+        assertEquals("batch-a", cache.get(TenantCacheKeys.inventoryBatch(null, STOCK_SKU)));
+        assertEquals(100, cache.get(TenantCacheKeys.inventoryCheck(STOCK_SKU, WAREHOUSE, 1)));
     }
 
     @Test
@@ -85,6 +121,9 @@ class TenantCacheKeysTest {
 
         assertTrue(stock.startsWith("inventory:stock:"), "必须保留 inventory:stock: 前缀");
         assertTrue(detail.startsWith("inventory:detail:"), "必须保留 inventory:detail: 前缀");
+        assertTrue(TenantCacheKeys.inventoryBatch(null, STOCK_SKU).startsWith("inventory:batch:"));
+        assertTrue(TenantCacheKeys.scoped("inventory:reservation", "ORDER-001")
+                .startsWith("inventory:reservation:"));
 
         // 同步写入与 deleteCache 走同一个工厂，重复生成必须得到同一 key
         assertEquals(stock, TenantCacheKeys.inventoryStock(STOCK_SKU, WAREHOUSE));
@@ -96,5 +135,9 @@ class TenantCacheKeysTest {
         assertThrows(TenantParseException.class, () -> TenantCacheKeys.global("inventoryStats"));
         assertThrows(TenantParseException.class, () -> TenantCacheKeys.paged("hotProducts", 1, 10));
         assertThrows(TenantParseException.class, () -> TenantCacheKeys.inventoryStock(STOCK_SKU, WAREHOUSE));
+        assertThrows(TenantParseException.class, () -> TenantCacheKeys.inventoryDetail(STOCK_SKU, WAREHOUSE));
+        assertThrows(TenantParseException.class, () -> TenantCacheKeys.inventoryBatch(null, STOCK_SKU));
+        assertThrows(TenantParseException.class, () -> TenantCacheKeys.inventoryCheck(STOCK_SKU, WAREHOUSE, 1));
+        assertThrows(TenantParseException.class, () -> TenantCacheKeys.scoped("apiPermissions", "all"));
     }
 }
