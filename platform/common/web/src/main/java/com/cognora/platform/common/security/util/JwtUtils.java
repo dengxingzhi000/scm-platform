@@ -43,6 +43,23 @@ public class JwtUtils {
     private static final String TOKEN_FINGERPRINT_PREFIX = "jwt:fingerprint:";
     private static final String REFRESH_LOCK_PREFIX = "jwt:refresh:lock:";
 
+    /** Token 绑定的租户 ID，签发后不可跨租户使用。 */
+    public static final String CLAIM_TENANT_ID = "tenantId";
+    /** Token 绑定的租户编码，用于展示与排障，安全判定以 tenantId 为准。 */
+    public static final String CLAIM_TENANT_CODE = "tenantCode";
+
+    /**
+     * Token 与请求头租户的核对结果。
+     */
+    public enum TenantBinding {
+        /** 租户声明存在且与请求头一致。 */
+        VALID,
+        /** Token 里没有 tenantId 声明（升级前的旧 token）。 */
+        CLAIM_MISSING,
+        /** 请求头缺租户，或与 Token 里的 tenantId 不一致。 */
+        MISMATCH
+    }
+
     // ThreadLocal cache for parsed tokens within same request
     private static final ThreadLocal<Map<String, Claims>> TOKEN_CACHE = ThreadLocal.withInitial(HashMap::new);
 
@@ -70,23 +87,23 @@ public class JwtUtils {
     }
 
     /**
-     * 鐢熸垚璁块棶浠ょ墝
+     * 鐢熸垚璁块棶浠ょ墝锛堝彲鎸囧畾 AMR锛屽苟缁戝畾绉熸埛锟?
+     *
+     * @param tenantId   Token 所属租户，必填；缺失时拒绝签发（不做无租户降级）
+     * @param tenantCode 租户编码，用于展示/排障，可为空
      */
     public String generateAccessToken(UUID userId, String username, Set<String> roles, Set<String> permissions,
-                                      String deviceId, String ipAddress) {
-        return generateAccessToken(userId, username, roles, permissions, deviceId, ipAddress, null);
-    }
+                                      String deviceId, String ipAddress, List<String> amr,
+                                      UUID tenantId, String tenantCode) {
+        if (tenantId == null) {
+            throw new UnauthorizedException("invalid_token_tenant_missing");
+        }
 
-    /**
-     * 鐢熸垚璁块棶浠ょ墝锛堝彲鎸囧畾 AMR锟?
-     */
-    public String generateAccessToken(UUID userId, String username, Set<String> roles, Set<String> permissions,
-                                      String deviceId, String ipAddress, List<String> amr) {
         String jti = UUIDv7Util.generateString();
         String tokenType = "access";
 
         Map<String, Object> claims = buildClaims(userId, username, roles, permissions, tokenType, deviceId, ipAddress,
-                jti
+                jti, tenantId, tenantCode
         );
 
         if (amr != null && !amr.isEmpty()) {
@@ -104,7 +121,11 @@ public class JwtUtils {
     /**
      * 鐢熸垚鍒锋柊浠ょ墝
      */
-    public String generateRefreshToken(UUID userId, String username, String deviceId) {
+    public String generateRefreshToken(UUID userId, String username, String deviceId,
+                                       UUID tenantId, String tenantCode) {
+        if (tenantId == null) {
+            throw new UnauthorizedException("invalid_token_tenant_missing");
+        }
         String jti = UUIDv7Util.generateString();
 
         Map<String, Object> claims = new HashMap<>();
@@ -113,6 +134,10 @@ public class JwtUtils {
         claims.put("tokenType", "refresh");
         claims.put("deviceId", deviceId);
         claims.put("jti", jti);
+        claims.put(CLAIM_TENANT_ID, tenantId.toString());
+        if (tenantCode != null && !tenantCode.isBlank()) {
+            claims.put(CLAIM_TENANT_CODE, tenantCode);
+        }
 
         return createToken(claims, userId.toString(), jwtProperties.getRefreshExpiration());
     }
@@ -182,6 +207,12 @@ public class JwtUtils {
         }
 
         UUID userId = getUserIdFromToken(refreshToken);
+        UUID tenantId = getTenantIdFromToken(refreshToken);
+        if (tenantId == null) {
+            // 升级前的 refresh token 没有租户声明：统一 401，不允许静默降级
+            throw new UnauthorizedException("invalid_token_tenant_missing");
+        }
+        String tenantCode = getTenantCodeFromToken(refreshToken);
         String lockKey = REFRESH_LOCK_PREFIX + userId;
 
         try {
@@ -198,7 +229,8 @@ public class JwtUtils {
             revokeUserAccessTokens(userId, deviceId);
 
             // 鐢熸垚鏂扮殑璁块棶浠ょ墝
-            return generateAccessToken(userId, username, roles, permissions, deviceId, ipAddress);
+            return generateAccessToken(userId, username, roles, permissions, deviceId, ipAddress, null,
+                    tenantId, tenantCode);
         } finally {
             redisTemplate.delete(lockKey);
         }
@@ -320,6 +352,56 @@ public class JwtUtils {
     }
 
     /**
+     * 读取 Token 绑定的租户 ID；旧 Token（无该声明）返回 {@code null}。
+     */
+    public UUID getTenantIdFromToken(String token) {
+        Claims claims = parseToken(token);
+        if (claims == null) {
+            return null;
+        }
+        Object tenantId = claims.get(CLAIM_TENANT_ID);
+        if (tenantId == null || tenantId.toString().isBlank()) {
+            return null;
+        }
+        try {
+            return UUID.fromString(tenantId.toString());
+        } catch (IllegalArgumentException e) {
+            log.warn("Token contains malformed {} claim", CLAIM_TENANT_ID);
+            return null;
+        }
+    }
+
+    /**
+     * 读取 Token 绑定的租户编码；缺失时返回 {@code null}（安全判定不依赖它）。
+     */
+    public String getTenantCodeFromToken(String token) {
+        Claims claims = parseToken(token);
+        if (claims == null) {
+            return null;
+        }
+        Object tenantCode = claims.get(CLAIM_TENANT_CODE);
+        return tenantCode == null ? null : tenantCode.toString();
+    }
+
+    /**
+     * 核对 Token 租户声明与请求头租户。
+     *
+     * <p>旧 Token（无 tenantId 声明）返回 {@link TenantBinding#CLAIM_MISSING}，调用方必须 401，
+     * 不做“使用请求头租户补齐”的静默降级。</p>
+     */
+    public TenantBinding validateTenantBinding(String token, String requestTenantId) {
+        UUID claimTenantId = getTenantIdFromToken(token);
+        if (claimTenantId == null) {
+            return TenantBinding.CLAIM_MISSING;
+        }
+        if (requestTenantId == null || requestTenantId.isBlank()) {
+            return TenantBinding.MISMATCH;
+        }
+        return claimTenantId.toString().equalsIgnoreCase(requestTenantId)
+                ? TenantBinding.VALID : TenantBinding.MISMATCH;
+    }
+
+    /**
      * 浠嶵oken涓彁锟紸MR锛堣璇佹柟娉曞紩鐢級
      */
     @SuppressWarnings("unchecked")
@@ -409,7 +491,8 @@ public class JwtUtils {
     }
 
     private Map<String, Object> buildClaims(UUID userId, String username, Set<String> roles, Set<String> permissions,
-                                            String tokenType, String deviceId, String ipAddress, String jti) {
+                                            String tokenType, String deviceId, String ipAddress, String jti,
+                                            UUID tenantId, String tenantCode) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", userId);
         claims.put("username", username);
@@ -419,6 +502,10 @@ public class JwtUtils {
         claims.put("deviceId", deviceId);
         claims.put("ipAddress", ipAddress);
         claims.put("jti", jti);
+        claims.put(CLAIM_TENANT_ID, tenantId.toString());
+        if (tenantCode != null && !tenantCode.isBlank()) {
+            claims.put(CLAIM_TENANT_CODE, tenantCode);
+        }
 
         return claims;
     }
@@ -572,6 +659,11 @@ public class JwtUtils {
 
         UUID userId = getUserIdFromToken(oldRefreshToken);
         String username = getUsernameFromToken(oldRefreshToken);
+        UUID tenantId = getTenantIdFromToken(oldRefreshToken);
+        if (tenantId == null) {
+            throw new UnauthorizedException("invalid_token_tenant_missing");
+        }
+        String tenantCode = getTenantCodeFromToken(oldRefreshToken);
         String lockKey = REFRESH_LOCK_PREFIX + userId;
 
         try {
@@ -590,8 +682,9 @@ public class JwtUtils {
             revokeUserAccessTokens(userId, deviceId);
 
             // 鐢熸垚鏂扮殑璁块棶浠ょ墝鍜屽埛鏂颁护锟?
-            String newAccessToken = generateAccessToken(userId, username, roles, permissions, deviceId, ipAddress);
-            String newRefreshToken = generateRefreshToken(userId, username, deviceId);
+            String newAccessToken = generateAccessToken(userId, username, roles, permissions, deviceId, ipAddress,
+                    null, tenantId, tenantCode);
+            String newRefreshToken = generateRefreshToken(userId, username, deviceId, tenantId, tenantCode);
 
             return new TokenPair(newAccessToken, newRefreshToken);
         } finally {

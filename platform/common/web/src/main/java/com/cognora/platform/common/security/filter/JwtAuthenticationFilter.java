@@ -56,12 +56,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 // 楠岃瘉 Token
                 if (jwtUtils.validateToken(token, currentIp, currentDeviceId)) {
+                    // Token 必须绑定租户，且与请求头租户一致；旧 Token（无租户声明）统一 401
+                    JwtUtils.TenantBinding tenantBinding =
+                            jwtUtils.validateTenantBinding(token, resolveTenantId(request));
+                    if (tenantBinding == JwtUtils.TenantBinding.CLAIM_MISSING) {
+                        securityMetrics.increment("security.jwt.tenant_missing");
+                        SecurityErrorResponseWriter.write(request, response, HttpServletResponse.SC_UNAUTHORIZED,
+                                "invalid_token_tenant_missing", "Token is missing tenant binding, please sign in again");
+                        return;
+                    }
+                    if (tenantBinding == JwtUtils.TenantBinding.MISMATCH) {
+                        securityMetrics.increment("security.jwt.tenant_mismatch");
+                        SecurityErrorResponseWriter.write(request, response, HttpServletResponse.SC_UNAUTHORIZED,
+                                "invalid_token_tenant_mismatch", "Token tenant does not match request tenant");
+                        return;
+                    }
                     AuthTokenContext.set(token, currentDeviceId);
                     // 鎻愬彇鐢ㄦ埛淇℃伅锛堝緱鐩婁簬ThreadLocal缂撳瓨锛岃繖4娆¤皟鐢ㄥ彧浼氳В鏋怲oken涓€娆★級
                     UUID userId = jwtUtils.getUserIdFromToken(token);
                     String username = jwtUtils.getUsernameFromToken(token);
                     Set<String> permissions = jwtUtils.getPermissionsFromToken(token);
                     Set<String> roles = jwtUtils.getRolesFromToken(token);
+                    UUID tenantId = jwtUtils.getTenantIdFromToken(token);
+                    String tenantCode = jwtUtils.getTenantCodeFromToken(token);
 
                     // 鏋勫缓鏉冮檺鍒楄〃
                     Set<SimpleGrantedAuthority> authorities = permissions.stream()
@@ -78,6 +95,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             .username(username)
                             .permissions(permissions)
                             .roles(roles)
+                            .tenantId(tenantId)
+                            .tenantCode(tenantCode)
                             .build();
 
                     UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
@@ -117,5 +136,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         } finally {
             AuthTokenContext.clear();
         }
+    }
+
+    /**
+     * 与 TenantFilter 相同的租户来源顺序：X-Tenant-Id → Tenant-Id → tenantId 查询参数。
+     */
+    private static String resolveTenantId(HttpServletRequest request) {
+        String tenantId = request.getHeader("X-Tenant-Id");
+        if (!StringUtils.hasText(tenantId)) {
+            tenantId = request.getHeader("Tenant-Id");
+        }
+        if (!StringUtils.hasText(tenantId)) {
+            tenantId = request.getParameter("tenantId");
+        }
+        return tenantId;
     }
 }

@@ -356,6 +356,24 @@ TenantContextHolder.executeInTenantContext(tenantId, () -> {
 });
 ```
 
+### 4.4 JWT 租户绑定（P0-1）
+
+Access Token / Refresh Token 现在都写入 `tenantId`（必填）与 `tenantCode`（可空，用于展示与排障）：
+
+- 签发：`JwtUtils#generateAccessToken(..., UUID tenantId, String tenantCode)`；`tenantId` 为空时直接抛
+  `UnauthorizedException("invalid_token_tenant_missing")`，不存在“无租户 token”。
+- 校验：`JwtAuthenticationFilter` 在验签后调用 `JwtUtils#validateTenantBinding(token, 请求头租户)`：
+  - Token 无 `tenantId` 声明 → 401，响应体 `{"code":401,"error":"invalid_token_tenant_missing",...}`
+    （升级前的旧 token 一律拒绝，不静默降级）；
+  - 请求头缺租户或与 Token 的 `tenantId` 不一致 → 401，`error = invalid_token_tenant_mismatch`。
+- 刷新：`refreshToken` / `refreshTokenWithRotation` 从旧 refresh token 读取租户声明后再签发，旧 refresh token
+  无租户声明时同样 401。
+- 前端收到上述 code 后应清理本地会话并跳转登录页。
+
+> ⚠️ **上线影响**：本变更上线后，所有在部署前签发的 token 都会被判定为
+> `invalid_token_tenant_missing` 并强制重新登录（全站重登）。必须在维护窗口部署，
+> 并在发布说明中注明；无需清理 Redis 中的旧 token（它们已不可用，按 TTL 自然过期）。
+
 ---
 
 ## 5. 数据权限设计

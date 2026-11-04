@@ -14,6 +14,8 @@ import com.cognora.platform.common.dto.user.UserInfo;
 import com.cognora.platform.auth.service.ISysAuthService;
 import com.cognora.platform.common.security.util.TotpUtils;
 import com.cognora.platform.common.redis.script.LuaScriptRegistry;
+import com.cognora.platform.common.tenant.TenantContextHolder;
+import com.cognora.platform.auth.service.TenantClaimResolver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -59,6 +61,7 @@ public class SysAuthServiceImpl implements ISysAuthService {
     private final BusinessMetrics businessMetrics;
     private final TotpUtils totpUtils;
     private final UserDubboService userDubboService;
+    private final TenantClaimResolver tenantClaimResolver;
 
     private static final String LOGIN_ATTEMPTS_PREFIX = "login:attempts:";
     private static final String ACCOUNT_LOCK_PREFIX = "account:lock:";
@@ -143,10 +146,12 @@ public class SysAuthServiceImpl implements ISysAuthService {
             Set<String> permissions = user.getPermissions();
             List<String> amr = Boolean.TRUE.equals(user.getTwoFactorEnabled()) ? List.of("pwd", "mfa") :
                     List.of("pwd");
+            UUID tenantId = TenantContextHolder.getRequiredTenantId();
+            String tenantCode = tenantClaimResolver.resolveTenantCode(tenantId);
             String accessToken = jwtUtils.generateAccessToken(
-                    user.getUserId(), username, roles, permissions, deviceId, ipAddress, amr);
+                    user.getUserId(), username, roles, permissions, deviceId, ipAddress, amr, tenantId, tenantCode);
             String refreshToken = jwtUtils.generateRefreshToken(
-                    user.getUserId(), username, deviceId);
+                    user.getUserId(), username, deviceId, tenantId, tenantCode);
 
             // 6. Clear login attempts
             clearLoginAttempts(username);
