@@ -111,6 +111,10 @@ jobs:
           cache: 'npm'
           cache-dependency-path: scm-web/package-lock.json
 
+      - name: Scan for mojibake artifacts (report only)
+        continue-on-error: true
+        run: node scripts/quality/check-mojibake.mjs
+
       - name: Install frontend dependencies
         working-directory: scm-web
         run: npm ci
