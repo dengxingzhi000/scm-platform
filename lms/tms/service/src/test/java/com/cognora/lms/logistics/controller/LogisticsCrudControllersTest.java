@@ -4,17 +4,21 @@ import com.cognora.lms.logistics.service.ITmsCarrierService;
 import com.cognora.lms.logistics.service.ITmsDeliveryAreaService;
 import com.cognora.lms.logistics.service.ITmsRouteService;
 import com.cognora.lms.logistics.service.ITmsWaybillService;
+import com.cognora.platform.common.security.handler.SecurityRestExceptionHandler;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -95,5 +99,18 @@ class LogisticsCrudControllersTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200));
         verify(waybillService).deleteWaybill("waybill-1");
+    }
+
+    @Test
+    void crossTenantWaybillMutationShouldReturn403() throws Exception {
+        MockMvc mvc = MockMvcBuilders.standaloneSetup(waybillController)
+                .setControllerAdvice(new SecurityRestExceptionHandler())
+                .build();
+        when(waybillService.updateStatus(eq("waybill-1"), eq(4), any()))
+                .thenThrow(new AccessDeniedException("Waybill is not accessible in the current tenant"));
+
+        mvc.perform(put("/api/v1/tms-waybill/waybill-1/status").param("status", "4"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value(403));
     }
 }

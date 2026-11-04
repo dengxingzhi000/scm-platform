@@ -1,24 +1,39 @@
 package com.cognora.lms.logistics.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 import com.cognora.lms.logistics.domain.entity.TmsTracking;
+import com.cognora.lms.logistics.domain.entity.TmsWaybill;
 import com.cognora.lms.logistics.mapper.TmsTrackingMapper;
+import com.cognora.lms.logistics.mapper.TmsWaybillMapper;
 import com.cognora.lms.logistics.service.ITmsTrackingService;
+import com.cognora.lms.logistics.support.TenantGuard;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.UUID;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class TmsTrackingServiceImpl extends ServiceImpl<TmsTrackingMapper, TmsTracking> implements ITmsTrackingService {
+
+    private static final int EVENT_ID_MAX_LENGTH = 128;
+
+    private final TmsWaybillMapper waybillMapper;
 
     @Override
     public List<TmsTracking> listByWaybillId(String waybillId) {
@@ -54,10 +69,32 @@ public class TmsTrackingServiceImpl extends ServiceImpl<TmsTrackingMapper, TmsTr
         return page(new Page<>(page, size), wrapper);
     }
 
+    /**
+     * 写入一条轨迹，重复推送（同一租户、同一 eventId / 同一内容）只落库一次。
+     *
+     * <p>幂等键优先取调用方传入的 eventId；未传时按运单号 + 轨迹状态 + 轨迹时间 +
+     * 位置 + 描述生成 SHA-256 指纹。唯一约束由
+     * {@code uk_tms_tracking_event(tenant_id, event_id)} 兜底，覆盖并发重复回调。</p>
+     */
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public TmsTracking addTracking(TmsTracking tracking) {
-        log.info("娣诲姞鐗╂祦杞ㄨ抗: waybillNo={}, location={}, status={}", (tracking.getWaybillNo() + "").replace("\r", "_").replace("\n", "_"), (tracking.getLocation() + "").replace("\r", "_").replace("\n", "_"), (tracking.getTrackStatus() + "").replace("\r", "_").replace("\n", "_"));
+        TenantGuard.requireTenant();
+
+        String payloadHash = fingerprint(tracking);
+        String eventId = resolveEventId(tracking, payloadHash);
+        tracking.setEventId(eventId);
+        tracking.setPayloadHash(payloadHash);
+
+        TmsTracking existing = findByEventId(eventId);
+        if (existing != null) {
+            log.info("Duplicate tracking callback ignored: waybillNo={}, eventId={}, trackingId={}",
+                    tracking.getWaybillNo(), eventId, existing.getId());
+            return existing;
+        }
+
+        TmsWaybill waybill = requireAccessibleWaybill(tracking);
+        tracking.setWaybillId(waybill.getId());
+        tracking.setWaybillNo(waybill.getWaybillNo());
 
         if (tracking.getId() == null) {
             tracking.setId(UUID.randomUUID().toString());
@@ -69,12 +106,73 @@ public class TmsTrackingServiceImpl extends ServiceImpl<TmsTrackingMapper, TmsTr
             tracking.setCreateTime(LocalDateTime.now());
         }
 
-        boolean success = save(tracking);
-        if (!success) {
-            throw new RuntimeException("娣诲姞鐗╂祦杞ㄨ抗澶辫触");
+        try {
+            if (!save(tracking)) {
+                throw new IllegalStateException("添加物流轨迹失败");
+            }
+        } catch (DuplicateKeyException duplicate) {
+            // 并发下两个回调同时通过前置查询，由唯一索引拦下后回读已落库记录。
+            existing = findByEventId(eventId);
+            if (existing != null) {
+                log.info("Concurrent duplicate tracking callback merged: waybillNo={}, eventId={}, trackingId={}",
+                        tracking.getWaybillNo(), eventId, existing.getId());
+                return existing;
+            }
+            throw duplicate;
         }
 
-        log.info("鐗╂祦杞ㄨ抗娣诲姞鎴愬姛: id={}, waybillNo={}", (tracking.getId() + "").replace("\r", "_").replace("\n", "_"), (tracking.getWaybillNo() + "").replace("\r", "_").replace("\n", "_"));
+        log.info("物流轨迹添加入库: id={}, waybillNo={}, eventId={}", tracking.getId(), tracking.getWaybillNo(), eventId);
         return tracking;
+    }
+
+    private TmsTracking findByEventId(String eventId) {
+        return baseMapper.selectOne(new QueryWrapper<TmsTracking>().eq("event_id", eventId));
+    }
+
+    private TmsWaybill requireAccessibleWaybill(TmsTracking tracking) {
+        TmsWaybill waybill = null;
+        if (StringUtils.hasText(tracking.getWaybillId())) {
+            waybill = waybillMapper.selectById(tracking.getWaybillId());
+        }
+        if (waybill == null && StringUtils.hasText(tracking.getWaybillNo())) {
+            waybill = waybillMapper.selectOne(new QueryWrapper<TmsWaybill>()
+                    .eq("waybill_no", tracking.getWaybillNo())
+                    .eq("deleted", false));
+        }
+        if (waybill == null) {
+            // 不存在与跨租户不可见都按 403 处理，避免向调用方泄露其他租户的运单是否存在。
+            throw new AccessDeniedException("Waybill is not accessible in the current tenant");
+        }
+        return waybill;
+    }
+
+    private String resolveEventId(TmsTracking tracking, String payloadHash) {
+        if (StringUtils.hasText(tracking.getEventId())) {
+            String eventId = tracking.getEventId().trim();
+            if (eventId.length() > EVENT_ID_MAX_LENGTH) {
+                throw new IllegalArgumentException("eventId exceeds " + EVENT_ID_MAX_LENGTH + " characters");
+            }
+            return eventId;
+        }
+        return payloadHash;
+    }
+
+    private String fingerprint(TmsTracking tracking) {
+        String canonical = String.join("|",
+                nullSafe(tracking.getWaybillNo()),
+                nullSafe(tracking.getTrackStatus()),
+                nullSafe(tracking.getTrackTime()),
+                nullSafe(tracking.getLocation()),
+                nullSafe(tracking.getDescription()));
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            return HexFormat.of().formatHex(digest.digest(canonical.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 is not available", e);
+        }
+    }
+
+    private String nullSafe(Object value) {
+        return value == null ? "" : value.toString();
     }
 }

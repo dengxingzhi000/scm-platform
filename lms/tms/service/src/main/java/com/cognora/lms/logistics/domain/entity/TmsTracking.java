@@ -42,6 +42,14 @@ public class TmsTracking implements Serializable {
     @TableField("waybill_no")
     private String waybillNo;
 
+    /** 承运商推送的事件 ID；同一租户下唯一，用于回调幂等。 */
+    @TableField("event_id")
+    private String eventId;
+
+    /** 轨迹内容的 SHA-256 指纹，未传 eventId 时用于生成稳定的幂等键。 */
+    @TableField("payload_hash")
+    private String payloadHash;
+
     @TableField("track_time")
     private LocalDateTime trackTime;
 
