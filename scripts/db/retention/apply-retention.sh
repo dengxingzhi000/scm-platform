@@ -16,11 +16,32 @@ CH_PASSWORD="${CH_PASSWORD:-}"
 
 echo "Applying data retention policies..."
 
-# Audit logs: keep 2 years
+# Audit logs: keep 24 months. Monthly partitions are dropped first (cheap and
+# partition-aware); the DELETE that follows only catches rows that live outside
+# a monthly partition, e.g. in a DEFAULT partition.
 PGPASSWORD="${DB_PASSWORD}" psql -h "${DB_HOST}" -p "${DB_PORT}" -U "${DB_USER}" -d db_audit -c "
+    DO \$\$
+    DECLARE
+        r record;
+        cutoff date := date_trunc('month', NOW()) - INTERVAL '24 months';
+        part_month date;
+    BEGIN
+        FOR r IN
+            SELECT c.relname AS name
+            FROM pg_inherits i
+            JOIN pg_class c ON c.oid = i.inhrelid
+            JOIN pg_class p ON p.oid = i.inhparent
+            WHERE p.relname = 'sys_audit_log'
+        LOOP
+            part_month := to_date(substring(r.name from '(\d{4}_\d{2})\$'), 'YYYY_MM');
+            IF part_month IS NOT NULL AND part_month < cutoff THEN
+                EXECUTE format('DROP TABLE %I', r.name);
+            END IF;
+        END LOOP;
+    END \$\$;
     DELETE FROM sys_audit_log WHERE create_time < NOW() - INTERVAL '2 years';
 "
-echo "  Audit logs: retained 2 years"
+echo "  Audit logs: retained 24 months (old monthly partitions dropped)"
 
 # Login history: keep 1 year
 PGPASSWORD="${DB_PASSWORD}" psql -h "${DB_HOST}" -p "${DB_PORT}" -U "${DB_USER}" -d db_auth -c "
