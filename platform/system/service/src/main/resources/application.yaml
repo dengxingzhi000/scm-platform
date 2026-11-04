@@ -329,6 +329,13 @@ cognora:
       hsts-enabled: true
       hsts-max-age: 31536000
       hsts-include-subdomains: true
+  # 平台级共享表（字典、状态机）不参与租户过滤：它们以 tenant_id=NULL 存储。
+  tenant:
+    exclude-tables:
+      - sys_dict_type
+      - sys_dict_item
+      - sys_status_dict
+      - sys_status_transition
 
 # ========== Logging Configuration ==========
 logging:
@@ -353,15 +360,6 @@ app:
 security:
   permission-checker:
     enabled: true
-
-# 平台级共享表（字典、状态机）不参与租户过滤：它们以 tenant_id=NULL 存储。
-cognora:
-  tenant:
-    exclude-tables:
-      - sys_dict_type
-      - sys_dict_item
-      - sys_status_dict
-      - sys_status_transition
 
 datasync:
   enabled: true
