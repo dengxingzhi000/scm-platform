@@ -274,7 +274,7 @@ WHERE role_id IN (
       AND role_code IN ('ROLE_SUPER_ADMIN', 'ROLE_TENANT_ADMIN', 'ROLE_DEPARTMENT_MANAGER', 'ROLE_OPERATOR')
 );
 
--- 超级管理员 / 租户管理员：全部权限
+-- 超级管理员：全部权限
 INSERT INTO sys_role_permission (id, role_id, permission_id, tenant_id, create_time)
 SELECT uuid_generate_v5(uuid_ns_url(), 'scm:rp:' || r.role_code || ':' || p.permission_code),
        r.id, p.id, r.tenant_id, NOW()
@@ -284,7 +284,23 @@ JOIN sys_permission p
  AND p.status = 1
  AND NOT p.deleted
 WHERE r.tenant_id = '019a0aee-0000-7000-8000-000000000002'
-  AND r.role_code IN ('ROLE_SUPER_ADMIN', 'ROLE_TENANT_ADMIN')
+  AND r.role_code = 'ROLE_SUPER_ADMIN'
+ON CONFLICT (role_id, permission_id) DO NOTHING;
+
+-- 租户管理员：除 tenant:* 平台管理外的全部权限。
+-- 本脚本会先删除再重建角色绑定，如果把 tenant:* 也写上，重跑种子就会把
+-- 007 迁移回收掉的越权授权重新灌回来，因此这里必须显式排除。
+INSERT INTO sys_role_permission (id, role_id, permission_id, tenant_id, create_time)
+SELECT uuid_generate_v5(uuid_ns_url(), 'scm:rp:' || r.role_code || ':' || p.permission_code),
+       r.id, p.id, r.tenant_id, NOW()
+FROM sys_role r
+JOIN sys_permission p
+  ON p.tenant_id = '019a0aee-0000-7000-8000-000000000002'
+ AND p.status = 1
+ AND NOT p.deleted
+WHERE r.tenant_id = '019a0aee-0000-7000-8000-000000000002'
+  AND r.role_code = 'ROLE_TENANT_ADMIN'
+  AND p.permission_code NOT LIKE 'tenant:%'
 ON CONFLICT (role_id, permission_id) DO NOTHING;
 
 -- 部门主管：全部菜单 + 用户/部门查看
