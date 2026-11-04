@@ -68,7 +68,7 @@ clickhouse:
 xxl:
   job:
     admin:
-      addresses: ${XXL_JOB_ADMIN:http://localhost:8088/xxl-job-admin}
+      addresses: ${XXL_JOB_ADMIN:http://localhost:8088/}
     executor:
       appname: ecom-analytics-executor
       address:
@@ -76,7 +76,7 @@ xxl:
       port: ${XXL_JOB_EXECUTOR_PORT:9997}
       logpath: /data/applogs/xxl-job/jobhandler
       logretentiondays: 30
-    accessToken: ${XXL_JOB_TOKEN:default_token}
+    accessToken: ${XXL_JOB_ACCESS_TOKEN:}
 
 management:
   endpoints:

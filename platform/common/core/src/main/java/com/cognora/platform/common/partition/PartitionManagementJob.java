@@ -16,13 +16,17 @@ import java.util.List;
 /**
  * 分区表管理定时任务
  *
- * <p>执行时间：每月1日 01:00（cron: 0 1 1 * ?）
+ * <p>执行时间：建议每日 02:00（cron: 0 0 2 * * ?），由 XXL-Job 调度。
  *
  * <p>功能：
  * <ol>
- *   <li>预创建下月分区表（避免月末插入失败）</li>
+ *   <li>幂等补建「当月 + 未来 3 个月」分区（避免月末/跨月插入失败）</li>
  *   <li>清理过期分区（保留最近24个月，DETACH 归档）</li>
  * </ol>
+ *
+ * <p>只处理当前数据源中真实存在的父表：同一 handler 在不同服务的执行器上
+ * 运行时，会各自管理本库的分区（例如 scm-order 管 db_order，
+ * scm-audit 管 db_audit.sys_audit_log）。</p>
  *
  * <p>支持的分区表：ord_order, ord_payment, ord_refund, inv_reservation,
  * inv_log, inv_batch_flow, sup_purchase_order, tenant_operation_log, payment_record
@@ -71,10 +75,14 @@ public class PartitionManagementJob {
         try {
             log.info("Starting partition management task");
 
-            // 1. Create new partition for next month
-            YearMonth nextMonth = YearMonth.now().plusMonths(1);
-            int createdCount = createPartitionsForMonth(nextMonth);
-            results.add(String.format("Created next month partitions: %d", createdCount));
+            // 1. 幂等补建当月 + 未来 3 个月分区
+            int createdCount = 0;
+            YearMonth currentMonth = YearMonth.now();
+            for (int offset = 0; offset <= 3; offset++) {
+                createdCount += createPartitionsForMonth(currentMonth.plusMonths(offset));
+            }
+            results.add(String.format("Created partitions for %s..%s: %d",
+                currentMonth, currentMonth.plusMonths(3), createdCount));
 
             // 2. Clean up expired partitions
             YearMonth cutoffMonth = YearMonth.now().minusMonths(RETENTION_MONTHS);
@@ -105,6 +113,10 @@ public class PartitionManagementJob {
         LocalDate endDate = yearMonth.atEndOfMonth().plusDays(1);
 
         for (PartitionTable table : PARTITION_TABLES) {
+            if (!parentTableExists(table.tableName())) {
+                log.debug("Skip partition creation, parent table not in this database: {}", table.tableName());
+                continue;
+            }
             String partitionSuffix = yearMonth.format(DateTimeFormatter.ofPattern(table.suffixPattern()));
             try {
                 String partitionName = table.tableName + "_" + partitionSuffix;
@@ -122,6 +134,15 @@ public class PartitionManagementJob {
         }
 
         return count;
+    }
+
+    /**
+     * 当前数据源是否包含该父表（分区表在 information_schema 中仍是普通表）。
+     */
+    private boolean parentTableExists(String tableName) {
+        Boolean exists = jdbcTemplate.queryForObject(
+            "SELECT to_regclass(?) IS NOT NULL", Boolean.class, "public." + tableName);
+        return Boolean.TRUE.equals(exists);
     }
 
     /**

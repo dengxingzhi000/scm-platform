@@ -145,7 +145,7 @@ management:
 xxl:
   job:
     admin:
-      addresses: ${XXL_JOB_ADMIN:http://localhost:8088/xxl-job-admin}
+      addresses: ${XXL_JOB_ADMIN:http://localhost:8088/}
     executor:
       appname: scm-supplier-executor
       address:

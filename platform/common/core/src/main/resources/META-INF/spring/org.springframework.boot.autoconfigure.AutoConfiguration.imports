@@ -1,2 +1,3 @@
 com.cognora.platform.common.tenant.AsyncTenantAutoConfiguration
 com.cognora.platform.common.tenant.TenantMybatisAutoConfiguration
+com.cognora.platform.common.xxl.XxlJobAutoConfiguration

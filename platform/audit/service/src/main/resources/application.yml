@@ -107,6 +107,21 @@ seata:
     log:
       exceptionRate: 100
 
+# XXL-Job executor (shared boot from platform-common-core, enabled only when
+# xxl.job.admin.addresses is configured). 3.5.0 admin is served at the root path.
+xxl:
+  job:
+    admin:
+      addresses: ${XXL_JOB_ADMIN:http://localhost:8088/}
+    accessToken: ${XXL_JOB_ACCESS_TOKEN:}
+    executor:
+      appname: scm-audit
+      address:
+      ip:
+      port: ${XXL_JOB_EXECUTOR_PORT:9988}
+      logpath: ${XXL_JOB_LOG_PATH:/data/applogs/xxl-job/jobhandler}
+      logretentiondays: 30
+
 management:
   endpoints:
     web:
