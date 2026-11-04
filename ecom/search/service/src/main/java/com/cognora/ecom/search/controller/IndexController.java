@@ -2,6 +2,7 @@ package com.cognora.ecom.search.controller;
 
 import com.cognora.ecom.search.domain.ProductDocument;
 import com.cognora.ecom.search.service.IProductIndexService;
+import com.cognora.ecom.search.tenant.SearchTenantResolver;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -24,6 +25,7 @@ import java.util.List;
 public class IndexController {
 
     private final IProductIndexService indexService;
+    private final SearchTenantResolver tenantResolver;
 
     @Operation(summary = "批量索引商品", description = "将一批商品文档批量写入搜索索引并返回成功条数。")
     @PostMapping("/products")
@@ -35,14 +37,15 @@ public class IndexController {
     @Operation(summary = "全量重建索引", description = "重新构建全部商品的搜索索引并返回索引商品数量。")
     @PostMapping("/reindex")
     public int reindexAll() {
-        log.info("[API] Reindex all products");
-        return indexService.reindexAll();
+        String tenantId = tenantResolver.resolveTenantIdString();
+        log.info("[API] Reindex all products for tenant {}", tenantId);
+        return indexService.reindexAll(tenantId);
     }
 
     @Operation(summary = "删除商品索引", description = "根据商品 ID 从搜索索引中删除对应商品文档。")
     @DeleteMapping("/products/{productId}")
     public boolean deleteProduct(@Parameter(description = "商品ID") @PathVariable Long productId) {
-        indexService.deleteProduct(productId);
+        indexService.deleteProduct(tenantResolver.resolveTenantIdString(), productId);
         return true;
     }
 }

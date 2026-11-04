@@ -8,7 +8,7 @@ public interface IProductIndexService {
 
     int bulkIndex(List<ProductDocument> documents);
 
-    int reindexAll();
+    int reindexAll(String tenantId);
 
-    void deleteProduct(Long productId);
+    void deleteProduct(String tenantId, Long productId);
 }

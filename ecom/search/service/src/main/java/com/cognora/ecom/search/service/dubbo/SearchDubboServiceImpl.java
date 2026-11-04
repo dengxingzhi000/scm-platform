@@ -5,11 +5,13 @@ import com.cognora.ecom.search.api.dto.ProductSearchItem;
 import com.cognora.ecom.search.domain.ProductDocument;
 import com.cognora.ecom.search.service.IProductIndexService;
 import com.cognora.ecom.search.service.IProductSearchService;
+import com.cognora.platform.common.tenant.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboService;
 
 import java.util.List;
+import java.util.UUID;
 
 @Slf4j
 @DubboService
@@ -21,8 +23,11 @@ public class SearchDubboServiceImpl implements SearchDubboService {
 
     @Override
     public List<ProductSearchItem> searchProducts(String keyword, Long categoryId, Long brandId,
-                                                  int page, int size) {
-        return productSearchService.searchProducts(keyword, categoryId, brandId, page, size).stream()
+                                                  int page, int size, String tenantId) {
+        UUID tenant = requireTenant(tenantId);
+        return TenantContextHolder.executeInTenantContext(tenant,
+                        () -> productSearchService.searchProducts(keyword, categoryId, brandId, page, size))
+                .stream()
                 .map(this::toItem)
                 .toList();
     }
@@ -32,22 +37,44 @@ public class SearchDubboServiceImpl implements SearchDubboService {
         if (item == null) {
             throw new IllegalArgumentException("Product search item must not be null");
         }
-        productSearchService.indexProduct(toDocument(item));
+        UUID tenant = requireTenant(item.getTenantId());
+        TenantContextHolder.executeInTenantContext(tenant, () -> {
+            productSearchService.indexProduct(toDocument(item));
+            return null;
+        });
     }
 
     @Override
-    public void removeProduct(Long productId) {
-        productIndexService.deleteProduct(productId);
+    public void removeProduct(Long productId, String tenantId) {
+        UUID tenant = requireTenant(tenantId);
+        TenantContextHolder.executeInTenantContext(tenant, () -> {
+            productIndexService.deleteProduct(tenantId, productId);
+            return null;
+        });
     }
 
     @Override
-    public int reindexAll() {
-        return productIndexService.reindexAll();
+    public int reindexAll(String tenantId) {
+        UUID tenant = requireTenant(tenantId);
+        return TenantContextHolder.executeInTenantContext(tenant,
+                () -> productIndexService.reindexAll(tenantId));
+    }
+
+    static UUID requireTenant(String tenantId) {
+        if (tenantId == null || tenantId.isBlank()) {
+            throw new IllegalArgumentException("tenantId is required for search operations");
+        }
+        try {
+            return UUID.fromString(tenantId);
+        } catch (IllegalArgumentException exception) {
+            throw new IllegalArgumentException("tenantId must be a UUID", exception);
+        }
     }
 
     private ProductDocument toDocument(ProductSearchItem item) {
         ProductDocument document = new ProductDocument();
         document.setId(item.getId());
+        document.setTenantId(item.getTenantId());
         document.setProductId(item.getProductId());
         document.setSellerId(item.getSellerId());
         document.setTitle(item.getTitle());
@@ -69,6 +96,7 @@ public class SearchDubboServiceImpl implements SearchDubboService {
     private ProductSearchItem toItem(ProductDocument document) {
         ProductSearchItem item = new ProductSearchItem();
         item.setId(document.getId());
+        item.setTenantId(document.getTenantId());
         item.setProductId(document.getProductId());
         item.setSellerId(document.getSellerId());
         item.setTitle(document.getTitle());
