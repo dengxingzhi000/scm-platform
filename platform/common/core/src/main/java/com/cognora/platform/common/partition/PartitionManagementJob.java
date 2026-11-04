@@ -26,6 +26,8 @@ import java.util.List;
  *
  * <p>支持的分区表：ord_order, ord_payment, ord_refund, inv_reservation,
  * inv_log, inv_batch_flow, sup_purchase_order, tenant_operation_log, payment_record
+ * （<code>&lt;table&gt;_yyyyMM</code>），以及 db_audit.sys_audit_log
+ * （<code>&lt;table&gt;_yyyy_MM</code>，命名沿用 005_db_audit.sql）。
  *
  * @author Claude Code
  * @since 2025-01-24
@@ -41,15 +43,16 @@ public class PartitionManagementJob {
      * Partition tables to manage
      */
     private static final List<PartitionTable> PARTITION_TABLES = List.of(
-        new PartitionTable("ord_order"),
-        new PartitionTable("ord_payment"),
-        new PartitionTable("ord_refund"),
-        new PartitionTable("inv_reservation"),
-        new PartitionTable("inv_log"),
-        new PartitionTable("inv_batch_flow"),
-        new PartitionTable("sup_purchase_order"),
-        new PartitionTable("tenant_operation_log"),
-        new PartitionTable("payment_record")
+        new PartitionTable("ord_order", "yyyyMM"),
+        new PartitionTable("ord_payment", "yyyyMM"),
+        new PartitionTable("ord_refund", "yyyyMM"),
+        new PartitionTable("inv_reservation", "yyyyMM"),
+        new PartitionTable("inv_log", "yyyyMM"),
+        new PartitionTable("inv_batch_flow", "yyyyMM"),
+        new PartitionTable("sup_purchase_order", "yyyyMM"),
+        new PartitionTable("tenant_operation_log", "yyyyMM"),
+        new PartitionTable("payment_record", "yyyyMM"),
+        new PartitionTable("sys_audit_log", "yyyy_MM")
     );
 
     /**
@@ -98,11 +101,11 @@ public class PartitionManagementJob {
      */
     private int createPartitionsForMonth(YearMonth yearMonth) {
         int count = 0;
-        String partitionSuffix = yearMonth.format(DateTimeFormatter.ofPattern("yyyyMM"));
         LocalDate startDate = yearMonth.atDay(1);
         LocalDate endDate = yearMonth.atEndOfMonth().plusDays(1);
 
         for (PartitionTable table : PARTITION_TABLES) {
+            String partitionSuffix = yearMonth.format(DateTimeFormatter.ofPattern(table.suffixPattern()));
             try {
                 String partitionName = table.tableName + "_" + partitionSuffix;
                 String createSql = String.format(
@@ -146,7 +149,8 @@ public class PartitionManagementJob {
                     // Extract year-month from partition name (e.g. ord_order_202401 -> 202401)
                     String suffix = partition.substring(table.tableName.length() + 1);
                     try {
-                        YearMonth partitionMonth = YearMonth.parse(suffix, DateTimeFormatter.ofPattern("yyyyMM"));
+                        YearMonth partitionMonth = YearMonth.parse(
+                            suffix, DateTimeFormatter.ofPattern(table.suffixPattern()));
 
                         if (partitionMonth.isBefore(cutoffMonth)) {
                             // DETACH partition (do not delete data, only detach from parent table)
@@ -172,6 +176,6 @@ public class PartitionManagementJob {
         return count;
     }
 
-    private record PartitionTable(String tableName) {
+    private record PartitionTable(String tableName, String suffixPattern) {
     }
 }

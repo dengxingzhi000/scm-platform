@@ -280,7 +280,7 @@ DROP TABLE IF EXISTS sys_audit_log_2024_06;
 ### 数据清理建议
 | 数据库 | 表 | 保留策略 |
 |--------|-----|----------|
-| db_audit | sys_audit_log | 保留 12 个月，之后归档到冷存储 |
+| db_audit | sys_audit_log | 保留 24 个月（按月分区，过期分区整表 DROP） |
 | db_audit | sys_sensitive_operation_log | 保留 36 个月（合规要求）|
 | db_notify | sys_notification_audit | 保留 6 个月 |
 | db_order | ord_status_history | 保留 12 个月 |

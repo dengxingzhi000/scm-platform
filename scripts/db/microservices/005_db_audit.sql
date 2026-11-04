@@ -157,29 +157,27 @@ COMMENT ON COLUMN sys_sensitive_operation_log.risk_score IS '风险评分:1-10';
 CREATE OR REPLACE FUNCTION create_audit_log_partition()
 RETURNS VOID AS $$
 DECLARE
-    next_month DATE;
+    month_start DATE;
     partition_name TEXT;
-    start_date DATE;
-    end_date DATE;
+    offset_months INT;
 BEGIN
-    next_month := DATE_TRUNC('month', NOW()) + INTERVAL '1 month';
-    partition_name := 'sys_audit_log_' || TO_CHAR(next_month, 'YYYY_MM');
-    start_date := next_month;
-    end_date := next_month + INTERVAL '1 month';
+    -- Ensure the current month plus the next three, so a fresh install and a
+    -- running instance both always have a partition for incoming rows.
+    FOR offset_months IN 0..3 LOOP
+        month_start := DATE_TRUNC('month', NOW()) + (offset_months || ' month')::INTERVAL;
+        partition_name := 'sys_audit_log_' || TO_CHAR(month_start, 'YYYY_MM');
 
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_class WHERE relname = partition_name
-    ) THEN
         EXECUTE format(
-            'CREATE TABLE %I PARTITION OF sys_audit_log FOR VALUES FROM (%L) TO (%L)',
-            partition_name, start_date, end_date
+            'CREATE TABLE IF NOT EXISTS %I PARTITION OF sys_audit_log FOR VALUES FROM (%L) TO (%L)',
+            partition_name, month_start, month_start + INTERVAL '1 month'
         );
-        RAISE NOTICE 'Created partition: %', partition_name;
-    END IF;
+    END LOOP;
 END;
 $$ LANGUAGE plpgsql;
 
-COMMENT ON FUNCTION create_audit_log_partition() IS '自动创建下月审计日志分区表';
+COMMENT ON FUNCTION create_audit_log_partition() IS '确保当月及未来3个月的审计日志分区存在';
+
+SELECT create_audit_log_partition();
 
 -- ======================================================================
 -- 审计统计视图
