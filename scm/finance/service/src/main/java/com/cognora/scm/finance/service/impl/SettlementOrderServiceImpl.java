@@ -4,8 +4,10 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cognora.platform.common.status.StatusValidator;
+import com.cognora.platform.common.tenant.TenantContextHolder;
 import com.cognora.platform.common.util.UUIDv7Util;
 import com.cognora.scm.finance.domain.entity.SettlementOrder;
+import com.cognora.scm.finance.domain.support.FinanceAmount;
 import com.cognora.scm.finance.mapper.SettlementOrderMapper;
 import com.cognora.scm.finance.service.ISettlementOrderService;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
@@ -34,8 +36,10 @@ public class SettlementOrderServiceImpl extends ServiceImpl<SettlementOrderMappe
         order.setId(UUIDv7Util.generateString());
         order.setSettlementNo(generateSettlementNo());
         order.setStatus(0);
-        order.setPaidAmount(BigDecimal.ZERO);
-        order.setUnpaidAmount(order.getActualAmount());
+        // 租户必须取自登录态，忽略请求体里的 tenantId，否则可以往别的租户写结算单。
+        order.setTenantId(TenantContextHolder.getRequiredTenantId().toString());
+        normalizeAmounts(order);
+        order.setPaidAmount(new BigDecimal("0.00"));
         order.setDeleted(false);
         order.setCreateTime(LocalDateTime.now());
         order.setUpdateTime(LocalDateTime.now());
@@ -76,23 +80,23 @@ public class SettlementOrderServiceImpl extends ServiceImpl<SettlementOrderMappe
     public SettlementOrder recordPayment(String id, BigDecimal amount) {
         log.info("Record settlement payment: id={}, amount={}", (id + "").replace("\r", "_").replace("\n", "_"), (amount + "").replace("\r", "_").replace("\n", "_"));
 
-        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Payment amount must be greater than 0");
-        }
+        BigDecimal payment = FinanceAmount.positive(amount, "付款金额");
 
         SettlementOrder order = getById(id);
         if (order == null || Boolean.TRUE.equals(order.getDeleted())) {
             throw new IllegalArgumentException("缁撶畻鍗曚笉瀛樺湪: " + id);
         }
-        BigDecimal newPaidAmount = order.getPaidAmount().add(amount);
-        if (newPaidAmount.compareTo(order.getActualAmount()) > 0) {
+        BigDecimal paid = FinanceAmount.optionalOrZero(order.getPaidAmount(), "已付金额");
+        BigDecimal payable = FinanceAmount.required(order.getActualAmount(), "应付金额");
+        BigDecimal newPaidAmount = FinanceAmount.normalize(paid.add(payment), "累计已付金额");
+        if (newPaidAmount.compareTo(payable) > 0) {
             throw new IllegalArgumentException(
                     String.format("Payment exceeds payable amount: paid=%s, current=%s, payable=%s",
-                            order.getPaidAmount(), amount, order.getActualAmount()));
+                            order.getPaidAmount(), payment, order.getActualAmount()));
         }
 
         order.setPaidAmount(newPaidAmount);
-        order.setUnpaidAmount(order.getActualAmount().subtract(newPaidAmount));
+        order.setUnpaidAmount(FinanceAmount.normalize(payable.subtract(newPaidAmount), "未付金额"));
         order.setUpdateTime(LocalDateTime.now());
 
         String targetStatus = order.getUnpaidAmount().compareTo(BigDecimal.ZERO) == 0 ? "FULLY_PAID" : "PARTIAL_PAID";
@@ -111,12 +115,53 @@ public class SettlementOrderServiceImpl extends ServiceImpl<SettlementOrderMappe
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public SettlementOrder updateSettlement(String id, SettlementOrder order) {
-        order.setId(id);
-        order.setUpdateTime(LocalDateTime.now());
-        updateById(order);
+        log.info("Update settlement order: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
+
+        SettlementOrder existing = getById(id);
+        if (existing == null || Boolean.TRUE.equals(existing.getDeleted())) {
+            throw new IllegalArgumentException("结算单不存在: " + id);
+        }
+
+        // 金额、状态、租户与逻辑删除标记由服务端维护，请求体一律不得改写。
+        rejectIfChanged("状态", existing.getStatus(), order.getStatus());
+        rejectIfChanged("结算总金额", existing.getTotalAmount(), order.getTotalAmount());
+        rejectIfChanged("折扣金额", existing.getDiscountAmount(), order.getDiscountAmount());
+        rejectIfChanged("调整金额", existing.getAdjustmentAmount(), order.getAdjustmentAmount());
+        rejectIfChanged("应付金额", existing.getActualAmount(), order.getActualAmount());
+        rejectIfChanged("已付金额", existing.getPaidAmount(), order.getPaidAmount());
+        rejectIfChanged("未付金额", existing.getUnpaidAmount(), order.getUnpaidAmount());
+        rejectIfChanged("结算单号", existing.getSettlementNo(), order.getSettlementNo());
+        rejectIfChanged("租户", existing.getTenantId(), order.getTenantId());
+        rejectIfChanged("删除标记", existing.getDeleted(), order.getDeleted());
+
+        boolean hasBusinessChanges = order.getSettlementType() != null
+                || order.getPartnerType() != null
+                || order.getPartnerId() != null
+                || order.getPartnerName() != null
+                || order.getSettlementPeriod() != null
+                || order.getStartDate() != null
+                || order.getEndDate() != null;
+        if (existing.getStatus() != 0 && hasBusinessChanges) {
+            throw new IllegalStateException("结算单已确认，仅允许修改备注与附件: " + id);
+        }
+        if (existing.getStatus() == 0) {
+            if (order.getSettlementType() != null) existing.setSettlementType(order.getSettlementType());
+            if (order.getPartnerType() != null) existing.setPartnerType(order.getPartnerType());
+            if (order.getPartnerId() != null) existing.setPartnerId(order.getPartnerId());
+            if (order.getPartnerName() != null) existing.setPartnerName(order.getPartnerName());
+            if (order.getSettlementPeriod() != null) existing.setSettlementPeriod(order.getSettlementPeriod());
+            if (order.getStartDate() != null) existing.setStartDate(order.getStartDate());
+            if (order.getEndDate() != null) existing.setEndDate(order.getEndDate());
+        }
+        if (order.getRemark() != null) existing.setRemark(order.getRemark());
+        if (order.getAttachments() != null) existing.setAttachments(order.getAttachments());
+
+        existing.setUpdateTime(LocalDateTime.now());
+        updateById(existing);
         log.info("Settlement order updated successfully: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
-        return order;
+        return existing;
     }
 
     @Override
@@ -144,6 +189,43 @@ public class SettlementOrderServiceImpl extends ServiceImpl<SettlementOrderMappe
 
     private String generateSettlementNo() {
         return "STL" + System.currentTimeMillis();
+    }
+
+    /**
+     * 创建时把金额统一到两位小数，并校验「应付 = 总额 - 折扣 + 调整」。
+     */
+    private void normalizeAmounts(SettlementOrder order) {
+        BigDecimal total = FinanceAmount.required(order.getTotalAmount(), "结算总金额");
+        BigDecimal discount = FinanceAmount.optionalOrZero(order.getDiscountAmount(), "折扣金额");
+        BigDecimal adjustment = order.getAdjustmentAmount() == null
+                ? new BigDecimal("0.00")
+                : FinanceAmount.signed(order.getAdjustmentAmount(), "调整金额");
+        BigDecimal expected = FinanceAmount.normalize(total.subtract(discount).add(adjustment), "应付金额");
+        if (expected.signum() < 0) {
+            throw new IllegalArgumentException("应付金额不能为负数: " + expected.toPlainString());
+        }
+        BigDecimal actual = FinanceAmount.optional(order.getActualAmount(), "应付金额");
+        if (actual == null) {
+            actual = expected;
+        } else if (actual.compareTo(expected) != 0) {
+            throw new IllegalArgumentException(
+                    String.format("应付金额与结算金额不一致: actual=%s, total-discount+adjustment=%s",
+                            actual.toPlainString(), expected.toPlainString()));
+        }
+        order.setTotalAmount(total);
+        order.setDiscountAmount(discount);
+        order.setAdjustmentAmount(adjustment);
+        order.setActualAmount(actual);
+        order.setUnpaidAmount(actual);
+    }
+
+    private void rejectIfChanged(String field, Object current, Object requested) {
+        if (requested == null || current == null) {
+            return;
+        }
+        if (!current.equals(requested)) {
+            throw new IllegalArgumentException(field + "由服务端维护，不允许通过更新接口修改");
+        }
     }
 
     private String resolveSettlementStatusName(int status) {

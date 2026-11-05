@@ -3,6 +3,7 @@ package com.cognora.scm.finance.service;
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.cognora.platform.common.tenant.TenantContextHolder;
 import com.cognora.scm.finance.domain.dto.CreateInvoiceRequest;
 import com.cognora.scm.finance.domain.dto.UpdateInvoiceRequest;
 import com.cognora.scm.finance.domain.entity.Invoice;
@@ -10,6 +11,7 @@ import com.cognora.scm.finance.domain.enums.InvoiceStatus;
 import com.cognora.scm.finance.mapper.InvoiceMapper;
 import com.cognora.scm.finance.service.impl.InvoiceServiceImpl;
 import org.apache.ibatis.builder.MapperBuilderAssistant;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,6 +22,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -36,6 +39,8 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class InvoiceServiceTest {
 
+    private static final UUID TENANT = UUID.fromString("019a0aee-0000-7000-8000-000000000002");
+
     @Mock
     private InvoiceMapper invoiceMapper;
 
@@ -49,6 +54,12 @@ class InvoiceServiceTest {
         // MyBatis-Plus ServiceImpl 的 baseMapper 位于父类 CrudRepository，
         // Mockito @InjectMocks 不会注入该字段，因此按仓库既有模式显式挂载。
         ReflectionTestUtils.setField(invoiceService, "baseMapper", invoiceMapper);
+        TenantContextHolder.setTenantId(TENANT);
+    }
+
+    @AfterEach
+    void tearDown() {
+        TenantContextHolder.clear();
     }
 
     @Test
@@ -72,11 +83,72 @@ class InvoiceServiceTest {
         assertEquals("party-1", result.getPartyId());
         assertEquals("Acme", result.getPartyName());
         assertEquals(new BigDecimal("100.00"), result.getAmount());
+        assertEquals(new BigDecimal("100.00"), result.getTotalAmount());
+        assertEquals(TENANT.toString(), result.getTenantId());
         assertEquals(InvoiceStatus.DRAFT.getCode(), result.getStatus());
         assertFalse(result.getDeleted());
         assertNotNull(result.getCreateTime());
         assertNotNull(result.getUpdateTime());
         verify(invoiceMapper).insert(result);
+    }
+
+    @Test
+    void createShouldComputeTaxInclusiveTotal() {
+        CreateInvoiceRequest request = new CreateInvoiceRequest();
+        request.setInvoiceNo("INV-2026-002");
+        request.setInvoiceType(1);
+        request.setInvoiceKind(1);
+        request.setPartyId("party-1");
+        request.setAmount(new BigDecimal("100.00"));
+        request.setTaxAmount(new BigDecimal("13.00"));
+        request.setTaxRate(new BigDecimal("0.13"));
+        when(invoiceMapper.insert(any(Invoice.class))).thenReturn(1);
+
+        Invoice result = invoiceService.create(request);
+
+        assertEquals("100.00", result.getAmount().toPlainString());
+        assertEquals("13.00", result.getTaxAmount().toPlainString());
+        assertEquals("113.00", result.getTotalAmount().toPlainString());
+        assertEquals("0.1300", result.getTaxRate().toPlainString());
+    }
+
+    @Test
+    void createShouldRejectAmountWithThreeDecimals() {
+        CreateInvoiceRequest request = new CreateInvoiceRequest();
+        request.setInvoiceNo("INV-2026-003");
+        request.setInvoiceType(1);
+        request.setInvoiceKind(1);
+        request.setPartyId("party-1");
+        request.setAmount(new BigDecimal("100.005"));
+
+        assertThrows(IllegalArgumentException.class, () -> invoiceService.create(request));
+        verify(invoiceMapper, never()).insert(any(Invoice.class));
+    }
+
+    @Test
+    void createShouldRejectTaxRateOutOfRange() {
+        CreateInvoiceRequest request = new CreateInvoiceRequest();
+        request.setInvoiceNo("INV-2026-004");
+        request.setInvoiceType(1);
+        request.setInvoiceKind(1);
+        request.setPartyId("party-1");
+        request.setAmount(new BigDecimal("100.00"));
+        request.setTaxRate(new BigDecimal("1.5"));
+
+        assertThrows(IllegalArgumentException.class, () -> invoiceService.create(request));
+        verify(invoiceMapper, never()).insert(any(Invoice.class));
+    }
+
+    @Test
+    void updateShouldRejectIssuedInvoice() {
+        Invoice existing = invoice("invoice-1", InvoiceStatus.ISSUED);
+        when(invoiceMapper.selectById("invoice-1")).thenReturn(existing);
+
+        UpdateInvoiceRequest request = new UpdateInvoiceRequest();
+        request.setAmount(new BigDecimal("120.00"));
+
+        assertThrows(IllegalStateException.class, () -> invoiceService.update("invoice-1", request));
+        verify(invoiceMapper, never()).updateById(any(Invoice.class));
     }
 
     @Test
