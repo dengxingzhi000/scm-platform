@@ -85,6 +85,7 @@ class InvoiceServiceTest {
         assertEquals(new BigDecimal("100.00"), result.getAmount());
         assertEquals(new BigDecimal("100.00"), result.getTotalAmount());
         assertEquals(TENANT.toString(), result.getTenantId());
+        assertEquals("CNY", result.getCurrency());
         assertEquals(InvoiceStatus.DRAFT.getCode(), result.getStatus());
         assertFalse(result.getDeleted());
         assertNotNull(result.getCreateTime());

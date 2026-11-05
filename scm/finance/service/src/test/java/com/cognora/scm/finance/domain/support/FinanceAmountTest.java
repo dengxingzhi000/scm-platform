@@ -87,4 +87,20 @@ class FinanceAmountTest {
         assertThrows(IllegalArgumentException.class,
                 () -> FinanceAmount.rate(new BigDecimal("0.12345"), "税率"));
     }
+
+    @Test
+    void currencyDefaultsToCny() {
+        assertEquals("CNY", FinanceAmount.currency(null));
+        assertEquals("CNY", FinanceAmount.currency("  "));
+    }
+
+    @Test
+    void currencyIsNormalizedToUpperCase() {
+        assertEquals("USD", FinanceAmount.currency("usd"));
+    }
+
+    @Test
+    void currencyRejectsNonIsoCode() {
+        assertThrows(IllegalArgumentException.class, () -> FinanceAmount.currency("RMB1"));
+    }
 }

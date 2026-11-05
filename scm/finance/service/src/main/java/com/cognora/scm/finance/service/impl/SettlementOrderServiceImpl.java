@@ -38,6 +38,7 @@ public class SettlementOrderServiceImpl extends ServiceImpl<SettlementOrderMappe
         order.setStatus(0);
         // 租户必须取自登录态，忽略请求体里的 tenantId，否则可以往别的租户写结算单。
         order.setTenantId(TenantContextHolder.getRequiredTenantId().toString());
+        order.setCurrency(FinanceAmount.currency(order.getCurrency()));
         normalizeAmounts(order);
         order.setPaidAmount(new BigDecimal("0.00"));
         order.setDeleted(false);

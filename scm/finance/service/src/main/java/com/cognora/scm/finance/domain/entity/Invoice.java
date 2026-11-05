@@ -113,4 +113,6 @@ public class Invoice {
 
     @TableField("remark")
     private String remark;
+    /** ISO-4217 币种，默认 CNY；本期只做校验与落库，不做汇率换算。 */
+    private String currency;
 }
