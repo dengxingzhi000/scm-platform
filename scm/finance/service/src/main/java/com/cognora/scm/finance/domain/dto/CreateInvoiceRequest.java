@@ -42,4 +42,7 @@ public class CreateInvoiceRequest {
     private String settlementId;
 
     private String remark;
+
+    /** ISO-4217 币种，为空按 CNY。 */
+    private String currency;
 }

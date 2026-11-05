@@ -112,6 +112,21 @@ public final class FinanceAmount {
     }
 
     /**
+     * ISO-4217 币种：空值按 CNY，非三位字母直接拒绝。本期不做汇率换算，
+     * 只保证同一单据上的币种可识别、不会被静默当成人民币。
+     */
+    public static String currency(String value) {
+        if (value == null || value.isBlank()) {
+            return "CNY";
+        }
+        String normalized = value.trim().toUpperCase(java.util.Locale.ROOT);
+        if (!normalized.matches("^[A-Z]{3}$")) {
+            throw new IllegalArgumentException("币种必须为 ISO-4217 三位字母: " + value);
+        }
+        return normalized;
+    }
+
+    /**
      * 有效小数位：{@code 1.500} 视为两位，避免因尾随零误拒。
      */
     private static int scaleOf(BigDecimal value) {

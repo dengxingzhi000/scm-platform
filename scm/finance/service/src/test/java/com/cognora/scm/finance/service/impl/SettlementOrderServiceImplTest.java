@@ -67,6 +67,7 @@ class SettlementOrderServiceImplTest {
         assertEquals("0.00", created.getPaidAmount().toPlainString());
         assertEquals("85.00", created.getUnpaidAmount().toPlainString());
         assertEquals(0, created.getStatus());
+        assertEquals("CNY", created.getCurrency());
         assertFalse(created.getDeleted());
         verify(mapper).insert(created);
     }

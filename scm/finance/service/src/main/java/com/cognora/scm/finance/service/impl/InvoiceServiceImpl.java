@@ -43,6 +43,7 @@ public class InvoiceServiceImpl extends ServiceImpl<InvoiceMapper, Invoice> impl
         invoice.setInvoiceNumber(request.getInvoiceNumber());
         // 租户必须取自登录态，忽略请求体里的 tenantId。
         invoice.setTenantId(TenantContextHolder.getRequiredTenantId().toString());
+        invoice.setCurrency(FinanceAmount.currency(request.getCurrency()));
         applyAmounts(invoice, request.getAmount(), request.getTaxAmount(), request.getTaxRate());
         invoice.setRelatedOrders(request.getRelatedOrders());
         invoice.setSettlementId(request.getSettlementId());
