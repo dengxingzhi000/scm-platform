@@ -56,6 +56,8 @@ class InvInventoryCommandServiceOutboxTest {
         existing.setSafetyStock(10);
 
         when(inventoryMapper.selectOne(any())).thenReturn(existing);
+        when(inventoryMapper.applyAdjustment(anyString(), eq(10), eq(1), anyString())).thenReturn(1);
+        when(inventoryMapper.selectById(anyString())).thenReturn(existing);
 
         InventoryAdjustRequest request = new InventoryAdjustRequest();
         request.setSkuId("SKU-1");
@@ -89,6 +91,8 @@ class InvInventoryCommandServiceOutboxTest {
         existing.setSafetyStock(10);
 
         when(inventoryMapper.selectOne(any())).thenReturn(existing);
+        when(inventoryMapper.applyAdjustment(anyString(), eq(5), eq(1), anyString())).thenReturn(1);
+        when(inventoryMapper.selectById(anyString())).thenReturn(existing);
         doThrow(new RuntimeException("outbox save failed"))
                 .when(outboxService).save(anyString(), anyString(), anyString(), any(), any());
 
