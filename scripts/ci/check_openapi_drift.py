@@ -4,8 +4,11 @@
 用法：python3 scripts/ci/check_openapi_drift.py
 退出码：0 一致；1 存在漂移（快照缺 handler 或 handler 未入快照）。
 
-校验范围：lms-tms 服务 controller 的 @RequestMapping/@GetMapping/... 映射，
-与 docs/api/openapi-scm-logistics.json 中记录的路径 + HTTP 方法。
+校验范围（按服务逐项比较 controller 的 @RequestMapping/@GetMapping/... 映射
+与对应快照里的路径 + HTTP 方法）：
+  * lms-tms       -> docs/api/openapi-scm-logistics.json
+  * scm-inventory -> docs/api/openapi-scm-inventory.json
+
 仅使用标准库，CI 直接可跑。
 """
 import json
@@ -14,8 +17,19 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-SNAPSHOT = ROOT / "docs/api/openapi-scm-logistics.json"
-CONTROLLER_DIR = ROOT / "lms/tms/service/src/main/java/com/cognora/lms/logistics/controller"
+
+TARGETS = (
+    (
+        "lms-tms",
+        ROOT / "lms/tms/service/src/main/java/com/cognora/lms/logistics/controller",
+        ROOT / "docs/api/openapi-scm-logistics.json",
+    ),
+    (
+        "scm-inventory",
+        ROOT / "platform/inventory/service/src/main/java/com/cognora/platform/inventory/controller",
+        ROOT / "docs/api/openapi-scm-inventory.json",
+    ),
+)
 
 HTTP_METHODS = ("get", "post", "put", "delete", "patch", "head", "options")
 
@@ -37,11 +51,11 @@ def join_paths(base: str, sub: str) -> str:
     return normalize(base.rstrip("/") + "/" + sub.lstrip("/"))
 
 
-def scan_code_mappings():
+def scan_code_mappings(controller_dir: Path):
     mappings = set()
-    if not CONTROLLER_DIR.is_dir():
+    if not controller_dir.is_dir():
         return mappings
-    for java_file in sorted(CONTROLLER_DIR.glob("*.java")):
+    for java_file in sorted(controller_dir.glob("*.java")):
         text = java_file.read_text(encoding="utf-8")
         base_match = CLASS_BASE_RE.search(text)
         base = base_match.group(1) if base_match else ""
@@ -56,8 +70,8 @@ def scan_code_mappings():
     return mappings
 
 
-def scan_snapshot_mappings():
-    data = json.loads(SNAPSHOT.read_text(encoding="utf-8"))
+def scan_snapshot_mappings(snapshot: Path):
+    data = json.loads(snapshot.read_text(encoding="utf-8"))
     mappings = set()
     for path, item in data.get("paths", {}).items():
         for method in item:
@@ -66,23 +80,32 @@ def scan_snapshot_mappings():
     return mappings
 
 
-def main() -> int:
-    code = scan_code_mappings()
-    snapshot = scan_snapshot_mappings()
+def check_target(name: str, controller_dir: Path, snapshot: Path) -> bool:
+    code = scan_code_mappings(controller_dir)
+    snapshot_mappings = scan_snapshot_mappings(snapshot)
 
-    added = sorted(code - snapshot)
-    missing = sorted(snapshot - code)
+    added = sorted(code - snapshot_mappings)
+    missing = sorted(snapshot_mappings - code)
 
-    print(f"OpenAPI drift check: snapshot={len(snapshot)} mappings, code={len(code)} mappings")
-    print(f"added (code has, snapshot missing): {len(added)}")
+    print(f"[{name}] snapshot={len(snapshot_mappings)} mappings, code={len(code)} mappings")
+    print(f"  added (code has, snapshot missing): {len(added)}")
     for method, path in added:
-        print(f"  + {method} {path}")
-    print(f"missing (snapshot has, code missing): {len(missing)}")
+        print(f"    + {method} {path}")
+    print(f"  missing (snapshot has, code missing): {len(missing)}")
     for method, path in missing:
-        print(f"  - {method} {path}")
+        print(f"    - {method} {path}")
 
-    if added or missing:
-        print("RESULT: FAILED - snapshot and controller mappings drifted")
+    return not added and not missing
+
+
+def main() -> int:
+    failed_targets = []
+    for name, controller_dir, snapshot in TARGETS:
+        if not check_target(name, controller_dir, snapshot):
+            failed_targets.append(name)
+
+    if failed_targets:
+        print(f"RESULT: FAILED - snapshot and controller mappings drifted: {', '.join(failed_targets)}")
         return 1
     print("RESULT: PASSED")
     return 0

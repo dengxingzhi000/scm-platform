@@ -66,3 +66,40 @@ SELECT max(create_time) FROM sys_audit_log;
 ```
 
 需要提供的信息：`db_audit` 的**只读**用户名 + 密码（或已存在的只读角色名），以及是否走 PgBouncer（6432）还是直连 5432。
+
+## 6. 库存流水与成本流水：13 个月归档（2026-11 口径）
+
+`db_inventory` 的两张流水表同寿命，热数据保留 **13 个月**：
+
+| 表 | 结构 | 到期处理 |
+|---|---|---|
+| `inv_log` | 按月 `RANGE (create_time)` 分区，分区名可能是 `<table>_YYYY_MM` 或 `<table>_pYYYYMM` | 先 `pg_dump` 整月分区归档，校验行数一致后再 `DROP TABLE` |
+| `inv_cost_log` | 普通表（非分区） | 按 `create_time` 导出后 `DELETE` |
+
+月度归档动作（建议与 `scripts/db/partition/create-partitions.sh` 同一维护窗口执行）：
+
+```bash
+# 1) 到期月份：13 个月前，例如 2026-11 执行时归档 <= 2025-10
+CUTOFF=$(date -d "-13 months" +%Y-%m)
+
+# 2) inv_log：先归档整月分区，再校验行数，最后删分区
+#    分区名以实际查询结果为准（历史 _YYYY_MM 或脚本新建 _pYYYYMM）
+pg_dump -U "$DB_USER" -h "$DB_HOST" -Fc \
+  -t "inv_log_${CUTOFF//-/_}" "$DB_NAME" > "inv_log_${CUTOFF//-/_}.dump"
+psql -U "$DB_USER" -h "$DB_HOST" -d "$DB_NAME" \
+  -c "SELECT count(*) FROM inv_log_${CUTOFF//-/_};"
+psql -U "$DB_USER" -h "$DB_HOST" -d "$DB_NAME" \
+  -c "DROP TABLE inv_log_${CUTOFF//-/_};"
+
+# 3) inv_cost_log：先导出再删除
+psql -U "$DB_USER" -h "$DB_HOST" -d "$DB_NAME" -c \
+  "\copy (SELECT * FROM inv_cost_log WHERE create_time < date_trunc('month', NOW()) - INTERVAL '13 months') TO 'inv_cost_log_${CUTOFF}.csv' CSV HEADER"
+psql -U "$DB_USER" -h "$DB_HOST" -d "$DB_NAME" -c \
+  "DELETE FROM inv_cost_log WHERE create_time < date_trunc('month', NOW()) - INTERVAL '13 months';"
+```
+
+要点：
+
+- `inv_log_default` 里的散行不能用 `DROP`，用 `DELETE` 兜底；
+- 归档包与库内行数一致才允许删除，归档批次、行数与校验和记入备份台账；
+- `scripts/db/retention/apply-retention.sh` 尚未包含这两张表，归档按本节手工/调度执行；纳入该脚本时沿用本节口径。
