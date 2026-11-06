@@ -34,6 +34,21 @@
 
 ---
 
+## 相关仓库
+
+平台按层拆分为多个仓库，各自独立版本化与部署：
+
+| 仓库 | 职责 | 边界 |
+|------|------|------|
+| [`cognora-aura-platform`](https://github.com/dengxingzhi000/cognora-aura-platform) | Java 后端（本仓库） | 网关、认证、系统与全部业务服务，基础设施脚本，K8s/Helm |
+| [`cognora-aura-web`](https://github.com/dengxingzhi000/cognora-aura-web) | Next.js 16 控制台 | 拥有 `src/`、UI 与 API 客户端；消费本仓库的网关路由与 OpenAPI 文档 |
+| [`cognora-enterprise-agent`](https://github.com/dengxingzhi000/cognora-enterprise-agent) | 企业级 Agent 运行时 | 独立服务，仅通过 HTTP/Dubbo 契约与本平台交互 |
+| [`cognora-browser-agent`](https://github.com/dengxingzhi000/cognora-browser-agent) | 浏览器自动化 | 独立运行时，与本仓库无构建期依赖 |
+
+前端此前位于本仓库的 `scm-web/`，在 `cognora-aura-web` 发布 v0.3.0（CI 绿 + 镜像构建完成）后已删除。
+
+---
+
 做供应链软件意味着要在无法共享事务的系统之间协调库存、订单、供应商、仓储、
 承运商与资金。而在秒杀流量下把这些做对、并证明它是对的，是其中最贵的部分。
 
@@ -55,7 +70,7 @@ Cognora Aura Platform 是一份可运行的参考实现。API 网关背后是 26
 
 - **JDK 21** —— 热路径依赖虚拟线程
 - **Maven 3.8+**
-- **Node.js 20+**（前端）
+- **Node.js 20+**（前端独立仓库 `cognora-aura-web`）
 - **Docker & Docker Compose**
 
 每个组件都提供可用的本地默认值，无需外部账号、云凭证或付费服务。可选覆盖项见
@@ -113,16 +128,19 @@ cd platform/inventory/service && mvn spring-boot:run
 cd scm/order/service && mvn spring-boot:run
 ```
 
-### 5. 前端
+### 5. 前端（独立仓库）
 
 ```bash
-cd scm-web
+git clone https://github.com/dengxingzhi000/cognora-aura-web.git
+cd cognora-aura-web
 npm install
 npm run dev
 ```
 
-前端是 `@cognora/aura-web` npm 包，仍位于本仓库的 `scm-web/` 目录（抽独立仓库是计划，
-尚未执行），默认运行在 **http://localhost:3000**，内置 zh-CN 与 en-US 国际化。
+前端是 `@cognora/aura-web` npm 包，已拆分到独立仓库
+[`cognora-aura-web`](https://github.com/dengxingzhi000/cognora-aura-web)，
+默认运行在 **http://localhost:3000**，内置 zh-CN 与 en-US 国际化。
+本仓库只保留后端契约与网关路由。
 
 | 路由         | 页面                         |
 | ------------ | ---------------------------- |
@@ -204,7 +222,8 @@ npm run dev
 ```
    ┌──────────────────┐
    │  前端            │
-   │  scm-web :3000   │
+   │cognora-aura-web  │
+   │      :3000       │
    └────────┬─────────┘
             │
    ┌────────▼─────────┐
@@ -271,7 +290,7 @@ npm run dev
 
 | 模块                            | 端口   | 描述                                                                                     |
 | ------------------------------- | ------ | ---------------------------------------------------------------------------------------- |
-| `scm-web`（`@cognora/aura-web`）| 3000 ⚠ | 前端 —— Next.js 16、shadcn/ui + Ant Design 6、Zustand、TanStack Query                    |
+| `cognora-aura-web`（独立仓库）  | 3000 ⚠ | 前端 —— Next.js 16、shadcn/ui + Ant Design 6、Zustand、TanStack Query                    |
 | `platform-gateway`              | 8761   | API 网关 —— 路由、限流、横切关注点                                                       |
 | `platform-auth`                 | 8106   | 认证服务 —— OAuth2、JWT、WebAuthn 无密码登录                                             |
 | `platform-system`               | 8081   | 系统管理 —— 用户、角色、权限、部门                                                       |
@@ -306,7 +325,7 @@ npm run dev
 cognora-aura-platform/
 ├── bom/                     # 内部 BOM —— 先执行 mvn install -f bom/pom.xml
 ├── com.scm.parent/          # 父 POM（依赖管理）—— 构建时始终通过 -f 指定
-├── scm-web/                 # 前端（@cognora/aura-web）—— 独立 npm 工程
+├── （前端不在本仓库）       # 见 cognora-aura-web 仓库
 ├── platform/                # 平台域
 │   ├── common/              # 公共库（无 Spring Boot 启动类）
 │   │   ├── core/            # 工具类、异常、租户上下文
@@ -531,7 +550,7 @@ k6 run scripts/loadtest/order-flow.js
 k6 run scripts/loadtest/inventory-check.js
 
 # E2E 测试（需安装 Playwright）
-cd scm-web && npx playwright test
+cd cognora-aura-web && npx playwright test
 ```
 
 > [!NOTE]
@@ -596,7 +615,8 @@ Spring State Machine 依赖在父 POM 中已声明但并未使用。流转规则
 
 因为 PR 会跑真实测试。`.github/workflows/maven-build.yml` 在 PR 上执行
 `mvn clean test-compile test`，单元测试失败会让必检项 **Build and Test** 失败；
-同一个 job 还会跑前端门禁（`npm ci`、`typecheck`、`lint`、`test`、`build`）。
+前端门禁（`npm ci`、`typecheck`、`lint`、`test`、`build`）在独立仓库
+`cognora-aura-web` 的 CI 中执行。
 推送到 `master`/`develop` 的构建会执行 `mvn clean verify`，外加一项 schema 校验：
 任何列出的表若缺少 `tenant_id` 列即失败（14 个数据库）。
 

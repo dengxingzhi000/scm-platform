@@ -2,7 +2,7 @@
 -- 本地开发种子数据 001 — 默认租户
 -- 目标库：db_tenant
 --
--- 固定租户 ID 与 scm-web/.env.local 的 NEXT_PUBLIC_DEFAULT_TENANT_ID 保持一致。
+-- 固定租户 ID 与 cognora-aura-web/.env.local 的 NEXT_PUBLIC_DEFAULT_TENANT_ID 保持一致。
 -- 幂等：重复执行只更新名称/状态，不会产生重复租户。
 -- ======================================================================
 BEGIN;

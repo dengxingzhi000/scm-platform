@@ -54,10 +54,10 @@ node scripts/api/fetch-openapi.mjs <host> --out docs/api
 
 ## 生成 TypeScript 客户端
 
-`scm-web/openapitools.json` 读取本目录的 JSON，生成 `src/lib/api/generated/`：
+`cognora-aura-web/openapitools.json` 读取本目录的 JSON，生成 `src/lib/api/generated/`（前端已拆分到独立仓库）：
 
 ```bash
-cd scm-web && npm run generate:api
+cd cognora-aura-web && npm run generate:api
 ```
 
 生成结果按功能域拆分为独立 API 类（`OrderApi`、`UserApi`、`SpuApi` …），

@@ -15,18 +15,7 @@ updates:
       prefix: "deps"
       include: "scope"
 
-  # npm dependencies (Frontend)
-  - package-ecosystem: "npm"
-    directory: "/scm-web"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-    open-pull-requests-limit: 10
-    labels:
-      - "dependencies"
-      - "javascript"
-    commit-message:
-      prefix: "deps"
+  # 前端已拆分到 cognora-aura-web，npm 依赖由该仓库的 Dependabot 维护。
 
   # GitHub Actions
   - package-ecosystem: "github-actions"

@@ -116,9 +116,7 @@ scm-analytics:
       - any-glob-to-any-file: ecom/analytics/**/*
 
 # ─── Cross-cutting by area ─────────────────────────────────────────────
-frontend:
-  - changed-files:
-      - any-glob-to-any-file: scm-web/**/*
+# 前端已拆分到 cognora-aura-web，本仓库不再有 frontend 标签。
 
 infra:
   - changed-files:

@@ -79,7 +79,7 @@ Fixes #(issue number)
 - [ ] `scripts/db/` (Flyway / init / partition / retention)
 - [ ] `.github/` (workflows / templates)
 - [ ] `docs/` (architecture / runbooks / specs)
-- [ ] `scm-web` (frontend)
+- [ ] 前端改动请提交到 [cognora-aura-web](https://github.com/dengxingzhi000/cognora-aura-web)
 
 ## Testing
 

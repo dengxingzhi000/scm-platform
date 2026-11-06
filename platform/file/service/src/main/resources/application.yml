@@ -1,6 +1,6 @@
 server:
   # 8201 belongs to scm-product; every deployment surface (compose, k8s,
-  # scm-web, docs/api) already uses 8214.
+  # cognora-aura-web, docs/api) already uses 8214.
   port: 8214
 
 spring:

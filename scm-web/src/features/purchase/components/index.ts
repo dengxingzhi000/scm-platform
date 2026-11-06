@@ -1,5 +1,0 @@
-export { default as PurchaseOrderList } from './purchase-order-list'
-export { default as PurchaseOrderDetail } from './purchase-order-detail'
-export { PurchaseRequestList } from './purchase-request-list'
-export { RfqList } from './rfq-list'
-export { QuotationList } from './quotation-list'
