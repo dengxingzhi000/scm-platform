@@ -1,11 +1,11 @@
-name: Release 鈥?Docker Images to GHCR
+name: Release — Docker Images to GHCR
 
 # Triggered on every v* tag (e.g. v1.3.0, v1.4.0-rc.1).
 # Builds every service with a Dockerfile and pushes to GitHub Container
 # Registry (ghcr.io/<owner>/cognora-aura-platform/<service>). Then publishes (or
 # updates) the matching GitHub Release with auto-generated notes.
 #
-# Required secrets / permissions: only `GITHUB_TOKEN` 鈥?no Docker Hub creds.
+# Required secrets / permissions: only `GITHUB_TOKEN` — no Docker Hub creds.
 # Dockerfiles live at <domain>/<service>/Dockerfile (one per deployable service).
 
 on:
@@ -67,7 +67,7 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      # Two layouts 鈥?both are handled by building from com.scm.parent/pom.xml
+      # Two layouts — both are handled by building from com.scm.parent/pom.xml
       # (the only pom that lists the four domain aggregators, so -am can pull
       # in platform-common-*, platform-common-system-contract, etc. that each service depends on):
       #   - flat modules (platform/auth, platform/gateway): jar lands at <module>/target/*.jar
