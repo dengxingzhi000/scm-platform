@@ -2,5 +2,5 @@ apiVersion: v2
 name: scm-platform
 description: SCM Platform Helm Chart
 type: application
-version: 0.1.0
-appVersion: "1.0.0"
+version: 2.2.0
+appVersion: "2.2.0"
