@@ -128,4 +128,33 @@ public class TmsFreightReconciliationServiceImpl
         List<TmsFreightReconciliation> list = list(wrapper);
         return list.isEmpty() ? null : list.get(0);
     }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public TmsFreightReconciliation confirm(String id, String operator) {
+        TenantGuard.requireTenant();
+        TmsFreightReconciliation existing = getById(id);
+        if (existing == null) {
+            throw new AccessDeniedException("Freight reconciliation is not accessible in the current tenant");
+        }
+        if (TmsFreightReconciliation.STATUS_CONFIRMED.equals(existing.getStatus())) {
+            // 重复确认幂等：不重复写库、不覆盖首次确认人。
+            return existing;
+        }
+        if (!TmsFreightReconciliation.STATUS_OPEN.equals(existing.getStatus())) {
+            throw new IllegalStateException("仅 OPEN 状态的差异单可确认: " + existing.getStatus());
+        }
+        TmsFreightReconciliation patch = new TmsFreightReconciliation();
+        patch.setId(id);
+        patch.setStatus(TmsFreightReconciliation.STATUS_CONFIRMED);
+        patch.setRemark(operator);
+        patch.setUpdateTime(LocalDateTime.now());
+        updateById(patch);
+        existing.setStatus(TmsFreightReconciliation.STATUS_CONFIRMED);
+        log.info("运费差异单已确认: id={}, waybillNo={}, operator={}",
+                (id + "").replace("\r", "_").replace("\n", "_"),
+                (existing.getWaybillNo() + "").replace("\r", "_").replace("\n", "_"),
+                (operator + "").replace("\r", "_").replace("\n", "_"));
+        return existing;
+    }
 }
