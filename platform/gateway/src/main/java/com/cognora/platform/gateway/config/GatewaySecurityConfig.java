@@ -46,7 +46,10 @@ public class GatewaySecurityConfig {
                                 "/platform-auth/api/public/**",
                                 // Channel callbacks carry no platform JWT; the payment
                                 // service authenticates them with the channel signature.
-                                "/ecom-payment/api/v1/payments/callback/**"
+                                "/ecom-payment/api/v1/payments/callback/**",
+                                // Carrier logistics callbacks authenticate with the LMS
+                                // HMAC signature (timestamp + nonce) instead of the JWT.
+                                "/lms-tms/api/v1/tms-tracking/callback/**"
                         ).permitAll()
                         .pathMatchers("/actuator/health", "/actuator/info").permitAll()
                         .anyExchange().authenticated()

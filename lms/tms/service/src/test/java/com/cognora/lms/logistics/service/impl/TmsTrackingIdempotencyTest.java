@@ -66,6 +66,8 @@ class TmsTrackingIdempotencyTest {
 
         assertSame(existing, result);
         verify(trackingMapper, never()).insert(any(TmsTracking.class));
+        // 重复回调不应再次推进运单状态/重写签收时间。
+        verify(waybillMapper, never()).updateById(any(TmsWaybill.class));
     }
 
     @Test

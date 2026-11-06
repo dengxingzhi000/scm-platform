@@ -85,6 +85,8 @@ security:
       # Payment channels call without the platform HMAC headers; the payment
       # service verifies the Alipay RSA2 / WeChat Pay v3 signature instead.
       - /ecom-payment/api/v1/payments/callback/**
+      # Carrier logistics callbacks verify their own HMAC-SHA256 signature in lms-tms.
+      - /lms-tms/api/v1/tms-tracking/callback/**
     app-secrets:
       # SECURITY: Secrets MUST be provided via environment variables in production
       # Remove default values to enforce secure configuration
