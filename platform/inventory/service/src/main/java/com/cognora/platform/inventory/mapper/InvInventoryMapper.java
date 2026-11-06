@@ -7,6 +7,7 @@ import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -71,6 +72,29 @@ public interface InvInventoryMapper extends BaseMapper<Inventory> {
                         @Param("quantity") int quantity,
                         @Param("adjustType") int adjustType,
                         @Param("operatorId") String operatorId);
+
+    /**
+     * 入库：数量与移动加权均价在同一条 UPDATE 内原子变更。
+     *
+     * <p>{@code WHERE version = expectedVersion} 是乐观锁守卫：并发入库时后到的事务
+     * 返回 0 行，由调用方重读重试，不会把均价更新覆盖丢失。
+     *
+     * @return 1-成功，0-版本冲突、记录已删除或库存守卫不满足
+     */
+    @Update("UPDATE inv_inventory SET available_stock = available_stock + #{quantity}, "
+            + "total_stock = total_stock + #{quantity}, average_cost = #{newAverageCost}, "
+            + "version = version + 1, update_time = NOW(), "
+            + "update_by = COALESCE(#{operatorId}, update_by), "
+            + "last_inbound_at = CASE WHEN #{adjustType} = 1 OR #{adjustType} = 7 "
+            + "THEN NOW() ELSE last_inbound_at END "
+            + "WHERE id = #{id} AND deleted = false AND version = #{expectedVersion} "
+            + "AND available_stock + #{quantity} >= 0")
+    int applyInboundWithCost(@Param("id") String id,
+                             @Param("quantity") int quantity,
+                             @Param("newAverageCost") BigDecimal newAverageCost,
+                             @Param("expectedVersion") int expectedVersion,
+                             @Param("adjustType") int adjustType,
+                             @Param("operatorId") String operatorId);
 
     /**
      * 按 (租户, SKU UUID, 仓库) 精确取台账行。

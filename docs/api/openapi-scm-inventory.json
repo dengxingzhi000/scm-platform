@@ -881,6 +881,17 @@
               "type": "integer",
               "format": "int32"
             }
+          },
+          {
+            "name": "unitPrice",
+            "in": "query",
+            "description": "初始库存单价（移动加权平均成本），可选，保留 6 位小数",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "multipleOf": 0.000001,
+              "minimum": 0
+            }
           }
         ],
         "responses": {
@@ -3412,6 +3423,12 @@
           },
           "remark": {
             "type": "string"
+          },
+          "unitPrice": {
+            "type": "number",
+            "description": "入库单价（移动加权平均成本），仅入库参与均价重算；出库忽略；为空时按当前均价入账。单价保留 6 位小数，金额按 2 位落库。",
+            "multipleOf": 0.000001,
+            "minimum": 0
           }
         },
         "required": [
