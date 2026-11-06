@@ -115,6 +115,8 @@ done
 SCM_SCRIPTS=(
     "microservices/010_db_product.sql:db_product"
     "microservices/011_db_inventory.sql:db_inventory"
+    # TCC 库存预留表（幂等：CREATE TABLE/INDEX IF NOT EXISTS）
+    "microservices/021_inventory_tcc.sql:db_inventory"
     # REST 预占持久化表（幂等：CREATE TABLE/INDEX IF NOT EXISTS）
     "migrations/009_inventory_reservation_record.sql:db_inventory"
     "microservices/012_db_order.sql:db_order"

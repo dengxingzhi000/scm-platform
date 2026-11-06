@@ -103,3 +103,17 @@ psql -U "$DB_USER" -h "$DB_HOST" -d "$DB_NAME" -c \
 - `inv_log_default` 里的散行不能用 `DROP`，用 `DELETE` 兜底；
 - 归档包与库内行数一致才允许删除，归档批次、行数与校验和记入备份台账；
 - `scripts/db/retention/apply-retention.sh` 尚未包含这两张表，归档按本节手工/调度执行；纳入该脚本时沿用本节口径。
+
+## 7. `inv_inventory.legacy_sku_id`：兼容位与数据待办（2026-11 口径）
+
+`scripts/db/migrations/010_inventory_tcc_precision.sql` 给 `inv_inventory` 增加了
+`legacy_sku_id BIGINT`，仅作为 scm-order 现有 Long `skuId` 到 UUID 台账行的桥。
+
+本轮口径：
+
+- 该列**接受 NULL**，不回填、不猜编号；当前 `inv_inventory` 的数据全量为 UUID（`sku_id`），
+  `legacy_sku_id` 暂无来源。
+- 待办：由旧系统导出对照表 `(legacy_sku_id, sku_uuid, tenant_id, warehouse_id)`，
+  经 `scripts/db/maintenance/backfill_legacy_sku_id.sql` 的导入与校验步骤后再回填。
+  对照表到位前，`legacy_sku_id` 保持 NULL。
+- 兼容行为不变：Dubbo 路径定位不到台账行时告警并跳过成本流水，不猜测映射。
