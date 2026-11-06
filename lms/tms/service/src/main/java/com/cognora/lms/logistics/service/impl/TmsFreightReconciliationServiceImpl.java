@@ -151,7 +151,10 @@ public class TmsFreightReconciliationServiceImpl
         patch.setUpdateTime(LocalDateTime.now());
         updateById(patch);
         existing.setStatus(TmsFreightReconciliation.STATUS_CONFIRMED);
-        log.info("运费差异单已确认: id={}, waybillNo={}, operator={}", id, existing.getWaybillNo(), operator);
+        log.info("运费差异单已确认: id={}, waybillNo={}, operator={}",
+                (id + "").replace("\r", "_").replace("\n", "_"),
+                (existing.getWaybillNo() + "").replace("\r", "_").replace("\n", "_"),
+                (operator + "").replace("\r", "_").replace("\n", "_"));
         return existing;
     }
 }

@@ -106,7 +106,7 @@ public class InternalEndpointSignatureFilter extends OncePerRequestFilter {
         if (userId == null) {
             return false;
         }
-        if (user.getPermissions() != null
+        if (user != null && user.getPermissions() != null
                 && user.getPermissions().contains(properties.getSignatureOrPermissionCode())) {
             return true;
         }
