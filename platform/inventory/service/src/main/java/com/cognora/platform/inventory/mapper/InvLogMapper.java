@@ -34,6 +34,7 @@ public interface InvLogMapper extends BaseMapper<InvLog> {
 
   @Insert("INSERT INTO inv_log ("
           + "id, tenant_id, sku_id, warehouse_id, legacy_sku_id, warehouse_code, "
+          + "batch_no, expiry_date, "
           + "operation_type, business_type, quantity, "
           + "before_stock, after_stock, "
           + "before_total, before_available, before_locked, before_damaged, "
@@ -44,6 +45,7 @@ public interface InvLogMapper extends BaseMapper<InvLog> {
           + "CAST(#{log.id} AS UUID), CAST(#{log.tenantId} AS UUID), "
           + "CAST(#{log.skuId} AS UUID), CAST(#{log.warehouseId} AS UUID), "
           + "#{log.legacySkuId}, #{log.warehouseCode}, "
+          + "#{log.batchNo}, #{log.expiryDate}, "
           + "#{log.operationType}, #{log.businessType}, #{log.quantity}, "
           + "#{log.beforeStock}, #{log.afterStock}, "
           + "#{log.beforeTotal}, #{log.beforeAvailable}, #{log.beforeLocked}, #{log.beforeDamaged}, "

@@ -3,6 +3,7 @@ package com.cognora.platform.inventory.domain.entity;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
@@ -33,6 +34,12 @@ public class InvLog {
   private Long legacySkuId;
 
   private String warehouseCode;
+
+  /** 批次号；按批次出库时写入，整批移动/历史行为空 */
+  private String batchNo;
+
+  /** 批次效期；按批次出库时写入，整批移动/历史行为空 */
+  private LocalDate expiryDate;
 
   /** 1-入库 2-出库 3-预占 4-释放 5-确认 6-调整 7-调拨 */
   private Integer operationType;

@@ -10,6 +10,9 @@ import com.cognora.platform.inventory.dto.InventoryResponse;
 import com.cognora.platform.inventory.dto.InventoryTransferRequest;
 import com.cognora.platform.inventory.event.InventoryAdjustedEvent;
 import com.cognora.platform.inventory.mapper.InvInventoryMapper;
+import com.cognora.platform.inventory.service.batch.FefoAllocation;
+import com.cognora.platform.inventory.service.batch.FefoAllocationPlan;
+import com.cognora.platform.inventory.service.batch.FefoAllocationService;
 import com.cognora.platform.inventory.service.cost.CostContext;
 import com.cognora.platform.inventory.service.cost.CostMovement;
 import com.cognora.platform.inventory.service.cost.InventoryCostLogService;
@@ -34,16 +37,19 @@ public class InvInventoryCommandService {
     private final InventoryFlowLogService flowLogService;
     private final MovingAverageCostService costService;
     private final InventoryCostLogService costLogService;
+    private final FefoAllocationService fefoAllocationService;
 
     public InvInventoryCommandService(InvInventoryMapper inventoryMapper, OutboxService outboxService,
                                       InventoryFlowLogService flowLogService,
                                       MovingAverageCostService costService,
-                                      InventoryCostLogService costLogService) {
+                                      InventoryCostLogService costLogService,
+                                      FefoAllocationService fefoAllocationService) {
         this.inventoryMapper = inventoryMapper;
         this.outboxService = outboxService;
         this.flowLogService = flowLogService;
         this.costService = costService;
         this.costLogService = costLogService;
+        this.fefoAllocationService = fefoAllocationService;
     }
 
     @Master(reason = "写操作必须走主库")
@@ -69,6 +75,7 @@ public class InvInventoryCommandService {
 
         Inventory fresh;
         CostMovement movement;
+        FefoAllocationPlan fefoPlan = null;
         if (quantity > 0) {
             // 入库：数量与均价在一条版本守卫的 UPDATE 内原子变更
             movement = costService.applyInbound(inventory.getId(), quantity,
@@ -85,6 +92,10 @@ public class InvInventoryCommandService {
             }
             fresh = reload(inventory.getId());
 
+            // 批次商品按 FEFO 扣减批次可用量；无批次记录时返回 batchManaged=false 并回退台账口径
+            fefoPlan = fefoAllocationService.allocate(tenantId.toString(), request.getSkuId(),
+                    request.getWarehouseId(), Math.negateExact(quantity));
+
             // 出库按当时均价计价，不改变均价；变更前结存由变更后数量反推
             int beforeBalance = Math.subtractExact(nvl(fresh.getTotalStock()), quantity);
             movement = MovingAverageCostService.outboundMovement(
@@ -93,19 +104,15 @@ public class InvInventoryCommandService {
 
         String businessType = businessTypeOf(adjustType, quantity);
         String idempotencyKey = adjustmentIdempotencyKey(request, quantity);
-        recordAdjustmentFlow(tenantId, fresh, request, quantity, businessType, idempotencyKey);
+        if (fefoPlan != null && fefoPlan.batchManaged()) {
+            recordFefoAdjustment(tenantId, fresh, request, quantity, businessType, idempotencyKey, fefoPlan);
+        } else {
+            recordAdjustmentFlow(tenantId, fresh, request, quantity, businessType, idempotencyKey);
 
-        costLogService.record(fresh, movement, CostContext.builder()
-                .businessType(businessType)
-                .businessKey(request.getReferenceNo())
-                .referenceType(adjustType == 7 ? "TRANSFER" : "ADJUST")
-                .referenceId(fresh.getId())
-                .referenceNo(request.getReferenceNo())
-                .operatorId(request.getOperatorId())
-                .operatorName(request.getOperatorName())
-                .remark(request.getRemark())
-                .idempotencyKey(idempotencyKey)
-                .build(), tenantId.toString());
+            costLogService.record(fresh, movement,
+                    adjustmentCostContext(request, fresh, businessType, idempotencyKey),
+                    tenantId.toString());
+        }
 
         outboxService.save(
                 "INVENTORY_ADJUSTED",
@@ -167,12 +174,20 @@ public class InvInventoryCommandService {
         String outIdempotency = transferIdempotencyKey(request.getTransferNo(), -1);
         String inIdempotency = transferIdempotencyKey(request.getTransferNo(), 1);
 
-        recordTransferFlow(tenantId, freshFrom, request, -quantity, outBusinessType, outIdempotency);
-        costLogService.record(freshFrom,
-                MovingAverageCostService.outboundMovement(
-                        freshFrom.getAverageCost(), outBeforeBalance, quantity),
-                transferCostContext(request, outBusinessType, outIdempotency, adjacentInKey, freshFrom),
-                tenantId.toString());
+        // 转出按 FEFO 扣减转出仓批次；无批次记录时回退台账口径
+        FefoAllocationPlan fromFefo = fefoAllocationService.allocate(tenantId.toString(),
+                request.getSkuId(), request.getFromWarehouseId(), quantity);
+        if (fromFefo.batchManaged()) {
+            recordFefoTransferOut(tenantId, freshFrom, request, -quantity, outBusinessType,
+                    outIdempotency, adjacentInKey, outBeforeBalance, fromFefo);
+        } else {
+            recordTransferFlow(tenantId, freshFrom, request, -quantity, outBusinessType, outIdempotency);
+            costLogService.record(freshFrom,
+                    MovingAverageCostService.outboundMovement(
+                            freshFrom.getAverageCost(), outBeforeBalance, quantity),
+                    transferCostContext(request, outBusinessType, outIdempotency, adjacentInKey, freshFrom),
+                    tenantId.toString());
+        }
 
         // 2) 转入：以转出仓均价作为入库单价，重算转入仓均价
         CostMovement inMovement = costService.applyInbound(
@@ -248,12 +263,19 @@ public class InvInventoryCommandService {
     private void recordAdjustmentFlow(UUID tenantId, Inventory fresh,
                                       InventoryAdjustRequest request, int quantity,
                                       String businessType, String idempotencyKey) {
+        flowLogService.record(adjustmentFlowEntry(tenantId, fresh, request, quantity,
+                businessType, idempotencyKey));
+    }
+
+    private static FlowLogEntry adjustmentFlowEntry(UUID tenantId, Inventory fresh,
+                                                    InventoryAdjustRequest request, int quantity,
+                                                    String businessType, String idempotencyKey) {
         int total = nvl(fresh.getTotalStock());
         int available = nvl(fresh.getAvailableStock());
         int locked = nvl(fresh.getLockedStock());
         int damaged = nvl(fresh.getDamagedStock());
         int adjustType = request.getAdjustType() == null ? 0 : request.getAdjustType();
-        flowLogService.record(FlowLogEntry.builder()
+        return FlowLogEntry.builder()
                 .tenantId(tenantId.toString())
                 .skuId(fresh.getSkuId())
                 .warehouseId(fresh.getWarehouseId())
@@ -276,7 +298,23 @@ public class InvInventoryCommandService {
                 .operatorId(request.getOperatorId())
                 .operatorName(request.getOperatorName())
                 .idempotencyKey(idempotencyKey)
-                .build());
+                .build();
+    }
+
+    private static CostContext adjustmentCostContext(InventoryAdjustRequest request, Inventory fresh,
+                                                     String businessType, String idempotencyKey) {
+        int adjustType = request.getAdjustType() == null ? 0 : request.getAdjustType();
+        return CostContext.builder()
+                .businessType(businessType)
+                .businessKey(request.getReferenceNo())
+                .referenceType(adjustType == 7 ? "TRANSFER" : "ADJUST")
+                .referenceId(fresh.getId())
+                .referenceNo(request.getReferenceNo())
+                .operatorId(request.getOperatorId())
+                .operatorName(request.getOperatorName())
+                .remark(request.getRemark())
+                .idempotencyKey(idempotencyKey)
+                .build();
     }
 
     private boolean recordInitFlow(String tenantId, Inventory inventory, int initialStock,
@@ -306,13 +344,20 @@ public class InvInventoryCommandService {
     private void recordTransferFlow(UUID tenantId, Inventory fresh,
                                     InventoryTransferRequest request, int changeQuantity,
                                     String businessType, String idempotencyKey) {
+        flowLogService.record(transferFlowEntry(tenantId, fresh, request, changeQuantity,
+                businessType, idempotencyKey));
+    }
+
+    private static FlowLogEntry transferFlowEntry(UUID tenantId, Inventory fresh,
+                                                  InventoryTransferRequest request, int changeQuantity,
+                                                  String businessType, String idempotencyKey) {
         int total = nvl(fresh.getTotalStock());
         int available = nvl(fresh.getAvailableStock());
         int locked = nvl(fresh.getLockedStock());
         int damaged = nvl(fresh.getDamagedStock());
         int beforeTotal = Math.subtractExact(total, changeQuantity);
         int beforeAvailable = Math.subtractExact(available, changeQuantity);
-        flowLogService.record(FlowLogEntry.builder()
+        return FlowLogEntry.builder()
                 .tenantId(tenantId.toString())
                 .skuId(fresh.getSkuId())
                 .warehouseId(fresh.getWarehouseId())
@@ -335,7 +380,7 @@ public class InvInventoryCommandService {
                 .operatorId(request.getOperatorId())
                 .operatorName(request.getOperatorName())
                 .idempotencyKey(idempotencyKey)
-                .build());
+                .build();
     }
 
     private static CostContext transferCostContext(InventoryTransferRequest request,
@@ -353,6 +398,80 @@ public class InvInventoryCommandService {
                 .remark(request.getRemark())
                 .idempotencyKey(idempotencyKey)
                 .build();
+    }
+
+    /**
+     * 批次出库记账：一次出库跨多个批次时，按批次逐条写数量流水与成本流水。
+     *
+     * <p>业务字段（业务键、单据号、操作人、对手键）沿用整单模板，只有批次维度
+     * （{@code batch_no}/{@code expiry_date}）、批次结存快照和幂等键后缀不同；幂等键
+     * 追加 {@code :B:<批次号>}，同一单据重试时每个批次各自去重。
+     *
+     * <p>成本流水的 {@code before_balance_qty}/{@code after_balance_qty} 按整张台账
+     * 的结存滚动扣减，保证多条批次行连起来与台账减少量一致；单价仍取台账移动均价，
+     * 不改动均价（与整批出库口径一致）。
+     */
+    private void writeFefoOutbound(UUID tenantId, Inventory fresh, FlowLogEntry flowTemplate,
+                                   CostContext costTemplate, int balanceBefore,
+                                   FefoAllocationPlan plan) {
+        int balance = balanceBefore;
+        for (FefoAllocation allocation : plan.allocations()) {
+            int changeQuantity = Math.negateExact(allocation.quantity());
+            flowLogService.record(flowTemplate.toBuilder()
+                    .batchNo(allocation.batchNo())
+                    .expiryDate(allocation.expiryDate())
+                    .changeQuantity(changeQuantity)
+                    .beforeTotal(allocation.totalBefore())
+                    .afterTotal(allocation.totalAfter())
+                    .beforeAvailable(allocation.availableBefore())
+                    .afterAvailable(allocation.availableAfter())
+                    .beforeLocked(allocation.lockedQuantity())
+                    .afterLocked(allocation.lockedQuantity())
+                    .beforeDamaged(allocation.damagedQuantity())
+                    .afterDamaged(allocation.damagedQuantity())
+                    .idempotencyKey(batchScopedKey(flowTemplate.getIdempotencyKey(), allocation.batchNo()))
+                    .build());
+
+            int afterBalance = Math.subtractExact(balance, allocation.quantity());
+            costLogService.record(fresh,
+                    MovingAverageCostService.outboundMovement(
+                            fresh.getAverageCost(), balance, allocation.quantity()),
+                    costTemplate.toBuilder()
+                            .batchNo(allocation.batchNo())
+                            .expiryDate(allocation.expiryDate())
+                            .idempotencyKey(batchScopedKey(costTemplate.getIdempotencyKey(), allocation.batchNo()))
+                            .build(),
+                    tenantId.toString());
+            balance = afterBalance;
+        }
+    }
+
+    private void recordFefoAdjustment(UUID tenantId, Inventory fresh, InventoryAdjustRequest request,
+                                      int quantity, String businessType, String idempotencyKey,
+                                      FefoAllocationPlan plan) {
+        writeFefoOutbound(tenantId, fresh,
+                adjustmentFlowEntry(tenantId, fresh, request, quantity, businessType, idempotencyKey),
+                adjustmentCostContext(request, fresh, businessType, idempotencyKey),
+                Math.subtractExact(nvl(fresh.getTotalStock()), quantity), plan);
+    }
+
+    private void recordFefoTransferOut(UUID tenantId, Inventory freshFrom,
+                                       InventoryTransferRequest request, int changeQuantity,
+                                       String businessType, String idempotencyKey,
+                                       String counterpartKey, int balanceBefore,
+                                       FefoAllocationPlan plan) {
+        writeFefoOutbound(tenantId, freshFrom,
+                transferFlowEntry(tenantId, freshFrom, request, changeQuantity, businessType, idempotencyKey),
+                transferCostContext(request, businessType, idempotencyKey, counterpartKey, freshFrom),
+                balanceBefore, plan);
+    }
+
+    /** 按批次追加幂等键后缀；原键为空时保持为空（未提供单据号时不参与去重）。 */
+    private static String batchScopedKey(String baseKey, String batchNo) {
+        if (baseKey == null || baseKey.trim().isEmpty()) {
+            return null;
+        }
+        return baseKey + ":B:" + (batchNo == null || batchNo.trim().isEmpty() ? "NA" : batchNo);
     }
 
     private void saveTransferOutbox(UUID tenantId, Inventory fresh, int changeQuantity) {

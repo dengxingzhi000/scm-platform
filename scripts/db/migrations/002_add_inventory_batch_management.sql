@@ -75,11 +75,11 @@ CREATE TABLE IF NOT EXISTS inv_batch (
     CONSTRAINT chk_batch_quantity_balance CHECK (total_quantity = available_quantity + locked_quantity + damaged_quantity)
 );
 
-CREATE INDEX idx_batch_tenant ON inv_batch(tenant_id, sku_id, warehouse_id) WHERE NOT deleted;
-CREATE INDEX idx_batch_code ON inv_batch(tenant_id, batch_code);
-CREATE INDEX idx_batch_expiry ON inv_batch(expiry_date) WHERE status = 1 AND NOT deleted;
-CREATE INDEX idx_batch_near_expiry ON inv_batch(tenant_id) WHERE near_expiry_alert = TRUE AND status = 1;
-CREATE INDEX idx_batch_supplier ON inv_batch(tenant_id, supplier_id) WHERE NOT deleted;
+CREATE INDEX IF NOT EXISTS idx_batch_tenant ON inv_batch(tenant_id, sku_id, warehouse_id) WHERE NOT deleted;
+CREATE INDEX IF NOT EXISTS idx_batch_code ON inv_batch(tenant_id, batch_code);
+CREATE INDEX IF NOT EXISTS idx_batch_expiry ON inv_batch(expiry_date) WHERE status = 1 AND NOT deleted;
+CREATE INDEX IF NOT EXISTS idx_batch_near_expiry ON inv_batch(tenant_id) WHERE near_expiry_alert = TRUE AND status = 1;
+CREATE INDEX IF NOT EXISTS idx_batch_supplier ON inv_batch(tenant_id, supplier_id) WHERE NOT deleted;
 
 COMMENT ON TABLE inv_batch IS '库存批次表（保质期管理）';
 COMMENT ON COLUMN inv_batch.quality_status IS '质量状态:1-合格,2-待检,3-不合格,4-隔离';

@@ -85,6 +85,8 @@ public class InventoryFlowLogService {
     log.setWarehouseId(entry.getWarehouseId());
     log.setLegacySkuId(entry.getLegacySkuId());
     log.setWarehouseCode(entry.getWarehouseCode());
+    log.setBatchNo(entry.getBatchNo());
+    log.setExpiryDate(entry.getExpiryDate());
     log.setOperationType(entry.getOperationType());
     log.setBusinessType(entry.getBusinessType());
     log.setQuantity(entry.getChangeQuantity() == null ? 0 : entry.getChangeQuantity());
