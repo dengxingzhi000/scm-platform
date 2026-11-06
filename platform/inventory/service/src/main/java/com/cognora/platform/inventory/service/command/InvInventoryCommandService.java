@@ -144,7 +144,7 @@ public class InvInventoryCommandService {
         int available = nvl(fresh.getAvailableStock());
         int locked = nvl(fresh.getLockedStock());
         int damaged = nvl(fresh.getDamagedStock());
-        Integer adjustType = request.getAdjustType() == null ? 0 : request.getAdjustType();
+        int adjustType = request.getAdjustType() == null ? 0 : request.getAdjustType();
         flowLogService.record(FlowLogEntry.builder()
                 .tenantId(tenantId.toString())
                 .skuId(fresh.getSkuId())

@@ -332,16 +332,16 @@ public class InvReservationServiceImpl implements IInvReservationService {
     int afterLocked = beforeLocked;
     switch (businessType) {
       case "RESERVE" -> {
-        afterAvailable = beforeAvailable - quantity;
-        afterLocked = beforeLocked + quantity;
+        afterAvailable = Math.subtractExact(beforeAvailable, quantity);
+        afterLocked = Math.addExact(beforeLocked, quantity);
       }
       case "CONFIRM" -> {
-        afterTotal = beforeTotal - quantity;
-        afterLocked = beforeLocked - quantity;
+        afterTotal = Math.subtractExact(beforeTotal, quantity);
+        afterLocked = Math.subtractExact(beforeLocked, quantity);
       }
       case "RELEASE", "RELEASE_EXPIRED" -> {
-        afterAvailable = beforeAvailable + quantity;
-        afterLocked = beforeLocked - quantity;
+        afterAvailable = Math.addExact(beforeAvailable, quantity);
+        afterLocked = Math.subtractExact(beforeLocked, quantity);
       }
       default -> throw new IllegalArgumentException("未知流水业务类型: " + businessType);
     }

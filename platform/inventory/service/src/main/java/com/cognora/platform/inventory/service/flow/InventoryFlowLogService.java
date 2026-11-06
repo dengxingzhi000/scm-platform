@@ -50,7 +50,7 @@ public class InventoryFlowLogService {
     String tenantId = resolveTenant(entry.getTenantId());
     if (tenantId == null) {
       log.warn("缺少租户上下文，跳过库存流水: businessType={}, businessKey={}",
-          entry.getBusinessType(), entry.getBusinessKey());
+          safeForLog(entry.getBusinessType()), safeForLog(entry.getBusinessKey()));
       return false;
     }
 
@@ -59,7 +59,8 @@ public class InventoryFlowLogService {
       int claimed = invLogMapper.claimIdempotency(
           logId, tenantId, entry.getIdempotencyKey(), logId);
       if (claimed == 0) {
-        log.debug("流水幂等键已存在，跳过重复写入: key={}", entry.getIdempotencyKey());
+        log.debug("流水幂等键已存在，跳过重复写入: key={}",
+            safeForLog(entry.getIdempotencyKey()));
         return false;
       }
     }
@@ -113,5 +114,13 @@ public class InventoryFlowLogService {
 
   private static boolean isBlank(String value) {
     return value == null || value.trim().isEmpty();
+  }
+
+  /** 日志脱敏：去掉用户可控字段中的换行，避免日志伪造。 */
+  private static String safeForLog(String value) {
+    if (value == null) {
+      return "";
+    }
+    return value.replace('\r', '_').replace('\n', '_');
   }
 }
