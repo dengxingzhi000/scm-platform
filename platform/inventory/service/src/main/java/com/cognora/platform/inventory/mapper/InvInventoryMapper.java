@@ -4,7 +4,10 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.cognora.platform.inventory.domain.entity.Inventory;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
+
+import java.util.List;
 
 /**
  * 库存Mapper
@@ -68,4 +71,26 @@ public interface InvInventoryMapper extends BaseMapper<Inventory> {
                         @Param("quantity") int quantity,
                         @Param("adjustType") int adjustType,
                         @Param("operatorId") String operatorId);
+
+    /**
+     * 按 (租户, SKU UUID, 仓库) 精确取台账行。
+     *
+     * <p>显式 CAST 避免 uuid 列与 varchar 参数比较时的类型错误。
+     */
+    @Select("SELECT * FROM inv_inventory WHERE tenant_id = CAST(#{tenantId} AS UUID) "
+            + "AND sku_id = CAST(#{skuUuid} AS UUID) AND warehouse_id = CAST(#{warehouseId} AS UUID) "
+            + "AND deleted = false LIMIT 1")
+    Inventory selectBySkuUuidAndWarehouse(@Param("tenantId") String tenantId,
+                                          @Param("skuUuid") String skuUuid,
+                                          @Param("warehouseId") String warehouseId);
+
+    /**
+     * 兼容 scm-order 的数字 SKU：通过 legacy_sku_id 解析台账行。
+     *
+     * <p>返回列表而非单条，调用方需在结果不唯一（多仓）时拒绝并提示改用 UUID 接口。
+     */
+    @Select("SELECT * FROM inv_inventory WHERE tenant_id = CAST(#{tenantId} AS UUID) "
+            + "AND legacy_sku_id = #{legacySkuId} AND deleted = false")
+    List<Inventory> selectByLegacySkuId(@Param("tenantId") String tenantId,
+                                        @Param("legacySkuId") Long legacySkuId);
 }

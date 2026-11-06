@@ -1,7 +1,6 @@
 package com.cognora.platform.inventory.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.cognora.platform.common.tenant.TenantContextHolder;
 import com.cognora.platform.inventory.api.InventoryTccService;
 import com.cognora.platform.inventory.domain.entity.InvTccReservation;
 import com.cognora.platform.inventory.domain.entity.Inventory;
@@ -11,23 +10,36 @@ import io.seata.core.context.RootContext;
 import io.seata.rm.tcc.api.BusinessActionContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 库存 TCC 服务实现
  *
- * <p>实现 Try-Confirm-Cancel 三阶段库存预留
- *
- * <p>关键特性：
+ * <p>实现 Try-Confirm-Cancel 三阶段库存预留：
  * <ul>
- *   <li>幂等性：基于 business_key 防止重复执行</li>
- *   <li>防悬挂：Confirm/Cancel 检查Try 记录是否存在</li>
- *   <li>允许空回滚：Cancel 时如果Try 未执行，直接返回成功</li>
+ *   <li>Try：可用量转锁定，落 {@code inv_tcc_reservation}，记录精确的 {@code inventory_id}</li>
+ *   <li>Confirm：只允许 TRYING→CONFIRMED，锁定库存实扣（locked 与 total 同步减少，
+ *       保持 {@code total = available + locked + damaged}）</li>
+ *   <li>Cancel：只允许 TRYING→CANCELLED，锁定库存归还可用量；Try 未执行时反向插入
+ *       CANCELLED 记录，防止后续 Try 悬挂</li>
  * </ul>
+ *
+ * <p>幂等与租户：
+ * <ul>
+ *   <li>幂等键为 {@code (tenant_id, business_key)}，重复 Try/Confirm/Cancel 不重复扣减</li>
+ *   <li>所有查询与状态更新都显式带 tenant_id，跨租户访问抛 {@link AccessDeniedException}</li>
+ *   <li>{@code businessKey} 为空时抛 {@link IllegalArgumentException}，不做字符串拼接</li>
+ * </ul>
+ *
+ * <p>SKU 兼容：旧接口接收 Long skuId（scm-order 现状），通过
+ * {@code inv_inventory.legacy_sku_id} 解析台账行；新接入方使用
+ * {@link #reserveInventoryBySku(String, String, Integer, String)} 按 UUID+仓库精确预留。
  *
  * @author SCM Platform Team
  * @since 2025-12-26
@@ -39,242 +51,330 @@ public class InventoryTccServiceImpl implements InventoryTccService {
     private final InvInventoryMapper inventoryMapper;
     private final InvTccReservationMapper reservationMapper;
 
-    /**
-     * Try 阶段：预留库存
-     *
-     * <p>业务逻辑：
-      * 1. 幂等性检查：如果预留记录已存在，直接返回
-     * 2. 查询库存并检查是否充足
-     * 3. 将可用库存转为锁定库存（available_stock - X, locked_stock + X）
-     * 4. 插入预留记录
-     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean reserveInventory(Long skuId, Integer quantity, String businessKey) {
-        String xid = RootContext.getXID();
-        log.debug("🔵 [TCC-Try] 开始预留库存 skuId={}, quantity={}, businessKey={}, XID={}",
-                skuId, quantity, businessKey, xid);
+        if (skuId == null) {
+            throw new IllegalArgumentException("skuId 不能为空");
+        }
+        String tenant = requireTenant();
+        requirePositiveQuantity(quantity);
+        requireBusinessKey(businessKey);
 
-        // 1. 幂等性检查
-        InvTccReservation existingReservation = reservationMapper.selectOne(
-                new LambdaQueryWrapper<InvTccReservation>()
-                        .eq(InvTccReservation::getBusinessKey, businessKey)
-        );
-
-        if (existingReservation != null) {
-            log.warn("⚠️  [TCC-Try] 预留记录已存在，幂等返回: businessKey={}, status={}",
-                    businessKey, existingReservation.getStatus());
-            return true;
+        InvTccReservation existing = reservationMapper.selectByBusinessKey(tenant, businessKey);
+        if (existing != null) {
+            return handleExistingReservation(existing, tenant);
         }
 
-        // 2. 查询库存
-        Inventory inventory = inventoryMapper.selectOne(
-                new LambdaQueryWrapper<Inventory>()
-                        .eq(Inventory::getSkuId, skuId)
-                        .last("FOR UPDATE")  // 行锁
-        );
+        Inventory inventory = resolveLegacyInventory(tenant, skuId);
+        return doReserve(tenant, skuId, inventory.getSkuId(), inventory.getWarehouseId(),
+                inventory, quantity, businessKey);
+    }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean reserveInventoryBySku(String skuUuid, String warehouseId,
+                                         Integer quantity, String businessKey) {
+        if (isBlank(skuUuid) || isBlank(warehouseId)) {
+            throw new IllegalArgumentException("skuUuid 和 warehouseId 不能为空");
+        }
+        String tenant = requireTenant();
+        requirePositiveQuantity(quantity);
+        requireBusinessKey(businessKey);
+
+        InvTccReservation existing = reservationMapper.selectByBusinessKey(tenant, businessKey);
+        if (existing != null) {
+            return handleExistingReservation(existing, tenant);
+        }
+
+        Inventory inventory = inventoryMapper.selectBySkuUuidAndWarehouse(tenant, skuUuid, warehouseId);
         if (inventory == null) {
-            log.error("❌[TCC-Try] SKU 不存在 skuId={}", skuId);
-            throw new IllegalArgumentException("商品不存在");
+            log.error("库存记录不存在，无法预留: warehouseMatch=false");
+            throw new IllegalArgumentException("商品不存在或该仓库无库存记录");
         }
+        return doReserve(tenant, null, skuUuid, warehouseId, inventory, quantity, businessKey);
+    }
 
-        // 3. 检查库存是否充足
-        if (inventory.getAvailableStock() < quantity) {
-            log.error("❌[TCC-Try] 库存不足: skuId={}, available={}, required={}",
-                    skuId, inventory.getAvailableStock(), quantity);
-            throw new RuntimeException(String.format("库存不足: 可用 %d, 需要%d",
+    private boolean doReserve(String tenant, Long legacySkuId, String skuUuid, String warehouseId,
+                              Inventory inventory, Integer quantity, String businessKey) {
+        String xid = RootContext.getXID();
+
+        int locked = inventoryMapper.lockStock(inventory.getId(), quantity);
+        if (locked == 0) {
+            log.error("库存不足，无法预留: available={}, required={}",
+                    inventory.getAvailableStock(), quantity);
+            throw new IllegalArgumentException(String.format("库存不足: 可用 %d, 需要%d",
                     inventory.getAvailableStock(), quantity));
         }
 
-        // 4. 预留库存（可用库存 -> 锁定库存）
-        int updated = inventoryMapper.update(null,
-                new LambdaUpdateWrapper<Inventory>()
-                        .setSql("available_stock = available_stock - " + quantity)
-                        .setSql("locked_stock = locked_stock + " + quantity)
-                        .eq(Inventory::getId, inventory.getId())
-                        .ge(Inventory::getAvailableStock, quantity)  // 乐观锁
-        );
-
-        if (updated == 0) {
-            log.error("❌[TCC-Try] 库存预留失败（并发冲突）: skuId={}", skuId);
-            throw new RuntimeException("库存预留失败，请重试");
-        }
-
-        // 5. 插入预留记录
         InvTccReservation reservation = new InvTccReservation();
+        reservation.setTenantId(tenant);
         reservation.setBusinessKey(businessKey);
-        reservation.setSkuId(skuId);
+        reservation.setSkuId(legacySkuId);
+        reservation.setSkuUuid(skuUuid);
+        reservation.setInventoryId(inventory.getId());
+        reservation.setWarehouseId(warehouseId);
         reservation.setQuantity(quantity);
         reservation.setXid(xid);
-        reservation.setBranchId(0L);  // 分支 ID 由Seata 管理
+        reservation.setBranchId(0L);
         reservation.setStatus(InvTccReservation.Status.TRYING);
         reservation.setTryTime(LocalDateTime.now());
 
-        reservationMapper.insert(reservation);
+        try {
+            reservationMapper.insert(reservation);
+        } catch (DuplicateKeyException e) {
+            // 并发下同一业务键已写入：本次扣减由其事务回滚，按幂等成功返回
+            log.warn("并发写入预留记录，按幂等返回: reservationId={}", reservation.getId());
+            return true;
+        }
 
-        log.debug("✅[TCC-Try] 库存预留成功: skuId={}, quantity={}, businessKey={}, XID={}",
-                skuId, quantity, businessKey, xid);
+        log.debug("TCC Try 成功: reservationId={}, inventoryId={}, quantity={}",
+                reservation.getId(), inventory.getId(), quantity);
         return true;
     }
 
-    /**
-     * Confirm 阶段：确认预留
-     *
-     * <p>业务逻辑：
-     * 1. 幂等性检查：如果已经 CONFIRMED，直接返回
-     * 2. 防悬挂检查：如果 Try 记录不存在，拒绝执行
-     * 3. 扣减锁定库存（locked_stock - X）
-     * 4. 更新预留记录状态为 CONFIRMED
-     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean confirmReserve(BusinessActionContext context) {
-        String businessKey = context.getActionContext("businessKey").toString();
-        Long skuId = requireLongActionContext(context, "skuId");
-        Integer quantity = requireIntActionContext(context, "quantity");
-        String xid = context.getXid();
+        String businessKey = requireActionBusinessKey(context);
+        String tenant = requireTenant();
 
-        log.debug("🟢 [TCC-Confirm] 开始确认预留 skuId={}, quantity={}, businessKey={}, XID={}",
-                skuId, quantity, businessKey, xid);
-
-        // 1. 查询预留记录
-        InvTccReservation reservation = reservationMapper.selectOne(
-                new LambdaQueryWrapper<InvTccReservation>()
-                        .eq(InvTccReservation::getBusinessKey, businessKey)
-        );
-
-        // 2. 防悬挂：Try 记录不存在
+        InvTccReservation reservation = reservationMapper.selectByBusinessKey(tenant, businessKey);
         if (reservation == null) {
-            log.warn("⚠️  [TCC-Confirm] Try 记录不存在，拒绝执行（防悬挂） businessKey={}", businessKey);
+            log.warn("TCC Confirm 找不到 Try 记录，拒绝执行（防悬挂）");
+            return false;
+        }
+        assertSameTenant(reservation, tenant);
+
+        String status = reservation.getStatus();
+        if (InvTccReservation.Status.CONFIRMED.equals(status)) {
+            log.debug("TCC Confirm 幂等返回: reservationId={}", reservation.getId());
+            return true;
+        }
+        if (!InvTccReservation.Status.TRYING.equals(status)) {
+            log.warn("TCC Confirm 非法状态流转被拒绝: reservationId={}, status={}",
+                    reservation.getId(), status);
             return false;
         }
 
-        // 3. 幂等性：已经 CONFIRMED
-        if (InvTccReservation.Status.CONFIRMED.equals(reservation.getStatus())) {
-            log.warn("⚠️  [TCC-Confirm] 已经确认过，幂等返回: businessKey={}", businessKey);
+        int moved = reservationMapper.markConfirmed(reservation.getId(), tenant);
+        if (moved == 0) {
+            InvTccReservation latest = reservationMapper.selectByBusinessKey(tenant, businessKey);
+            boolean confirmed = latest != null
+                    && InvTccReservation.Status.CONFIRMED.equals(latest.getStatus());
+            log.debug("TCC Confirm 并发竞态: reservationId={}, confirmed={}",
+                    reservation.getId(), confirmed);
+            return confirmed;
+        }
+
+        int quantity = persistedQuantity(reservation);
+        Inventory ledger = resolveLedgerForRecord(reservation, tenant);
+        int updated = inventoryMapper.confirmStock(ledger.getId(), quantity);
+        if (updated == 0) {
+            throw new IllegalStateException(
+                    "锁定库存不足，无法确认预留: reservationId=" + reservation.getId());
+        }
+
+        log.debug("TCC Confirm 成功: reservationId={}, quantity={}", reservation.getId(), quantity);
+        return true;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean cancelReserve(BusinessActionContext context) {
+        String businessKey = requireActionBusinessKey(context);
+        String tenant = requireTenant();
+
+        InvTccReservation reservation = reservationMapper.selectByBusinessKey(tenant, businessKey);
+        if (reservation == null) {
+            // 空回滚：Try 未执行，插入 CANCELLED 记录防止后续 Try 悬挂
+            InvTccReservation tombstone = new InvTccReservation();
+            tombstone.setTenantId(tenant);
+            tombstone.setBusinessKey(businessKey);
+            tombstone.setSkuId(optionalLongActionContext(context, "skuId"));
+            tombstone.setSkuUuid(optionalStringActionContext(context, "skuUuid"));
+            tombstone.setWarehouseId(optionalStringActionContext(context, "warehouseId"));
+            tombstone.setQuantity(optionalIntActionContext(context, "quantity"));
+            tombstone.setXid(context.getXid());
+            tombstone.setBranchId(0L);
+            tombstone.setStatus(InvTccReservation.Status.CANCELLED);
+            tombstone.setCancelTime(LocalDateTime.now());
+            reservationMapper.insert(tombstone);
+            log.warn("TCC Cancel 空回滚：Try 未执行，已写入 CANCELLED 记录");
             return true;
         }
+        assertSameTenant(reservation, tenant);
 
-        // 4. 扣减锁定库存
-        int updated = inventoryMapper.update(null,
-                new LambdaUpdateWrapper<Inventory>()
-                        .setSql("locked_stock = locked_stock - " + quantity)
-                        .eq(Inventory::getSkuId, skuId)
-                        .ge(Inventory::getLockedStock, quantity)
-        );
-
-        if (updated == 0) {
-            log.error("❌[TCC-Confirm] 锁定库存不足: skuId={}, quantity={}", skuId, quantity);
-            throw new RuntimeException("锁定库存不足");
+        String status = reservation.getStatus();
+        if (InvTccReservation.Status.CANCELLED.equals(status)) {
+            log.debug("TCC Cancel 幂等返回: reservationId={}", reservation.getId());
+            return true;
+        }
+        if (!InvTccReservation.Status.TRYING.equals(status)) {
+            log.warn("TCC Cancel 非法状态流转被拒绝: reservationId={}, status={}",
+                    reservation.getId(), status);
+            return false;
         }
 
-        // 5. 更新预留记录状态
-        reservation.setStatus(InvTccReservation.Status.CONFIRMED);
-        reservation.setConfirmTime(LocalDateTime.now());
-        reservationMapper.updateById(reservation);
+        int moved = reservationMapper.markCancelled(reservation.getId(), tenant);
+        if (moved == 0) {
+            InvTccReservation latest = reservationMapper.selectByBusinessKey(tenant, businessKey);
+            boolean cancelled = latest != null
+                    && InvTccReservation.Status.CANCELLED.equals(latest.getStatus());
+            log.debug("TCC Cancel 并发竞态: reservationId={}, cancelled={}",
+                    reservation.getId(), cancelled);
+            return cancelled;
+        }
 
-        log.debug("✅[TCC-Confirm] 预留确认成功: skuId={}, quantity={}, businessKey={}, XID={}",
-                skuId, quantity, businessKey, xid);
+        int quantity = persistedQuantity(reservation);
+        Inventory ledger = resolveLedgerForRecord(reservation, tenant);
+        int released = inventoryMapper.releaseStock(ledger.getId(), quantity);
+        if (released == 0) {
+            throw new IllegalStateException(
+                    "锁定库存不足，无法释放预留: reservationId=" + reservation.getId());
+        }
+
+        log.debug("TCC Cancel 成功: reservationId={}, quantity={}", reservation.getId(), quantity);
         return true;
     }
 
     /**
-     * Cancel 阶段：取消预留
-     *
-     * <p>业务逻辑：
-     * 1. 幂等性检查：如果已经 CANCELLED，直接返回
-     * 2. 空回滚：如果 Try 记录不存在（Try 未执行），直接返回成功
-     * 3. 释放锁定库存为可用库存（available_stock + X, locked_stock - X）
-     * 4. 更新预留记录状态为 CANCELLED
+     * 已存在预留记录时的幂等语义：
+     * TRYING / CONFIRMED 视为成功；CANCELLED 为终态，拒绝复用业务键（防悬挂）。
      */
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public boolean cancelReserve(BusinessActionContext context) {
-        String businessKey = context.getActionContext("businessKey").toString();
-        Long skuId = requireLongActionContext(context, "skuId");
-        Integer quantity = requireIntActionContext(context, "quantity");
-        String xid = context.getXid();
-
-        log.debug("🔴 [TCC-Cancel] 开始取消预留 skuId={}, quantity={}, businessKey={}, XID={}",
-                skuId, quantity, businessKey, xid);
-
-        // 1. 查询预留记录
-        InvTccReservation reservation = reservationMapper.selectOne(
-                new LambdaQueryWrapper<InvTccReservation>()
-                        .eq(InvTccReservation::getBusinessKey, businessKey)
-        );
-
-        // 2. 空回滚：Try 记录不存在（Try 未执行或网络延迟）
-        if (reservation == null) {
-            log.warn("⚠️  [TCC-Cancel] Try 记录不存在，空回滚 businessKey={}", businessKey);
-            // 插入一条CANCELLED 记录，防止后续Try 悬挂
-            InvTccReservation cancelRecord = new InvTccReservation();
-            cancelRecord.setBusinessKey(businessKey);
-            cancelRecord.setSkuId(skuId);
-            cancelRecord.setQuantity(quantity);
-            cancelRecord.setXid(xid);
-            cancelRecord.setBranchId(0L);
-            cancelRecord.setStatus(InvTccReservation.Status.CANCELLED);
-            cancelRecord.setCancelTime(LocalDateTime.now());
-            reservationMapper.insert(cancelRecord);
+    private boolean handleExistingReservation(InvTccReservation existing, String tenant) {
+        assertSameTenant(existing, tenant);
+        String status = existing.getStatus();
+        if (InvTccReservation.Status.TRYING.equals(status)
+                || InvTccReservation.Status.CONFIRMED.equals(status)) {
+            log.warn("预留记录已存在，幂等返回: reservationId={}, status={}",
+                    existing.getId(), status);
             return true;
         }
-
-        // 3. 幂等性：已经 CANCELLED
-        if (InvTccReservation.Status.CANCELLED.equals(reservation.getStatus())) {
-            log.warn("⚠️  [TCC-Cancel] 已经取消过，幂等返回: businessKey={}", businessKey);
-            return true;
+        log.warn("业务键已处于终态，拒绝复用: reservationId={}, status={}",
+                existing.getId(), status);
+        return false;
         }
 
-        // 4. 释放锁定库存
-        int updated = inventoryMapper.update(null,
-                new LambdaUpdateWrapper<Inventory>()
-                        .setSql("available_stock = available_stock + " + quantity)
-                        .setSql("locked_stock = locked_stock - " + quantity)
-                        .eq(Inventory::getSkuId, skuId)
-                        .ge(Inventory::getLockedStock, quantity)
-        );
-
-        if (updated == 0) {
-            log.warn("⚠️  [TCC-Cancel] 锁定库存不足，可能已被释放 skuId={}, quantity={}",
-                    skuId, quantity);
-            // 不抛异常，标记为已取消
+    private Inventory resolveLegacyInventory(String tenant, Long skuId) {
+        List<Inventory> rows = inventoryMapper.selectByLegacySkuId(tenant, skuId);
+        if (rows.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "商品不存在或 legacy_sku_id 未配置，无法定位台账行；请使用 reserveInventoryBySku");
         }
-
-    // 5. 更新预留记录状态
-    reservation.setStatus(InvTccReservation.Status.CANCELLED);
-    reservation.setCancelTime(LocalDateTime.now());
-    reservationMapper.updateById(reservation);
-
-    log.debug("✅[TCC-Cancel] 预留取消成功: skuId={}, quantity={}, businessKey={}, XID={}",
-                skuId, quantity, businessKey, xid);
-        return true;
+        if (rows.size() > 1) {
+            throw new IllegalStateException(
+                    "同一 SKU 命中多个仓库台账行，无法唯一定位；请使用 reserveInventoryBySku");
+        }
+        return rows.get(0);
     }
 
-    private static Long requireLongActionContext(BusinessActionContext context, String name) {
-        Object value = requireActionContext(context, name);
+    /**
+     * 历史记录可能没有 inventory_id：退回按 (skuUuid, warehouseId) 或 legacy_sku_id 解析。
+     * 仍然无法定位时抛异常，不静默跳过扣减/归还。
+     */
+    private Inventory resolveLedgerForRecord(InvTccReservation reservation, String tenant) {
+        if (reservation.getInventoryId() != null) {
+            Inventory ledger = inventoryMapper.selectById(reservation.getInventoryId());
+            if (ledger != null && (ledger.getTenantId() == null
+                    || ledger.getTenantId().equals(tenant))) {
+                return ledger;
+            }
+        }
+        if (!isBlank(reservation.getSkuUuid()) && !isBlank(reservation.getWarehouseId())) {
+            Inventory ledger = inventoryMapper.selectBySkuUuidAndWarehouse(
+                    tenant, reservation.getSkuUuid(), reservation.getWarehouseId());
+            if (ledger != null) {
+                return ledger;
+            }
+        }
+        if (reservation.getSkuId() != null) {
+            List<Inventory> rows = inventoryMapper.selectByLegacySkuId(tenant, reservation.getSkuId());
+            if (rows.size() == 1) {
+                return rows.get(0);
+            }
+        }
+        throw new IllegalStateException(
+                "无法定位预留对应的台账行: reservationId=" + reservation.getId());
+    }
+
+    private static int persistedQuantity(InvTccReservation reservation) {
+        if (reservation.getQuantity() == null || reservation.getQuantity() <= 0) {
+            throw new IllegalStateException(
+                    "预留记录数量非法: reservationId=" + reservation.getId());
+        }
+        return reservation.getQuantity();
+    }
+
+    private static String requireTenant() {
+        return TenantContextHolder.getRequiredTenantId().toString();
+    }
+
+    private static void requirePositiveQuantity(Integer quantity) {
+        if (quantity == null || quantity <= 0) {
+            throw new IllegalArgumentException("预占数量必须大于0");
+        }
+    }
+
+    private static void requireBusinessKey(String businessKey) {
+        if (isBlank(businessKey)) {
+            throw new IllegalArgumentException("businessKey 不能为空");
+        }
+    }
+
+    private static String requireActionBusinessKey(BusinessActionContext context) {
+        Object value = actionContextValue(context, "businessKey");
+        if (value == null || isBlank(value.toString())) {
+            throw new IllegalArgumentException("TCC 上下文中 businessKey 不能为空");
+        }
+        return value.toString();
+    }
+
+    private static Object actionContextValue(BusinessActionContext context, String name) {
+        if (context == null || context.getActionContext() == null) {
+            return null;
+        }
+        return context.getActionContext(name);
+    }
+
+    private static Long optionalLongActionContext(BusinessActionContext context, String name) {
+        Object value = actionContextValue(context, name);
+        if (value == null) {
+            return null;
+        }
         try {
             return Long.valueOf(value.toString());
         } catch (NumberFormatException e) {
-            throw new IllegalStateException("TCC action context '" + name + "' is not a number: " + value, e);
+            throw new IllegalStateException("TCC action context '" + name + "' is not a number", e);
         }
     }
 
-    private static Integer requireIntActionContext(BusinessActionContext context, String name) {
-        Object value = requireActionContext(context, name);
+    private static Integer optionalIntActionContext(BusinessActionContext context, String name) {
+        Object value = context.getActionContext(name);
+        if (value == null) {
+            return null;
+        }
         try {
             return Integer.valueOf(value.toString());
         } catch (NumberFormatException e) {
-            throw new IllegalStateException("TCC action context '" + name + "' is not a number: " + value, e);
+            throw new IllegalStateException("TCC action context '" + name + "' is not a number", e);
         }
     }
 
-    private static Object requireActionContext(BusinessActionContext context, String name) {
+    private static String optionalStringActionContext(BusinessActionContext context, String name) {
         Object value = context.getActionContext(name);
-        if (value == null) {
-            throw new IllegalStateException("Missing TCC action context: " + name);
+        return value == null ? null : value.toString();
+    }
+
+    private static void assertSameTenant(InvTccReservation reservation, String tenant) {
+        if (reservation.getTenantId() != null && !reservation.getTenantId().equals(tenant)) {
+            log.warn("跨租户访问 TCC 预留记录被拒绝: reservationId={}, ownerTenant={}",
+                    reservation.getId(), reservation.getTenantId());
+            throw new AccessDeniedException("预留记录不属于当前租户");
         }
-        return value;
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
     }
 }

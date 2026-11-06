@@ -45,6 +45,24 @@ public interface InventoryTccService {
     );
 
     /**
+     * Try 阶段（UUID 版）：按 (skuUuid, warehouseId) 精确预留台账行。
+     *
+     * <p>与 {@link #reserveInventory(Long, Integer, String)} 共用 Confirm/Cancel；
+     * 新接入方应优先使用本方法，避免数字 SKU 与 UUID 台账的类型错配。
+     */
+    @TwoPhaseBusinessAction(
+            name = "reserveInventoryBySku",
+            commitMethod = "confirmReserve",
+            rollbackMethod = "cancelReserve"
+    )
+    boolean reserveInventoryBySku(
+            @BusinessActionContextParameter(paramName = "skuUuid") String skuUuid,
+            @BusinessActionContextParameter(paramName = "warehouseId") String warehouseId,
+            @BusinessActionContextParameter(paramName = "quantity") Integer quantity,
+            @BusinessActionContextParameter(paramName = "businessKey") String businessKey
+    );
+
+    /**
      * Confirm 闃舵锛氱'璁ら锟?
      *
      * <p>鎵e噺閿佸畾搴撳瓨锛屽畬鎴愭渶缁堟墸锟?
