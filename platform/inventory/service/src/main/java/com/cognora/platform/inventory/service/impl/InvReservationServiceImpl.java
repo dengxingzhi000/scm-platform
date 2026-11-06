@@ -69,8 +69,8 @@ public class InvReservationServiceImpl implements IInvReservationService {
     }
     int quantity = request.getQuantity();
 
-    log.debug("预占库存: skuId={}, warehouseId={}, quantity={}, businessKey={}",
-        request.getSkuId(), request.getWarehouseId(), quantity, request.getBusinessKey());
+    // 注意：businessKey / skuId 来自请求体，不直接写日志（避免日志注入，CodeQL java/log-injection）
+    log.debug("预占库存: quantity={}", quantity);
 
     // 同一业务键串行化：幂等检查与写库都在这把锁内完成，避免并发重复预占。
     String lockKey = TenantCacheKeys.scoped("reserve", request.getBusinessKey());
@@ -86,12 +86,10 @@ public class InvReservationServiceImpl implements IInvReservationService {
         assertSameTenant(existing, tenantId);
         ReservationStatus status = existing.statusEnum();
         if (status == ReservationStatus.RESERVED || status == ReservationStatus.CONFIRMED) {
-          log.warn("预占已存在，幂等返回: businessKey={}, status={}",
-              request.getBusinessKey(), status);
+          log.warn("预占已存在，幂等返回: status={}", status);
           return true;
         }
-        log.warn("预占已处于终态，拒绝复用业务键: businessKey={}, status={}",
-            request.getBusinessKey(), status);
+        log.warn("预占已处于终态，拒绝复用业务键: status={}", status);
         return false;
       }
 
@@ -103,15 +101,14 @@ public class InvReservationServiceImpl implements IInvReservationService {
       );
 
       if (inventory == null) {
-        log.error("库存不存在 skuId={}, warehouseId={}",
-            request.getSkuId(), request.getWarehouseId());
+        log.error("库存记录不存在，无法预占");
         throw new IllegalArgumentException("商品不存在");
       }
 
       int locked = inventoryMapper.lockStock(inventory.getId(), quantity);
       if (locked == 0) {
-        log.error("库存不足: skuId={}, available={}, required={}",
-            request.getSkuId(), inventory.getAvailableStock(), quantity);
+        log.error("库存不足: available={}, required={}",
+            inventory.getAvailableStock(), quantity);
         throw new IllegalArgumentException(
             String.format("库存不足: 可用 %d, 需要%d", inventory.getAvailableStock(), quantity));
       }
@@ -132,8 +129,8 @@ public class InvReservationServiceImpl implements IInvReservationService {
 
       reservationRecordMapper.insert(record);
 
-      log.debug("库存预占成功: businessKey={}, quantity={}, expireAt={}",
-          request.getBusinessKey(), quantity, record.getExpireAt());
+      log.debug("库存预占成功: reservationId={}, quantity={}, expireAt={}",
+          record.getId(), quantity, record.getExpireAt());
       return true;
     } finally {
       lock.release();
@@ -149,18 +146,18 @@ public class InvReservationServiceImpl implements IInvReservationService {
 
     InvReservationRecord record = reservationRecordMapper.selectByBusinessKey(tenant, businessKey);
     if (record == null) {
-      log.warn("预占不存在或不属于当前租户 businessKey={}", businessKey);
+      log.warn("预占不存在或不属于当前租户");
       return false;
     }
     assertSameTenant(record, tenantId);
 
     ReservationStatus status = record.statusEnum();
     if (status == ReservationStatus.CONFIRMED) {
-      log.debug("预占已确认，幂等返回: businessKey={}", businessKey);
+      log.debug("预占已确认，幂等返回");
       return true;
     }
     if (status != ReservationStatus.RESERVED) {
-      log.warn("非法状态流转（确认）: businessKey={}, status={}", businessKey, status);
+      log.warn("非法状态流转（确认）: status={}", status);
       return false;
     }
 
@@ -170,16 +167,16 @@ public class InvReservationServiceImpl implements IInvReservationService {
       InvReservationRecord latest =
           reservationRecordMapper.selectByBusinessKey(tenant, businessKey);
       boolean confirmed = latest != null && latest.statusEnum() == ReservationStatus.CONFIRMED;
-      log.debug("预占确认并发竞态: businessKey={}, confirmed={}", businessKey, confirmed);
+      log.debug("预占确认并发竞态: confirmed={}", confirmed);
       return confirmed;
     }
 
     int stockUpdated = inventoryMapper.confirmStock(record.getInventoryId(), record.getQuantity());
     if (stockUpdated == 0) {
-      throw new IllegalStateException("锁定库存不足，无法确认预占: businessKey=" + businessKey);
+      throw new IllegalStateException("锁定库存不足，无法确认预占: reservationId=" + record.getId());
     }
 
-    log.debug("预占确认成功: businessKey={}, quantity={}", businessKey, record.getQuantity());
+    log.debug("预占确认成功: reservationId={}, quantity={}", record.getId(), record.getQuantity());
     return true;
   }
 
@@ -192,18 +189,18 @@ public class InvReservationServiceImpl implements IInvReservationService {
 
     InvReservationRecord record = reservationRecordMapper.selectByBusinessKey(tenant, businessKey);
     if (record == null) {
-      log.warn("预占不存在或不属于当前租户 businessKey={}", businessKey);
+      log.warn("预占不存在或不属于当前租户");
       return false;
     }
     assertSameTenant(record, tenantId);
 
     ReservationStatus status = record.statusEnum();
     if (status == ReservationStatus.RELEASED || status == ReservationStatus.EXPIRED) {
-      log.debug("预占已释放，幂等返回: businessKey={}, status={}", businessKey, status);
+      log.debug("预占已释放，幂等返回: status={}", status);
       return true;
     }
     if (status == ReservationStatus.CONFIRMED) {
-      log.warn("非法状态流转（释放已确认预占）: businessKey={}", businessKey);
+      log.warn("非法状态流转（释放已确认预占）: reservationId={}", record.getId());
       return false;
     }
 
@@ -214,16 +211,16 @@ public class InvReservationServiceImpl implements IInvReservationService {
       boolean alreadyReleased = latest != null
           && (latest.statusEnum() == ReservationStatus.RELEASED
               || latest.statusEnum() == ReservationStatus.EXPIRED);
-      log.debug("预占释放并发竞态: businessKey={}, alreadyReleased={}", businessKey, alreadyReleased);
+      log.debug("预占释放并发竞态: alreadyReleased={}", alreadyReleased);
       return alreadyReleased;
     }
 
     int stockUpdated = inventoryMapper.releaseStock(record.getInventoryId(), record.getQuantity());
     if (stockUpdated == 0) {
-      throw new IllegalStateException("锁定库存不足，无法释放预占: businessKey=" + businessKey);
+      throw new IllegalStateException("锁定库存不足，无法释放预占: reservationId=" + record.getId());
     }
 
-    log.debug("预占释放成功: businessKey={}, quantity={}", businessKey, record.getQuantity());
+    log.debug("预占释放成功: reservationId={}, quantity={}", record.getId(), record.getQuantity());
     return true;
   }
 
@@ -285,17 +282,17 @@ public class InvReservationServiceImpl implements IInvReservationService {
     int stockUpdated = inventoryMapper.releaseStock(record.getInventoryId(), record.getQuantity());
     if (stockUpdated == 0) {
       throw new IllegalStateException(
-          "锁定库存不足，无法释放过期预占: businessKey=" + record.getBusinessKey());
+          "锁定库存不足，无法释放过期预占: reservationId=" + record.getId());
     }
-    log.debug("过期预占已释放: businessKey={}, quantity={}",
-        record.getBusinessKey(), record.getQuantity());
+    log.debug("过期预占已释放: reservationId={}, quantity={}",
+        record.getId(), record.getQuantity());
     return true;
   }
 
   private void assertSameTenant(InvReservationRecord record, UUID tenantId) {
     if (record.getTenantId() != null && !record.getTenantId().equals(tenantId.toString())) {
-      log.warn("跨租户访问预占记录被拒绝: businessKey={}, ownerTenant={}, callerTenant={}",
-          record.getBusinessKey(), record.getTenantId(), tenantId);
+      log.warn("跨租户访问预占记录被拒绝: reservationId={}, ownerTenant={}, callerTenant={}",
+          record.getId(), record.getTenantId(), tenantId);
       throw new AccessDeniedException("预占记录不属于当前租户");
     }
   }

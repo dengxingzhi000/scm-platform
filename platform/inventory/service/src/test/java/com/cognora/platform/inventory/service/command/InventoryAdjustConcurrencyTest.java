@@ -57,6 +57,17 @@ class InventoryAdjustConcurrencyTest {
         inventory.setLockedStock(0);
         inventory.setSafetyStock(0);
         when(inventoryMapper.selectOne(any())).thenReturn(inventory);
+        when(inventoryMapper.selectById(anyString())).thenAnswer(invocation -> {
+            Inventory snapshot = new Inventory();
+            snapshot.setId(inventory.getId());
+            snapshot.setSkuId(inventory.getSkuId());
+            snapshot.setWarehouseId(inventory.getWarehouseId());
+            snapshot.setAvailableStock(available.get());
+            snapshot.setTotalStock(total.get());
+            snapshot.setLockedStock(0);
+            snapshot.setSafetyStock(0);
+            return snapshot;
+        });
 
         when(inventoryMapper.applyAdjustment(anyString(), anyInt(), anyInt(), any()))
                 .thenAnswer(invocation -> {

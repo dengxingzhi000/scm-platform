@@ -58,16 +58,16 @@ public class InvInventoryCommandService {
                 request.getAdjustType() == null ? 0 : request.getAdjustType(),
                 request.getOperatorId());
         if (updated == 0) {
+            long deducted = quantity < 0 ? -(long) quantity : (long) quantity;
             throw new IllegalArgumentException(
                     "库存不足，无法扣减。当前库存: " + inventory.getAvailableStock()
-                            + ", 扣减数量: " + Math.abs(Math.min(quantity, 0)));
+                            + ", 扣减数量: " + deducted);
         }
 
         Inventory fresh = inventoryMapper.selectById(inventory.getId());
         if (fresh == null) {
-            fresh = inventory;
-            fresh.setAvailableStock(fresh.getAvailableStock() + quantity);
-            fresh.setTotalStock(fresh.getTotalStock() + quantity);
+            // 条件更新已成功，读不到记录属于数据异常，不再用内存值推算（避免溢出与错报）
+            throw new IllegalStateException("库存调整后未能读取台账记录: id=" + inventory.getId());
         }
 
         outboxService.save(
