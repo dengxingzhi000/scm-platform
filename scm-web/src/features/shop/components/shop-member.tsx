@@ -24,7 +24,6 @@ import { memberApi } from '@/lib/api/services/ecommerce'
 import { useAuthStore } from '@/stores/useAuthStore'
 import {
   formatDate,
-  formatDateTime,
   memberStatusMap,
   statusMeta,
 } from '@/features/ecommerce/lib/status'

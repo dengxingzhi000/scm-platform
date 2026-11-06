@@ -39,6 +39,10 @@ public class TmsWaybill implements Serializable {
     @TableField("waybill_no")
     private String waybillNo;
 
+    /** 承运商真实跟踪号（面单/回传），与平台运单号可能不同；首次回传后不再覆盖。 */
+    @TableField("tracking_no")
+    private String trackingNo;
+
     @TableField("carrier_id")
     private String carrierId;
 

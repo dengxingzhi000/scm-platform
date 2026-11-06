@@ -4,9 +4,12 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.cognora.platform.inventory.api.InventoryDubboService;
 import com.cognora.platform.inventory.api.exception.InsufficientStockException;
 import com.cognora.platform.inventory.api.request.BatchDeductStockRequest;
+import com.cognora.platform.common.tenant.TenantContextHolder;
 import com.cognora.platform.inventory.domain.entity.Inventory;
 import com.cognora.platform.inventory.mapper.InvInventoryMapper;
 import com.cognora.platform.inventory.service.RedisInventoryService;
+import com.cognora.platform.inventory.service.flow.FlowLogEntry;
+import com.cognora.platform.inventory.service.flow.InventoryFlowLogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboService;
@@ -31,6 +34,7 @@ public class InventoryDubboServiceImpl implements InventoryDubboService {
 
     private final RedisInventoryService redisInventoryService;
     private final InvInventoryMapper inventoryMapper;
+    private final InventoryFlowLogService flowLogService;
 
     @Override
     public void deductStock(Long skuId, Integer quantity, String requestId) {
@@ -58,6 +62,15 @@ public class InventoryDubboServiceImpl implements InventoryDubboService {
             // 扣减失败释放幂等键，允许同一 requestId 重试
             redisInventoryService.releaseDeductRequest(requestId);
             throw e;
+        }
+
+        // Redis 与 DB 不在同一事务：流水写失败时补偿本次扣减，再抛出，避免“扣了没账”。
+        try {
+            recordDeductFlow(skuId, quantity, requestId);
+        } catch (RuntimeException flowFailure) {
+            log.error("库存流水写入失败，回滚 Redis 扣减: skuId={}, requestId={}", skuId, requestId);
+            compensate(redisInventoryService, skuId.toString(), DEFAULT_WAREHOUSE, quantity);
+            throw flowFailure;
         }
 
         log.info("Dubbo扣减库存成功: skuId={}, quantity={}", skuId, quantity);
@@ -97,7 +110,88 @@ public class InventoryDubboServiceImpl implements InventoryDubboService {
             throw e;
         }
 
+        try {
+            recordBatchDeductFlow(deductRequest);
+        } catch (RuntimeException flowFailure) {
+            log.error("批量流水写入失败，回滚 Redis 扣减: requestId={}", deductRequest.getRequestId());
+            for (BatchDeductStockRequest.StockItem item : deductRequest.getItems()) {
+                compensate(redisInventoryService, item.getSkuId().toString(),
+                        DEFAULT_WAREHOUSE, item.getQuantity());
+            }
+            throw flowFailure;
+        }
+
         log.info("Dubbo批量扣减库存成功: itemCount={}", items.size());
+    }
+
+    /**
+     * 写单次 Dubbo 扣减流水。
+     *
+     * <p>Redis 是此路径的唯一事实来源，因此 before/after 只填 available（来自 Redis）；
+     * total/locked/damaged 不从台账臆造，保持为空并标记 {@code ledger_source=REDIS}。
+     */
+    private void recordDeductFlow(Long skuId, int quantity, String requestId) {
+        Integer afterStock = redisInventoryService.getStock(skuId.toString(), DEFAULT_WAREHOUSE);
+        if (afterStock == null) {
+            log.warn("Redis 扣减后读不到库存，跳过流水: skuId={}, requestId={}", skuId, requestId);
+            return;
+        }
+        flowLogService.record(deductEntry(skuId, quantity, afterStock,
+                "DUBBO_DEDUCT:" + requestId + ":" + skuId, requestId));
+    }
+
+    private void recordBatchDeductFlow(BatchDeductStockRequest deductRequest) {
+        int index = 0;
+        for (BatchDeductStockRequest.StockItem item : deductRequest.getItems()) {
+            Integer afterStock =
+                    redisInventoryService.getStock(item.getSkuId().toString(), DEFAULT_WAREHOUSE);
+            if (afterStock == null) {
+                log.warn("批量扣减后读不到库存，跳过该条流水: skuId={}, requestId={}",
+                        item.getSkuId(), deductRequest.getRequestId());
+                index++;
+                continue;
+            }
+            flowLogService.record(deductEntry(item.getSkuId(), item.getQuantity(), afterStock,
+                    "DUBBO_BATCH:" + deductRequest.getRequestId() + ":" + index + ":" + item.getSkuId(),
+                    deductRequest.getRequestId()));
+            index++;
+        }
+    }
+
+    private static FlowLogEntry deductEntry(Long skuId, int quantity, int afterStock,
+                                            String idempotencyKey, String requestId) {
+        return FlowLogEntry.builder()
+                .tenantId(currentTenant())
+                .legacySkuId(skuId)
+                .warehouseCode(DEFAULT_WAREHOUSE)
+                .operationType(2)
+                .businessType("DUBBO_DEDUCT")
+                .changeQuantity(-quantity)
+                .beforeAvailable(afterStock + quantity)
+                .afterAvailable(afterStock)
+                .requestId(requestId)
+                .businessKey(requestId)
+                .referenceType("DUBBO")
+                .reason("Dubbo 扣减库存")
+                .ledgerSource("REDIS")
+                .extraData("{\"source\":\"REDIS\"}")
+                .idempotencyKey(idempotencyKey)
+                .build();
+    }
+
+    private static String currentTenant() {
+        return TenantContextHolder.getTenantId() == null
+                ? null : TenantContextHolder.getTenantId().toString();
+    }
+
+    private static void compensate(RedisInventoryService redis, String skuId, String warehouse,
+                                   int quantity) {
+        try {
+            redis.addStock(skuId, warehouse, quantity);
+        } catch (RuntimeException compensateFailure) {
+            log.error("Redis 扣减补偿失败，需人工核对: skuId={}, warehouse={}, quantity={}",
+                    skuId, warehouse, quantity, compensateFailure);
+        }
     }
 
     private static void validateRequestId(String requestId) {

@@ -42,6 +42,10 @@ public class TmsTracking implements Serializable {
     @TableField("waybill_no")
     private String waybillNo;
 
+    /** 承运商回传的真实跟踪号；写入运单跟踪号字段并随轨迹留存。 */
+    @TableField("tracking_no")
+    private String trackingNo;
+
     /** 承运商推送的事件 ID；同一租户下唯一，用于回调幂等。 */
     @TableField("event_id")
     private String eventId;

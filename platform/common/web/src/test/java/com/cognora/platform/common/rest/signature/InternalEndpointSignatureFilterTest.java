@@ -14,8 +14,10 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.core.DefaultOAuth2AuthenticatedPrincipal;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -194,6 +196,27 @@ class InternalEndpointSignatureFilterTest {
                 new MockHttpServletResponse(), chain(proceeded));
 
         assertThat(proceeded).isFalse();
+    }
+
+    @Test
+    void dualIdentityUsesPermissionLookupWhenPrincipalIsNotASecurityUser() throws Exception {
+        UUID userId = UUID.randomUUID();
+        // Resource-server style principal: the userId claim resolves, but getCurrentUser() is null.
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(
+                        new DefaultOAuth2AuthenticatedPrincipal(
+                                "bearer-user", Map.of("userId", userId.toString()), List.of()),
+                        null, List.of()));
+        PermissionService permissionService = mock(PermissionService.class);
+        when(permissionService.findAllPermissionsByUserId(userId))
+                .thenReturn(Set.of("search:index:manage"));
+        AtomicBoolean proceeded = new AtomicBoolean(false);
+
+        filter(properties(), permissionService).doFilter(
+                new MockHttpServletRequest("POST", "/api/v1/search/index/reindex"),
+                new MockHttpServletResponse(), chain(proceeded));
+
+        assertThat(proceeded).isTrue();
     }
 
     private InternalEndpointSignatureFilter filter(ApiAccessControlProperties properties) {

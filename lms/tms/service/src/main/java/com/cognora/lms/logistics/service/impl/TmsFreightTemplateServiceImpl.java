@@ -67,7 +67,9 @@ public class TmsFreightTemplateServiceImpl extends ServiceImpl<TmsFreightTemplat
         template.setUpdateTime(LocalDateTime.now());
         save(template);
         log.info("运费模板已创建: id={}, carrierId={}, region={}",
-                template.getId(), template.getCarrierId(), template.getRegionCode());
+                (template.getId() + "").replace("\r", "_").replace("\n", "_"),
+                (template.getCarrierId() + "").replace("\r", "_").replace("\n", "_"),
+                (template.getRegionCode() + "").replace("\r", "_").replace("\n", "_"));
         return template;
     }
 

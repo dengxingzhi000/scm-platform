@@ -6,6 +6,8 @@ import com.cognora.platform.inventory.domain.entity.InvTccReservation;
 import com.cognora.platform.inventory.domain.entity.Inventory;
 import com.cognora.platform.inventory.mapper.InvInventoryMapper;
 import com.cognora.platform.inventory.mapper.InvTccReservationMapper;
+import com.cognora.platform.inventory.service.flow.FlowLogEntry;
+import com.cognora.platform.inventory.service.flow.InventoryFlowLogService;
 import io.seata.core.context.RootContext;
 import io.seata.rm.tcc.api.BusinessActionContext;
 import lombok.RequiredArgsConstructor;
@@ -50,6 +52,7 @@ import java.util.List;
 public class InventoryTccServiceImpl implements InventoryTccService {
     private final InvInventoryMapper inventoryMapper;
     private final InvTccReservationMapper reservationMapper;
+    private final InventoryFlowLogService flowLogService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -130,6 +133,9 @@ public class InventoryTccServiceImpl implements InventoryTccService {
 
         log.debug("TCC Try 成功: reservationId={}, inventoryId={}, quantity={}",
                 reservation.getId(), inventory.getId(), quantity);
+
+        recordFlow(tenant, inventory, quantity, "TCC_TRY", 3, -quantity,
+                businessKey, "TCC_TRY:" + businessKey, "TCC 预占锁定");
         return true;
     }
 
@@ -176,6 +182,9 @@ public class InventoryTccServiceImpl implements InventoryTccService {
         }
 
         log.debug("TCC Confirm 成功: reservationId={}, quantity={}", reservation.getId(), quantity);
+
+        recordFlow(tenant, ledger, quantity, "TCC_CONFIRM", 5, -quantity,
+                businessKey, "TCC_CONFIRM:" + businessKey, "TCC 确认实扣");
         return true;
     }
 
@@ -235,6 +244,9 @@ public class InventoryTccServiceImpl implements InventoryTccService {
         }
 
         log.debug("TCC Cancel 成功: reservationId={}, quantity={}", reservation.getId(), quantity);
+
+        recordFlow(tenant, ledger, quantity, "TCC_CANCEL", 4, quantity,
+                businessKey, "TCC_CANCEL:" + businessKey, "TCC 取消归还可用");
         return true;
     }
 
@@ -255,6 +267,66 @@ public class InventoryTccServiceImpl implements InventoryTccService {
                 existing.getId(), status);
         return false;
         }
+
+    /**
+     * 按变更前台账快照 + 数量推导变更后快照并写库存流水。
+     *
+     * <p>幂等键按 businessKey 维度，重复 Confirm/Cancel 回调在状态机处已提前返回，
+     * 这里再做一层去重兜底。
+     */
+    private void recordFlow(String tenant, Inventory before, int quantity,
+                            String businessType, int operationType, int changeQuantity,
+                            String businessKey, String idempotencyKey, String reason) {
+        int beforeTotal = nvl(before.getTotalStock());
+        int beforeAvailable = nvl(before.getAvailableStock());
+        int beforeLocked = nvl(before.getLockedStock());
+        int beforeDamaged = nvl(before.getDamagedStock());
+
+        int afterTotal = beforeTotal;
+        int afterAvailable = beforeAvailable;
+        int afterLocked = beforeLocked;
+        switch (businessType) {
+            case "TCC_TRY" -> {
+                afterAvailable = beforeAvailable - quantity;
+                afterLocked = beforeLocked + quantity;
+            }
+            case "TCC_CONFIRM" -> {
+                afterTotal = beforeTotal - quantity;
+                afterLocked = beforeLocked - quantity;
+            }
+            case "TCC_CANCEL" -> {
+                afterAvailable = beforeAvailable + quantity;
+                afterLocked = beforeLocked - quantity;
+            }
+            default -> throw new IllegalArgumentException("未知流水业务类型: " + businessType);
+        }
+
+        flowLogService.record(FlowLogEntry.builder()
+                .tenantId(tenant)
+                .skuId(before.getSkuId())
+                .warehouseId(before.getWarehouseId())
+                .operationType(operationType)
+                .businessType(businessType)
+                .changeQuantity(changeQuantity)
+                .beforeTotal(beforeTotal)
+                .beforeAvailable(beforeAvailable)
+                .beforeLocked(beforeLocked)
+                .beforeDamaged(beforeDamaged)
+                .afterTotal(afterTotal)
+                .afterAvailable(afterAvailable)
+                .afterLocked(afterLocked)
+                .afterDamaged(beforeDamaged)
+                .reason(reason)
+                .businessKey(businessKey)
+                .referenceType("TCC")
+                .referenceId(before.getId())
+                .idempotencyKey(idempotencyKey)
+                .build());
+    }
+
+    private static int nvl(Integer value) {
+        return value == null ? 0 : value;
+    }
 
     private Inventory resolveLegacyInventory(String tenant, Long skuId) {
         List<Inventory> rows = inventoryMapper.selectByLegacySkuId(tenant, skuId);
