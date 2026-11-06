@@ -47,6 +47,7 @@ Internet
 | Seata | 7091, 8091 | TCP | 分布式事务 |
 | XXL-Job Admin | 8088 | HTTP | 任务调度 |
 | Prometheus | 9090 | HTTP | 监控 |
+| Alertmanager | 9093 | HTTP | 告警路由（详见 [ALERTING.md](ALERTING.md)） |
 | Grafana | 3000 | HTTP | 可视化 |
 
 ---
