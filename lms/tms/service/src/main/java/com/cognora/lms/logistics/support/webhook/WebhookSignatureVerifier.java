@@ -1,5 +1,6 @@
 package com.cognora.lms.logistics.support.webhook;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -8,8 +9,6 @@ import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.HexFormat;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 承运商 Webhook 验签（批次 3）。
@@ -20,8 +19,10 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>防重放为「时间窗 + nonce 一次性消费 + event_id 幂等」三层组合：</p>
  * <ol>
  *   <li>时间窗：时间戳与服务器时间偏差超过阈值直接拒绝（默认 300 秒）；</li>
- *   <li>nonce：窗口内同一 nonce 只允许消费一次，拦截窗口内重放；</li>
- *   <li>event_id：验签通过后仍由轨迹服务按 event_id 幂等，拦截跨实例/窗口外的重复推送。</li>
+ *   <li>nonce：窗口内同一 nonce 只允许消费一次，拦截窗口内重放；生产由 Redis 共享存储支撑，
+ *       多实例下同一 nonce 在任意实例重复出现都会被拒绝，可用性降级时回退进程内存储；</li>
+ *   <li>event_id：验签通过后仍由轨迹服务按 event_id 幂等，拦截跨实例/窗口外的重复推送，
+ *       数据库唯一约束是最终兜底。</li>
  * </ol>
  *
  * <p>密钥仅来自环境变量/配置，禁止明文落库与日志输出；密钥缺失时 fail-closed。</p>
@@ -35,14 +36,28 @@ public class WebhookSignatureVerifier {
 
     private final String secret;
     private final long windowSeconds;
-    /** nonce -> 首次消费时间戳（秒），按窗口惰性清理。 */
-    private final Map<String, Long> consumedNonces = new ConcurrentHashMap<>();
+    private final WebhookReplayStore replayStore;
 
+    /**
+     * 单实例/单元测试入口：进程内 nonce 存储。
+     */
     public WebhookSignatureVerifier(
             @Value("${lms.webhook.hmac-secret:}") String secret,
             @Value("${lms.webhook.time-window-seconds:300}") long windowSeconds) {
+        this(secret, windowSeconds, new InMemoryWebhookReplayStore());
+    }
+
+    /**
+     * 运行时入口：由 {@link WebhookReplayStoreConfig} 注入 Redis 共享存储。
+     */
+    @Autowired
+    public WebhookSignatureVerifier(
+            @Value("${lms.webhook.hmac-secret:}") String secret,
+            @Value("${lms.webhook.time-window-seconds:300}") long windowSeconds,
+            WebhookReplayStore replayStore) {
         this.secret = secret;
         this.windowSeconds = windowSeconds > 0 ? windowSeconds : DEFAULT_WINDOW_SECONDS;
+        this.replayStore = replayStore;
     }
 
     /**
@@ -85,9 +100,8 @@ public class WebhookSignatureVerifier {
             throw new WebhookSignatureException("回调签名校验失败");
         }
 
-        pruneExpired(nowSeconds);
-        // putIfAbsent 保证同一 nonce 并发回调只有一个能通过。
-        if (consumedNonces.putIfAbsent(nonce.trim(), ts) != null) {
+        // 一次性消费由存储层保证原子性：Redis(SETNX) 或进程内 putIfAbsent。
+        if (!replayStore.consumeIfAbsent(nonce.trim(), nowSeconds, windowSeconds)) {
             throw new WebhookSignatureException("回调 nonce 已被使用（疑似重放）");
         }
     }
@@ -108,9 +122,5 @@ public class WebhookSignatureVerifier {
             // 不输出底层异常细节，避免泄露密钥材料。
             throw new WebhookSignatureException("回调签名计算失败");
         }
-    }
-
-    private void pruneExpired(long nowSeconds) {
-        consumedNonces.entrySet().removeIf(entry -> Math.abs(nowSeconds - entry.getValue()) > windowSeconds);
     }
 }

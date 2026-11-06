@@ -2,8 +2,6 @@ package com.cognora.lms.logistics.domain.carrier;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 /**
@@ -16,7 +14,8 @@ import java.util.function.Function;
  *   <li>降级：主承运商失败或熔断时，按备用列表顺序尝试；发生切换即标记 degraded。</li>
  * </ul>
  *
- * <p>无状态存储为进程内（单实例），多实例部署需替换为共享缓存/注册中心；真实承运商 SDK 未接入。</p>
+ * <p>熔断状态存储可插拔：默认进程内实现（单实例/单元测试）；多实例部署注入
+ * {@link RedisCarrierCircuitStore} 即可共享失败计数与打开状态。真实承运商 SDK 未接入。</p>
  */
 public final class CarrierFailoverExecutor {
 
@@ -28,18 +27,13 @@ public final class CarrierFailoverExecutor {
         void sleep(long millis) throws InterruptedException;
     }
 
-    private static final class Circuit {
-        private int consecutiveFailures;
-        private long openUntilMillis;
-    }
-
     private final int failureThreshold;
     private final long cooldownMillis;
     private final int maxAttempts;
     private final long baseBackoffMillis;
     private final long maxBackoffMillis;
     private final Sleeper sleeper;
-    private final Map<String, Circuit> circuits = new ConcurrentHashMap<>();
+    private final CarrierCircuitStore circuitStore;
 
     public CarrierFailoverExecutor() {
         this(3, 60_000L, 2, 100L, 1_000L, Thread::sleep);
@@ -47,12 +41,24 @@ public final class CarrierFailoverExecutor {
 
     public CarrierFailoverExecutor(int failureThreshold, long cooldownMillis, int maxAttempts,
                                    long baseBackoffMillis, long maxBackoffMillis, Sleeper sleeper) {
+        this(failureThreshold, cooldownMillis, maxAttempts, baseBackoffMillis, maxBackoffMillis,
+                sleeper, new InMemoryCarrierCircuitStore());
+    }
+
+    /**
+     * 多实例部署使用：传入共享的 {@link CarrierCircuitStore}（如 Redis 实现），
+     * 使熔断状态跨实例可见。
+     */
+    public CarrierFailoverExecutor(int failureThreshold, long cooldownMillis, int maxAttempts,
+                                   long baseBackoffMillis, long maxBackoffMillis, Sleeper sleeper,
+                                   CarrierCircuitStore circuitStore) {
         this.failureThreshold = failureThreshold > 0 ? failureThreshold : 3;
         this.cooldownMillis = cooldownMillis > 0 ? cooldownMillis : 60_000L;
         this.maxAttempts = maxAttempts > 0 ? maxAttempts : 1;
         this.baseBackoffMillis = Math.max(baseBackoffMillis, 0);
         this.maxBackoffMillis = Math.max(maxBackoffMillis, baseBackoffMillis);
         this.sleeper = sleeper == null ? Thread::sleep : sleeper;
+        this.circuitStore = circuitStore == null ? new InMemoryCarrierCircuitStore() : circuitStore;
     }
 
     /**
@@ -77,8 +83,7 @@ public final class CarrierFailoverExecutor {
         boolean degraded = false;
 
         for (String candidate : candidates) {
-            Circuit circuit = circuits.computeIfAbsent(candidate, k -> new Circuit());
-            if (isOpen(circuit, System.currentTimeMillis())) {
+            if (circuitStore.isOpen(candidate, System.currentTimeMillis())) {
                 // 熔断期内直接跳过该承运商，视为已降级。
                 degraded = true;
                 continue;
@@ -87,12 +92,13 @@ public final class CarrierFailoverExecutor {
                 totalAttempts++;
                 try {
                     call.apply(candidate);
-                    onSuccess(circuit);
+                    circuitStore.recordSuccess(candidate);
                     return new CallOutcome<>(true, candidate, totalAttempts,
                             degraded || !candidate.equals(primaryCarrierId), null);
                 } catch (RuntimeException e) {
                     lastError = e.getMessage();
-                    onFailure(circuit, System.currentTimeMillis());
+                    circuitStore.recordFailure(candidate, failureThreshold, cooldownMillis,
+                            System.currentTimeMillis());
                     if (attempt < maxAttempts) {
                         sleepBackoff(attempt);
                     }
@@ -101,28 +107,6 @@ public final class CarrierFailoverExecutor {
             degraded = true;
         }
         return new CallOutcome<>(false, null, totalAttempts, true, lastError);
-    }
-
-    private boolean isOpen(Circuit circuit, long nowMillis) {
-        synchronized (circuit) {
-            return circuit.openUntilMillis > nowMillis;
-        }
-    }
-
-    private void onSuccess(Circuit circuit) {
-        synchronized (circuit) {
-            circuit.consecutiveFailures = 0;
-            circuit.openUntilMillis = 0L;
-        }
-    }
-
-    private void onFailure(Circuit circuit, long nowMillis) {
-        synchronized (circuit) {
-            circuit.consecutiveFailures++;
-            if (circuit.consecutiveFailures >= failureThreshold) {
-                circuit.openUntilMillis = nowMillis + cooldownMillis;
-            }
-        }
     }
 
     private void sleepBackoff(int attempt) {
