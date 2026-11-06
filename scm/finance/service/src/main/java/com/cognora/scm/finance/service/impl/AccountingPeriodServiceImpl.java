@@ -110,6 +110,16 @@ public class AccountingPeriodServiceImpl implements AccountingPeriodService {
     }
 
     @Override
+    public AccountingPeriod getCurrentPeriod() {
+        String periodCode = YearMonth.now().toString();
+        return accountingPeriodMapper.selectOne(Wrappers.<AccountingPeriod>lambdaQuery()
+                .eq(AccountingPeriod::getTenantId, TenantContextHolder.getRequiredTenantId().toString())
+                .eq(AccountingPeriod::getPeriodCode, periodCode)
+                .eq(AccountingPeriod::getDeleted, false)
+                .last("LIMIT 1"));
+    }
+
+    @Override
     public Page<AccountingPeriod> pageQuery(int page, int size, Integer status) {
         LambdaQueryWrapper<AccountingPeriod> wrapper = Wrappers.lambdaQuery();
         wrapper.eq(AccountingPeriod::getTenantId, TenantContextHolder.getRequiredTenantId().toString())
