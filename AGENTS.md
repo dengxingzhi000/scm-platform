@@ -87,12 +87,12 @@ dev box:
 
 | | |
 |---|---|
-| Host | `192.168.0.117` |
+| Host | `192.168.0.121` |
 | User | `root` |
 | Password | 见密码管理器条目 `cognora-aura-platform / prod-vm`（不写进仓库） |
 
 ```bash
-ssh root@192.168.0.117
+ssh root@192.168.0.121
 cd <repo> && docker-compose up -d          # infra (default profile)
 docker-compose --profile ecommerce up -d   # + the e-commerce services
 ```
