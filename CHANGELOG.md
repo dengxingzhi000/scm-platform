@@ -7,9 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.2.0] - 2026-11-06
 
-Covers every merged commit after `v2.1.0` (`5732ab1b`) through `b523612d`
-(44 commits). The `v2.2.0` tag is not created yet — tagging is the release step
-and is done separately.
+Covers everything merged after `v2.1.0` (`5732ab1b`) through `b523612d`
+(48 first-parent commits). The `v2.2.0` tag is not created yet — tagging is the
+release step and is done separately.
 
 ### Added
 
@@ -47,6 +47,9 @@ and is done separately.
   (#341).
 - Shared XXL-Job executor, member Flyway baseline and partition job corrected
   (#329).
+- `BusinessException` keeps the HTTP status it carries instead of collapsing to
+  500: the shared handler reads it directly (#367) and the system service maps
+  plain-message exceptions to the matching status (#370).
 
 ### Changed
 
@@ -59,8 +62,11 @@ and is done separately.
   resolving to their historical versions.
 - Inventory `inv_log` is partitioned monthly and the OpenAPI drift check was
   extended (#357).
-- The extracted `scm-web` frontend was removed from the monorepo (#352).
 - The second source of truth for waybill status was removed (#335).
+- Audit and auth metrics are scraped by Prometheus and the audit alert rules
+  are loaded (#368).
+- The `021` TCC inventory script can be re-run and is wired into database
+  initialisation (#364).
 
 ### Documentation
 
@@ -68,6 +74,11 @@ and is done separately.
   (#362).
 - The minimatch ReDoS risk in the dev-only lint toolchain is documented and
   accepted (#95).
+- Both READMEs were aligned with the current codebase: tenant port, Debezium
+  instead of Canal, Node.js 22+, the K8s manifest set and the real module list
+  (#366).
+- The deployment VM address is documented consistently across `AGENTS.md` and
+  the operations notes (#369).
 
 ### Tests
 
