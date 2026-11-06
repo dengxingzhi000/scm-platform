@@ -11,7 +11,6 @@ import com.cognora.lms.logistics.domain.freight.FreightRule;
 import com.cognora.lms.logistics.mapper.TmsFreightTemplateMapper;
 import com.cognora.lms.logistics.service.ITmsFreightTemplateService;
 import com.cognora.lms.logistics.support.TenantGuard;
-import com.cognora.platform.common.log.util.LogUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -68,9 +67,9 @@ public class TmsFreightTemplateServiceImpl extends ServiceImpl<TmsFreightTemplat
         template.setUpdateTime(LocalDateTime.now());
         save(template);
         log.info("运费模板已创建: id={}, carrierId={}, region={}",
-                template.getId(),
-                LogUtils.sanitizeForLog(template.getCarrierId()),
-                LogUtils.sanitizeForLog(template.getRegionCode()));
+                (template.getId() + "").replace("\r", "_").replace("\n", "_"),
+                (template.getCarrierId() + "").replace("\r", "_").replace("\n", "_"),
+                (template.getRegionCode() + "").replace("\r", "_").replace("\n", "_"));
         return template;
     }
 

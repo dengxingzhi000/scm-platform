@@ -128,8 +128,10 @@ public class TmsTrackingServiceImpl extends ServiceImpl<TmsTrackingMapper, TmsTr
         applyWaybillStatus(waybill, tracking);
         applyWaybillTrackingNo(waybill, tracking);
 
-        log.info("物流轨迹添加入库: id={}, waybillNo={}, eventId={}", tracking.getId(),
-                LogUtils.sanitizeForLog(tracking.getWaybillNo()), LogUtils.sanitizeForLog(eventId));
+        log.info("物流轨迹添加入库: id={}, waybillNo={}, eventId={}",
+                (tracking.getId() + "").replace("\r", "_").replace("\n", "_"),
+                (tracking.getWaybillNo() + "").replace("\r", "_").replace("\n", "_"),
+                (eventId + "").replace("\r", "_").replace("\n", "_"));
         return tracking;
     }
 
