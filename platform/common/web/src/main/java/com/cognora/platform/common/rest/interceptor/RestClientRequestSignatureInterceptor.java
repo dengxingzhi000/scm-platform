@@ -78,7 +78,12 @@ public class RestClientRequestSignatureInterceptor implements ClientHttpRequestI
 
         // 鐢熸垚鏃堕棿鎴冲拰 nonce
         String timestamp = String.valueOf(System.currentTimeMillis());
-        String nonce = UUIDv7Util.generate().toString().replace("-", "");
+        // 调用方可以为一次业务写入预定 nonce（审计写入用它做幂等键）；重试必须复用同一个值，
+        // 否则被重试的那条请求在接收端看起来就是另一条新记录。只有缺省时才生成新的。
+        String nonce = request.getHeaders().getFirst("X-Nonce");
+        if (!StringUtils.hasText(nonce)) {
+            nonce = UUIDv7Util.generate().toString().replace("-", "");
+        }
 
         // 璁$畻绛惧悕
         String signature = calculateSignature(request, timestamp, nonce);

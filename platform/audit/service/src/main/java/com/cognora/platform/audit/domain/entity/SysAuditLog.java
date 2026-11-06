@@ -115,4 +115,11 @@ public class SysAuditLog implements Serializable {
     @TableField("create_time")
     private LocalDateTime createTime;
 
+    /**
+     * 服务间写入的幂等键，取自签名头 {@code X-Nonce}。历史行为空且不回填；唯一索引只在非空时生效，
+     * 因此既有数据不会冲突。
+     */
+    @TableField("request_nonce")
+    private String requestNonce;
+
 }

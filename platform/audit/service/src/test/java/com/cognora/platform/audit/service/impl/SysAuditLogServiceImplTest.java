@@ -8,15 +8,18 @@ import com.cognora.platform.common.log.dto.AuditLogRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -105,5 +108,46 @@ class SysAuditLogServiceImplTest {
 
         verify(auditLogMapper).insert(any(SysAuditLog.class));
         verify(sensitiveCommandService, never()).createLog(any());
+    }
+
+    @Test
+    void aRetriedDeliveryIsSwallowedInsteadOfFailingTheWrite() {
+        when(auditLogMapper.insert(any(SysAuditLog.class)))
+                .thenReturn(1)
+                .thenThrow(new DuplicateKeyException("duplicate key value violates unique constraint"));
+        SysAuditLog entity = SysAuditLog.builder()
+                .operationType("LOGIN")
+                .requestNonce("nonce-1")
+                .build();
+
+        // 第二次写入被唯一索引拒绝；调用方（POST /sys-audit-log）必须仍然得到 200。
+        assertThatCode(() -> service.createLog(entity)).doesNotThrowAnyException();
+        assertThatCode(() -> service.createLog(entity)).doesNotThrowAnyException();
+        verify(auditLogMapper, times(2)).insert(any(SysAuditLog.class));
+    }
+
+    @Test
+    void differentNoncesArePersistedWithTheirOwnKey() {
+        service.createLog(SysAuditLog.builder().operationType("LOGIN").requestNonce("nonce-1").build());
+        service.createLog(SysAuditLog.builder().operationType("LOGIN").requestNonce("nonce-2").build());
+
+        ArgumentCaptor<SysAuditLog> captor = ArgumentCaptor.forClass(SysAuditLog.class);
+        verify(auditLogMapper, times(2)).insert(captor.capture());
+        assertThat(captor.getAllValues()).extracting(SysAuditLog::getRequestNonce)
+                .containsExactly("nonce-1", "nonce-2");
+    }
+
+    @Test
+    void aDuplicateInsertDoesNotMirrorTheSensitiveOperationAgain() {
+        when(auditLogMapper.insert(any(SysAuditLog.class)))
+                .thenReturn(1)
+                .thenThrow(new DuplicateKeyException("duplicate key value violates unique constraint"));
+        AuditLogRecord delivered = record(4, "019a0aee-0000-7000-8000-000000000001");
+
+        service.record(delivered);
+        service.record(delivered);
+
+        verify(auditLogMapper, times(2)).insert(any(SysAuditLog.class));
+        verify(sensitiveCommandService, times(1)).createLog(any(SysSensitiveOperationLog.class));
     }
 }

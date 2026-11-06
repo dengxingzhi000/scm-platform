@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -24,7 +25,12 @@ public class SysAuditLogController {
 
     @Operation(summary = "写入审计日志", description = "供内部服务经签名校验后写入一条审计日志记录；登录用户不能直接调用。")
     @PostMapping
-    public SysAuditLog create(@RequestBody SysAuditLog entity) {
+    public SysAuditLog create(@RequestBody SysAuditLog entity,
+                              @Parameter(description = "签名头 X-Nonce，作为写入幂等键")
+                              @RequestHeader(value = "X-Nonce", required = false) String nonce) {
+        if (StringUtils.hasText(nonce)) {
+            entity.setRequestNonce(nonce);
+        }
         log.info("[API] 创建审计日志: userId={}, operationType={}, module={}",
                 (entity.getUserId() + "").replace("\r", "_").replace("\n", "_"), (entity.getOperationType() + "").replace("\r", "_").replace("\n", "_"), (entity.getOperationModule() + "").replace("\r", "_").replace("\n", "_"));
         return auditLogService.createLog(entity);
