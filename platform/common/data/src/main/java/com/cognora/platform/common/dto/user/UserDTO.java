@@ -63,6 +63,9 @@ public class UserDTO implements Serializable {
 
     private String avatar;
 
+    /** 用户时区（IANA 名称，如 Asia/Shanghai）。 */
+    private String timezone;
+
     private Integer status;
 
     private UUID deptId;

@@ -336,6 +336,8 @@ cognora:
       - sys_dict_item
       - sys_status_dict
       - sys_status_transition
+      # 平台级配置表带可空 tenant_id（NULL=平台级），租户范围由 SysConfigServiceImpl 显式处理
+      - sys_config
 
 # ========== Logging Configuration ==========
 logging:

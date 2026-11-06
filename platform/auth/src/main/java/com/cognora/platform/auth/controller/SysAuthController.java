@@ -4,8 +4,11 @@ import com.alibaba.csp.sentinel.annotation.SentinelResource;
 import com.cognora.platform.auth.service.ISysAuthService;
 import com.cognora.platform.common.dto.user.LoginRequest;
 import com.cognora.platform.common.dto.user.LoginResponse;
+import com.cognora.platform.common.dto.user.LogoutOthersResponse;
 import com.cognora.platform.common.dto.user.RefreshTokenRequest;
 import com.cognora.platform.common.dto.user.UserInfo;
+import com.cognora.platform.common.dto.user.UserSessionDTO;
+import com.cognora.platform.common.exception.BusinessException;
 import com.cognora.platform.common.log.annotation.AuditLog;
 import com.cognora.platform.common.response.ApiResponse;
 import com.cognora.platform.common.security.util.HttpServletRequestUtils;
@@ -19,6 +22,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -116,6 +121,44 @@ public class SysAuthController {
             String traceId = TraceIdUtil.resolveAndSanitizeTraceId(request);
             log.error("getUserInfo failed traceId={} userId={}", (traceId + "").replace("\r", "_").replace("\n", "_"), (userId + "").replace("\r", "_").replace("\n", "_"), ex);
             return ApiResponse.fail(503, "User service unavailable");
+        }
+    }
+
+    @Operation(summary = "查询登录会话", description = "列出当前访问令牌所属用户的全部有效会话，用户身份只从令牌解析。")
+    @GetMapping("/sessions")
+    @PreAuthorize("isAuthenticated()")
+    public ApiResponse<List<UserSessionDTO>> listSessions(HttpServletRequest request) {
+        String token = httpServletRequestUtils.getTokenFromRequest(request);
+        return ApiResponse.success(authService.listSessions(token));
+    }
+
+    @Operation(summary = "撤销其他设备会话", description = "撤销除当前设备外的全部访问令牌，不接受 userId 入参。")
+    @PostMapping("/sessions/logout-others")
+    @PreAuthorize("isAuthenticated()")
+    @AuditLog(
+            operation = "撤销其他设备会话",
+            businessType = "USER",
+            riskLevel = 2
+    )
+    public ApiResponse<LogoutOthersResponse> logoutOthers(
+            HttpServletRequest request,
+            @RequestBody(required = false) Map<String, Object> body) {
+        rejectUserIdOverride(request, body);
+        int revoked = authService.logoutOtherSessions(httpServletRequestUtils.getTokenFromRequest(request));
+        return ApiResponse.success(new LogoutOthersResponse(revoked));
+    }
+
+    /**
+     * 会话端点只允许操作当前令牌所属用户：任何 userId/user_id 入参都必须拒绝，
+     * 否则普通用户可借该接口把他人踢下线（等价于绕过 system:user:edit）。
+     */
+    private void rejectUserIdOverride(HttpServletRequest request, Map<String, Object> body) {
+        boolean queryCarriesUserId = request.getParameterMap().containsKey("userId")
+                || request.getParameterMap().containsKey("user_id");
+        boolean bodyCarriesUserId = body != null
+                && (body.containsKey("userId") || body.containsKey("user_id"));
+        if (queryCarriesUserId || bodyCarriesUserId) {
+            throw new BusinessException(400, "userId is not accepted; the target user is resolved from the access token");
         }
     }
 

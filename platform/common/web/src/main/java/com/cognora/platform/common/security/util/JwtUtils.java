@@ -19,6 +19,7 @@ import org.springframework.stereotype.Component;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.*;
 
 /**
@@ -277,14 +278,16 @@ public class JwtUtils {
         String hashKey = USER_TOKENS_HASH + userId;
 
         // Get all device tokens for this user (O(N) where N = devices per user, typically < 10)
-        Map<Object, Object> deviceSessions = redisTemplate.opsForHash().entries(hashKey);
+        // 令牌哈希由 Lua 脚本经 StringRedisTemplate 以原始字符串写入，必须用同一个模板读取，
+        // 否则 JSON 序列化器会把 JWT 文本当成 JSON 解析而失败。
+        Map<String, String> deviceSessions = stringRedisTemplate.<String, String>opsForHash().entries(hashKey);
 
         if (deviceSessions != null && !deviceSessions.isEmpty()) {
             log.info("Revoking {} token(s) for user {}", deviceSessions.size(), userId);
 
-            for (Map.Entry<Object, Object> entry : deviceSessions.entrySet()) {
-                String deviceId = (String) entry.getKey();
-                String token = (String) entry.getValue();
+            for (Map.Entry<String, String> entry : deviceSessions.entrySet()) {
+                String deviceId = entry.getKey();
+                String token = entry.getValue();
 
                 if (token != null) {
                     try {
@@ -302,6 +305,118 @@ public class JwtUtils {
         } else {
             log.debug("No active tokens found for user {}", userId);
         }
+    }
+
+    /**
+     * 列出某个用户当前有效的访问令牌会话。
+     *
+     * <p>数据源是 {@code jwt:user:tokens:{userId}}（deviceId → token）与
+     * {@code jwt:fingerprint:{jti}}（设备/IP/签发时间）。已过期、已加入黑名单
+     * 或缺少指纹的令牌会被过滤。最近活跃时间取令牌最近一次签发/刷新时间：
+     * 刷新流程会撤销旧访问令牌并写入新的指纹。结果按最近活跃时间倒序。</p>
+     */
+    public List<TokenSession> listActiveSessions(UUID userId) {
+        Map<String, String> deviceTokens = stringRedisTemplate.<String, String>opsForHash()
+                .entries(USER_TOKENS_HASH + userId);
+        if (deviceTokens == null || deviceTokens.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        long now = System.currentTimeMillis();
+        List<TokenSession> sessions = new ArrayList<>(deviceTokens.size());
+        for (Map.Entry<String, String> entry : deviceTokens.entrySet()) {
+            String deviceId = entry.getKey();
+            String token = entry.getValue();
+            if (deviceId == null || token == null) {
+                continue;
+            }
+            Claims claims = parseToken(token);
+            if (claims == null || claims.getExpiration() == null) {
+                continue;
+            }
+            long expiresAt = claims.getExpiration().getTime();
+            if (expiresAt <= now) {
+                continue;
+            }
+            String jti = getJti(claims);
+            if (jti == null || isTokenBlacklisted(jti)) {
+                continue;
+            }
+            Map<String, String> fingerprint = stringRedisTemplate.<String, String>opsForHash()
+                    .entries(TOKEN_FINGERPRINT_PREFIX + jti);
+            if (fingerprint == null || fingerprint.isEmpty()) {
+                continue;
+            }
+            long issuedAt = parseEpochMillis(fingerprint.get("issueTime"), claims.getIssuedAt());
+            String ipAddress = fingerprint.get("ipAddress");
+            sessions.add(new TokenSession(deviceId, ipAddress,
+                    Instant.ofEpochMilli(issuedAt), Instant.ofEpochMilli(expiresAt)));
+        }
+
+        sessions.sort((left, right) -> right.getIssuedAt().compareTo(left.getIssuedAt()));
+        return sessions;
+    }
+
+    /**
+     * 撤销某个用户除当前 deviceId 以外的全部访问令牌。
+     *
+     * <p>{@code currentDeviceId} 必须来自当前访问令牌的 {@code deviceId} 声明，
+     * 不能由调用方传入任意值，否则等同于「强制其他设备下线」。撤销失败时抛出
+     * {@link UnauthorizedException}（fail-closed），避免静默留下有效会话。</p>
+     *
+     * @return 实际撤销的会话数量
+     */
+    public int revokeOtherDeviceTokens(UUID userId, String currentDeviceId, String reason) {
+        Map<String, String> deviceTokens = stringRedisTemplate.<String, String>opsForHash()
+                .entries(USER_TOKENS_HASH + userId);
+        if (deviceTokens == null || deviceTokens.isEmpty()) {
+            return 0;
+        }
+
+        int revoked = 0;
+        int failed = 0;
+        for (Map.Entry<String, String> entry : deviceTokens.entrySet()) {
+            String deviceId = entry.getKey();
+            String token = entry.getValue();
+            if (currentDeviceId != null && currentDeviceId.equals(deviceId)) {
+                continue;
+            }
+            if (token == null) {
+                continue;
+            }
+            try {
+                revokeToken(token, reason);
+                revoked++;
+            } catch (Exception e) {
+                failed++;
+                log.error("Failed to revoke other session for user {} device {}: {}",
+                        userId, maskIdentifier(deviceId), e.getMessage());
+            }
+        }
+        if (failed > 0) {
+            throw new UnauthorizedException("Failed to revoke " + failed + " other session(s)");
+        }
+        return revoked;
+    }
+
+    private long parseEpochMillis(String value, Date fallback) {
+        try {
+            return Long.parseLong(value);
+        } catch (NumberFormatException ignored) {
+            return fallback == null ? 0L : fallback.getTime();
+        }
+    }
+
+    /**
+     * 会话快照，供 {@code GET /api/auth/sessions} 使用。
+     */
+    @Data
+    @AllArgsConstructor
+    public static class TokenSession {
+        private String deviceId;
+        private String ipAddress;
+        private Instant issuedAt;
+        private Instant expiresAt;
     }
 
     /**
@@ -616,7 +731,7 @@ public class JwtUtils {
      */
     private void revokeUserAccessTokens(UUID userId, String deviceId) {
         String userTokensHash = USER_TOKENS_HASH + userId;
-        String oldToken = (String) redisTemplate.opsForHash().get(userTokensHash, deviceId);
+        String oldToken = stringRedisTemplate.<String, String>opsForHash().get(userTokensHash, deviceId);
         if (oldToken != null) {
             revokeToken(oldToken, "Token refreshed");
             log.debug("Revoked old token for user {} device {}", (userId + "").replace("\r", "_").replace("\n", "_"), (deviceId + "").replace("\r", "_").replace("\n", "_"));
