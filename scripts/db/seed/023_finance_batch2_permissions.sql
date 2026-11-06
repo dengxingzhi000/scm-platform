@@ -59,7 +59,9 @@ FROM (VALUES
     ('finance:fund-flow:create', '资金流水-登记', 'menu:finance:settlement',
      '/fund-flow', 'POST', 126, 4),
     ('finance:reconciliation:reject', '对账-驳回', 'menu:finance:reconciliation',
-     '/reconciliation-record/{id}/reject', 'POST', 109, 3)
+     '/reconciliation-record/{id}/reject', 'POST', 109, 3),
+    ('finance:accounting-period:reopen', '账期-重开账期', 'menu:finance:settlement',
+     '/accounting-period/{id}/reopen', 'POST', 127, 3)
 ) AS v(code, name, menu, api, method, sort_order, risk)
 ON CONFLICT (permission_code) DO UPDATE SET
     parent_id = EXCLUDED.parent_id,

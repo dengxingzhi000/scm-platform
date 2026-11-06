@@ -28,12 +28,21 @@ public class AccountingPeriod {
 
     private LocalDate endDate;
 
-    /** 0-未结账, 1-已结账 */
+    /** 0-未结账, 1-已结账, 2-已重开 */
     private Integer status;
 
     private String closedBy;
 
     private LocalDateTime closedAt;
+
+    /** 重开操作人；仅在最近一次重开时写入，重开后再次关账也不清空。 */
+    private String reopenedBy;
+
+    /** 最近一次重开时间。 */
+    private LocalDateTime reopenedAt;
+
+    /** 最近一次重开原因，与操作人/时间一并留痕，作为审计补充。 */
+    private String reopenReason;
 
     private LocalDateTime createTime;
 

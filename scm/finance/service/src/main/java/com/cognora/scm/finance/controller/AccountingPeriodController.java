@@ -36,13 +36,25 @@ public class AccountingPeriodController {
         return ApiResponse.success(accountingPeriodService.openPeriod(periodCode));
     }
 
-    @Operation(summary = "关闭账期", description = "将未结账账期置为已结账，非法流转返回 409。")
+    @Operation(summary = "关闭账期", description = "将未结账/已重开账期置为已结账，非法流转返回 409。")
     @PostMapping("/{id}/close")
     @AuditLog(operation = "关闭账期", businessType = "FINANCE_ACCOUNTING_PERIOD", riskLevel = 3)
     public ApiResponse<AccountingPeriod> close(
             @Parameter(description = "账期 ID") @PathVariable String id,
             @Parameter(description = "关账操作人 ID") @RequestParam String closedBy) {
         return ApiResponse.success(accountingPeriodService.closePeriod(id, closedBy));
+    }
+
+    @Operation(summary = "重开账期",
+            description = "将已结账账期重开（唯一合法回退路径），必须记录操作人、原因与时间；"
+                    + "仅「已结账 → 已重开」合法，其余流转返回 409。")
+    @PostMapping("/{id}/reopen")
+    @AuditLog(operation = "重开账期", businessType = "FINANCE_ACCOUNTING_PERIOD", riskLevel = 3)
+    public ApiResponse<AccountingPeriod> reopen(
+            @Parameter(description = "账期 ID") @PathVariable String id,
+            @Parameter(description = "重开原因，必填") @RequestParam String reason,
+            @Parameter(description = "重开操作人 ID，必填") @RequestParam String reopenedBy) {
+        return ApiResponse.success(accountingPeriodService.reopenPeriod(id, reason, reopenedBy));
     }
 
     @Operation(summary = "查询账期详情", description = "根据账期 ID 查询账期状态与起止日期。")
@@ -68,7 +80,7 @@ public class AccountingPeriodController {
     public ApiResponse<Page<AccountingPeriod>> page(
             @Parameter(description = "页码，默认 1") @RequestParam(required = false) Integer page,
             @Parameter(description = "每页数量，默认 20") @RequestParam(required = false) Integer size,
-            @Parameter(description = "账期状态 0-未结账 1-已结账") @RequestParam(required = false) Integer status) {
+            @Parameter(description = "账期状态 0-未结账 1-已结账 2-已重开") @RequestParam(required = false) Integer status) {
         return ApiResponse.success(accountingPeriodService.pageQuery(
                 page == null ? 1 : page, size == null ? 20 : size, status));
     }

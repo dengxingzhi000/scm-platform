@@ -19,6 +19,10 @@ import java.time.format.DateTimeParseException;
 /**
  * 关账守卫：某账期一旦置为已结账，该期间内的单据写入一律拒绝。
  *
+ * <p>只有 {@link AccountingPeriodStatus#CLOSED} 会拦截写入；{@code OPEN} 与
+ * {@code REOPENED} 均放行。重开（CLOSED → REOPENED）是已结账账期唯一的合法
+ * 回退路径，重开后再关账重新拦截。</p>
+ *
  * <p>没有账期记录时视为未关账（账期是可选的管理动作，启用前不影响既有业务）。
  * 拒绝返回 409，避免与「参数错误」混淆。</p>
  */

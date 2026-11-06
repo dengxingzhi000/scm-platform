@@ -65,6 +65,13 @@ class AccountingPeriodGuardTest {
     }
 
     @Test
+    void reopenedPeriodShouldAllowWrite() {
+        when(accountingPeriodMapper.selectOne(any())).thenReturn(period(AccountingPeriodStatus.REOPENED));
+
+        assertDoesNotThrow(() -> guard.assertWritable(LocalDate.of(2026, 10, 15), "结算单:STL-1"));
+    }
+
+    @Test
     void missingPeriodShouldAllowWrite() {
         when(accountingPeriodMapper.selectOne(any())).thenReturn(null);
 
