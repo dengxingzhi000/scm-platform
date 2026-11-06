@@ -37,19 +37,30 @@ public class InventoryDubboServiceImpl implements InventoryDubboService {
         if (skuId == null || quantity == null || quantity <= 0) {
             throw new IllegalArgumentException("参数非法: skuId和quantity不能为空，quantity必须大于0");
         }
+        validateRequestId(requestId);
 
         log.info("Dubbo扣减库存: skuId={}, quantity={}, requestId={}", skuId, quantity, requestId);
 
-        String skuIdStr = skuId.toString();
-
-        // 优先使用Redis扣减
-        boolean success = redisInventoryService.deductStock(skuIdStr, DEFAULT_WAREHOUSE, quantity);
-        if (!success) {
-            throw new InsufficientStockException(
-                    String.format("库存不足: skuId=%d, 需要数量%d", skuId, quantity));
+        // 同一 requestId 只允许扣减一次；重复请求直接返回首次结果
+        if (!redisInventoryService.acquireDeductRequest(requestId)) {
+            log.info("Dubbo扣减库存重复请求，按幂等返回: skuId={}", skuId);
+            return;
         }
 
-        log.info("Dubbo扣减库存成功: skuId={}, quantity={}, requestId={}", skuId, quantity, requestId);
+        try {
+            boolean success = redisInventoryService.deductStock(
+                    skuId.toString(), DEFAULT_WAREHOUSE, quantity);
+            if (!success) {
+                throw new InsufficientStockException(
+                        String.format("库存不足: skuId=%d, 需要数量%d", skuId, quantity));
+            }
+        } catch (RuntimeException e) {
+            // 扣减失败释放幂等键，允许同一 requestId 重试
+            redisInventoryService.releaseDeductRequest(requestId);
+            throw e;
+        }
+
+        log.info("Dubbo扣减库存成功: skuId={}, quantity={}", skuId, quantity);
     }
 
     @Override
@@ -57,15 +68,42 @@ public class InventoryDubboServiceImpl implements InventoryDubboService {
         if (deductRequest == null || deductRequest.getItems() == null || deductRequest.getItems().isEmpty()) {
             throw new IllegalArgumentException("批量扣减请求不能为空");
         }
+        validateRequestId(deductRequest.getRequestId());
 
-        log.info("Dubbo批量扣减库存: itemCount={}, requestId={}",
-                deductRequest.getItems().size(), deductRequest.getRequestId());
-
+        List<RedisInventoryService.StockDeductItem> items = new java.util.ArrayList<>();
         for (BatchDeductStockRequest.StockItem item : deductRequest.getItems()) {
-            deductStock(item.getSkuId(), item.getQuantity(), deductRequest.getRequestId());
+            if (item == null || item.getSkuId() == null
+                    || item.getQuantity() == null || item.getQuantity() <= 0) {
+                throw new IllegalArgumentException("批量扣减条目非法: skuId 与 quantity 必填且数量大于0");
+            }
+            items.add(new RedisInventoryService.StockDeductItem(
+                    item.getSkuId().toString(), DEFAULT_WAREHOUSE, item.getQuantity()));
         }
 
-        log.info("Dubbo批量扣减库存成功: requestId={}", deductRequest.getRequestId());
+        log.info("Dubbo批量扣减库存: itemCount={}", items.size());
+
+        if (!redisInventoryService.acquireDeductRequest(deductRequest.getRequestId())) {
+            log.info("Dubbo批量扣减重复请求，按幂等返回: itemCount={}", items.size());
+            return;
+        }
+
+        try {
+            // 整批在单个 Lua 脚本内先校验后扣减，失败不会留下半成品
+            if (!redisInventoryService.batchDeductStock(items)) {
+                throw new InsufficientStockException("批量扣减库存不足");
+            }
+        } catch (RuntimeException e) {
+            redisInventoryService.releaseDeductRequest(deductRequest.getRequestId());
+            throw e;
+        }
+
+        log.info("Dubbo批量扣减库存成功: itemCount={}", items.size());
+    }
+
+    private static void validateRequestId(String requestId) {
+        if (requestId == null || requestId.trim().isEmpty()) {
+            throw new IllegalArgumentException("requestId 不能为空，扣减必须幂等");
+        }
     }
 
     @Override
