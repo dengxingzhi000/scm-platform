@@ -100,7 +100,10 @@ public class TmsExceptionCaseServiceImpl extends ServiceImpl<TmsExceptionCaseMap
         existing.setResponsibleParty(patch.getResponsibleParty());
         existing.setClaimedBy(patch.getClaimedBy());
         existing.setClaimedTime(patch.getClaimedTime());
-        log.info("异常件已认领: id={}, responsibleParty={}, operator={}", id, patch.getResponsibleParty(), operator);
+        log.info("异常件已认领: id={}, responsibleParty={}, operator={}",
+                (id + "").replace("\r", "_").replace("\n", "_"),
+                (patch.getResponsibleParty() + "").replace("\r", "_").replace("\n", "_"),
+                (operator + "").replace("\r", "_").replace("\n", "_"));
         return existing;
     }
 
@@ -133,7 +136,7 @@ public class TmsExceptionCaseServiceImpl extends ServiceImpl<TmsExceptionCaseMap
             existing.setResolution(patch.getResolution());
             existing.setResolvedTime(patch.getResolvedTime());
         }
-        log.info("异常件状态流转: id={}, {} -> {}", id, from, target);
+        log.info("异常件状态流转: id={}, {} -> {}", (id + "").replace("\r", "_").replace("\n", "_"), from, target);
         return existing;
     }
 }

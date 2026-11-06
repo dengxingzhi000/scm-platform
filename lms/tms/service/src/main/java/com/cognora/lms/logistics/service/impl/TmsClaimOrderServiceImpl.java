@@ -77,7 +77,8 @@ public class TmsClaimOrderServiceImpl extends ServiceImpl<TmsClaimOrderMapper, T
         claim.setCreateTime(LocalDateTime.now());
         claim.setUpdateTime(LocalDateTime.now());
         save(claim);
-        log.info("理赔单已创建: id={}, caseId={}, amount={}", claim.getId(), caseId, claim.getClaimAmount());
+        log.info("理赔单已创建: id={}, caseId={}, amount={}", claim.getId(),
+                (caseId + "").replace("\r", "_").replace("\n", "_"), claim.getClaimAmount());
         return claim;
     }
 
@@ -113,7 +114,7 @@ public class TmsClaimOrderServiceImpl extends ServiceImpl<TmsClaimOrderMapper, T
         }
         updateById(patch);
         existing.setStatus(target);
-        log.info("理赔单状态流转: id={}, {} -> {}", id, from, target);
+        log.info("理赔单状态流转: id={}, {} -> {}", (id + "").replace("\r", "_").replace("\n", "_"), from, target);
         return existing;
     }
 }

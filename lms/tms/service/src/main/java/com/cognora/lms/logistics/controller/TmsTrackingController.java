@@ -86,7 +86,8 @@ public class TmsTrackingController {
         webhookSignatureVerifier.verifyAndConsume(timestamp, nonce, signature, rawBody);
         TmsTracking tracking = objectMapper.readValue(rawBody, TmsTracking.class);
         log.info("Carrier webhook verified: carrierCode={}, waybillNo={}, eventId={}",
-                carrierCode, (tracking.getWaybillNo() + "").replace("\r", "_").replace("\n", "_"),
+                (carrierCode + "").replace("\r", "_").replace("\n", "_"),
+                (tracking.getWaybillNo() + "").replace("\r", "_").replace("\n", "_"),
                 (tracking.getEventId() + "").replace("\r", "_").replace("\n", "_"));
         return ApiResponse.success(trackingService.addTracking(tracking));
     }
