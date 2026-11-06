@@ -40,7 +40,8 @@ public class TmsFreightReconciliationServiceImpl
     private final ITmsFreightTemplateService freightTemplateService;
 
     @Override
-    public Page<TmsFreightReconciliation> pageList(int page, int size, String batchNo, String diffType, String status) {
+    public Page<TmsFreightReconciliation> pageList(int page, int size, String batchNo, String diffType, String status,
+                                                   String waybillId) {
         LambdaQueryWrapper<TmsFreightReconciliation> wrapper = Wrappers.lambdaQuery();
         if (StringUtils.hasText(batchNo)) {
             wrapper.eq(TmsFreightReconciliation::getBatchNo, batchNo);
@@ -50,6 +51,9 @@ public class TmsFreightReconciliationServiceImpl
         }
         if (StringUtils.hasText(status)) {
             wrapper.eq(TmsFreightReconciliation::getStatus, status.trim().toUpperCase());
+        }
+        if (StringUtils.hasText(waybillId)) {
+            wrapper.eq(TmsFreightReconciliation::getWaybillId, waybillId.trim());
         }
         wrapper.orderByDesc(TmsFreightReconciliation::getCreateTime);
         return page(new Page<>(page, size), wrapper);

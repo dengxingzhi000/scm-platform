@@ -11,7 +11,8 @@ import java.math.BigDecimal;
  */
 public interface ITmsFreightReconciliationService extends IService<TmsFreightReconciliation> {
 
-    Page<TmsFreightReconciliation> pageList(int page, int size, String batchNo, String diffType, String status);
+    Page<TmsFreightReconciliation> pageList(int page, int size, String batchNo, String diffType, String status,
+                                            String waybillId);
 
     /**
      * 对单票运单做运费对账：按模板重算应收，与承运商账单比较并落差异分类。

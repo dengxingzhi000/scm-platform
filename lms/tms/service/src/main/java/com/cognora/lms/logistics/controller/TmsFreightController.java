@@ -114,7 +114,8 @@ public class TmsFreightController {
             @RequestParam(defaultValue = "10") int size,
             @Parameter(description = "对账批次号") @RequestParam(required = false) String batchNo,
             @Parameter(description = "差异类型 MATCH / OVERCHARGE / UNDERCHARGE") @RequestParam(required = false) String diffType,
-            @Parameter(description = "处理状态 OPEN / CONFIRMED") @RequestParam(required = false) String status) {
-        return ApiResponse.success(reconciliationService.pageList(page, size, batchNo, diffType, status));
+            @Parameter(description = "处理状态 OPEN / CONFIRMED") @RequestParam(required = false) String status,
+            @Parameter(description = "运单主键 ID，用于运单详情页过滤该运单的对账记录") @RequestParam(required = false) String waybillId) {
+        return ApiResponse.success(reconciliationService.pageList(page, size, batchNo, diffType, status, waybillId));
     }
 }
