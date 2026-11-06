@@ -40,6 +40,12 @@ security:
     nonce-ttl: 5m
     nonce-key-prefix: "api:nonce:"
     whitelist:
+      # Browser prefixes (see application.yaml): JWT-authenticated, no X-Signature.
+      - /auth/**
+      - /system/**
+      - /common/**
+      - /scm-*/**
+
       - /platform-auth/**
       - /public/**
       - /actuator/**

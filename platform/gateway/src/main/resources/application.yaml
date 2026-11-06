@@ -32,18 +32,9 @@ spring:
             locator:
               enabled: true
               lower-case-service-id: true
-          # The SPA is served from another origin in dev (localhost:3000), and the
-          # gateway is the only public entry point, so it answers the CORS preflight.
-          globalcors:
-            add-to-simple-url-handler-mapping: true
-            cors-configurations:
-              '[/**]':
-                allowedOriginPatterns:
-                  - "http://localhost:*"
-                allowedMethods: "*"
-                allowedHeaders: "*"
-                allowCredentials: true
-                maxAge: 3600
+          # CORS is enforced by GatewaySecurityConfig (security filter chain) so the
+          # preflight is answered before authentication. Allowed origins come from
+          # cognora.gateway.cors.allowed-origins.
           routes:
             # Explicit routes must win over the discovery locator, which also
             # exposes /<service-id>/** for platform-auth and platform-system.
@@ -61,12 +52,186 @@ spring:
               filters:
                 - StripPrefix=1
               order: -1
-            # Legacy route kept for callers that still use /common/**; no
-            # provider registers as platform-common today.
-            - id: platform-common
-              uri: lb://platform-common
+
+            # ── Transitional legacy aliases ─────────────────────────────────
+            # The SPA (cognora-aura-web) still calls the old /auth, /system,
+            # /common and /scm-* prefixes. These aliases keep it working while the
+            # services register under their canonical names. They are NOT the
+            # target state: delete them once the frontend and the deployment use
+            # the canonical prefixes (see
+            # docs/operations/GATEWAY_PREFIX_ALIAS_MIGRATION.md).
+            - id: alias-auth
+              uri: lb://platform-auth
               predicates:
-                - Path=/platform-common/**
+                - Path=/auth/**
+              filters:
+                - StripPrefix=1
+              order: -1
+            - id: alias-system
+              uri: lb://platform-system
+              predicates:
+                - Path=/system/**
+              filters:
+                - StripPrefix=1
+              order: -1
+            - id: alias-common
+              uri: lb://platform-system
+              predicates:
+                - Path=/common/**
+              filters:
+                - StripPrefix=1
+              order: -1
+            - id: alias-scm-product
+              uri: lb://platform-product
+              predicates:
+                - Path=/scm-product/**
+              filters:
+                - StripPrefix=1
+              order: -1
+            - id: alias-scm-inventory
+              uri: lb://platform-inventory
+              predicates:
+                - Path=/scm-inventory/**
+              filters:
+                - StripPrefix=1
+              order: -1
+            - id: alias-scm-order
+              uri: lb://scm-order
+              predicates:
+                - Path=/scm-order/**
+              filters:
+                - StripPrefix=1
+              order: -1
+            - id: alias-scm-warehouse
+              uri: lb://scm-warehouse
+              predicates:
+                - Path=/scm-warehouse/**
+              filters:
+                - StripPrefix=1
+              order: -1
+            - id: alias-scm-logistics
+              uri: lb://lms-tms
+              predicates:
+                - Path=/scm-logistics/**
+              filters:
+                - StripPrefix=1
+              order: -1
+            - id: alias-scm-supplier
+              uri: lb://scm-supplier
+              predicates:
+                - Path=/scm-supplier/**
+              filters:
+                - StripPrefix=1
+              order: -1
+            - id: alias-scm-purchase
+              uri: lb://scm-purchase
+              predicates:
+                - Path=/scm-purchase/**
+              filters:
+                - StripPrefix=1
+              order: -1
+            - id: alias-scm-finance
+              uri: lb://scm-finance
+              predicates:
+                - Path=/scm-finance/**
+              filters:
+                - StripPrefix=1
+              order: -1
+            - id: alias-scm-approval
+              uri: lb://platform-approval
+              predicates:
+                - Path=/scm-approval/**
+              filters:
+                - StripPrefix=1
+              order: -1
+            - id: alias-scm-audit
+              uri: lb://platform-audit
+              predicates:
+                - Path=/scm-audit/**
+              filters:
+                - StripPrefix=1
+              order: -1
+            - id: alias-scm-notify
+              uri: lb://platform-notify
+              predicates:
+                - Path=/scm-notify/**
+              filters:
+                - StripPrefix=1
+              order: -1
+            - id: alias-scm-tenant
+              uri: lb://platform-tenant
+              predicates:
+                - Path=/scm-tenant/**
+              filters:
+                - StripPrefix=1
+              order: -1
+            - id: alias-scm-document
+              uri: lb://platform-document
+              predicates:
+                - Path=/scm-document/**
+              filters:
+                - StripPrefix=1
+              order: -1
+            - id: alias-scm-file
+              uri: lb://platform-file
+              predicates:
+                - Path=/scm-file/**
+              filters:
+                - StripPrefix=1
+              order: -1
+            - id: alias-scm-analytics
+              uri: lb://ecom-analytics
+              predicates:
+                - Path=/scm-analytics/**
+              filters:
+                - StripPrefix=1
+              order: -1
+            - id: alias-scm-mall
+              uri: lb://ecom-mall
+              predicates:
+                - Path=/scm-mall/**
+              filters:
+                - StripPrefix=1
+              order: -1
+            - id: alias-scm-member
+              uri: lb://ecom-member
+              predicates:
+                - Path=/scm-member/**
+              filters:
+                - StripPrefix=1
+              order: -1
+            - id: alias-scm-promotion
+              uri: lb://ecom-promotion
+              predicates:
+                - Path=/scm-promotion/**
+              filters:
+                - StripPrefix=1
+              order: -1
+            - id: alias-scm-payment
+              uri: lb://ecom-payment
+              predicates:
+                - Path=/scm-payment/**
+              filters:
+                - StripPrefix=1
+              order: -1
+            - id: alias-scm-order-center
+              uri: lb://ecom-order-center
+              predicates:
+                - Path=/scm-order-center/**
+              filters:
+                - StripPrefix=1
+              order: -1
+            - id: alias-scm-fulfillment
+              uri: lb://ecom-fulfillment
+              predicates:
+                - Path=/scm-fulfillment/**
+              filters:
+                - StripPrefix=1
+              order: -1
+            - id: alias-scm-search
+              uri: lb://ecom-search
+              predicates:
+                - Path=/scm-search/**
               filters:
                 - StripPrefix=1
               order: -1
@@ -79,6 +244,17 @@ security:
     nonce-ttl: 5m
     nonce-key-prefix: "api:nonce:"
     whitelist:
+      # ── Browser (SPA) prefix groups ──────────────────────────────────
+      # The SPA calls these prefixes directly with a Bearer token. A browser
+      # cannot compute the platform HMAC signature, so those groups are exempt
+      # from X-Signature here and are authenticated by the JWT instead. This is
+      # an explicit path grouping, not a blanket disable of the filter: every
+      # prefix below that is not listed still requires a valid signature.
+      - /auth/**
+      - /system/**
+      - /common/**
+      - /scm-*/**
+
       - /platform-auth/**
       - /public/**
       - /actuator/**
@@ -116,6 +292,17 @@ security:
     device-id-claim: deviceId
     # SECURITY: MUST be set via environment variable in production
     signature-secret: ${IDENTITY_SIGNATURE_SECRET:changeit-identity-secret}
+
+# Browser CORS for gateway-direct mode (the SPA origin is not same-origin with
+# the gateway there). Enforced by GatewayCorsConfig before authentication; see
+# docs/operations/GATEWAY_PREFIX_ALIAS_MIGRATION.md for the migration notes.
+cognora:
+  gateway:
+    cors:
+      allowed-origins:
+        # Origin *patterns*: http://localhost:* covers every local dev port.
+        - http://localhost:*
+        - http://192.168.0.121:3000
 
 management:
   endpoints:

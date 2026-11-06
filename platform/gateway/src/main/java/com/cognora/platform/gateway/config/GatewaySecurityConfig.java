@@ -16,6 +16,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtGra
 import org.springframework.security.oauth2.server.resource.authentication.ReactiveJwtAuthenticationConverterAdapter;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.context.NoOpServerSecurityContextRepository;
+import org.springframework.web.cors.reactive.CorsConfigurationSource;
 import reactor.core.publisher.Mono;
 
 import javax.crypto.spec.SecretKeySpec;
@@ -24,19 +25,25 @@ import java.nio.charset.StandardCharsets;
 /**
  * Gateway OAuth2配置
  *
- * <p>注意：客户端实际通过 {@code /platform-auth/**}、{@code /platform-system/**}、{@code /platform-common/**}
- * 前缀访问网关（路由级 StripPrefix=1 后再转发到下游），因此在网关层放行的路径
- * 必须与这些真实前缀对齐。
+ * <p>注意：客户端实际通过 {@code /platform-auth/**}、{@code /platform-system/**}
+ * 前缀访问网关（路由级 StripPrefix=1 后再转发到下游）。过渡期还支持前端仍在使用的
+ * {@code /auth/**}、{@code /system/**}、{@code /common/**} 别名，因此放行路径
+ * 同时覆盖规范前缀与别名前缀。
+ *
+ * <p>CORS 由本过滤器链承载（Spring Security 在认证之前处理 preflight），允许来源
+ * 来自 {@code cognora.gateway.cors.allowed-origins}。
  */
 @Configuration
 @EnableWebFluxSecurity
 public class GatewaySecurityConfig {
 
     @Bean
-    public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http, ReactiveJwtDecoder jwtDecoder) {
+    public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http, ReactiveJwtDecoder jwtDecoder,
+                                                            CorsConfigurationSource corsConfigurationSource) {
         http
                 .securityContextRepository(NoOpServerSecurityContextRepository.getInstance())
                 .logout(ServerHttpSecurity.LogoutSpec::disable)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .authorizeExchange(exchanges -> exchanges
                         // 认证服务的登录/刷新/OAuth2 授权端点（登录本身不能要求已认证）
                         .pathMatchers(
@@ -44,6 +51,12 @@ public class GatewaySecurityConfig {
                                 "/platform-auth/api/auth/refresh",
                                 "/platform-auth/oauth2/**",
                                 "/platform-auth/api/public/**",
+                                // Transitional aliases used by the SPA before it moves
+                                // to the canonical /platform-* prefixes.
+                                "/auth/api/auth/login",
+                                "/auth/api/auth/refresh",
+                                "/auth/oauth2/**",
+                                "/auth/api/public/**",
                                 // Channel callbacks carry no platform JWT; the payment
                                 // service authenticates them with the channel signature.
                                 "/ecom-payment/api/v1/payments/callback/**",
