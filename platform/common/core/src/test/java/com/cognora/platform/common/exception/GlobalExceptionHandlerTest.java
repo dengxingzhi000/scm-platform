@@ -1,6 +1,7 @@
 package com.cognora.platform.common.exception;
 
 import com.cognora.platform.common.response.ApiResponse;
+import com.cognora.platform.common.response.ResultCode;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -63,10 +64,83 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void businessException_returnsCode() {
-        var ex = new com.cognora.platform.common.exception.BusinessException(40010, "biz error");
-        ApiResponse<Void> response = handler.handleBusinessException(ex);
-        assertThat(response.code()).isEqualTo(40010);
-        assertThat(response.message()).contains("biz error");
+        var ex = new BusinessException(40010, "biz error");
+        ResponseEntity<ApiResponse<Void>> response = handler.handleBusinessException(ex, request);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().code()).isEqualTo(40010);
+        assertThat(response.getBody().message()).contains("biz error");
+    }
+
+    @Test
+    void businessException_forbiddenBusinessCodeReturns403() {
+        var ex = new BusinessException(ResultCode.FORBIDDEN.getCode(), "only platform admin can write platform config");
+        ResponseEntity<ApiResponse<Void>> response = handler.handleBusinessException(ex, request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().code()).isEqualTo(ResultCode.FORBIDDEN.getCode());
+        assertThat(response.getHeaders().getFirst("X-Request-ID")).isNotBlank();
+    }
+
+    @Test
+    void businessException_errorCodePermissionDeniedReturns403() {
+        var ex = new BusinessException(ErrorCode.PERMISSION_DENIED, "no access");
+        ResponseEntity<ApiResponse<Void>> response = handler.handleBusinessException(ex, request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().code()).isEqualTo(ErrorCode.PERMISSION_DENIED.getCode());
+    }
+
+    @Test
+    void businessException_errorCodeNotFoundReturns404() {
+        var ex = new BusinessException(ErrorCode.ORDER_NOT_FOUND);
+        ResponseEntity<ApiResponse<Void>> response = handler.handleBusinessException(ex, request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().code()).isEqualTo(ErrorCode.ORDER_NOT_FOUND.getCode());
+    }
+
+    @Test
+    void businessException_errorCodeConflictReturns409() {
+        var ex = new BusinessException(ErrorCode.CONFLICT);
+        ResponseEntity<ApiResponse<Void>> response = handler.handleBusinessException(ex, request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().code()).isEqualTo(ErrorCode.CONFLICT.getCode());
+    }
+
+    @Test
+    void businessException_paramValidationErrorReturns400() {
+        var ex = new BusinessException(ErrorCode.PARAM_VALIDATION_ERROR);
+        ResponseEntity<ApiResponse<Void>> response = handler.handleBusinessException(ex, request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().code()).isEqualTo(ErrorCode.PARAM_VALIDATION_ERROR.getCode());
+    }
+
+    @Test
+    void businessException_unresolvedCodeStillFallsBackTo500() {
+        var ex = new BusinessException(9999, "legacy code");
+        ResponseEntity<ApiResponse<Void>> response = handler.handleBusinessException(ex, request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().code()).isEqualTo(9999);
+    }
+
+    @Test
+    void businessException_plainMessageStillFallsBackTo500() {
+        var ex = new BusinessException("unexpected business failure");
+        ResponseEntity<ApiResponse<Void>> response = handler.handleBusinessException(ex, request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().code()).isEqualTo(500);
     }
 
     @Test

@@ -86,4 +86,16 @@ public enum ErrorCode {
     public int getHttpStatusCode() {
         return httpStatus.value();
     }
+
+    /**
+     * Look up an error code by its numeric code, or {@code null} when unknown.
+     */
+    public static ErrorCode fromCode(int code) {
+        for (ErrorCode errorCode : values()) {
+            if (errorCode.code == code) {
+                return errorCode;
+            }
+        }
+        return null;
+    }
 }

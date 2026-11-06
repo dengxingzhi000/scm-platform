@@ -14,6 +14,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -79,6 +80,7 @@ class SysConfigServiceImplTest {
                 () -> service.updateConfig(request));
 
         assertEquals(403, exception.getCode());
+        assertEquals(HttpStatus.FORBIDDEN, exception.getHttpStatus());
         verifyNoInteractions(configMapper);
     }
 

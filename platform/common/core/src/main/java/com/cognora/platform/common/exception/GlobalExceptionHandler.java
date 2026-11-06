@@ -99,10 +99,18 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(BusinessException.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ApiResponse<Void> handleBusinessException(BusinessException e) {
-        log.error("Business exception: {}", e.getMessage());
-        return ApiResponse.fail(e.getCode(), "Business error: " + e.getMessage());
+    public ResponseEntity<ApiResponse<Void>> handleBusinessException(BusinessException e, HttpServletRequest request) {
+        String traceId = resolveTraceId(request);
+        HttpStatus status = e.getHttpStatus() != null ? e.getHttpStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
+        if (status.is4xxClientError()) {
+            log.warn("Business exception {} at {}, traceId={}: {}", (status.value() + "").replace("\r", "_").replace("\n", "_"), (request.getRequestURI() + "").replace("\r", "_").replace("\n", "_"), (traceId + "").replace("\r", "_").replace("\n", "_"),
+                    (e.getMessage() + "").replace("\r", "_").replace("\n", "_"));
+        } else {
+            log.error("Business exception {} at {}, traceId={}", (status.value() + "").replace("\r", "_").replace("\n", "_"), (request.getRequestURI() + "").replace("\r", "_").replace("\n", "_"), (traceId + "").replace("\r", "_").replace("\n", "_"), e);
+        }
+        return ResponseEntity.status(status)
+                .header(REQUEST_ID_HEADER, traceId)
+                .body(ApiResponse.fail(e.getCode(), "Business error: " + e.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
