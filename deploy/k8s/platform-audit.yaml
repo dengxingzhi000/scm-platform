@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: platform-audit
-          image: scm-platform/platform-audit:latest
+          image: cognora-aura-platform/platform-audit:latest
           ports:
             - containerPort: 8210
               name: http

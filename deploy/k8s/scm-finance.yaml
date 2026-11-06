@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: scm-finance
-          image: scm-platform/scm-finance:latest
+          image: cognora-aura-platform/scm-finance:latest
           ports:
             - containerPort: 8208
               name: http

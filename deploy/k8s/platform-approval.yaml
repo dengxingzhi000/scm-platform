@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: platform-approval
-          image: scm-platform/platform-approval:latest
+          image: cognora-aura-platform/platform-approval:latest
           ports:
             - containerPort: 8209
               name: http

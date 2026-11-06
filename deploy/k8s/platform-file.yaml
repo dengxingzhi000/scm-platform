@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: platform-file
-          image: scm-platform/platform-file:latest
+          image: cognora-aura-platform/platform-file:latest
           ports:
             - containerPort: 8214
               name: http

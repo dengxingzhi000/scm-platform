@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: platform-tenant
-          image: scm-platform/platform-tenant:latest
+          image: cognora-aura-platform/platform-tenant:latest
           ports:
             - containerPort: 8212
               name: http

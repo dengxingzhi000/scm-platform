@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: lms-tms
-          image: scm-platform/lms-tms:latest
+          image: cognora-aura-platform/lms-tms:latest
           ports:
             - containerPort: 8205
               name: http
