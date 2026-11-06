@@ -54,10 +54,11 @@ public final class FreightCalculator {
         BigDecimal subtotal = firstFee.add(additionalFee).add(surcharge).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
 
         BigDecimal minCharge = money(rule.getMinCharge());
+        boolean minChargeApplied = subtotal.compareTo(minCharge) < 0;
         BigDecimal total = subtotal.max(minCharge).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
 
         return new FreightQuote(weight, volumetric, chargeable, billed,
-                firstFee, additionalFee, surcharge, total);
+                firstFee, additionalFee, surcharge, minCharge, minChargeApplied, total);
     }
 
     private static BigDecimal positive(BigDecimal value, String field) {

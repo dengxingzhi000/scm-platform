@@ -5,7 +5,9 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * 批次 2：运费引擎边界用例（首重边界 / 续重进位 / 体积重 / 区域价 / 最低收费 / 舍入）。
@@ -65,7 +67,19 @@ class FreightCalculatorTest {
         rule.setMinCharge(new BigDecimal("9.00"));
         FreightQuote quote = FreightCalculator.calculate(rule, new BigDecimal("0.5"), null);
         assertEquals(0, quote.regionSurcharge().compareTo(new BigDecimal("3.00")));
+        assertEquals(0, quote.minCharge().compareTo(new BigDecimal("9.00")));
+        assertTrue(quote.minChargeApplied());
         assertEquals(0, quote.totalAmount().compareTo(new BigDecimal("9.00")));
+    }
+
+    @Test
+    void minimumChargeShouldNotApplyWhenSubtotalExceedsIt() {
+        FreightRule rule = rule();
+        rule.setMinCharge(new BigDecimal("9.00"));
+        FreightQuote quote = FreightCalculator.calculate(rule, new BigDecimal("1.2"), null);
+        assertFalse(quote.minChargeApplied());
+        assertEquals(0, quote.minCharge().compareTo(new BigDecimal("9.00")));
+        assertEquals(0, quote.totalAmount().compareTo(new BigDecimal("10.00")));
     }
 
     @Test
