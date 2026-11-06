@@ -147,32 +147,10 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: scm-web/package-lock.json
 
       - name: Scan for mojibake artifacts (report only)
         continue-on-error: true
         run: node scripts/quality/check-mojibake.mjs
-
-      - name: Install frontend dependencies
-        working-directory: scm-web
-        run: npm ci
-
-      - name: Frontend typecheck (TypeScript 7)
-        working-directory: scm-web
-        run: npm run typecheck
-
-      - name: Frontend lint
-        working-directory: scm-web
-        run: npm run lint
-
-      - name: Frontend unit tests
-        working-directory: scm-web
-        run: npm test
-
-      - name: Frontend production build
-        working-directory: scm-web
-        run: npm run build
 
       - name: Archive Test Results
         if: always()

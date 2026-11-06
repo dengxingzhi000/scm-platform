@@ -2,6 +2,17 @@
 
 欢迎查阅SCM平台文档。本文档提供完整的架构设计、开发规范和技术指南。
 
+## 相关仓库
+
+| 仓库 | 范围 | 边界 |
+|------|------|------|
+| [cognora-aura-platform](https://github.com/dengxingzhi000/cognora-aura-platform) | Java 后端（本仓库） | 网关、认证、系统与全部业务服务、基础设施脚本、K8s/Helm |
+| [cognora-aura-web](https://github.com/dengxingzhi000/cognora-aura-web) | Next.js 16 前端 | 前端页面、UI、API 客户端；通过网关路由与 OpenAPI 文档对接 |
+| [cognora-enterprise-agent](https://github.com/dengxingzhi000/cognora-enterprise-agent) | 企业 Agent 运行时 | 独立服务，仅通过 HTTP/Dubbo 契约与平台交互 |
+| [cognora-browser-agent](https://github.com/dengxingzhi000/cognora-browser-agent) | 浏览器自动化 | 独立运行时，与本仓库无构建期依赖 |
+
+前端原位于本仓库 `scm-web/`，在 `cognora-aura-web` v0.3.0（CI 绿 + 镜像发布）后已删除。
+
 ---
 
 ## 📚 核心文档

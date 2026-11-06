@@ -147,7 +147,7 @@ Real collisions in the checked-in config — override `server.port` before runni
 both halves of a pair:
 
 - `scm-message` ↔ `scm-approval` — both 8209
-- Grafana ↔ `scm-web` dev server — both 3000 (`docker-compose.yml` maps `3000:3000`)
+- Grafana ↔ `cognora-aura-web` dev server — both 3000 (`docker-compose.yml` maps `3000:3000`)
 - `schema-registry` ↔ `scm-system` — both 8081
 
 Infra: Nacos 8848 (+9848/9849), Redis 6379, PostgreSQL 5432, PgBouncer 6432,
@@ -167,8 +167,9 @@ Seata 8091, XXL-Job 8088, Sentinel 8858, Prometheus 9090, SkyWalking UI 8090.
 - **`platform/common/`** — `core`, `data`, `data-rw`, `data-rw-stub`, `cache`,
   `web`, `system-contract`, `monitoring`, `integration`, `decision-matrix`,
   `decision-engine`, `security/{core,api}`.
-- **`scm-web/`** — Next.js 16.4 frontend, separate npm project, **not** in the
-  parent POM.
+- **前端** — 已拆分到独立仓库
+  [`cognora-aura-web`](https://github.com/dengxingzhi000/cognora-aura-web)，
+  不再位于本仓库或父 POM 中。
 
 Package roots are `com.cognora.platform.*`, `com.cognora.scm.*`,
 `com.cognora.ecom.*` and `com.cognora.lms.*` (e.g.
@@ -469,7 +470,7 @@ export PGPASSWORD=admin123 && cd scripts/db/seed && ./seed-all.sh
 ```
 
 The seed uses tenant `019a0aee-0000-7000-8000-000000000002` (`default`), which
-is the value already in `scm-web/.env.local`; point
+is the value already in `cognora-aura-web/.env.local`; point
 `NEXT_PUBLIC_DEFAULT_TENANT_ID` at it. It covers tenant, product (7 SPUs /
 8 SKUs), inventory (normal/low/out), orders (20 orders over 14 days with all
 10 statuses), suppliers, warehouses + inbound/outbound, logistics
@@ -529,10 +530,12 @@ scripts/db/quality/check-quality.sh
 `inv_reservation` lives in `db_inventory` and `sup_purchase_order` in
 `db_supplier` — not `db_order`.
 
-## Frontend (`scm-web`)
+## Frontend (`cognora-aura-web`)
 
-Next.js 16.4 App Router / React 19 / TypeScript, `next-intl` for i18n. A
-separate npm project — never in the parent POM.
+Next.js 16.4 App Router / React 19 / TypeScript, `next-intl` for i18n.
+**已拆分到独立仓库
+[`cognora-aura-web`](https://github.com/dengxingzhi000/cognora-aura-web)**，
+不在本仓库、也不在父 POM 中。下面保留技术约定，作为后端接口/契约的对照。
 
 **Target stack (the migration is in progress):**
 
@@ -553,7 +556,8 @@ them to shadcn/ui incrementally. `src/lib/design-tokens.css` remains the
 single palette source for Ant Design, Tailwind and canvas charts.
 
 ```bash
-cd scm-web
+git clone https://github.com/dengxingzhi000/cognora-aura-web.git
+cd cognora-aura-web
 npm install
 npm run dev          # http://localhost:3000
 npm run lint         # `eslint .` — `next lint` was removed in Next 16
@@ -606,7 +610,7 @@ npm run test:e2e     # Playwright
   the defaults are the ports in the Ports table.
 - Feature code lives in `src/features/<domain>/`; pages in
   `src/app/[locale]/(app)/<domain>/`.
-- See `scm-web/README.md` for the stack contract and migration checklist.
+- See `cognora-aura-web`'s `README.md` for the stack contract and migration checklist.
 - API clients: `src/lib/api/contracts/` holds backend DTOs and
   `src/lib/api/services/` holds gateway-aware auth/system calls;
   `src/lib/api/envelope.ts` unwraps `ApiResponse<T>`. System feature services
@@ -622,7 +626,7 @@ npm run test:e2e     # Playwright
   only the JSON.
   ```bash
   node scripts/api/fetch-openapi.mjs <host> --out docs/api   # 16 live services
-  cd scm-web && npm run generate:api                         # TS clients
+  cd ../cognora-aura-web && npm run generate:api              # TS clients
   ```
   The fetch script normalises two things the deployed services get wrong: the
   security scheme is published as `"Bearer Authentication"` (the OpenAPI spec
@@ -755,10 +759,9 @@ order-center, fulfillment, search, analytics). Helm charts live in
 
 `.github/workflows/maven-build.yml` — on push/PR to `master`/`develop`:
 
-- **PR**: `mvn clean test-compile test` — unit-test failures fail the job. The
-  same job then runs the `scm-web` gates (`npm ci`, `npm run typecheck`,
-  `npm run lint`, `npm test`, `npm run build`), so frontend and backend
-  changes share the required **Build and Test** check.
+- **PR**: `mvn clean test-compile test` — unit-test failures fail the job. 前端
+  已拆分到 `cognora-aura-web`，其 typecheck/lint/test/build 在该仓库的 CI 中执行，
+  不再占用本仓库的 **Build and Test**。
 - **Push**: `mvn clean verify` + Codecov upload. `verify` still skips JaCoCo
   (the parent sets `jacoco.skip=true`), so the coverage gates never run in CI.
 - **Push only**: the databases are initialised and

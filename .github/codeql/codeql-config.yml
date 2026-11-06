@@ -1,8 +1,4 @@
 name: cognora-aura-platform CodeQL configuration
 
-# scm-web/src/lib/api/generated holds openapi-generator output. AGENTS.md and
-# scm-web/README.md both say "regenerate, never hand-edit", so the style and
-# unused-import findings inside those files are generator-owned: patching them
-# by hand would be reverted by the next `npm run generate:api`.
-paths-ignore:
-  - scm-web/src/lib/api/generated
+# 前端已拆分到 cognora-aura-web；其 openapi-generator 输出由该仓库的 CodeQL 配置处理。
+paths-ignore: []

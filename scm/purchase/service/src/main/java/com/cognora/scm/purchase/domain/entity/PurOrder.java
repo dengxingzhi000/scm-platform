@@ -21,7 +21,7 @@ import java.time.LocalDateTime;
  *
  * <p>
  * 该实体只映射采购单查询需要的列。写入仍由采购申请/询价流程完成，读接口供
- * scm-web 的采购单列表与详情使用。
+ * cognora-aura-web 的采购单列表与详情使用。
  * </p>
  *
  * @author deng

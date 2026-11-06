@@ -30,8 +30,6 @@ jobs:
         include:
           - language: java
             paths: '**/*.java'
-          - language: javascript-typescript
-            paths: 'scm-web/**'
           - language: actions
             paths: '.github/workflows/**'
     steps:
@@ -41,7 +39,7 @@ jobs:
       # build-mode: 'manual' for Java — this monorepo's parent POM lives at
       # com.scm.parent/pom.xml, NOT at the repo root, so the default autobuild
       # for Java can't find any pom.xml and exits with "could not process any
-      # of it". For JS/TS we use 'none' because there is no compile step.
+      # of it". 前端已拆分到 cognora-aura-web，本仓库只分析 Java 与 Actions。
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
         with:

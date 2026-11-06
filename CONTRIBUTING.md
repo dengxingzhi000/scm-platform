@@ -20,7 +20,7 @@ There are many ways to contribute:
 |------|---------|-------|
 | JDK | 21+ | Virtual threads required |
 | Maven | 3.8+ | |
-| Node.js | 20+ | For frontend (`scm-web`) |
+| Node.js | 20+ | For the separate frontend repo (`cognora-aura-web`) |
 | Docker | Latest | For infrastructure services |
 | Docker Compose | Latest | Included with Docker Desktop |
 | PostgreSQL | 16+ | Or use Docker Compose |
@@ -58,13 +58,19 @@ cd scm-product/service && mvn spring-boot:run   # any business service
 
 ### Frontend Setup
 
+The frontend is not part of this repository. It lives in
+[`cognora-aura-web`](https://github.com/dengxingzhi000/cognora-aura-web):
+
 ```bash
-cd scm-web
+git clone https://github.com/dengxingzhi000/cognora-aura-web.git
+cd cognora-aura-web
 npm install
 npm run dev
 ```
 
-The frontend runs at `http://localhost:3000`.
+The frontend runs at `http://localhost:3000` and talks to this repo's gateway
+or its direct service ports. Backend contract changes must stay compatible with
+the OpenAPI documents in `docs/api/`.
 
 ### Build Commands Reference
 

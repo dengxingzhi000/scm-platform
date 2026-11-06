@@ -36,6 +36,24 @@ Redis-hot inventory, and a Next.js control tower.**
 
 ---
 
+## Related repositories
+
+The platform is split across repositories so each layer can be versioned and
+deployed independently:
+
+| Repository | Scope | Boundary |
+|------------|-------|----------|
+| [`cognora-aura-platform`](https://github.com/dengxingzhi000/cognora-aura-platform) | Java backend (this repo) | Gateway, auth, system and all business services, infra scripts, K8s/Helm |
+| [`cognora-aura-web`](https://github.com/dengxingzhi000/cognora-aura-web) | Next.js 16 control tower | Owns `src/`, UI, API clients; consumes this repo's gateway routes and OpenAPI documents |
+| [`cognora-enterprise-agent`](https://github.com/dengxingzhi000/cognora-enterprise-agent) | Enterprise agent runtime | Independent service; talks to the platform only over HTTP/Dubbo contracts |
+| [`cognora-browser-agent`](https://github.com/dengxingzhi000/cognora-browser-agent) | Browser automation | Independent runtime; no build-time dependency on this repo |
+
+The frontend used to live in `scm-web/` inside this repo; that directory was
+removed after `cognora-aura-web` reached v0.3.0 with a green CI and a published
+container image.
+
+---
+
 Building supply chain software means coordinating inventory, orders, suppliers,
 warehouses, carriers, and money across systems that cannot share a transaction.
 Getting that right under flash-sale traffic — and then proving it works — is the
@@ -63,7 +81,7 @@ and the frontend is on port 3000 with no cloud account and no paid dependency.
 
 - **JDK 21** — virtual threads are used on the hot paths
 - **Maven 3.8+**
-- **Node.js 20+** for `scm-web`
+- **Node.js 20+** for the separate `cognora-aura-web` frontend repository
 - **Docker & Docker Compose**
 
 Every component has a working local default. No external accounts, cloud
@@ -126,16 +144,19 @@ cd scm/order/service && mvn spring-boot:run
 
 ### 5. Frontend
 
+The frontend is a separate repository,
+[`cognora-aura-web`](https://github.com/dengxingzhi000/cognora-aura-web):
+
 ```bash
-cd scm-web
+git clone https://github.com/dengxingzhi000/cognora-aura-web.git
+cd cognora-aura-web
 npm install
 npm run dev
 ```
 
-The frontend is the `@cognora/aura-web` npm package. It still lives in `scm-web/`
-inside this repository — extracting it into its own repository is planned, not
-done — and runs at **http://localhost:3000** with built-in zh-CN and en-US
-language support.
+It is the `@cognora/aura-web` npm package and runs at **http://localhost:3000**
+with built-in zh-CN and en-US language support. This repository keeps only the
+backend contracts and gateway routes it consumes.
 
 | Route        | Page                       |
 | ------------ | -------------------------- |
@@ -219,7 +240,7 @@ setting anything. Override via your shell or a `.env` file — never commit one:
 ```
    ┌──────────────────┐
    │  Frontend        │
-   │  scm-web :3000   │
+   │  cognora-aura-web│
    └────────┬─────────┘
             │
    ┌────────▼─────────┐
@@ -289,7 +310,7 @@ names the constraint that actually shapes the design, not just the config.
 
 | Module                          | Port   | Description                                                                                       |
 | ------------------------------- | ------ | ------------------------------------------------------------------------------------------------- |
-| `scm-web` (`@cognora/aura-web`) | 3000 ⚠ | Frontend — Next.js 16, shadcn/ui + Ant Design 6, Zustand, TanStack Query                          |
+| `cognora-aura-web`              | 3000 ⚠ | Frontend (separate repo) — Next.js 16, shadcn/ui + Ant Design 6, Zustand, TanStack Query           |
 | `platform-gateway`              | 8761   | API Gateway — routing, rate limiting, cross-cutting concerns                                      |
 | `platform-auth`                 | 8106   | Authentication — OAuth2, JWT, WebAuthn passwordless login                                         |
 | `platform-system`               | 8081   | System management — users, roles, permissions, departments                                        |
@@ -324,7 +345,6 @@ names the constraint that actually shapes the design, not just the config.
 cognora-aura-platform/
 ├── bom/                     # Internal BOM — install first (mvn install -f bom/pom.xml)
 ├── com.scm.parent/          # Parent POM (dependency management) — always build via -f
-├── scm-web/                 # Frontend (@cognora/aura-web) — separate npm project
 ├── platform/                # Platform domain
 │   ├── common/              # Shared libraries (no Spring Boot main)
 │   │   ├── core/            # Utilities, exceptions, TenantContextHolder
@@ -551,8 +571,8 @@ mvn verify -Djacoco.skip=false -f com.scm.parent/pom.xml
 k6 run scripts/loadtest/order-flow.js
 k6 run scripts/loadtest/inventory-check.js
 
-# E2E tests (requires Playwright)
-cd scm-web && npx playwright test
+# E2E tests (in the separate frontend repo, requires Playwright)
+cd cognora-aura-web && npm run test:e2e
 ```
 
 > [!NOTE]
