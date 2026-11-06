@@ -1,5 +1,7 @@
 package com.cognora.scm.finance.service.query;
 
+import com.baomidou.mybatisplus.core.MybatisConfiguration;
+import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.cognora.platform.common.tenant.TenantContextHolder;
 import com.cognora.scm.finance.config.CloseCriteriaProperties;
 import com.cognora.scm.finance.domain.dto.CloseInclusionSummary;
@@ -11,6 +13,7 @@ import com.cognora.scm.finance.domain.enums.InvoiceStatus;
 import com.cognora.scm.finance.mapper.AccountingPeriodMapper;
 import com.cognora.scm.finance.mapper.InvoiceMapper;
 import com.cognora.scm.finance.mapper.SettlementItemMapper;
+import org.apache.ibatis.builder.MapperBuilderAssistant;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -55,6 +58,9 @@ class PeriodCloseInclusionQueryServiceTest {
 
     @BeforeEach
     void setUp() {
+        MapperBuilderAssistant assistant = new MapperBuilderAssistant(new MybatisConfiguration(), "");
+        TableInfoHelper.initTableInfo(assistant, Invoice.class);
+        TableInfoHelper.initTableInfo(assistant, SettlementItem.class);
         TenantContextHolder.setTenantId(TENANT);
         properties = new CloseCriteriaProperties();
         service = new PeriodCloseInclusionQueryService(
