@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: scm-supplier
-          image: scm-platform/scm-supplier:latest
+          image: cognora-aura-platform/scm-supplier:latest
           ports:
             - containerPort: 8206
               name: http

@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: platform-notify
-          image: scm-platform/platform-notify:latest
+          image: cognora-aura-platform/platform-notify:latest
           ports:
             - containerPort: 8211
               name: http

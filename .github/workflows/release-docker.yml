@@ -2,7 +2,7 @@ name: Release 鈥?Docker Images to GHCR
 
 # Triggered on every v* tag (e.g. v1.3.0, v1.4.0-rc.1).
 # Builds every service with a Dockerfile and pushes to GitHub Container
-# Registry (ghcr.io/<owner>/scm-platform/<service>). Then publishes (or
+# Registry (ghcr.io/<owner>/cognora-aura-platform/<service>). Then publishes (or
 # updates) the matching GitHub Release with auto-generated notes.
 #
 # Required secrets / permissions: only `GITHUB_TOKEN` 鈥?no Docker Hub creds.
@@ -110,7 +110,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6
         with:
-          images: ghcr.io/${{ github.repository_owner }}/scm-platform/${{ matrix.service }}
+          images: ghcr.io/${{ github.repository_owner }}/cognora-aura-platform/${{ matrix.service }}
           tags: |
             type=ref,event=tag
             type=semver,pattern={{version}}

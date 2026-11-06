@@ -49,6 +49,13 @@ Reserved for `v2.2.0` — every merged commit after `v2.1.0` (`5732ab1b`) throug
 
 ### Changed
 
+- **Container images moved to `ghcr.io/<owner>/cognora-aura-platform/<service>`.**
+  The release workflow, the single-file K8s manifests (`deploy/k8s/<project>-<domain>.yaml`)
+  and this repository's deployment notes now use the new path. Images published
+  under the old `ghcr.io/<owner>/scm-platform/<service>` path are **no longer
+  updated** — any pull script, K8s manifest or Helm override that still names the
+  old path must switch. The old packages are left in place so existing pins keep
+  resolving to their historical versions.
 - Inventory `inv_log` is partitioned monthly and the OpenAPI drift check was
   extended (#357).
 - The extracted `scm-web` frontend was removed from the monorepo (#352).

@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: platform-system
-          image: scm-platform/platform-system:latest
+          image: cognora-aura-platform/platform-system:latest
           ports:
             - containerPort: 8081
               name: http

@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: platform-message
-          image: scm-platform/platform-message:latest
+          image: cognora-aura-platform/platform-message:latest
           ports:
             - containerPort: 8214
               name: http
