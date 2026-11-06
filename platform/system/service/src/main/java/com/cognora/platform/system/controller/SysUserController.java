@@ -6,6 +6,7 @@ import com.cognora.platform.common.domain.PageResult;
 import com.cognora.platform.common.response.ApiResponse;
 import com.cognora.platform.common.dto.user.ChangePasswordRequest;
 import com.cognora.platform.common.dto.role.TemporaryRoleGrantDTO;
+import com.cognora.platform.common.dto.user.UpdateProfileRequest;
 import com.cognora.platform.common.dto.user.UserDTO;
 import com.cognora.platform.system.service.command.ISysUserCommandService;
 import com.cognora.platform.system.service.command.IUserRoleCommandService;
@@ -97,6 +98,20 @@ public class SysUserController {
         userCommandService.updateUser(id, userDTO);
 
         return ApiResponse.success();
+    }
+
+    /**
+     * 修改当前登录用户自己的资料
+     */
+    @Operation(summary = "修改个人资料", description = "当前登录用户修改昵称、头像、手机、邮箱与时区，用户身份只从访问令牌解析。")
+    @PutMapping("/me")
+    @PreAuthorize("isAuthenticated()")
+    @AuditLog(
+            operation = "修改个人资料",
+            businessType = "USER"
+    )
+    public ApiResponse<UserDTO> updateOwnProfile(@Validated @RequestBody UpdateProfileRequest request) {
+        return ApiResponse.success(userCommandService.updateOwnProfile(request));
     }
 
     /**

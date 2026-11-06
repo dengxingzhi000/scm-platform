@@ -138,6 +138,7 @@ class GatewaySecurityConfigTest {
     @ParameterizedTest
     @ValueSource(strings = {"/platform-auth/api/auth/login", "/platform-auth/api/auth/refresh", "/platform-auth/oauth2/token",
             "/platform-auth/api/public/probe", "/ecom-payment/api/v1/payments/callback/alipay",
+            "/lms-tms/api/v1/tms-tracking/callback/SF",
             "/actuator/health", "/actuator/info"})
     void existingPublicRoutesRemainPermittedWithoutCsrf(String path) {
         MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.post(path));

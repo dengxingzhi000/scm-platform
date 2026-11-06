@@ -57,6 +57,10 @@ public class SysUser implements Serializable {
     @TableField("avatar")
     private String avatar;
 
+    /** 用户时区（IANA 名称，如 Asia/Shanghai），用于个人资料与通知时间展示。 */
+    @TableField("timezone")
+    private String timezone;
+
     @TableField("status")
     private Integer status;
 

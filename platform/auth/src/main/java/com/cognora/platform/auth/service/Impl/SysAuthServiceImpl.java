@@ -11,6 +11,8 @@ import com.cognora.platform.common.log.service.ISysAuditLogService;
 import com.cognora.platform.common.dto.user.LoginRequest;
 import com.cognora.platform.common.dto.user.LoginResponse;
 import com.cognora.platform.common.dto.user.UserInfo;
+import com.cognora.platform.common.dto.user.UserSessionDTO;
+import com.cognora.platform.common.exception.UnauthorizedException;
 import com.cognora.platform.auth.service.ISysAuthService;
 import com.cognora.platform.common.security.util.TotpUtils;
 import com.cognora.platform.common.redis.script.LuaScriptRegistry;
@@ -298,5 +300,45 @@ public class SysAuthServiceImpl implements ISysAuthService {
     @Override
     public UserInfo getUserInfo(UUID userId) {
         return userDubboService.getUserInfo(userId);
+    }
+
+    @Override
+    public List<UserSessionDTO> listSessions(String accessToken) {
+        UUID userId = jwtUtils.getUserIdFromToken(requireToken(accessToken));
+        String currentDeviceId = jwtUtils.getDeviceIdFromToken(accessToken);
+
+        return jwtUtils.listActiveSessions(userId).stream()
+                .map(session -> UserSessionDTO.builder()
+                        .sessionId(session.getDeviceId())
+                        .ip(session.getIpAddress())
+                        .lastActiveAt(session.getIssuedAt())
+                        .current(currentDeviceId != null && currentDeviceId.equals(session.getDeviceId()))
+                        .build())
+                .toList();
+    }
+
+    @Override
+    public int logoutOtherSessions(String accessToken) {
+        UUID userId = jwtUtils.getUserIdFromToken(requireToken(accessToken));
+        String currentDeviceId = jwtUtils.getDeviceIdFromToken(accessToken);
+        if (!StringUtils.hasText(currentDeviceId)) {
+            throw new UnauthorizedException("Token is missing device binding");
+        }
+
+        int revoked = jwtUtils.revokeOtherDeviceTokens(
+                userId, currentDeviceId, "User logged out other sessions");
+        auditLogService.recordLogout(userId, "Other sessions revoked: " + revoked);
+        log.info("Other sessions revoked: userId={} revoked={}", userId, revoked);
+        return revoked;
+    }
+
+    /**
+     * 会话端点只信任请求携带的访问令牌：缺少令牌时拒绝，绝不接受调用方传入的 userId。
+     */
+    private String requireToken(String accessToken) {
+        if (!StringUtils.hasText(accessToken)) {
+            throw new UnauthorizedException("Missing access token");
+        }
+        return accessToken;
     }
 }

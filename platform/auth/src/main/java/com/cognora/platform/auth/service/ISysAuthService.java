@@ -3,7 +3,9 @@ package com.cognora.platform.auth.service;
 import com.cognora.platform.common.dto.user.LoginRequest;
 import com.cognora.platform.common.dto.user.LoginResponse;
 import com.cognora.platform.common.dto.user.UserInfo;
+import com.cognora.platform.common.dto.user.UserSessionDTO;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -60,4 +62,24 @@ public interface ISysAuthService {
      * @return 鐢ㄦ埛淇℃伅
      */
     UserInfo getUserInfo(UUID userId);
+
+    /**
+     * 列出当前访问令牌所属用户的全部有效会话。
+     *
+     * <p>用户身份只从传入的访问令牌解析，不接受调用方指定 userId。</p>
+     *
+     * @param accessToken 当前请求携带的访问令牌
+     * @return 会话列表，当前令牌对应的会话标记为 current
+     */
+    List<UserSessionDTO> listSessions(String accessToken);
+
+    /**
+     * 撤销当前用户除当前设备外的全部访问令牌。
+     *
+     * <p>用户身份与保留设备均来自传入的访问令牌，不接受 userId 入参。</p>
+     *
+     * @param accessToken 当前请求携带的访问令牌
+     * @return 实际撤销的会话数量
+     */
+    int logoutOtherSessions(String accessToken);
 }
