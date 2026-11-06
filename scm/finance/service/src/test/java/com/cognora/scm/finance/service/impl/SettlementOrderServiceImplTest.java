@@ -2,6 +2,7 @@ package com.cognora.scm.finance.service.impl;
 
 import com.cognora.platform.common.status.StatusValidator;
 import com.cognora.platform.common.tenant.TenantContextHolder;
+import com.cognora.scm.finance.service.support.AccountingPeriodGuard;
 import com.cognora.platform.common.tenant.TenantParseException;
 import com.cognora.scm.finance.domain.entity.SettlementOrder;
 import com.cognora.scm.finance.mapper.SettlementOrderMapper;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
@@ -36,11 +38,14 @@ class SettlementOrderServiceImplTest {
     @Mock
     private StatusValidator statusValidator;
 
+    @Mock
+    private AccountingPeriodGuard accountingPeriodGuard;
+
     private SettlementOrderServiceImpl service;
 
     @BeforeEach
     void setUp() {
-        service = new SettlementOrderServiceImpl(statusValidator);
+        service = new SettlementOrderServiceImpl(statusValidator, accountingPeriodGuard);
         ReflectionTestUtils.setField(service, "baseMapper", mapper);
         TenantContextHolder.setTenantId(TENANT);
     }
@@ -56,8 +61,6 @@ class SettlementOrderServiceImplTest {
         order.setTotalAmount(new BigDecimal("100.00"));
         order.setDiscountAmount(new BigDecimal("10.00"));
         order.setAdjustmentAmount(new BigDecimal("-5.00"));
-        // 请求体试图写入别的租户，必须被登录态覆盖。
-        order.setTenantId("019a0aee-0000-7000-8000-000000000099");
         when(mapper.insert(any(SettlementOrder.class))).thenReturn(1);
 
         SettlementOrder created = service.createSettlement(order);
@@ -70,6 +73,16 @@ class SettlementOrderServiceImplTest {
         assertEquals("CNY", created.getCurrency());
         assertFalse(created.getDeleted());
         verify(mapper).insert(created);
+    }
+
+    @Test
+    void createShouldRejectForeignTenantInRequestBody() {
+        SettlementOrder order = new SettlementOrder();
+        order.setTotalAmount(new BigDecimal("100.00"));
+        order.setTenantId("019a0aee-0000-7000-8000-000000000099");
+
+        assertThrows(AccessDeniedException.class, () -> service.createSettlement(order));
+        verify(mapper, never()).insert(any(SettlementOrder.class));
     }
 
     @Test

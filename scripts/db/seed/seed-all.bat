@@ -36,6 +36,7 @@ for %%s in (
     "db_permission:020_api_permission_coverage.sql"
     "db_permission:021_search_index_permission.sql"
     "db_permission:022_system_config_permission.sql"
+    "db_permission:023_finance_batch2_permissions.sql"
     "db_org:003_org_dept.sql"
     "db_user:004_admin_user.sql"
     "db_product:010_product.sql"

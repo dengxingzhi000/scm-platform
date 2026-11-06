@@ -9,8 +9,10 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * 对账差异明细。每条差异独立闭环（待处理/已处理/核销豁免），
- * 不再依赖 reconciliation_record.status 一个字段兜底。
+ * 对账差异明细。每条差异独立闭环，不再依赖 reconciliation_record.status 一个字段兜底。
+ *
+ * <p>状态：0-待处理，1-已确认，2-已核销，3-已驳回；合法流转见
+ * {@link com.cognora.scm.finance.domain.enums.ReconciliationDiffStatus}。</p>
  */
 @Data
 @TableName("fin_reconciliation_diff")
@@ -36,7 +38,7 @@ public class ReconciliationDiff {
 
     private String currency;
 
-    /** 0-待处理, 1-已处理, 2-已核销豁免 */
+    /** 0-待处理, 1-已确认, 2-已核销, 3-已驳回 */
     private Integer status;
 
     private String resolution;
