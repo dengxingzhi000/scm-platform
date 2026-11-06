@@ -1,5 +1,6 @@
 package com.cognora.platform.gateway.config;
 
+import com.cognora.platform.gateway.properties.GatewayCorsProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -21,6 +22,7 @@ import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.WebFilterChainProxy;
 import org.springframework.security.web.server.authentication.logout.LogoutWebFilter;
 import org.springframework.security.web.server.context.WebSessionServerSecurityContextRepository;
+import org.springframework.web.cors.reactive.CorsConfigurationSource;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -49,7 +51,10 @@ class GatewaySecurityConfigTest {
     @BeforeEach
     void setUp() {
         decoder = mock(ReactiveJwtDecoder.class);
-        securityChain = new GatewaySecurityConfig().springSecurityFilterChain(ServerHttpSecurity.http(), decoder);
+        CorsConfigurationSource corsConfigurationSource =
+                new GatewayCorsConfig().corsConfigurationSource(new GatewayCorsProperties());
+        securityChain = new GatewaySecurityConfig()
+                .springSecurityFilterChain(ServerHttpSecurity.http(), decoder, corsConfigurationSource);
         proxy = new WebFilterChainProxy(securityChain);
         principal = new AtomicReference<>();
     }
@@ -137,16 +142,39 @@ class GatewaySecurityConfigTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"/platform-auth/api/auth/login", "/platform-auth/api/auth/refresh", "/platform-auth/oauth2/token",
-            "/platform-auth/api/public/probe", "/ecom-payment/api/v1/payments/callback/alipay",
+            "/platform-auth/api/public/probe",
+            "/auth/api/auth/login", "/auth/api/auth/refresh", "/auth/oauth2/token", "/auth/api/public/probe",
+            "/ecom-payment/api/v1/payments/callback/alipay",
             "/lms-tms/api/v1/tms-tracking/callback/SF",
             "/actuator/health", "/actuator/info"})
-    void existingPublicRoutesRemainPermittedWithoutCsrf(String path) {
+    void publicRoutesAndAliasesRemainPermittedWithoutCsrf(String path) {
         MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.post(path));
 
         filter(exchange);
 
         assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(principal.get()).isNull();
+        verifyNoInteractions(decoder);
+    }
+
+    @Test
+    void corsPreflightFromConfiguredVmOriginIsAnsweredBeforeAuthentication() {
+        // An absolute URI is required: CorsUtils asserts the actual request scheme.
+        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest
+                .method(HttpMethod.OPTIONS, "http://localhost:8761/scm-order/api/v1/orders")
+                .header(HttpHeaders.ORIGIN, "http://192.168.0.121:3000")
+                .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST")
+                .header(HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS, "authorization,content-type"));
+
+        filter(exchange);
+
+        // The CORS filter short-circuits the preflight: no status is set on the mock
+        // response (a real server would answer 200), and authentication never runs.
+        assertThat(exchange.getResponse().getStatusCode()).isNull();
+        assertThat(exchange.getResponse().getHeaders().getFirst(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN))
+                .isEqualTo("http://192.168.0.121:3000");
+        assertThat(exchange.getResponse().getHeaders().getFirst(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS))
+                .isEqualTo("true");
         verifyNoInteractions(decoder);
     }
 
