@@ -8,6 +8,10 @@ import com.cognora.platform.common.tenant.TenantContextHolder;
 import com.cognora.platform.inventory.domain.entity.Inventory;
 import com.cognora.platform.inventory.mapper.InvInventoryMapper;
 import com.cognora.platform.inventory.service.RedisInventoryService;
+import com.cognora.platform.inventory.service.cost.CostContext;
+import com.cognora.platform.inventory.service.cost.CostMovement;
+import com.cognora.platform.inventory.service.cost.InventoryCostLogService;
+import com.cognora.platform.inventory.service.cost.MovingAverageCostService;
 import com.cognora.platform.inventory.service.flow.FlowLogEntry;
 import com.cognora.platform.inventory.service.flow.InventoryFlowLogService;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +39,7 @@ public class InventoryDubboServiceImpl implements InventoryDubboService {
     private final RedisInventoryService redisInventoryService;
     private final InvInventoryMapper inventoryMapper;
     private final InventoryFlowLogService flowLogService;
+    private final InventoryCostLogService costLogService;
 
     @Override
     public void deductStock(Long skuId, Integer quantity, String requestId) {
@@ -136,8 +141,9 @@ public class InventoryDubboServiceImpl implements InventoryDubboService {
             log.warn("Redis 扣减后读不到库存，跳过流水: skuId={}, requestId={}", skuId, requestId);
             return;
         }
-        flowLogService.record(deductEntry(skuId, quantity, afterStock,
-                "DUBBO_DEDUCT:" + requestId + ":" + skuId, requestId));
+        String idempotencyKey = "DUBBO_DEDUCT:" + requestId + ":" + skuId;
+        flowLogService.record(deductEntry(skuId, quantity, afterStock, idempotencyKey, requestId));
+        recordDeductCost(skuId, quantity, idempotencyKey, requestId);
     }
 
     private void recordBatchDeductFlow(BatchDeductStockRequest deductRequest) {
@@ -151,10 +157,72 @@ public class InventoryDubboServiceImpl implements InventoryDubboService {
                 index++;
                 continue;
             }
+            String idempotencyKey = "DUBBO_BATCH:" + deductRequest.getRequestId() + ":"
+                    + index + ":" + item.getSkuId();
             flowLogService.record(deductEntry(item.getSkuId(), item.getQuantity(), afterStock,
-                    "DUBBO_BATCH:" + deductRequest.getRequestId() + ":" + index + ":" + item.getSkuId(),
-                    deductRequest.getRequestId()));
+                    idempotencyKey, deductRequest.getRequestId()));
+            recordDeductCost(item.getSkuId(), item.getQuantity(), idempotencyKey,
+                    deductRequest.getRequestId());
             index++;
+        }
+    }
+
+    /**
+     * Dubbo 扣减的成本流水：按台账当时均价计价，不改变台账均价。
+     *
+     * <p>Redis 是数量事实来源，DB 结存数量不变，因此这里只记单价/金额，不填结存数量；
+     * 定位不到唯一台账行时跳过成本流水（数量流水仍保留），并在 PR 中标注为未覆盖项。
+     */
+    private void recordDeductCost(Long skuId, int quantity, String idempotencyKey, String requestId) {
+        String tenant = currentTenant();
+        if (tenant == null) {
+            log.warn("缺少租户上下文，跳过 Dubbo 成本流水: skuId={}, requestId={}",
+                    skuId, safeForLog(requestId));
+            return;
+        }
+        Inventory ledger = resolveLedger(skuId);
+        if (ledger == null) {
+            log.warn("Dubbo 扣减未定位到唯一台账行，跳过成本流水: skuId={}, requestId={}",
+                    skuId, safeForLog(requestId));
+            return;
+        }
+        CostMovement movement = MovingAverageCostService.outboundMovement(
+                ledger.getAverageCost(), null, quantity);
+        costLogService.record(null, movement, CostContext.builder()
+                .businessType("DUBBO_DEDUCT")
+                .businessKey(requestId)
+                .requestId(requestId)
+                .referenceType("DUBBO")
+                .legacySkuId(skuId)
+                .warehouseCode(DEFAULT_WAREHOUSE)
+                .ledgerSource("REDIS")
+                .remark("Dubbo 扣减库存（Redis 账本）")
+                .extraData("{\"source\":\"REDIS\"}")
+                .idempotencyKey(idempotencyKey)
+                .build(), tenant);
+    }
+
+    /** 日志脱敏：去掉用户可控字段中的换行，避免日志伪造。 */
+    private static String safeForLog(String value) {
+        return value == null ? "" : value.replace('\r', '_').replace('\n', '_');
+    }
+
+    private Inventory resolveLedger(Long skuId) {
+        String tenant = currentTenant();
+        if (tenant == null) {
+            return null;
+        }
+        try {
+            List<Inventory> rows = inventoryMapper.selectByLegacySkuId(tenant, skuId);
+            if (rows == null || rows.size() != 1) {
+                log.warn("Dubbo 成本计价台账不唯一: skuId={}, matched={}",
+                        skuId, rows == null ? 0 : rows.size());
+                return null;
+            }
+            return rows.get(0);
+        } catch (RuntimeException e) {
+            log.warn("Dubbo 成本计价查询台账失败，跳过成本流水: skuId={}", skuId, e);
+            return null;
         }
     }
 

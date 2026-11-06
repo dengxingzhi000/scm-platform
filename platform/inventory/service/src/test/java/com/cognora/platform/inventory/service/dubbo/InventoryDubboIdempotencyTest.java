@@ -3,6 +3,7 @@ package com.cognora.platform.inventory.service.dubbo;
 import com.cognora.platform.inventory.api.exception.InsufficientStockException;
 import com.cognora.platform.inventory.api.request.BatchDeductStockRequest;
 import com.cognora.platform.inventory.mapper.InvInventoryMapper;
+import com.cognora.platform.inventory.service.cost.InventoryCostLogService;
 import com.cognora.platform.inventory.service.flow.InventoryFlowLogService;
 import com.cognora.platform.inventory.service.RedisInventoryService;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,7 +36,7 @@ class InventoryDubboIdempotencyTest {
     void setUp() {
         redisInventoryService = mock(RedisInventoryService.class);
         service = new InventoryDubboServiceImpl(redisInventoryService, mock(InvInventoryMapper.class),
-                mock(InventoryFlowLogService.class));
+                mock(InventoryFlowLogService.class), mock(InventoryCostLogService.class));
     }
 
     @Test

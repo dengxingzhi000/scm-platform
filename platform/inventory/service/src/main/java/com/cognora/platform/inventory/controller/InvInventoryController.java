@@ -189,10 +189,14 @@ public class InvInventoryController {
       @RequestParam @NotBlank(message = "SKU ID 不能为空") String skuId,
       @RequestParam @NotBlank(message = "仓库 ID 不能为空") String warehouseId,
       @Parameter(description = "初始库存数量，可选，不传时按默认值初始化")
-      @RequestParam(required = false) Integer initialStock) {
+      @RequestParam(required = false) Integer initialStock,
+      @Parameter(description = "初始库存单价（移动加权平均成本），可选")
+      @RequestParam(required = false) java.math.BigDecimal unitPrice) {
 
-    LogUtils.business("inventory.init", "start", new Object[]{skuId, warehouseId, initialStock});
-    InventoryResponse response = commandService.initInventory(skuId, warehouseId, initialStock);
+    LogUtils.business("inventory.init", "start",
+        new Object[]{skuId, warehouseId, initialStock, unitPrice});
+    InventoryResponse response =
+        commandService.initInventory(skuId, warehouseId, initialStock, unitPrice);
     LogUtils.business("inventory.init", "success", response);
     return ApiResponse.success(response);
   }

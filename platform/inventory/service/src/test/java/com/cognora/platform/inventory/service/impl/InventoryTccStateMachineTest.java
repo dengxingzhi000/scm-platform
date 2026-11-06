@@ -4,6 +4,7 @@ import com.cognora.platform.common.tenant.TenantContextHolder;
 import com.cognora.platform.inventory.domain.entity.InvTccReservation;
 import com.cognora.platform.inventory.domain.entity.Inventory;
 import com.cognora.platform.inventory.mapper.InvInventoryMapper;
+import com.cognora.platform.inventory.service.cost.InventoryCostLogService;
 import com.cognora.platform.inventory.service.flow.InventoryFlowLogService;
 import com.cognora.platform.inventory.mapper.InvTccReservationMapper;
 import io.seata.rm.tcc.api.BusinessActionContext;
@@ -56,7 +57,7 @@ class InventoryTccStateMachineTest {
         inventoryMapper = mock(InvInventoryMapper.class);
         reservationMapper = mock(InvTccReservationMapper.class);
         service = new InventoryTccServiceImpl(inventoryMapper, reservationMapper,
-                mock(InventoryFlowLogService.class));
+                mock(InventoryFlowLogService.class), mock(InventoryCostLogService.class));
 
         ledger = new Inventory();
         ledger.setId(INVENTORY_ID);

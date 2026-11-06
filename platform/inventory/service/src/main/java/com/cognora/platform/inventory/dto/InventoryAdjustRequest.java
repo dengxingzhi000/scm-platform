@@ -2,6 +2,8 @@ package com.cognora.platform.inventory.dto;
 
 import lombok.Data;
 
+import java.math.BigDecimal;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
@@ -64,4 +66,12 @@ public class InventoryAdjustRequest {
    * 澶囨敞
    */
   private String remark;
+
+  /**
+   * 入库单价（移动加权平均成本）。
+   *
+   * <p>仅入库（quantity > 0）参与均价重算；出库忽略该字段，按当时均价计价。
+   * 为空时按当前均价入账（首次入库则为 0），避免历史调用方因缺省字段被拒绝。
+   */
+  private BigDecimal unitPrice;
 }

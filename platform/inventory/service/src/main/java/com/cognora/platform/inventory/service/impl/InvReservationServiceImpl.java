@@ -13,6 +13,9 @@ import com.cognora.platform.inventory.lock.DistributedLock;
 import com.cognora.platform.inventory.mapper.InvInventoryMapper;
 import com.cognora.platform.inventory.mapper.InvReservationRecordMapper;
 import com.cognora.platform.inventory.service.IInvReservationService;
+import com.cognora.platform.inventory.service.cost.CostContext;
+import com.cognora.platform.inventory.service.cost.InventoryCostLogService;
+import com.cognora.platform.inventory.service.cost.MovingAverageCostService;
 import com.cognora.platform.inventory.service.flow.FlowLogEntry;
 import com.cognora.platform.inventory.service.flow.InventoryFlowLogService;
 import lombok.RequiredArgsConstructor;
@@ -56,6 +59,8 @@ public class InvReservationServiceImpl implements IInvReservationService {
   private final DistributedLock distributedLock;
 
   private final InventoryFlowLogService flowLogService;
+
+  private final InventoryCostLogService costLogService;
 
   private static final int DEFAULT_TIMEOUT_SECONDS = 900; // 15分钟
 
@@ -185,8 +190,23 @@ public class InvReservationServiceImpl implements IInvReservationService {
       throw new IllegalStateException("锁定库存不足，无法确认预占: reservationId=" + record.getId());
     }
     if (before != null) {
+      String idempotencyKey = "CONFIRM:" + businessKey;
       recordFlow(tenant, before, record.getQuantity(), "CONFIRM", 5, -record.getQuantity(),
-          businessKey, "CONFIRM:" + businessKey, "预占确认实扣", null, null);
+          businessKey, idempotencyKey, "预占确认实扣", null, null);
+
+      // 确认实扣按当时均价出库，不改变均价
+      costLogService.record(before,
+          MovingAverageCostService.outboundMovement(
+              before.getAverageCost(), nvl(before.getTotalStock()), record.getQuantity()),
+          CostContext.builder()
+              .businessType("CONFIRM")
+              .businessKey(businessKey)
+              .referenceType("ORDER")
+              .referenceId(before.getId())
+              .remark("预占确认实扣")
+              .idempotencyKey(idempotencyKey)
+              .build(),
+          tenant);
     }
 
     log.debug("预占确认成功: reservationId={}, quantity={}", record.getId(), record.getQuantity());

@@ -6,6 +6,9 @@ import com.cognora.platform.inventory.domain.entity.InvTccReservation;
 import com.cognora.platform.inventory.domain.entity.Inventory;
 import com.cognora.platform.inventory.mapper.InvInventoryMapper;
 import com.cognora.platform.inventory.mapper.InvTccReservationMapper;
+import com.cognora.platform.inventory.service.cost.CostContext;
+import com.cognora.platform.inventory.service.cost.InventoryCostLogService;
+import com.cognora.platform.inventory.service.cost.MovingAverageCostService;
 import com.cognora.platform.inventory.service.flow.FlowLogEntry;
 import com.cognora.platform.inventory.service.flow.InventoryFlowLogService;
 import io.seata.core.context.RootContext;
@@ -53,6 +56,7 @@ public class InventoryTccServiceImpl implements InventoryTccService {
     private final InvInventoryMapper inventoryMapper;
     private final InvTccReservationMapper reservationMapper;
     private final InventoryFlowLogService flowLogService;
+    private final InventoryCostLogService costLogService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -183,8 +187,23 @@ public class InventoryTccServiceImpl implements InventoryTccService {
 
         log.debug("TCC Confirm 成功: reservationId={}, quantity={}", reservation.getId(), quantity);
 
+        String idempotencyKey = "TCC_CONFIRM:" + businessKey;
         recordFlow(tenant, ledger, quantity, "TCC_CONFIRM", 5, -quantity,
-                businessKey, "TCC_CONFIRM:" + businessKey, "TCC 确认实扣");
+                businessKey, idempotencyKey, "TCC 确认实扣");
+
+        // 确认实扣按当时均价出库，不改变均价
+        costLogService.record(ledger,
+                MovingAverageCostService.outboundMovement(
+                        ledger.getAverageCost(), nvl(ledger.getTotalStock()), quantity),
+                CostContext.builder()
+                        .businessType("TCC_CONFIRM")
+                        .businessKey(businessKey)
+                        .referenceType("TCC")
+                        .referenceId(ledger.getId())
+                        .remark("TCC 确认实扣")
+                        .idempotencyKey(idempotencyKey)
+                        .build(),
+                tenant);
         return true;
     }
 

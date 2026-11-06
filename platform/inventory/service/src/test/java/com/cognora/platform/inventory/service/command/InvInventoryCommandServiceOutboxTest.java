@@ -6,6 +6,8 @@ import com.cognora.platform.inventory.domain.entity.Inventory;
 import com.cognora.platform.inventory.dto.InventoryAdjustRequest;
 import com.cognora.platform.inventory.event.InventoryAdjustedEvent;
 import com.cognora.platform.inventory.mapper.InvInventoryMapper;
+import com.cognora.platform.inventory.service.cost.InventoryCostLogService;
+import com.cognora.platform.inventory.service.cost.MovingAverageCostService;
 import com.cognora.platform.inventory.service.flow.InventoryFlowLogService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,7 +37,8 @@ class InvInventoryCommandServiceOutboxTest {
     @BeforeEach
     void setUp() {
         service = new InvInventoryCommandService(inventoryMapper, outboxService,
-                mock(InventoryFlowLogService.class));
+                mock(InventoryFlowLogService.class), mock(MovingAverageCostService.class),
+                mock(InventoryCostLogService.class));
     }
 
     @AfterEach
@@ -59,7 +62,6 @@ class InvInventoryCommandServiceOutboxTest {
         existing.setSafetyStock(10);
 
         when(inventoryMapper.selectOne(any())).thenReturn(existing);
-        when(inventoryMapper.applyAdjustment(anyString(), eq(10), eq(1), anyString())).thenReturn(1);
         when(inventoryMapper.selectById(anyString())).thenReturn(existing);
 
         InventoryAdjustRequest request = new InventoryAdjustRequest();
@@ -94,7 +96,6 @@ class InvInventoryCommandServiceOutboxTest {
         existing.setSafetyStock(10);
 
         when(inventoryMapper.selectOne(any())).thenReturn(existing);
-        when(inventoryMapper.applyAdjustment(anyString(), eq(5), eq(1), anyString())).thenReturn(1);
         when(inventoryMapper.selectById(anyString())).thenReturn(existing);
         doThrow(new RuntimeException("outbox save failed"))
                 .when(outboxService).save(anyString(), anyString(), anyString(), any(), any());

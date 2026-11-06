@@ -9,6 +9,7 @@ import com.cognora.platform.inventory.dto.InventoryReservationRequest;
 import com.cognora.platform.inventory.lock.DistributedLock;
 import com.cognora.platform.inventory.mapper.InvInventoryMapper;
 import com.cognora.platform.inventory.mapper.InvReservationRecordMapper;
+import com.cognora.platform.inventory.service.cost.InventoryCostLogService;
 import com.cognora.platform.inventory.service.flow.InventoryFlowLogService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -74,7 +75,7 @@ class InvReservationTenantIsolationTest {
         });
 
         service = new InvReservationServiceImpl(inventoryMapper, reservationRecordMapper, distributedLock,
-                mock(InventoryFlowLogService.class));
+                mock(InventoryFlowLogService.class), mock(InventoryCostLogService.class));
     }
 
     @AfterEach

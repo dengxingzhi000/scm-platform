@@ -37,8 +37,8 @@ CREATE TABLE IF NOT EXISTS inv_inventory (
     -- 库位
     location_code VARCHAR(64),
 
-    -- 成本
-    average_cost DECIMAL(12, 2) DEFAULT 0
+    -- 成本（移动加权平均：单价保留 6 位，金额落库时按 2 位）
+    average_cost DECIMAL(18, 6) DEFAULT 0
         CONSTRAINT chk_inv_average_cost CHECK (average_cost >= 0),
 
     -- 乐观锁

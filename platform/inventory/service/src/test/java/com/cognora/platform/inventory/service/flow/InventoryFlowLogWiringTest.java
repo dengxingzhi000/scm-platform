@@ -15,6 +15,8 @@ import com.cognora.platform.inventory.mapper.InvReservationRecordMapper;
 import com.cognora.platform.inventory.mapper.InvTccReservationMapper;
 import com.cognora.platform.inventory.service.RedisInventoryService;
 import com.cognora.platform.inventory.service.command.InvInventoryCommandService;
+import com.cognora.platform.inventory.service.cost.InventoryCostLogService;
+import com.cognora.platform.inventory.service.cost.MovingAverageCostService;
 import com.cognora.platform.inventory.service.dubbo.InventoryDubboServiceImpl;
 import com.cognora.platform.inventory.service.impl.InvReservationServiceImpl;
 import com.cognora.platform.inventory.service.impl.InventoryTccServiceImpl;
@@ -81,7 +83,8 @@ class InventoryFlowLogWiringTest {
     InvInventoryMapper mapper = mock(InvInventoryMapper.class);
     OutboxService outbox = mock(OutboxService.class);
     InvInventoryCommandService service =
-        new InvInventoryCommandService(mapper, outbox, flowLog);
+        new InvInventoryCommandService(mapper, outbox, flowLog,
+            mock(MovingAverageCostService.class), mock(InventoryCostLogService.class));
 
     Inventory existed = ledger(10, 10, 0, 0);
     Inventory fresh = ledger(15, 15, 0, 0);
@@ -109,7 +112,8 @@ class InventoryFlowLogWiringTest {
     when(mapper.applyAdjustment(anyString(), anyInt(), anyInt(), anyString())).thenReturn(0);
     flowLog = mock(InventoryFlowLogService.class);
     InvInventoryCommandService failing =
-        new InvInventoryCommandService(mapper, outbox, flowLog);
+        new InvInventoryCommandService(mapper, outbox, flowLog,
+            mock(MovingAverageCostService.class), mock(InventoryCostLogService.class));
     assertThrows(IllegalArgumentException.class, () -> failing.adjustInventory(adjustRequest(-20, 2)));
     verify(flowLog, never()).record(any(FlowLogEntry.class));
   }
@@ -119,7 +123,8 @@ class InventoryFlowLogWiringTest {
   void transferWritesTwoDirectionalEntries() {
     InvInventoryMapper mapper = mock(InvInventoryMapper.class);
     InvInventoryCommandService service =
-        new InvInventoryCommandService(mapper, mock(OutboxService.class), flowLog);
+        new InvInventoryCommandService(mapper, mock(OutboxService.class), flowLog,
+            mock(MovingAverageCostService.class), mock(InventoryCostLogService.class));
 
     Inventory from = ledger(10, 10, 0, 0);
     Inventory to = ledger(0, 2, 0, 0);
@@ -169,7 +174,8 @@ class InventoryFlowLogWiringTest {
     InvReservationRecordMapper recordMapper = mock(InvReservationRecordMapper.class);
     DistributedLock lock = mock(DistributedLock.class);
     InvReservationServiceImpl service =
-        new InvReservationServiceImpl(inventoryMapper, recordMapper, lock, flowLog);
+        new InvReservationServiceImpl(inventoryMapper, recordMapper, lock, flowLog,
+            mock(InventoryCostLogService.class));
 
     Inventory inventory = ledger(10, 10, 0, 0);
     when(lock.tryLock(anyString(), anyLong(), any(TimeUnit.class)))
@@ -207,7 +213,7 @@ class InventoryFlowLogWiringTest {
     InvInventoryMapper inventoryMapper = mock(InvInventoryMapper.class);
     InvReservationRecordMapper recordMapper = mock(InvReservationRecordMapper.class);
     InvReservationServiceImpl service = new InvReservationServiceImpl(inventoryMapper, recordMapper,
-        mock(DistributedLock.class), flowLog);
+        mock(DistributedLock.class), flowLog, mock(InventoryCostLogService.class));
 
     InvReservationRecord record = reservationRecord(ReservationStatus.RESERVED);
     when(recordMapper.selectByBusinessKey(TENANT, "ORD-1")).thenReturn(record);
@@ -235,7 +241,7 @@ class InventoryFlowLogWiringTest {
     InvInventoryMapper inventoryMapper = mock(InvInventoryMapper.class);
     InvReservationRecordMapper recordMapper = mock(InvReservationRecordMapper.class);
     InvReservationServiceImpl service = new InvReservationServiceImpl(inventoryMapper, recordMapper,
-        mock(DistributedLock.class), flowLog);
+        mock(DistributedLock.class), flowLog, mock(InventoryCostLogService.class));
 
     InvReservationRecord reserved = reservationRecord(ReservationStatus.RESERVED);
     InvReservationRecord released = reservationRecord(ReservationStatus.RELEASED);
@@ -264,7 +270,7 @@ class InventoryFlowLogWiringTest {
     InvInventoryMapper inventoryMapper = mock(InvInventoryMapper.class);
     InvReservationRecordMapper recordMapper = mock(InvReservationRecordMapper.class);
     InvReservationServiceImpl service = new InvReservationServiceImpl(inventoryMapper, recordMapper,
-        mock(DistributedLock.class), flowLog);
+        mock(DistributedLock.class), flowLog, mock(InventoryCostLogService.class));
 
     InvReservationRecord record = reservationRecord(ReservationStatus.RESERVED);
     when(recordMapper.selectExpired(200)).thenReturn(List.of(record));
@@ -287,7 +293,8 @@ class InventoryFlowLogWiringTest {
     InvInventoryMapper inventoryMapper = mock(InvInventoryMapper.class);
     InvTccReservationMapper reservationMapper = mock(InvTccReservationMapper.class);
     InventoryTccServiceImpl service =
-        new InventoryTccServiceImpl(inventoryMapper, reservationMapper, flowLog);
+        new InventoryTccServiceImpl(inventoryMapper, reservationMapper, flowLog,
+            mock(InventoryCostLogService.class));
 
     Inventory inventory = ledger(10, 10, 0, 0);
     when(reservationMapper.selectByBusinessKey(TENANT, "TCC-1")).thenReturn(null);
@@ -327,7 +334,7 @@ class InventoryFlowLogWiringTest {
   void dubboDeductWritesOneFlowPerRequestId() {
     RedisInventoryService redis = mock(RedisInventoryService.class);
     InventoryDubboServiceImpl service = new InventoryDubboServiceImpl(redis,
-        mock(InvInventoryMapper.class), flowLog);
+        mock(InvInventoryMapper.class), flowLog, mock(InventoryCostLogService.class));
 
     when(redis.acquireDeductRequest("REQ-1")).thenReturn(true, false);
     when(redis.deductStock("7", "DEFAULT", 5)).thenReturn(true);
