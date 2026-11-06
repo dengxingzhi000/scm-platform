@@ -2,7 +2,10 @@ package com.cognora.scm.finance.service.impl;
 
 import com.cognora.platform.common.status.StatusValidator;
 import com.cognora.platform.common.tenant.TenantContextHolder;
+import com.cognora.scm.finance.domain.dto.TaxRateResolution;
+import com.cognora.scm.finance.domain.enums.TaxRateSource;
 import com.cognora.scm.finance.service.support.AccountingPeriodGuard;
+import com.cognora.scm.finance.service.support.TaxRateResolver;
 import com.cognora.platform.common.tenant.TenantParseException;
 import com.cognora.scm.finance.domain.entity.SettlementOrder;
 import com.cognora.scm.finance.mapper.SettlementOrderMapper;
@@ -20,6 +23,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -45,7 +49,10 @@ class SettlementOrderServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        service = new SettlementOrderServiceImpl(statusValidator, accountingPeriodGuard);
+        TaxRateResolver taxRateResolver = org.mockito.Mockito.mock(TaxRateResolver.class,
+                invocation -> new TaxRateResolution(
+                        new BigDecimal("0.1300"), TaxRateSource.DEFAULT, null, null));
+        service = new SettlementOrderServiceImpl(statusValidator, accountingPeriodGuard, taxRateResolver);
         ReflectionTestUtils.setField(service, "baseMapper", mapper);
         TenantContextHolder.setTenantId(TENANT);
     }
@@ -71,8 +78,34 @@ class SettlementOrderServiceImplTest {
         assertEquals("85.00", created.getUnpaidAmount().toPlainString());
         assertEquals(0, created.getStatus());
         assertEquals("CNY", created.getCurrency());
+        // 未显式传税率时按规则解析并落库，响应回显来源。
+        assertEquals("0.1300", created.getTaxRate().toPlainString());
+        assertEquals("DEFAULT", created.getTaxRateSource());
         assertFalse(created.getDeleted());
         verify(mapper).insert(created);
+    }
+
+    @Test
+    void createShouldKeepExplicitTaxRate() {
+        SettlementOrder order = new SettlementOrder();
+        order.setTotalAmount(new BigDecimal("100.00"));
+        order.setTaxRate(new BigDecimal("0.06"));
+        when(mapper.insert(any(SettlementOrder.class))).thenReturn(1);
+
+        SettlementOrder created = service.createSettlement(order);
+
+        assertEquals("0.0600", created.getTaxRate().toPlainString());
+        assertNull(created.getTaxRateSource());
+    }
+
+    @Test
+    void createShouldRejectTaxRateAboveOne() {
+        SettlementOrder order = new SettlementOrder();
+        order.setTotalAmount(new BigDecimal("100.00"));
+        order.setTaxRate(new BigDecimal("1.2"));
+
+        assertThrows(IllegalArgumentException.class, () -> service.createSettlement(order));
+        verify(mapper, never()).insert(any(SettlementOrder.class));
     }
 
     @Test

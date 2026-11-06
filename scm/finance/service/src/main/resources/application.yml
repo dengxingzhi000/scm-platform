@@ -116,6 +116,12 @@ management:
       prometheus:
         enabled: true
 
+# 财务口径配置。业务方按需调整，规则见 docs/guides/FINANCE_TAX_RATE_RULES.md。
+finance:
+  tax:
+    # 租户未配置默认税率时的兜底值（0..1 小数），默认 13%。
+    default-rate: ${FINANCE_TAX_DEFAULT_RATE:0.13}
+
 cognora:
   security:
     headers:

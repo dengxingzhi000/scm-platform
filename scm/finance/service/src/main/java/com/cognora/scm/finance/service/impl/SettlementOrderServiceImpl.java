@@ -6,18 +6,21 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cognora.platform.common.status.StatusValidator;
 import com.cognora.platform.common.tenant.TenantContextHolder;
 import com.cognora.platform.common.util.UUIDv7Util;
+import com.cognora.scm.finance.domain.dto.TaxRateResolution;
 import com.cognora.scm.finance.domain.entity.SettlementOrder;
 import com.cognora.scm.finance.domain.support.FinanceAmount;
 import com.cognora.scm.finance.mapper.SettlementOrderMapper;
 import com.cognora.scm.finance.service.ISettlementOrderService;
 import com.cognora.scm.finance.service.support.AccountingPeriodGuard;
 import com.cognora.scm.finance.service.support.FinanceTenantGuard;
+import com.cognora.scm.finance.service.support.TaxRateResolver;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Slf4j
@@ -26,11 +29,14 @@ public class SettlementOrderServiceImpl extends ServiceImpl<SettlementOrderMappe
         implements ISettlementOrderService {
     private final StatusValidator statusValidator;
     private final AccountingPeriodGuard accountingPeriodGuard;
+    private final TaxRateResolver taxRateResolver;
 
     public SettlementOrderServiceImpl(StatusValidator statusValidator,
-                                      AccountingPeriodGuard accountingPeriodGuard) {
+                                      AccountingPeriodGuard accountingPeriodGuard,
+                                      TaxRateResolver taxRateResolver) {
         this.statusValidator = statusValidator;
         this.accountingPeriodGuard = accountingPeriodGuard;
+        this.taxRateResolver = taxRateResolver;
     }
 
     @Override
@@ -45,6 +51,7 @@ public class SettlementOrderServiceImpl extends ServiceImpl<SettlementOrderMappe
         order.setStatus(0);
         order.setTenantId(TenantContextHolder.getRequiredTenantId().toString());
         order.setCurrency(FinanceAmount.currency(order.getCurrency()));
+        applyTaxRate(order);
         normalizeAmounts(order);
         accountingPeriodGuard.assertWritable(order.getSettlementPeriod(), order.getStartDate(),
                 "结算单:" + order.getSettlementNo());
@@ -152,6 +159,7 @@ public class SettlementOrderServiceImpl extends ServiceImpl<SettlementOrderMappe
         rejectIfChanged("未付金额", existing.getUnpaidAmount(), order.getUnpaidAmount());
         rejectIfChanged("结算单号", existing.getSettlementNo(), order.getSettlementNo());
         rejectIfChanged("租户", existing.getTenantId(), order.getTenantId());
+        rejectIfChanged("税率", existing.getTaxRate(), order.getTaxRate());
         rejectIfChanged("删除标记", existing.getDeleted(), order.getDeleted());
 
         boolean hasBusinessChanges = order.getSettlementType() != null
@@ -210,6 +218,23 @@ public class SettlementOrderServiceImpl extends ServiceImpl<SettlementOrderMappe
 
     private String generateSettlementNo() {
         return "STL" + System.currentTimeMillis();
+    }
+
+    /**
+     * 税率：请求显式传入则只做 0..1/四位小数校验；未传入则按品类/地区规则
+     * 解析（业务日期取结算开始日期），并在响应里回显来源。
+     */
+    private void applyTaxRate(SettlementOrder order) {
+        if (order.getTaxRate() != null) {
+            order.setTaxRate(FinanceAmount.rate(order.getTaxRate(), "税率"));
+            return;
+        }
+        LocalDate businessDate = order.getStartDate();
+        TaxRateResolution resolution = taxRateResolver.resolve(
+                order.getTaxCategory(), order.getTaxRegion(), businessDate);
+        order.setTaxRate(resolution.getRate());
+        order.setTaxRateSource(resolution.getSource().name());
+        order.setTaxRateRuleId(resolution.getRuleId());
     }
 
     /**

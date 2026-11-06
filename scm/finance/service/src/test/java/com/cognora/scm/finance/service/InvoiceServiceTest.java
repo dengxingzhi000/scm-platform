@@ -5,11 +5,15 @@ import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cognora.platform.common.tenant.TenantContextHolder;
 import com.cognora.scm.finance.domain.dto.CreateInvoiceRequest;
+import com.cognora.scm.finance.domain.dto.TaxRateResolution;
 import com.cognora.scm.finance.domain.dto.UpdateInvoiceRequest;
 import com.cognora.scm.finance.domain.entity.Invoice;
 import com.cognora.scm.finance.domain.enums.InvoiceStatus;
+import com.cognora.scm.finance.domain.enums.TaxRateSource;
 import com.cognora.scm.finance.mapper.InvoiceMapper;
 import com.cognora.scm.finance.service.impl.InvoiceServiceImpl;
+import com.cognora.scm.finance.service.support.AccountingPeriodGuard;
+import com.cognora.scm.finance.service.support.TaxRateResolver;
 import org.apache.ibatis.builder.MapperBuilderAssistant;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,8 +54,11 @@ class InvoiceServiceTest {
     void setUp() {
         MapperBuilderAssistant assistant = new MapperBuilderAssistant(new MybatisConfiguration(), "");
         TableInfoHelper.initTableInfo(assistant, Invoice.class);
-        invoiceService = new InvoiceServiceImpl(org.mockito.Mockito.mock(
-                com.cognora.scm.finance.service.support.AccountingPeriodGuard.class));
+        TaxRateResolver taxRateResolver = org.mockito.Mockito.mock(TaxRateResolver.class,
+                invocation -> new TaxRateResolution(
+                        new BigDecimal("0.1300"), TaxRateSource.DEFAULT, null, null));
+        invoiceService = new InvoiceServiceImpl(
+                org.mockito.Mockito.mock(AccountingPeriodGuard.class), taxRateResolver);
         // MyBatis-Plus ServiceImpl 的 baseMapper 位于父类 CrudRepository，
         // Mockito @InjectMocks 不会注入该字段，因此按仓库既有模式显式挂载。
         ReflectionTestUtils.setField(invoiceService, "baseMapper", invoiceMapper);
@@ -87,6 +94,9 @@ class InvoiceServiceTest {
         assertEquals(new BigDecimal("100.00"), result.getTotalAmount());
         assertEquals(TENANT.toString(), result.getTenantId());
         assertEquals("CNY", result.getCurrency());
+        // 未显式传税率时由 TaxRateResolver 解析，并在响应里标明来源。
+        assertEquals("0.1300", result.getTaxRate().toPlainString());
+        assertEquals("DEFAULT", result.getTaxRateSource());
         assertEquals(InvoiceStatus.DRAFT.getCode(), result.getStatus());
         assertFalse(result.getDeleted());
         assertNotNull(result.getCreateTime());
