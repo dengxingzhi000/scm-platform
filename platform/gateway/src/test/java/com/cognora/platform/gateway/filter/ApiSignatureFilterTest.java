@@ -9,6 +9,8 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.data.redis.core.ReactiveValueOperations;
@@ -27,6 +29,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -162,6 +166,50 @@ class ApiSignatureFilterTest {
 
         assertEquals(HttpStatus.UNAUTHORIZED, exchange.getResponse().getStatusCode());
         assertTrue(responseBody(exchange).contains("\"error\":\"INVALID_APP_ID\""));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"/auth/api/auth/login", "/system/api/system/users", "/common/api/system/users",
+            "/scm-order/api/v1/orders", "/scm-audit/sys-audit-log/page",
+            "/scm-order-center/api/v1/orders/1", "/scm-product/api/v1/products"})
+    void browserJwtRouteGroupsBypassSignature(String path) {
+        properties.setWhitelist(List.of("/auth/**", "/system/**", "/common/**", "/scm-*/**"));
+        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.post(path).build());
+
+        AtomicBoolean proceeded = new AtomicBoolean(false);
+        GatewayFilterChain chain = ex -> {
+            proceeded.set(true);
+            return Mono.empty();
+        };
+
+        new ApiSignatureFilter(redisTemplate, registry, properties, meterRegistry)
+                .filter(exchange, chain)
+                .block();
+
+        assertTrue(proceeded.get(), "Browser JWT prefix group should not require X-Signature");
+        assertNull(exchange.getResponse().getStatusCode());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"/platform-system/api/system/users", "/ecom-mall/api/v1/mall/products",
+            "/lms-tms/api/v1/tms-waybills"})
+    void nonBrowserRoutesStillRequireSignature(String path) {
+        properties.setWhitelist(List.of("/auth/**", "/system/**", "/common/**", "/scm-*/**"));
+        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.post(path).build());
+
+        AtomicBoolean proceeded = new AtomicBoolean(false);
+        GatewayFilterChain chain = ex -> {
+            proceeded.set(true);
+            return Mono.empty();
+        };
+
+        new ApiSignatureFilter(redisTemplate, registry, properties, meterRegistry)
+                .filter(exchange, chain)
+                .block();
+
+        assertFalse(proceeded.get(), "Canonical/internal routes must stay signed");
+        assertEquals(HttpStatus.UNAUTHORIZED, exchange.getResponse().getStatusCode());
+        assertTrue(responseBody(exchange).contains("\"error\":\"MISSING_PARAMETERS\""));
     }
 
     private MockServerWebExchange signedExchange(String path, String body, String appId, String nonce, String timestamp) {
