@@ -10,6 +10,7 @@ import com.cognora.platform.product.mapper.ProdBrandMapper;
 import com.cognora.platform.product.mapper.ProdCategoryMapper;
 import com.cognora.platform.product.mapper.ProdSkuMapper;
 import com.cognora.platform.product.mapper.ProdSpuMapper;
+import com.cognora.platform.product.outbox.ProdOutboxService;
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import org.apache.ibatis.builder.MapperBuilderAssistant;
@@ -25,6 +26,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -51,12 +54,24 @@ class ProdCrudServiceImplTest {
         ReflectionTestUtils.setField(service, "baseMapper", mapper);
     }
 
+    private ProdSpu persistedSpu(String id) {
+        ProdSpu spu = new ProdSpu();
+        spu.setId(id);
+        spu.setTenantId(UUID.randomUUID().toString());
+        spu.setSpuCode("SPU-1");
+        spu.setSpuName("Phone");
+        return spu;
+    }
+
     @Test
     void spuCreateShouldInitializeFieldsAndDefaultToDraft() {
         ProdSpuMapper mapper = mock(ProdSpuMapper.class);
-        ProdSpuServiceImpl service = new ProdSpuServiceImpl();
+        ProdOutboxService outboxService = mock(ProdOutboxService.class);
+        ProdSpuServiceImpl service = new ProdSpuServiceImpl(outboxService);
         attach(service, mapper);
         when(mapper.insert(any(ProdSpu.class))).thenReturn(1);
+        when(mapper.selectById(anyString())).thenAnswer(invocation ->
+                persistedSpu(invocation.getArgument(0, String.class)));
 
         ProdSpu spu = new ProdSpu();
         ProdSpu created = service.createSpu(spu);
@@ -67,13 +82,18 @@ class ProdCrudServiceImplTest {
         assertFalse(created.getDeleted());
         assertEquals(0, created.getStatus());
         verify(mapper).insert(spu);
+        // 与业务插入同一方法内写 outbox，且用回读的整行生成事件
+        verify(outboxService).recordSpuUpsert(any(ProdSpu.class), eq(true));
     }
 
     @Test
     void spuCreateShouldKeepProvidedStatus() {
         ProdSpuMapper mapper = mock(ProdSpuMapper.class);
-        ProdSpuServiceImpl service = new ProdSpuServiceImpl();
+        ProdOutboxService outboxService = mock(ProdOutboxService.class);
+        ProdSpuServiceImpl service = new ProdSpuServiceImpl(outboxService);
         attach(service, mapper);
+        when(mapper.selectById(anyString())).thenAnswer(invocation ->
+                persistedSpu(invocation.getArgument(0, String.class)));
 
         ProdSpu spu = new ProdSpu();
         spu.setStatus(2);
@@ -85,8 +105,12 @@ class ProdCrudServiceImplTest {
     @Test
     void spuUpdateShouldSetIdAndRefreshTime() {
         ProdSpuMapper mapper = mock(ProdSpuMapper.class);
-        ProdSpuServiceImpl service = new ProdSpuServiceImpl();
+        ProdOutboxService outboxService = mock(ProdOutboxService.class);
+        ProdSpuServiceImpl service = new ProdSpuServiceImpl(outboxService);
         attach(service, mapper);
+        when(mapper.updateById(any(ProdSpu.class))).thenReturn(1);
+        when(mapper.selectById(anyString())).thenAnswer(invocation ->
+                persistedSpu(invocation.getArgument(0, String.class)));
 
         ProdSpu spu = new ProdSpu();
         spu.setId("old-id");
@@ -95,18 +119,22 @@ class ProdCrudServiceImplTest {
         assertEquals("new-id", spu.getId());
         assertNotNull(spu.getUpdateTime());
         verify(mapper).updateById(spu);
+        verify(outboxService).recordSpuUpsert(any(ProdSpu.class), eq(false));
     }
 
     @Test
     void spuDeleteShouldIssueLogicalUpdate() {
         ProdSpuMapper mapper = mock(ProdSpuMapper.class);
-        ProdSpuServiceImpl service = new ProdSpuServiceImpl();
+        ProdOutboxService outboxService = mock(ProdOutboxService.class);
+        ProdSpuServiceImpl service = new ProdSpuServiceImpl(outboxService);
         attach(service, mapper);
+        when(mapper.selectById("spu-1")).thenReturn(persistedSpu("spu-1"));
         when(mapper.update(isNull(), any())).thenReturn(1);
 
         service.deleteSpu("spu-1");
 
         verify(mapper).update(isNull(), any());
+        verify(outboxService).recordSpuDelete(any(ProdSpu.class));
     }
 
     @Test
@@ -205,11 +233,13 @@ class ProdCrudServiceImplTest {
     @Test
     void updateShouldNotInsert() {
         ProdSpuMapper mapper = mock(ProdSpuMapper.class);
-        ProdSpuServiceImpl service = new ProdSpuServiceImpl();
+        ProdOutboxService outboxService = mock(ProdOutboxService.class);
+        ProdSpuServiceImpl service = new ProdSpuServiceImpl(outboxService);
         attach(service, mapper);
 
         service.updateSpu("id", new ProdSpu());
 
         verify(mapper, never()).insert(any(ProdSpu.class));
+        verify(outboxService, never()).recordSpuUpsert(any(ProdSpu.class), any(Boolean.class));
     }
 }

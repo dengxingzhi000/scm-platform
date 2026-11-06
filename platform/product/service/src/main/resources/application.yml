@@ -211,6 +211,22 @@ xxl:
       logretentiondays: 30
     accessToken: default_token
 
+# 商品变更事件同步链路：prod_spu 写入时落 prod_outbox，再由定时发布器投递到该 topic
+kafka:
+  product:
+    sync:
+      topic: scm_product_server.public.prod_spu
+      group: product-sync-group
+
+product:
+  outbox:
+    # 发布器轮询间隔；同一商品的 key 保证消息顺序
+    poll-interval-ms: 1000
+    batch-size: 100
+    # 达到上限后行保留（published_at 仍为 NULL）但不再投递，便于人工补偿
+    max-retries: 5
+    send-timeout-ms: 5000
+
 cognora:
   security:
     headers:
