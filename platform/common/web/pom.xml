@@ -30,7 +30,11 @@
                     <testExcludes>
                         <testExclude>**/access/DubboPermissionAccessTest.java</testExclude>
                         <testExclude>**/access/FeignPermissionAccessTest.java</testExclude>
-                        <testExclude>**/security/**</testExclude>
+                        <!-- Api changed: JwtUtils.testValidate/parseToken no longer exist -->
+                        <testExclude>**/security/util/JwtUtilsTest.java</testExclude>
+                        <!-- Stale expectations: 5/13 cases pin the pre-refactor snapshot
+                             and fail-open behaviour; needs its own rewrite -->
+                        <testExclude>**/security/filter/SecurityFiltersTest.java</testExclude>
                     </testExcludes>
                 </configuration>
             </plugin>

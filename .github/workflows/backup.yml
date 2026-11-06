@@ -1,8 +1,12 @@
 name: Database Backup
 
+# 每日定时备份已停用：仓库未配置 DB_HOST / BACKUP_BUCKET 等密钥，此前 schedule
+# 运行备份的是 CI 里临时创建的空库（绿但无意义）。配齐 DB_HOST、DB_USER、
+# DB_PASSWORD、BACKUP_BUCKET、AWS_ACCESS_KEY_ID、AWS_SECRET_ACCESS_KEY、AWS_REGION
+# 后，取消下面 schedule 块的注释即可恢复。
 on:
-  schedule:
-    - cron: '0 2 * * *'  # Daily at 2 AM
+  # schedule:
+  #   - cron: '0 2 * * *'  # Daily at 2 AM
   workflow_dispatch:
 
 permissions:
@@ -83,7 +87,7 @@ jobs:
 
       - name: Configure AWS credentials
         if: success() && env.AWS_S3_BUCKET != ''
-        uses: aws-actions/configure-aws-credentials@4a1596c86fd706dc0521e32f0121ad1a6d1adb74 # v6
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
