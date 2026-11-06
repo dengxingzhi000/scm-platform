@@ -70,7 +70,7 @@ Cognora Aura Platform 是一份可运行的参考实现。API 网关背后是 26
 
 - **JDK 21** —— 热路径依赖虚拟线程
 - **Maven 3.8+**
-- **Node.js 20+**（前端独立仓库 `cognora-aura-web`）
+- **Node.js 22+**（前端独立仓库 `cognora-aura-web`）
 - **Docker & Docker Compose**
 
 每个组件都提供可用的本地默认值，无需外部账号、云凭证或付费服务。可选覆盖项见
@@ -133,7 +133,7 @@ cd scm/order/service && mvn spring-boot:run
 ```bash
 git clone https://github.com/dengxingzhi000/cognora-aura-web.git
 cd cognora-aura-web
-npm install
+npm ci
 npm run dev
 ```
 
@@ -142,14 +142,17 @@ npm run dev
 默认运行在 **http://localhost:3000**，内置 zh-CN 与 en-US 国际化。
 本仓库只保留后端契约与网关路由。
 
-| 路由         | 页面                         |
-| ------------ | ---------------------------- |
-| `/login`     | 登录与认证                   |
-| `/dashboard` | 数据看板                     |
-| `/product`   | 商品目录管理                 |
-| `/order`     | 订单生命周期管理             |
-| `/inventory` | 库存与预警                   |
-| `/system/*`  | 系统设置（用户、角色、权限） |
+路由均带语言前缀 —— `/{locale}/login`、`/{locale}/dashboard` 等，`locale` 为
+`zh-CN` 或 `en-US`。
+
+| 路由                   | 页面                         |
+| ---------------------- | ---------------------------- |
+| `/{locale}/login`      | 登录与认证                   |
+| `/{locale}/dashboard`  | 数据看板                     |
+| `/{locale}/product`    | 商品目录管理                 |
+| `/{locale}/order`      | 订单生命周期管理             |
+| `/{locale}/inventory`  | 库存与预警                   |
+| `/{locale}/system/*`   | 系统设置（用户、角色、权限） |
 
 ### 访问入口
 
@@ -192,7 +195,7 @@ npm run dev
 | 🔐   | **企业级安全**   | OAuth2 + JWT + WebAuthn 无密码登录，RBAC 细粒度数据权限控制               |
 | 💰   | **分布式事务**   | Seata AT/TCC/Saga 多种模式保障跨服务数据一致性                            |
 | ⚡   | **高性能**       | Redis Lua 原子库存扣减、读写分离、分区表                                  |
-| 🔍   | **全文搜索**     | Elasticsearch 检索能力，通过 Canal 监听 Binlog 实现近实时同步             |
+| 🔍   | **全文搜索**     | Elasticsearch 检索能力，通过 Debezium 读取 PostgreSQL WAL 实现近实时同步 |
 | 🧠   | **决策引擎**     | 电商决策矩阵，支持智能定价、库存预测、A/B 测试                            |
 | 📊   | **可观测性**     | Sentinel 熔断、SkyWalking 链路追踪、Prometheus 指标、Grafana 看板         |
 | 🏢   | **多租户**       | 租户隔离、动态数据源路由、可配置特性开关                                  |
@@ -206,16 +209,16 @@ npm run dev
 | ----------- | ------------------------------------------------------------------------------------------------- |
 | **后端**    | Java 21（虚拟线程）、Spring Boot 4.1.2、Spring Cloud 2025.1.4                                     |
 | **Alibaba** | Spring Cloud Alibaba 2025.1.0.0（Nacos、Sentinel、Seata）                                         |
-| **数据库**  | PostgreSQL、MyBatis-Plus 3.5.17、ShardingSphere 5.5.1                                             |
+| **数据库**  | PostgreSQL、MyBatis-Plus 3.5.17                                                                   |
 | **缓存**    | Redis（分布式缓存，Lua 脚本实现原子操作）                                                         |
-| **搜索**    | Elasticsearch 8.11.4、Canal 1.1.7（Binlog 同步）                                                  |
+| **搜索**    | Elasticsearch 8.11.4、Debezium（PostgreSQL WAL CDC）                                              |
 | **消息**    | Kafka（事件流）、RabbitMQ（可靠队列）                                                             |
 | **RPC**     | Apache Dubbo 3.3.6（内部服务调用）                                                                |
 | **调度**    | XXL-Job 3.5.0（分布式任务调度）                                                                   |
 | **监控**    | Sentinel、SkyWalking 9.3.0、Micrometer + Prometheus                                               |
 | **前端**    | Next.js 16（App Router）、React 19、shadcn/ui、Ant Design 6、Zustand 5、TanStack Query 5、ECharts、next-intl |
 | **DevOps**  | Docker、Kubernetes、Helm、ArgoCD、GitHub Actions、SonarCloud、OWASP                               |
-| **测试**    | JUnit 5、k6 压测、Pact 契约测试、Playwright E2E、PIT 变异测试                                     |
+| **测试**    | JUnit 5、k6 压测、Playwright E2E                                                                  |
 
 ## 架构
 
@@ -269,7 +272,7 @@ npm run dev
 | 物流跟踪     | 运单创建、承运商接入、路径优化、配送跟踪                  | `logistics` 8205、`fulfillment` 8306                                                      |
 | 支付与结算   | 支付单、退款、对账、开票                                  | `payment` 8304、`finance` 8208                                                            |
 | 审批与审计   | 可配置审批链、操作日志、敏感操作追踪                      | `approval` 8209、`audit` 8210                                                             |
-| 商品检索     | 由 Binlog 而非应用写入保持同步的 Elasticsearch 全文检索   | `search` 8307、Canal → Elasticsearch                                                      |
+| 商品检索     | 由 PostgreSQL WAL 捕获而非应用写入保持同步的 Elasticsearch 全文检索 | `search` 8307、Debezium → Elasticsearch                                                    |
 | 数据分析     | ClickHouse OLAP + PostgreSQL 元数据 + Kafka ODS 接入      | `analytics` 8308 —— ClickHouse 8123                                                       |
 | 身份与权限   | OAuth2 + JWT + WebAuthn 无密码登录、带行级数据范围的 RBAC | `auth` 8106、`system` 8081                                                                |
 | 文档生命周期 | DOCX 模板渲染并留审计痕迹，字节存储代理至文件服务         | `document` 8213 → `file` 8214                                                             |
@@ -282,8 +285,8 @@ npm run dev
 ## 模块
 
 > [!NOTE]
-> **8201–8213** 端口区间为供应链核心，**8301–8308** 区间为电商业务层。
-> `platform-tenant` 通过动态数据源路由，不绑定公开端口。业务服务采用 **api / service 拆分**
+> **8201–8214** 端口区间为供应链核心，**8301–8308** 区间为电商业务层。
+> `platform-tenant` 监听 **8212**，其按数据库路由的开关与 HTTP 端口无关。业务服务采用 **api / service 拆分**
 > —— `api/` 承载 Dubbo RPC 接口与 DTO，`service/` 为可部署的 Spring Boot 工程。
 > `platform-gateway`、`platform-auth`、`platform-system`、`lms-tms` 以及 `platform/common`
 > 下的子模块为单模块结构。
@@ -307,7 +310,7 @@ npm run dev
 | `platform-approval`             | 8209 ⚠ | 审批流 —— 可配置的审批流程                                                               |
 | `platform-audit`                | 8210   | 审计 —— 操作日志、敏感操作追踪                                                           |
 | `platform-notify`               | 8211   | 站内通知 —— 模板、多渠道投递                                                             |
-| `platform-tenant`               | —      | 多租户 —— 租户生命周期、套餐、特性开关                                                   |
+| `platform-tenant`               | 8212   | 多租户 —— 租户生命周期、套餐、特性开关                                                   |
 | `platform-document`             | 8213   | 文档生命周期 —— DOCX 渲染 + 审计追踪，代理 `platform-file` 提供字节传输                  |
 | `ecom-mall`                     | 8301   | 商城 —— 电商前台、商品展示、购物车                                                       |
 | `ecom-member`                   | 8302   | 会员 —— 资料、地址、积分、忠诚度                                                         |
@@ -464,7 +467,13 @@ public enum OrderStatus {
 kubectl apply -f deploy/k8s/namespace.yml
 kubectl apply -f deploy/k8s/configmap.yml
 kubectl apply -f deploy/k8s/secrets.yml
+
+# 单文件清单（Deployment + Service 写在同一文件中）
 kubectl apply -f deploy/k8s/platform-*.yaml
+kubectl apply -f deploy/k8s/scm-*.yaml
+kubectl apply -f deploy/k8s/lms-*.yaml
+
+# 拆分清单（Deployment 与 Service 分文件）
 kubectl apply -f deploy/k8s/*-deployment.yml
 kubectl apply -f deploy/k8s/*-service.yml
 
@@ -488,12 +497,19 @@ kubectl apply -f deploy/argocd/application.yaml
 | `platform-auth`      | 8106   | 另有灰度部署            |
 | `platform-product`   | 8201   |                         |
 | `platform-inventory` | 8202   |                         |
+| `scm-order`          | 8203   |                         |
 | `scm-warehouse`      | 8204   |                         |
 | `lms-tms`            | 8205   |                         |
 | `scm-supplier`       | 8206   |                         |
 | `scm-purchase`       | 8207   |                         |
 | `scm-finance`        | 8208   |                         |
+| `platform-message`   | 8209 ⚠ |                         |
+| `platform-approval`  | 8209 ⚠ |                         |
+| `platform-audit`     | 8210   |                         |
+| `platform-notify`    | 8211   |                         |
+| `platform-tenant`    | 8212   |                         |
 | `platform-document`  | 8213   |                         |
+| `platform-file`      | 8214   |                         |
 
 ## 运维
 
@@ -505,7 +521,7 @@ kubectl apply -f deploy/argocd/application.yaml
 | **Redis Sentinel** | 缓存高可用                  | `deploy/redis/sentinel.conf`  |
 | **PostgreSQL HA**  | 数据库高可用（Patroni）     | `deploy/postgresql/ha/`       |
 | **Kafka**          | 事件流                      | Docker Compose                |
-| **Canal**          | Binlog 同步到 Elasticsearch | `docker-compose-debezium.yml` |
+| **Debezium**       | PostgreSQL WAL CDC 同步到 Elasticsearch | `docker-compose-debezium.yml` |
 
 ### 数据库管理
 
@@ -625,11 +641,11 @@ Spring State Machine 依赖在父 POM 中已声明但并未使用。流转规则
 </details>
 
 <details>
-<summary><strong>启动核心服务需要 Elasticsearch、ClickHouse 或 Canal 吗？</strong></summary>
+<summary><strong>启动核心服务需要 Elasticsearch、ClickHouse 或 Debezium 吗？</strong></summary>
 
 不需要。核心供应链服务依赖 PostgreSQL、Redis 与 Nacos。Elasticsearch 支撑
-`ecom-search`，ClickHouse 支撑 `ecom-analytics`，Canal 负责向 Elasticsearch 投递
-Binlog —— 只有运行依赖它们的服务时才需要。
+`ecom-search`，ClickHouse 支撑 `ecom-analytics`，Debezium 负责捕获 PostgreSQL
+WAL 变更并投递到 Elasticsearch —— 只有运行依赖它们的服务时才需要。
 
 </details>
 
@@ -686,7 +702,7 @@ Binlog —— 只有运行依赖它们的服务时才需要。
 
 ## 关联项目
 
-- **[enterprise-agent](https://github.com/dengxingzhi000/enterprise-agent)** —— 基于本平台的 Python AI 运维 Agent：自研 Agent Runtime（Planner/Executor 循环），覆盖订单故障排查、报销合规审查、销售数据分析，含 Tools/MCP、RAG、Memory、Policy/HITL、Workflow 与 Eval/可观测。
+- **[cognora-enterprise-agent](https://github.com/dengxingzhi000/cognora-enterprise-agent)** —— 基于本平台的 Python AI 运维 Agent：自研 Agent Runtime（Planner/Executor 循环），覆盖订单故障排查、报销合规审查、销售数据分析，含 Tools/MCP、RAG、Memory、Policy/HITL、Workflow 与 Eval/可观测。
 
 ## 贡献指南
 

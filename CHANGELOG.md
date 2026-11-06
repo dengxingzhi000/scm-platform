@@ -5,9 +5,82 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Reserved for `v2.2.0` — every merged commit after `v2.1.0` (`5732ab1b`) through
+`a2c584b2` (44 commits). The version number is deliberately not bumped yet.
+
+### Added
+
+- **Tenant** — tenant ownership enforcement and a platform-scope configuration
+  query endpoint (#361).
+- **Finance** — closed accounting period listing (#359); reconciliation diff
+  types with transition rejection (#358); current accounting period plus
+  status filtering (#353); payment-term state machine, reconciliation diff
+  closure and fund-flow linkage validation (#347); ledger schema, fund-flow
+  idempotency key and currency validation (#333); unified money precision,
+  audit on money mutations and tenant enforcement on writes (#332).
+- **Inventory** — moving weighted-average cost and transfer document pricing
+  (#351); stock movement log, permission codes and reservation/movement query
+  APIs (#344); Dubbo deduction idempotency and batch atomicity (#338); TCC
+  exact deduction with tenant-level idempotency (#336); reservation persistence
+  and conditional stock update (#330).
+- **LMS/TMS** — OpenAPI snapshot drift CI plus nonce/circuit-breaker Redis
+  cross-instance support (#349); logistics frontend integration gaps closed
+  (#345); webhook signature verification, SLA/exception closure and carrier
+  degradation (#339); waybill state machine and freight reconciliation engine
+  (#334); tracking callback idempotency and tenant boundary validation (#331).
+- **Auth / System** — session self-service, platform/tenant configuration and
+  profile self-service endpoints (#340).
+- **Product** — product-change outbox producer, restoring the ES index sync
+  chain (#337).
+
+### Fixed
+
+- Audit time-range filters are pushed down and the delivery service id is
+  configurable (#360).
+- Waybill and tracking numbers are sanitized in the tracking log.
+- Entity ids are sanitized in tracking and freight logs.
+- Logged request values are sanitized and an internal filter NPE is guarded.
+- The logistics callback path is allowed through platform JWT authentication
+  (#341).
+- Shared XXL-Job executor, member Flyway baseline and partition job corrected
+  (#329).
+
+### Changed
+
+- Inventory `inv_log` is partitioned monthly and the OpenAPI drift check was
+  extended (#357).
+- The extracted `scm-web` frontend was removed from the monorepo (#352).
+- The second source of truth for waybill status was removed (#335).
+
+### Documentation
+
+- Finance OpenAPI schemas expose `currency` on settlements and invoices
+  (#362).
+- The minimatch ReDoS risk in the dev-only lint toolchain is documented and
+  accepted (#95).
+
+### Tests
+
+- `StepUpEvaluatorTest` runs in CI again (#313).
+
+### Build & CI
+
+- The daily backup schedule is disabled until real database credentials exist
+  (#365).
+- GitHub Actions bumped: `actions/setup-java` 4 → 6, `actions/labeler` 6 → 7,
+  `actions/stale` 10 → 11, `docker/setup-buildx-action` 3.12.0 → 4.4.1 and
+  `aws-actions/configure-aws-credentials` 4.3.1 → 6.3.0.
+
+### Dependencies
+
+- `com.google.guava:guava`, `com.rabbitmq:amqp-client` and
+  `maven-enforcer-plugin` bumped in `com.scm.parent`.
+
 ## [2.1.0] - 2026-11-04
 
-Covers every merged commit after `v2.0.0` (`8ab47221`) through `5732ab1b`
+Covers every merged commit after `v2.0.0` (`8fed1884fd`) through `5732ab1b`
 (PR #327). Financial changes are **not** part of this release; they land in
 `v2.2.0`.
 
