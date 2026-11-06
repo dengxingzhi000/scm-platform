@@ -1,6 +1,7 @@
 package com.cognora.platform.system.service.command;
 
 import com.cognora.platform.common.exception.BusinessException;
+import com.cognora.platform.common.exception.ErrorCode;
 import com.cognora.platform.common.response.ResultCode;
 import com.cognora.platform.common.web.util.SecurityUtils;
 import com.cognora.platform.system.cache.UserAuthorizationCacheEvictor;
@@ -42,10 +43,10 @@ public class UserRoleCommandServiceImpl implements IUserRoleCommandService {
         }
 
         if (expireTime != null && expireTime.isBefore(LocalDateTime.now())) {
-            throw new BusinessException("过期时间不能早于当前时间");
+            throw new BusinessException(ErrorCode.PARAM_VALIDATION_ERROR, "过期时间不能早于当前时间");
         }
         if (effectiveTime != null && expireTime != null && effectiveTime.isAfter(expireTime)) {
-            throw new BusinessException("生效时间不能晚于过期时间");
+            throw new BusinessException(ErrorCode.PARAM_VALIDATION_ERROR, "生效时间不能晚于过期时间");
         }
 
         if (roleIds != null && !roleIds.isEmpty()) {
@@ -69,15 +70,15 @@ public class UserRoleCommandServiceImpl implements IUserRoleCommandService {
     @Transactional(rollbackFor = Exception.class)
     public void extendTemporaryRole(UUID userId, UUID roleId, LocalDateTime newExpireTime) {
         if (!userQueryService.hasTemporaryRole(userId, roleId)) {
-            throw new BusinessException("用户不存在该临时角色或已过期");
+            throw new BusinessException(ErrorCode.NOT_FOUND, "用户不存在该临时角色或已过期");
         }
         if (newExpireTime.isBefore(LocalDateTime.now())) {
-            throw new BusinessException("新的过期时间不能早于当前时间");
+            throw new BusinessException(ErrorCode.PARAM_VALIDATION_ERROR, "新的过期时间不能早于当前时间");
         }
 
         int updated = userRoleCommandService.extendTemporaryRole(userId, roleId, newExpireTime);
         if (updated == 0) {
-            throw new BusinessException("延长临时角色失败");
+            throw new BusinessException(ErrorCode.NOT_FOUND, "延长临时角色失败");
         }
 
         SysUser user = userMapper.selectById(userId);
@@ -92,7 +93,7 @@ public class UserRoleCommandServiceImpl implements IUserRoleCommandService {
     public void terminateTemporaryRole(UUID userId, UUID roleId) {
         int updated = userRoleCommandService.terminateTemporaryRole(userId, roleId);
         if (updated == 0) {
-            throw new BusinessException("终止临时角色失败，可能该角色不存在或已过期");
+            throw new BusinessException(ErrorCode.NOT_FOUND, "终止临时角色失败，可能该角色不存在或已过期");
         }
 
         SysUser user = userMapper.selectById(userId);
