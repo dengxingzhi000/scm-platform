@@ -82,6 +82,13 @@ public class ReconciliationRecord implements Serializable {
     @TableField("has_diff")
     private Boolean hasDiff;
 
+    /**
+     * 差异类型：AMOUNT / MISSING_DOC / DUPLICATE / OTHER。
+     * 没有差异时为 null。
+     */
+    @TableField("diff_type")
+    private String diffType;
+
     @TableField("diff_reason")
     private String diffReason;
 
@@ -105,6 +112,15 @@ public class ReconciliationRecord implements Serializable {
 
     @TableField("confirmed_at")
     private LocalDateTime confirmedAt;
+
+    @TableField("rejected_by")
+    private String rejectedBy;
+
+    @TableField("rejected_at")
+    private LocalDateTime rejectedAt;
+
+    @TableField("reject_reason")
+    private String rejectReason;
 
     @TableField("attachments")
     private String attachments;

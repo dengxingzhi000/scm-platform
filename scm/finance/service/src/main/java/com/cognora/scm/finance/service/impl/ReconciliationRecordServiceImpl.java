@@ -1,8 +1,11 @@
 package com.cognora.scm.finance.service.impl;
 
+import com.cognora.platform.common.exception.ServiceException;
+import com.cognora.platform.common.response.ResultCode;
 import com.cognora.platform.common.tenant.TenantContextHolder;
 import com.cognora.platform.common.util.UUIDv7Util;
 import com.cognora.scm.finance.domain.entity.ReconciliationRecord;
+import com.cognora.scm.finance.domain.enums.ReconciliationRecordStatus;
 import com.cognora.scm.finance.domain.support.FinanceAmount;
 import com.cognora.scm.finance.mapper.ReconciliationRecordMapper;
 import com.cognora.scm.finance.service.IReconciliationRecordService;
@@ -11,11 +14,14 @@ import com.cognora.scm.finance.service.support.FinanceTenantGuard;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Locale;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -24,6 +30,8 @@ public class ReconciliationRecordServiceImpl extends ServiceImpl<ReconciliationR
         implements IReconciliationRecordService {
 
     private final AccountingPeriodGuard accountingPeriodGuard;
+
+    private static final Set<String> DIFF_TYPES = Set.of("AMOUNT", "MISSING_DOC", "DUPLICATE", "OTHER");
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -65,19 +73,21 @@ public class ReconciliationRecordServiceImpl extends ServiceImpl<ReconciliationR
         FinanceTenantGuard.verifyOwnership(record.getTenantId());
         accountingPeriodGuard.assertWritable(record.getReconciliationPeriod(), record.getStartDate(),
                 "对账记录:" + record.getReconciliationNo());
-        if (record.getStatus() != 0) {
-            throw new IllegalStateException("Only pending records can be reconciled, current status: " + record.getStatus());
-        }
+        ReconciliationRecordStatus target = Boolean.TRUE.equals(record.getHasDiff())
+                ? ReconciliationRecordStatus.DIFF
+                : ReconciliationRecordStatus.RECONCILED;
+        transition(record, target);
 
-        record.setStatus(1);
+        record.setStatus(target.getCode());
         record.setReconcilerId(reconcilerId);
         record.setReconcilerName(reconcilerName);
         record.setReconciledAt(LocalDateTime.now());
         record.setUpdateTime(LocalDateTime.now());
 
-        if (Boolean.TRUE.equals(record.getHasDiff())) {
-            record.setStatus(3);
-            log.warn("Reconciliation has differences: id={}, diffAmount={}", (id + "").replace("\r", "_").replace("\n", "_"), (record.getDiffAmount() + "").replace("\r", "_").replace("\n", "_"));
+        if (target == ReconciliationRecordStatus.DIFF) {
+            log.warn("Reconciliation has differences: id={}, diffAmount={}",
+                    (id + "").replace("\r", "_").replace("\n", "_"),
+                    (record.getDiffAmount() + "").replace("\r", "_").replace("\n", "_"));
         }
 
         updateById(record);
@@ -97,11 +107,9 @@ public class ReconciliationRecordServiceImpl extends ServiceImpl<ReconciliationR
         FinanceTenantGuard.verifyOwnership(record.getTenantId());
         accountingPeriodGuard.assertWritable(record.getReconciliationPeriod(), record.getStartDate(),
                 "对账记录:" + record.getReconciliationNo());
-        if (record.getStatus() != 1 && record.getStatus() != 3) {
-            throw new IllegalStateException("Only reconciled or diff records can be confirmed, current status: " + record.getStatus());
-        }
+        transition(record, ReconciliationRecordStatus.CONFIRMED);
 
-        record.setStatus(2);
+        record.setStatus(ReconciliationRecordStatus.CONFIRMED.getCode());
         record.setConfirmerId(confirmerId);
         record.setConfirmerName(confirmerName);
         record.setConfirmedAt(LocalDateTime.now());
@@ -114,8 +122,11 @@ public class ReconciliationRecordServiceImpl extends ServiceImpl<ReconciliationR
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public ReconciliationRecord markAsDiff(String id, String diffReason) {
-        log.info("Mark reconciliation difference: id={}, reason={}", (id + "").replace("\r", "_").replace("\n", "_"), (diffReason + "").replace("\r", "_").replace("\n", "_"));
+    public ReconciliationRecord markAsDiff(String id, String diffType, String diffReason) {
+        log.info("Mark reconciliation difference: id={}, type={}, reason={}",
+                (id + "").replace("\r", "_").replace("\n", "_"),
+                (diffType + "").replace("\r", "_").replace("\n", "_"),
+                (diffReason + "").replace("\r", "_").replace("\n", "_"));
 
         ReconciliationRecord record = getById(id);
         if (record == null || Boolean.TRUE.equals(record.getDeleted())) {
@@ -124,12 +135,80 @@ public class ReconciliationRecordServiceImpl extends ServiceImpl<ReconciliationR
         FinanceTenantGuard.verifyOwnership(record.getTenantId());
         accountingPeriodGuard.assertWritable(record.getReconciliationPeriod(), record.getStartDate(),
                 "对账记录:" + record.getReconciliationNo());
+
+        String normalizedDiffType = normalizeDiffType(diffType);
+        ReconciliationRecordStatus current = currentStatus(record);
+        if (current == ReconciliationRecordStatus.CONFIRMED || current == ReconciliationRecordStatus.REJECTED) {
+            throw conflict(record, ReconciliationRecordStatus.DIFF);
+        }
+
+        record.setHasDiff(true);
+        record.setDiffType(normalizedDiffType);
         record.setDiffReason(diffReason);
+        record.setStatus(ReconciliationRecordStatus.DIFF.getCode());
         record.setUpdateTime(LocalDateTime.now());
 
         updateById(record);
 
         return record;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ReconciliationRecord reject(String id, String reason, String rejectedBy) {
+        log.info("Reject reconciliation: id={}, rejectedBy={}", (id + "").replace("\r", "_").replace("\n", "_"),
+                (rejectedBy + "").replace("\r", "_").replace("\n", "_"));
+
+        ReconciliationRecord record = getById(id);
+        if (record == null || Boolean.TRUE.equals(record.getDeleted())) {
+            throw new IllegalArgumentException("Reconciliation record not found: " + id);
+        }
+        FinanceTenantGuard.verifyOwnership(record.getTenantId());
+        accountingPeriodGuard.assertWritable(record.getReconciliationPeriod(), record.getStartDate(),
+                "对账记录:" + record.getReconciliationNo());
+
+        transition(record, ReconciliationRecordStatus.REJECTED);
+
+        record.setStatus(ReconciliationRecordStatus.REJECTED.getCode());
+        record.setRejectReason(reason);
+        record.setRejectedBy(rejectedBy);
+        record.setRejectedAt(LocalDateTime.now());
+        record.setUpdateTime(LocalDateTime.now());
+
+        updateById(record);
+        log.info("Reconciliation rejected: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
+        return record;
+    }
+
+    private ReconciliationRecordStatus currentStatus(ReconciliationRecord record) {
+        ReconciliationRecordStatus current = ReconciliationRecordStatus.fromCode(record.getStatus());
+        if (current == null) {
+            throw conflict(record, null);
+        }
+        return current;
+    }
+
+    private void transition(ReconciliationRecord record, ReconciliationRecordStatus target) {
+        ReconciliationRecordStatus current = currentStatus(record);
+        if (!current.canTransitionTo(target)) {
+            throw conflict(record, target);
+        }
+    }
+
+    private ServiceException conflict(ReconciliationRecord record, ReconciliationRecordStatus target) {
+        ReconciliationRecordStatus current = ReconciliationRecordStatus.fromCode(record.getStatus());
+        String from = current == null ? String.valueOf(record.getStatus()) : current.getLabel();
+        String to = target == null ? "未知状态" : target.getLabel();
+        return new ServiceException(ResultCode.CONFLICT.getCode(), HttpStatus.CONFLICT,
+                "非法的对账记录状态流转: " + from + " -> " + to);
+    }
+
+    private String normalizeDiffType(String diffType) {
+        String value = diffType == null ? "OTHER" : diffType.trim().toUpperCase(Locale.ROOT);
+        if (!DIFF_TYPES.contains(value)) {
+            throw new IllegalArgumentException("差异类型仅支持 AMOUNT/MISSING_DOC/DUPLICATE/OTHER: " + diffType);
+        }
+        return value;
     }
 
     @Override

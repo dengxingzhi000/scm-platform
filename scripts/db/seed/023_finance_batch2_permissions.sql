@@ -55,7 +55,9 @@ FROM (VALUES
     ('finance:reconciliation-diff:view', '对账差异-查看', 'menu:finance:reconciliation',
      '/reconciliation-diff/{id}', 'GET', 125, 1),
     ('finance:fund-flow:create', '资金流水-登记', 'menu:finance:settlement',
-     '/fund-flow', 'POST', 126, 4)
+     '/fund-flow', 'POST', 126, 4),
+    ('finance:reconciliation:reject', '对账-驳回', 'menu:finance:reconciliation',
+     '/reconciliation-record/{id}/reject', 'POST', 109, 3)
 ) AS v(code, name, menu, api, method, sort_order, risk)
 ON CONFLICT (permission_code) DO UPDATE SET
     parent_id = EXCLUDED.parent_id,
@@ -85,6 +87,7 @@ JOIN sys_permission p
  AND NOT p.deleted
  AND (p.permission_code LIKE 'finance:accounting-period:%'
       OR p.permission_code LIKE 'finance:reconciliation-diff:%'
+      OR p.permission_code LIKE 'finance:reconciliation:%'
       OR p.permission_code = 'finance:fund-flow:create')
 WHERE r.tenant_id = '019a0aee-0000-7000-8000-000000000002'
   AND r.role_code IN ('ROLE_SUPER_ADMIN', 'ROLE_TENANT_ADMIN')

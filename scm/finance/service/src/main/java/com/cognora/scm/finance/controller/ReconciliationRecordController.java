@@ -89,13 +89,26 @@ public class ReconciliationRecordController {
         return ApiResponse.success(record);
     }
 
-    @Operation(summary = "标记对账差异", description = "将对账记录标记为存在差异并记录差异原因。")
+    @Operation(summary = "标记对账差异", description = "将对账记录标记为存在差异并记录差异类型与原因。")
     @PostMapping("/{id}/mark-diff")
     @AuditLog(operation = "标记对账差异", businessType = "FINANCE_RECONCILIATION", riskLevel = 3)
     public ApiResponse<ReconciliationRecord> markAsDiff(
             @Parameter(description = "对账记录 ID") @PathVariable String id,
+            @Parameter(description = "差异类型：AMOUNT / MISSING_DOC / DUPLICATE / OTHER，默认 OTHER")
+            @RequestParam(required = false) String diffType,
             @Parameter(description = "差异原因说明") @RequestParam String diffReason) {
-        ReconciliationRecord record = reconciliationRecordService.markAsDiff(id, diffReason);
+        ReconciliationRecord record = reconciliationRecordService.markAsDiff(id, diffType, diffReason);
+        return ApiResponse.success(record);
+    }
+
+    @Operation(summary = "驳回对账", description = "驳回已对账或有差异的对账结果；已确认、已驳回的记录拒绝再次流转。")
+    @PostMapping("/{id}/reject")
+    @AuditLog(operation = "驳回对账", businessType = "FINANCE_RECONCILIATION", riskLevel = 3)
+    public ApiResponse<ReconciliationRecord> reject(
+            @Parameter(description = "对账记录 ID") @PathVariable String id,
+            @Parameter(description = "驳回原因") @RequestParam String reason,
+            @Parameter(description = "驳回操作人") @RequestParam String rejectedBy) {
+        ReconciliationRecord record = reconciliationRecordService.reject(id, reason, rejectedBy);
         return ApiResponse.success(record);
     }
 }
