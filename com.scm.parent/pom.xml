@@ -62,7 +62,7 @@
     <org.projectlombok.version>1.18.48</org.projectlombok.version>
     <uuid-creator.version>6.1.1</uuid-creator.version>
     <hutool.version>5.8.48</hutool.version>
-    <guava.version>33.7.2-jre</guava.version>
+    <guava.version>33.8.0-jre</guava.version>
     <fastjson2.version>2.0.66</fastjson2.version>
 
     <!-- Messaging (5.30.0 is the version managed by Spring Boot 4.1.2) -->
