@@ -8,6 +8,7 @@ import com.cognora.platform.inventory.dto.InventoryReservationRequest;
 import com.cognora.platform.inventory.lock.DistributedLock;
 import com.cognora.platform.inventory.mapper.InvInventoryMapper;
 import com.cognora.platform.inventory.mapper.InvReservationRecordMapper;
+import com.cognora.platform.inventory.service.flow.InventoryFlowLogService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -113,7 +114,8 @@ class InvReservationConcurrencyTest {
             return previous == null ? 1 : 0;
         });
 
-        service = new InvReservationServiceImpl(inventoryMapper, reservationRecordMapper, distributedLock);
+        service = new InvReservationServiceImpl(inventoryMapper, reservationRecordMapper, distributedLock,
+                mock(InventoryFlowLogService.class));
     }
 
     @AfterEach

@@ -5,6 +5,7 @@ import com.cognora.platform.common.tenant.TenantContextHolder;
 import com.cognora.platform.inventory.domain.entity.Inventory;
 import com.cognora.platform.inventory.dto.InventoryAdjustRequest;
 import com.cognora.platform.inventory.mapper.InvInventoryMapper;
+import com.cognora.platform.inventory.service.flow.InventoryFlowLogService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -82,7 +83,8 @@ class InventoryAdjustConcurrencyTest {
                     }
                 });
 
-        service = new InvInventoryCommandService(inventoryMapper, outboxService);
+        service = new InvInventoryCommandService(inventoryMapper, outboxService,
+                mock(InventoryFlowLogService.class));
     }
 
     @AfterEach

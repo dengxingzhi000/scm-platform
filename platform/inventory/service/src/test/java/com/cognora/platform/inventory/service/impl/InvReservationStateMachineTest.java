@@ -6,6 +6,7 @@ import com.cognora.platform.inventory.domain.entity.InvReservationRecord;
 import com.cognora.platform.inventory.lock.DistributedLock;
 import com.cognora.platform.inventory.mapper.InvInventoryMapper;
 import com.cognora.platform.inventory.mapper.InvReservationRecordMapper;
+import com.cognora.platform.inventory.service.flow.InventoryFlowLogService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -51,7 +52,7 @@ class InvReservationStateMachineTest {
         inventoryMapper = mock(InvInventoryMapper.class);
         reservationRecordMapper = mock(InvReservationRecordMapper.class);
         service = new InvReservationServiceImpl(inventoryMapper, reservationRecordMapper,
-                mock(DistributedLock.class));
+                mock(DistributedLock.class), mock(InventoryFlowLogService.class));
 
         record = new InvReservationRecord();
         record.setId("22222222-2222-2222-2222-222222222222");

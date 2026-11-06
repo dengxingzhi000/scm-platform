@@ -13,6 +13,8 @@ import com.cognora.platform.inventory.lock.DistributedLock;
 import com.cognora.platform.inventory.mapper.InvInventoryMapper;
 import com.cognora.platform.inventory.mapper.InvReservationRecordMapper;
 import com.cognora.platform.inventory.service.IInvReservationService;
+import com.cognora.platform.inventory.service.flow.FlowLogEntry;
+import com.cognora.platform.inventory.service.flow.InventoryFlowLogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
@@ -52,6 +54,8 @@ public class InvReservationServiceImpl implements IInvReservationService {
   private final InvReservationRecordMapper reservationRecordMapper;
 
   private final DistributedLock distributedLock;
+
+  private final InventoryFlowLogService flowLogService;
 
   private static final int DEFAULT_TIMEOUT_SECONDS = 900; // 15分钟
 
@@ -129,6 +133,10 @@ public class InvReservationServiceImpl implements IInvReservationService {
 
       reservationRecordMapper.insert(record);
 
+      recordFlow(tenant, inventory, quantity, "RESERVE", 3, -quantity,
+          request.getBusinessKey(), "RESERVE:" + request.getBusinessKey(),
+          request.getRemark(), null, null);
+
       log.debug("库存预占成功: reservationId={}, quantity={}, expireAt={}",
           record.getId(), quantity, record.getExpireAt());
       return true;
@@ -171,9 +179,14 @@ public class InvReservationServiceImpl implements IInvReservationService {
       return confirmed;
     }
 
+    Inventory before = inventoryMapper.selectById(record.getInventoryId());
     int stockUpdated = inventoryMapper.confirmStock(record.getInventoryId(), record.getQuantity());
     if (stockUpdated == 0) {
       throw new IllegalStateException("锁定库存不足，无法确认预占: reservationId=" + record.getId());
+    }
+    if (before != null) {
+      recordFlow(tenant, before, record.getQuantity(), "CONFIRM", 5, -record.getQuantity(),
+          businessKey, "CONFIRM:" + businessKey, "预占确认实扣", null, null);
     }
 
     log.debug("预占确认成功: reservationId={}, quantity={}", record.getId(), record.getQuantity());
@@ -215,9 +228,14 @@ public class InvReservationServiceImpl implements IInvReservationService {
       return alreadyReleased;
     }
 
+    Inventory before = inventoryMapper.selectById(record.getInventoryId());
     int stockUpdated = inventoryMapper.releaseStock(record.getInventoryId(), record.getQuantity());
     if (stockUpdated == 0) {
       throw new IllegalStateException("锁定库存不足，无法释放预占: reservationId=" + record.getId());
+    }
+    if (before != null) {
+      recordFlow(tenant, before, record.getQuantity(), "RELEASE", 4, record.getQuantity(),
+          businessKey, "RELEASE:" + businessKey, "预占释放归还可用", null, null);
     }
 
     log.debug("预占释放成功: reservationId={}, quantity={}", record.getId(), record.getQuantity());
@@ -279,14 +297,82 @@ public class InvReservationServiceImpl implements IInvReservationService {
     if (moved == 0) {
       return false;
     }
+    Inventory before = inventoryMapper.selectById(record.getInventoryId());
     int stockUpdated = inventoryMapper.releaseStock(record.getInventoryId(), record.getQuantity());
     if (stockUpdated == 0) {
       throw new IllegalStateException(
           "锁定库存不足，无法释放过期预占: reservationId=" + record.getId());
     }
+    if (before != null) {
+      recordFlow(tenant, before, record.getQuantity(), "RELEASE_EXPIRED", 4,
+          record.getQuantity(), null, "RELEASE_EXPIRED:" + record.getId(),
+          "预占过期自动释放", null, null);
+    }
     log.debug("过期预占已释放: reservationId={}, quantity={}",
         record.getId(), record.getQuantity());
     return true;
+  }
+
+  /**
+   * 按变更前的台账快照 + 数量推导变更后快照并写流水。
+   *
+   * @param changeQuantity 有符号变更量（可用量的变化方向）
+   */
+  private void recordFlow(String tenant, Inventory before, int quantity,
+                          String businessType, int operationType, int changeQuantity,
+                          String businessKey, String idempotencyKey, String reason,
+                          String operatorId, String operatorName) {
+    int beforeTotal = nvl(before.getTotalStock());
+    int beforeAvailable = nvl(before.getAvailableStock());
+    int beforeLocked = nvl(before.getLockedStock());
+    int beforeDamaged = nvl(before.getDamagedStock());
+
+    int afterTotal = beforeTotal;
+    int afterAvailable = beforeAvailable;
+    int afterLocked = beforeLocked;
+    switch (businessType) {
+      case "RESERVE" -> {
+        afterAvailable = Math.subtractExact(beforeAvailable, quantity);
+        afterLocked = Math.addExact(beforeLocked, quantity);
+      }
+      case "CONFIRM" -> {
+        afterTotal = Math.subtractExact(beforeTotal, quantity);
+        afterLocked = Math.subtractExact(beforeLocked, quantity);
+      }
+      case "RELEASE", "RELEASE_EXPIRED" -> {
+        afterAvailable = Math.addExact(beforeAvailable, quantity);
+        afterLocked = Math.subtractExact(beforeLocked, quantity);
+      }
+      default -> throw new IllegalArgumentException("未知流水业务类型: " + businessType);
+    }
+
+    flowLogService.record(FlowLogEntry.builder()
+        .tenantId(tenant)
+        .skuId(before.getSkuId())
+        .warehouseId(before.getWarehouseId())
+        .operationType(operationType)
+        .businessType(businessType)
+        .changeQuantity(changeQuantity)
+        .beforeTotal(beforeTotal)
+        .beforeAvailable(beforeAvailable)
+        .beforeLocked(beforeLocked)
+        .beforeDamaged(beforeDamaged)
+        .afterTotal(afterTotal)
+        .afterAvailable(afterAvailable)
+        .afterLocked(afterLocked)
+        .afterDamaged(beforeDamaged)
+        .reason(reason)
+        .businessKey(businessKey)
+        .referenceType("ORDER")
+        .referenceId(before.getId())
+        .operatorId(operatorId)
+        .operatorName(operatorName)
+        .idempotencyKey(idempotencyKey)
+        .build());
+  }
+
+  private static int nvl(Integer value) {
+    return value == null ? 0 : value;
   }
 
   private void assertSameTenant(InvReservationRecord record, UUID tenantId) {
