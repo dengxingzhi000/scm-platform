@@ -107,3 +107,15 @@ groups:
         annotations:
           summary: "审计写入持续被拒绝"
           description: "最近 1 小时累计 {{ $value | humanize }} 条审计写入被拒绝，审计采集可能已失效"
+
+      # 与上面的 5 分钟规则区分：要求每个滚动 15 分钟窗口都有被拒，
+      # 且连续 15 分钟成立，用于区分「持续被拒」和瞬时抖动
+      - alert: AuditWriteRejectedSustained
+        expr: sum(increase(security_audit_write_rejected_total[15m])) > 0
+        for: 15m
+        labels:
+          severity: warning
+          team: audit
+        annotations:
+          summary: "审计写入被拒持续 15 分钟"
+          description: "连续 15 分钟每个窗口都有审计写入被拒（最近窗口 {{ $value | humanize }} 条），不是瞬时抖动，请检查调用方 HMAC 签名密钥与租户上下文"

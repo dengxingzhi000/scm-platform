@@ -22,3 +22,4 @@ This directory contains operational runbooks for the SCM platform.
 - [High Error Rate](high-error-rate.md)
 - [High Latency](high-latency.md)
 - [Memory Leak](memory-leak.md)
+- [告警外发与验证（Prometheus → Alertmanager）](../ALERTING.md)

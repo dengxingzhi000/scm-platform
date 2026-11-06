@@ -1,0 +1,35 @@
+# Alertmanager 配置：默认模式（当前不外发）
+#
+# ALERTMANAGER_WEBHOOK_URL 为空时 docker-compose 使用本文件。
+# 规则仍然会被求值，告警在 Prometheus / Alertmanager API 与 UI 里可见，
+# 但 receiver 为 null，不会向任何外部系统推送。详见 docs/operations/ALERTING.md。
+
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: "null"
+  # 同一 alertname + team 的告警合并成一组（同组去重）
+  group_by: [alertname, team]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+receivers:
+  # 没有配置任何集成，通知到此丢弃
+  - name: "null"
+
+inhibit_rules:
+  # 同一 alertname + team 下，critical 抑制 warning
+  - source_matchers:
+      - 'severity="critical"'
+    target_matchers:
+      - 'severity="warning"'
+    equal: [alertname, team]
+  # 审计链路的 High 与基础规则用的是不同 alertname，
+  # 这里按 team 抑制，避免 critical 与 warning 同时刷两条
+  - source_matchers:
+      - alertname=~"AuditDeliveryFailedHigh|AuditWriteRejectedHigh"
+    target_matchers:
+      - alertname=~"AuditDeliveryFailed|AuditWriteRejected"
+    equal: [team]
