@@ -82,12 +82,12 @@ class PeriodCloseInclusionQueryServiceTest {
     }
 
     @Test
-    void createTimeBasisExcludesItemWhoseBusinessDateIsOutsidePeriod() {
+    void createTimeBasisExcludesItemWhoseCreateTimeIsOutsidePeriod() {
         properties.setDateBasis(CloseDateBasis.CREATE_TIME);
         stubPeriod(TENANT.toString());
         when(settlementItemMapper.selectList(any()))
                 .thenReturn(List.of(item("si-1", "SETTLEMENT", "D-1",
-                        LocalDate.of(2026, 9, 15), LocalDateTime.of(2026, 10, 15, 10, 0), "100.00", "st-1")));
+                        LocalDate.of(2026, 10, 15), LocalDateTime.of(2026, 9, 15, 10, 0), "100.00", "st-1")));
         when(invoiceMapper.selectList(any())).thenReturn(List.of());
 
         CloseInclusionSummary summary = service.preview(PERIOD_ID);
