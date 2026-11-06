@@ -17,6 +17,7 @@ import java.lang.reflect.Method;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -64,7 +65,9 @@ class AuditControllerContractTest {
         SysAuditLog entity = SysAuditLog.builder().userId("user-1").operationType("LOGIN").build();
         when(auditLogService.createLog(entity)).thenReturn(entity);
 
-        assertSame(entity, auditLogController.create(entity));
+        assertSame(entity, auditLogController.create(entity, "nonce-1"));
+        // 签名头 X-Nonce 是服务端幂等键，必须跟着请求落到实体上。
+        assertEquals("nonce-1", entity.getRequestNonce());
         verify(auditLogService).createLog(entity);
     }
 

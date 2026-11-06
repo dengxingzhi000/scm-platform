@@ -11,6 +11,7 @@ import com.cognora.platform.audit.domain.entity.SysAuditLog;
 import com.cognora.platform.audit.domain.entity.SysSensitiveOperationLog;
 import com.cognora.platform.audit.mapper.SysAuditLogMapper;
 import com.cognora.platform.audit.service.command.SysSensitiveOperationLogCommandService;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -35,11 +36,39 @@ public class SysAuditLogServiceImpl
     public SysAuditLog createLog(SysAuditLog entity) {
         log.info("创建审计日志: userId={}, operationType={}, module={}",
                 (entity.getUserId() + "").replace("\r", "_").replace("\n", "_"), (entity.getOperationType() + "").replace("\r", "_").replace("\n", "_"), (entity.getOperationModule() + "").replace("\r", "_").replace("\n", "_"));
-        entity.setId(UUID.randomUUID().toString());
-        entity.setCreateTime(LocalDateTime.now());
-        save(entity);
-        log.info("审计日志创建成功: id={}", (entity.getId() + "").replace("\r", "_").replace("\n", "_"));
+        persistOnce(entity);
         return entity;
+    }
+
+    /**
+     * 写入一行审计日志，同一幂等键重复投递时保持原状。
+     *
+     * <p>服务间写入通道（{@code POST /sys-audit-log}）会把签名头 {@code X-Nonce} 落到
+     * {@code request_nonce}，调用方重试时复用同一个 nonce 与 create_time。唯一索引
+     * {@code (tenant_id, request_nonce, create_time)} 让第二次写入变成空操作，而不是多出一行；
+     * 这里捕获唯一键冲突并当作成功返回，调用方拿到的仍是 200。
+     *
+     * @return {@code true} 表示确实新增了一行，{@code false} 表示重复投递
+     */
+    private boolean persistOnce(SysAuditLog entity) {
+        entity.setId(UUID.randomUUID().toString());
+        // create_time 由调用方给出时要保持不变：重试必须落进同一个分区月，唯一键才能命中。
+        if (entity.getCreateTime() == null) {
+            entity.setCreateTime(LocalDateTime.now());
+        }
+        try {
+            boolean inserted = save(entity);
+            if (!inserted) {
+                return false;
+            }
+            log.info("审计日志创建成功: id={}", (entity.getId() + "").replace("\r", "_").replace("\n", "_"));
+            return true;
+        } catch (DuplicateKeyException e) {
+            log.info("忽略重复的审计写入: requestNonce={}, operationType={}",
+                    (entity.getRequestNonce() + "").replace("\r", "_").replace("\n", "_"),
+                    (entity.getOperationType() + "").replace("\r", "_").replace("\n", "_"));
+            return false;
+        }
     }
 
     @Override
@@ -217,8 +246,10 @@ public class SysAuditLogServiceImpl
                 .executeTime(record.getExecuteTime())
                 .createTime(record.getCreateTime())
                 .build();
-        createLog(entity);
-        recordSensitiveOperation(entity);
+        // 重复投递时只保留已经落库的那一行，镜像表也不能跟着重复写。
+        if (persistOnce(entity)) {
+            recordSensitiveOperation(entity);
+        }
     }
 
     /**
