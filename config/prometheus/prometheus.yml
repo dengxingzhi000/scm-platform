@@ -40,6 +40,20 @@ scrape_configs:
         labels:
           service: 'system'
 
+  - job_name: 'platform-auth'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:8106']
+        labels:
+          service: 'auth'
+
+  - job_name: 'platform-audit'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:8210']
+        labels:
+          service: 'audit'
+
   - job_name: 'platform-product'
     metrics_path: '/actuator/prometheus'
     static_configs:

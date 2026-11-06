@@ -63,3 +63,47 @@ groups:
         annotations:
           summary: "Order processing delayed"
           description: "Order {{ $labels.order_no }} has been pending for {{ $value | humanizeDuration }}"
+
+  # ============================================================
+  # 审计链路告警
+  # 指标来源：platform/common/web 的审计上报/写入计数器
+  # - security_audit_delivery_failed_total：调用方上报审计失败（被吞掉的异常）
+  # - security_audit_write_rejected_total：审计服务拒绝写入（签名/租户校验失败）
+  # ============================================================
+  - name: security-audit-alerts
+    rules:
+      - alert: AuditDeliveryFailed
+        expr: sum(increase(security_audit_delivery_failed_total[5m])) > 0
+        labels:
+          severity: warning
+          team: audit
+        annotations:
+          summary: "审计日志上报失败"
+          description: "最近 5 分钟有 {{ $value | humanize }} 条审计记录未送达审计服务，主流程已提交但审计可能缺失"
+
+      - alert: AuditDeliveryFailedHigh
+        expr: sum(increase(security_audit_delivery_failed_total[1h])) > 10
+        labels:
+          severity: critical
+          team: audit
+        annotations:
+          summary: "审计日志上报持续失败"
+          description: "最近 1 小时累计 {{ $value | humanize }} 条审计记录上报失败，审计链路可能已中断"
+
+      - alert: AuditWriteRejected
+        expr: sum(increase(security_audit_write_rejected_total[5m])) > 0
+        labels:
+          severity: warning
+          team: audit
+        annotations:
+          summary: "审计写入被拒绝"
+          description: "最近 5 分钟有 {{ $value | humanize }} 条审计写入被拒绝，请检查调用方 HMAC 签名与租户上下文"
+
+      - alert: AuditWriteRejectedHigh
+        expr: sum(increase(security_audit_write_rejected_total[1h])) > 10
+        labels:
+          severity: critical
+          team: audit
+        annotations:
+          summary: "审计写入持续被拒绝"
+          description: "最近 1 小时累计 {{ $value | humanize }} 条审计写入被拒绝，审计采集可能已失效"
