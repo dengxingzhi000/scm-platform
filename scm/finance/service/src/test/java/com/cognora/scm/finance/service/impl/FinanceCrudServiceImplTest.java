@@ -1,6 +1,7 @@
 package com.cognora.scm.finance.service.impl;
 
 import com.cognora.platform.common.tenant.TenantContextHolder;
+import com.cognora.scm.finance.service.support.AccountingPeriodGuard;
 import com.cognora.scm.finance.domain.entity.FreightRule;
 import com.cognora.scm.finance.domain.entity.PlatformServiceFee;
 import com.cognora.scm.finance.domain.entity.ReconciliationRecord;
@@ -103,7 +104,7 @@ class FinanceCrudServiceImplTest {
     @Test
     void settlementOrderUpdateAndDeleteShouldKeepOrchestrationInService() {
         SettlementOrderMapper mapper = mock(SettlementOrderMapper.class);
-        SettlementOrderServiceImpl service = new SettlementOrderServiceImpl(null);
+        SettlementOrderServiceImpl service = new SettlementOrderServiceImpl(null, mock(AccountingPeriodGuard.class));
         attach(service, mapper);
 
         SettlementOrder existingOrder = new SettlementOrder();
@@ -136,7 +137,7 @@ class FinanceCrudServiceImplTest {
     @Test
     void reconciliationUpdateAndDeleteShouldKeepOrchestrationInService() {
         ReconciliationRecordMapper mapper = mock(ReconciliationRecordMapper.class);
-        ReconciliationRecordServiceImpl service = new ReconciliationRecordServiceImpl();
+        ReconciliationRecordServiceImpl service = new ReconciliationRecordServiceImpl(mock(AccountingPeriodGuard.class));
         attach(service, mapper);
 
         ReconciliationRecord existingRecord = new ReconciliationRecord();
@@ -181,12 +182,11 @@ class FinanceCrudServiceImplTest {
     @Test
     void reconciliationCreateShouldForceTenantAndNormalizeDiff() {
         ReconciliationRecordMapper mapper = mock(ReconciliationRecordMapper.class);
-        ReconciliationRecordServiceImpl service = new ReconciliationRecordServiceImpl();
+        ReconciliationRecordServiceImpl service = new ReconciliationRecordServiceImpl(mock(AccountingPeriodGuard.class));
         attach(service, mapper);
         when(mapper.insert(any(ReconciliationRecord.class))).thenReturn(1);
 
         ReconciliationRecord record = new ReconciliationRecord();
-        record.setTenantId("019a0aee-0000-7000-8000-000000000099");
         record.setOurTotalAmount(new BigDecimal("100.00"));
         record.setTheirTotalAmount(new BigDecimal("90.00"));
         service.createReconciliation(record);
@@ -201,7 +201,7 @@ class FinanceCrudServiceImplTest {
     @Test
     void reconciliationCreateShouldRejectThreeDecimalAmount() {
         ReconciliationRecordMapper mapper = mock(ReconciliationRecordMapper.class);
-        ReconciliationRecordServiceImpl service = new ReconciliationRecordServiceImpl();
+        ReconciliationRecordServiceImpl service = new ReconciliationRecordServiceImpl(mock(AccountingPeriodGuard.class));
         attach(service, mapper);
 
         ReconciliationRecord record = new ReconciliationRecord();

@@ -3893,6 +3893,699 @@
           }
         }
       }
+    },
+    "/api/v1/tms-freight/quote": {
+      "post": {
+        "tags": [
+          "Freight"
+        ],
+        "summary": "运费试算",
+        "description": "按承运商 + 区域解析运费模板，计算首重/续重/体积重与区域价后的应收运费；总额不低于模板最低收费 minCharge。",
+        "operationId": "quote",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FreightQuoteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseFreightQuote"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tms-freight/reconciliation": {
+      "post": {
+        "tags": [
+          "Freight"
+        ],
+        "summary": "运费对账",
+        "description": "按模板重算应收，与承运商账单比较并落差异分类；同批次同运单幂等。",
+        "operationId": "reconcile",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FreightReconcileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTmsFreightReconciliation"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tms-freight/reconciliation/list": {
+      "get": {
+        "tags": [
+          "Freight"
+        ],
+        "summary": "分页查询对账差异",
+        "description": "可按批次、差异类型、处理状态与运单过滤；运单详情页传 waybillId 即可查该运单的对账记录。",
+        "operationId": "pageReconciliations",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          },
+          {
+            "name": "batchNo",
+            "in": "query",
+            "description": "对账批次号",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "diffType",
+            "in": "query",
+            "description": "差异类型 MATCH / OVERCHARGE / UNDERCHARGE",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "MATCH",
+                "OVERCHARGE",
+                "UNDERCHARGE"
+              ]
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "处理状态 OPEN / CONFIRMED",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "OPEN",
+                "CONFIRMED"
+              ]
+            }
+          },
+          {
+            "name": "waybillId",
+            "in": "query",
+            "description": "运单主键 ID",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePageTmsFreightReconciliation"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tms-freight/template/carrier/{carrierId}": {
+      "get": {
+        "tags": [
+          "Freight"
+        ],
+        "summary": "按承运商查询运费模板",
+        "description": "返回该承运商下全部启用/停用模板，按区域编码区分。",
+        "operationId": "listByCarrier",
+        "parameters": [
+          {
+            "name": "carrierId",
+            "in": "path",
+            "description": "承运商主键 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListTmsFreightTemplate"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tms-exception/list": {
+      "get": {
+        "tags": ["异常件与理赔"],
+        "summary": "分页查询异常件",
+        "operationId": "pageCases",
+        "parameters": [
+          {"name": "page", "in": "query", "required": false, "schema": {"type": "integer", "format": "int32", "default": 1}},
+          {"name": "size", "in": "query", "required": false, "schema": {"type": "integer", "format": "int32", "default": 10}},
+          {"name": "waybillNo", "in": "query", "required": false, "schema": {"type": "string"}},
+          {"name": "status", "in": "query", "description": "NEW / CLAIMED / PROCESSING / RESOLVED / CLOSED", "required": false, "schema": {"type": "string"}}
+        ],
+        "responses": {
+          "200": {"description": "OK", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponsePageTmsExceptionCase"}}}},
+          "400": {"description": "Bad Request", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "401": {"description": "Unauthorized", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "403": {"description": "Forbidden", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "500": {"description": "Internal Server Error", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}}
+        }
+      }
+    },
+    "/api/v1/tms-exception": {
+      "post": {
+        "tags": ["异常件与理赔"],
+        "summary": "登记异常件",
+        "operationId": "createCase",
+        "requestBody": {
+          "required": true,
+          "content": {"application/json": {"schema": {
+            "type": "object",
+            "properties": {
+              "waybillId": {"type": "string", "description": "运单主键 ID"},
+              "exceptionType": {"type": "string", "description": "异常类型，如 DAMAGED / LOST / DELAYED"},
+              "description": {"type": "string"},
+              "operator": {"type": "string"}
+            }
+          }}}
+        },
+        "responses": {
+          "200": {"description": "OK", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseTmsExceptionCase"}}}},
+          "400": {"description": "Bad Request", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "401": {"description": "Unauthorized", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "403": {"description": "Forbidden", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "500": {"description": "Internal Server Error", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}}
+        }
+      }
+    },
+    "/api/v1/tms-exception/{id}/claim": {
+      "post": {
+        "tags": ["异常件与理赔"],
+        "summary": "认领异常件",
+        "operationId": "claim",
+        "parameters": [
+          {"name": "id", "in": "path", "required": true, "schema": {"type": "string"}}
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {"application/json": {"schema": {
+            "type": "object",
+            "properties": {
+              "responsibleParty": {"type": "string", "description": "责任方，如 CARRIER / WAREHOUSE / MERCHANT"},
+              "operator": {"type": "string"}
+            }
+          }}}
+        },
+        "responses": {
+          "200": {"description": "OK", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseTmsExceptionCase"}}}},
+          "400": {"description": "Bad Request", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "401": {"description": "Unauthorized", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "403": {"description": "Forbidden", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "500": {"description": "Internal Server Error", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}}
+        }
+      }
+    },
+    "/api/v1/tms-exception/{id}/transition": {
+      "post": {
+        "tags": ["异常件与理赔"],
+        "summary": "异常件状态流转",
+        "operationId": "transition",
+        "parameters": [
+          {"name": "id", "in": "path", "required": true, "schema": {"type": "string"}}
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {"application/json": {"schema": {
+            "type": "object",
+            "properties": {
+              "targetStatus": {"type": "string", "description": "NEW / CLAIMED / PROCESSING / RESOLVED / CLOSED"},
+              "resolution": {"type": "string", "description": "处理结论，流转到 RESOLVED 时写入"},
+              "operator": {"type": "string"}
+            }
+          }}}
+        },
+        "responses": {
+          "200": {"description": "OK", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseTmsExceptionCase"}}}},
+          "400": {"description": "Bad Request", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "401": {"description": "Unauthorized", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "403": {"description": "Forbidden", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "500": {"description": "Internal Server Error", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}}
+        }
+      }
+    },
+    "/api/v1/tms-exception/{id}/claims": {
+      "post": {
+        "tags": ["异常件与理赔"],
+        "summary": "创建理赔单",
+        "operationId": "createClaim",
+        "parameters": [
+          {"name": "id", "in": "path", "description": "异常件主键 ID", "required": true, "schema": {"type": "string"}}
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {"application/json": {"schema": {
+            "type": "object",
+            "properties": {
+              "amount": {"type": "number", "description": "理赔金额，必须大于 0"},
+              "reason": {"type": "string"},
+              "evidenceUrl": {"type": "string"},
+              "operator": {"type": "string"}
+            }
+          }}}
+        },
+        "responses": {
+          "200": {"description": "OK", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseTmsClaimOrder"}}}},
+          "400": {"description": "Bad Request", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "401": {"description": "Unauthorized", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "403": {"description": "Forbidden", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "500": {"description": "Internal Server Error", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}}
+        }
+      }
+    },
+    "/api/v1/tms-exception/claims/list": {
+      "get": {
+        "tags": ["异常件与理赔"],
+        "summary": "分页查询理赔单",
+        "operationId": "pageClaims",
+        "parameters": [
+          {"name": "page", "in": "query", "required": false, "schema": {"type": "integer", "format": "int32", "default": 1}},
+          {"name": "size", "in": "query", "required": false, "schema": {"type": "integer", "format": "int32", "default": 10}},
+          {"name": "waybillNo", "in": "query", "required": false, "schema": {"type": "string"}},
+          {"name": "status", "in": "query", "description": "DRAFT / SUBMITTED / APPROVED / REJECTED / PAID", "required": false, "schema": {"type": "string"}}
+        ],
+        "responses": {
+          "200": {"description": "OK", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponsePageTmsClaimOrder"}}}},
+          "400": {"description": "Bad Request", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "401": {"description": "Unauthorized", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "403": {"description": "Forbidden", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "500": {"description": "Internal Server Error", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}}
+        }
+      }
+    },
+    "/api/v1/tms-exception/claims/{id}/transition": {
+      "post": {
+        "tags": ["异常件与理赔"],
+        "summary": "理赔单状态流转",
+        "operationId": "transitionClaim",
+        "parameters": [
+          {"name": "id", "in": "path", "required": true, "schema": {"type": "string"}}
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {"application/json": {"schema": {
+            "type": "object",
+            "properties": {
+              "targetStatus": {"type": "string", "description": "DRAFT / SUBMITTED / APPROVED / REJECTED / PAID"},
+              "operator": {"type": "string"},
+              "remark": {"type": "string"}
+            }
+          }}}
+        },
+        "responses": {
+          "200": {"description": "OK", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseTmsClaimOrder"}}}},
+          "400": {"description": "Bad Request", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "401": {"description": "Unauthorized", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "403": {"description": "Forbidden", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "500": {"description": "Internal Server Error", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}}
+        }
+      }
+    },
+    "/api/v1/tms-sla/list": {
+      "get": {
+        "tags": ["SLA 时效预警"],
+        "summary": "分页查询 SLA 预警",
+        "operationId": "pageAlerts",
+        "parameters": [
+          {"name": "page", "in": "query", "required": false, "schema": {"type": "integer", "format": "int32", "default": 1}},
+          {"name": "size", "in": "query", "required": false, "schema": {"type": "integer", "format": "int32", "default": 10}},
+          {"name": "waybillNo", "in": "query", "required": false, "schema": {"type": "string"}},
+          {"name": "status", "in": "query", "description": "OPEN / ACK / CLOSED", "required": false, "schema": {"type": "string"}},
+          {"name": "level", "in": "query", "description": "WARN / CRITICAL", "required": false, "schema": {"type": "string"}}
+        ],
+        "responses": {
+          "200": {"description": "OK", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponsePageTmsSlaAlert"}}}},
+          "400": {"description": "Bad Request", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "401": {"description": "Unauthorized", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "403": {"description": "Forbidden", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "500": {"description": "Internal Server Error", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}}
+        }
+      }
+    },
+    "/api/v1/tms-sla/{id}/ack": {
+      "post": {
+        "tags": ["SLA 时效预警"],
+        "summary": "确认预警",
+        "operationId": "acknowledge",
+        "parameters": [
+          {"name": "id", "in": "path", "required": true, "schema": {"type": "string"}},
+          {"name": "operator", "in": "query", "required": false, "schema": {"type": "string"}}
+        ],
+        "responses": {
+          "200": {"description": "OK", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "400": {"description": "Bad Request", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "401": {"description": "Unauthorized", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "403": {"description": "Forbidden", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "500": {"description": "Internal Server Error", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}}
+        }
+      }
+    },
+    "/api/v1/tms-sla/scan": {
+      "post": {
+        "tags": ["SLA 时效预警"],
+        "summary": "手动触发超时扫描",
+        "operationId": "scanOverdue",
+        "responses": {
+          "200": {"description": "OK", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseInteger"}}}},
+          "400": {"description": "Bad Request", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "401": {"description": "Unauthorized", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "403": {"description": "Forbidden", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "500": {"description": "Internal Server Error", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}}
+        }
+      }
+    },
+    "/api/v1/tms-freight/template/list": {
+      "get": {
+        "tags": ["Freight"],
+        "summary": "分页查询运费模板",
+        "operationId": "pageTemplates",
+        "parameters": [
+          {"name": "page", "in": "query", "required": false, "schema": {"type": "integer", "format": "int32", "default": 1}},
+          {"name": "size", "in": "query", "required": false, "schema": {"type": "integer", "format": "int32", "default": 10}},
+          {"name": "carrierId", "in": "query", "required": false, "schema": {"type": "string"}},
+          {"name": "regionCode", "in": "query", "required": false, "schema": {"type": "string"}}
+        ],
+        "responses": {
+          "200": {"description": "OK", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponsePageTmsFreightTemplate"}}}},
+          "400": {"description": "Bad Request", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "401": {"description": "Unauthorized", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "403": {"description": "Forbidden", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "500": {"description": "Internal Server Error", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}}
+        }
+      }
+    },
+    "/api/v1/tms-freight/template": {
+      "post": {
+        "tags": ["Freight"],
+        "summary": "创建运费模板",
+        "operationId": "createTemplate",
+        "requestBody": {
+          "required": true,
+          "content": {"application/json": {"schema": {"$ref": "#/components/schemas/TmsFreightTemplate"}}}
+        },
+        "responses": {
+          "200": {"description": "OK", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseTmsFreightTemplate"}}}},
+          "400": {"description": "Bad Request", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "401": {"description": "Unauthorized", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "403": {"description": "Forbidden", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "500": {"description": "Internal Server Error", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}}
+        }
+      }
+    },
+    "/api/v1/tms-freight/template/{id}": {
+      "put": {
+        "tags": ["Freight"],
+        "summary": "更新运费模板",
+        "operationId": "updateTemplate",
+        "parameters": [
+          {"name": "id", "in": "path", "required": true, "schema": {"type": "string"}}
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {"application/json": {"schema": {"$ref": "#/components/schemas/TmsFreightTemplate"}}}
+        },
+        "responses": {
+          "200": {"description": "OK", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseTmsFreightTemplate"}}}},
+          "400": {"description": "Bad Request", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "401": {"description": "Unauthorized", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "403": {"description": "Forbidden", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "500": {"description": "Internal Server Error", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}}
+        }
+      },
+      "delete": {
+        "tags": ["Freight"],
+        "summary": "删除运费模板",
+        "operationId": "deleteTemplate",
+        "parameters": [
+          {"name": "id", "in": "path", "required": true, "schema": {"type": "string"}}
+        ],
+        "responses": {
+          "200": {"description": "OK", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "400": {"description": "Bad Request", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "401": {"description": "Unauthorized", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "403": {"description": "Forbidden", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "500": {"description": "Internal Server Error", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}}
+        }
+      }
+    },
+    "/api/v1/tms-freight/reconciliation/{id}/confirm": {
+      "post": {
+        "tags": ["Freight"],
+        "summary": "确认对账差异",
+        "description": "OPEN → CONFIRMED；重复确认幂等。需要权限码 lms:freight:reconciliation:confirm。",
+        "operationId": "confirmReconciliation",
+        "parameters": [
+          {"name": "id", "in": "path", "required": true, "schema": {"type": "string"}},
+          {"name": "operator", "in": "query", "required": false, "schema": {"type": "string"}}
+        ],
+        "responses": {
+          "200": {"description": "OK", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseTmsFreightReconciliation"}}}},
+          "400": {"description": "Bad Request", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "401": {"description": "Unauthorized", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "403": {"description": "Forbidden", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "500": {"description": "Internal Server Error", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}}
+        }
+      }
+    },
+    "/api/v1/tms-tracking/callback/{carrierCode}": {
+      "post": {
+        "tags": ["Tracking"],
+        "summary": "承运商轨迹回调",
+        "description": "使用 HMAC-SHA256(timestamp + 换行 + nonce + 换行 + rawBody) 验签，时间窗默认 300 秒，nonce 一次性消费；验签失败 401 且不落库。",
+        "operationId": "callback",
+        "parameters": [
+          {"name": "carrierCode", "in": "path", "required": true, "schema": {"type": "string"}},
+          {"name": "X-Lms-Timestamp", "in": "header", "required": true, "schema": {"type": "string"}, "description": "Unix 秒"},
+          {"name": "X-Lms-Nonce", "in": "header", "required": true, "schema": {"type": "string"}},
+          {"name": "X-Lms-Signature", "in": "header", "required": true, "schema": {"type": "string"}, "description": "HMAC-SHA256 hex，可带 sha256= 前缀"}
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {"application/json": {"schema": {"$ref": "#/components/schemas/TmsTracking"}}}
+        },
+        "responses": {
+          "200": {"description": "OK", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseTmsTracking"}}}},
+          "401": {"description": "验签失败/时间窗超限/nonce 重放", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
+          "500": {"description": "Internal Server Error", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}}
+        }
+      }
     }
   },
   "components": {
@@ -4240,6 +4933,10 @@
           "waybillNo": {
             "type": "string"
           },
+          "trackingNo": {
+            "type": "string",
+            "description": "承运商真实跟踪号；首次回传后不再覆盖，空值表示尚未回传"
+          },
           "carrierId": {
             "type": "string"
           },
@@ -4384,6 +5081,10 @@
           },
           "waybillNo": {
             "type": "string"
+          },
+          "trackingNo": {
+            "type": "string",
+            "description": "该条轨迹回传的承运商真实跟踪号"
           },
           "trackTime": {
             "type": "string",
@@ -4946,6 +5647,805 @@
             "items": {
               "$ref": "#/components/schemas/TmsCarrier"
             }
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "TmsFreightTemplate": {
+        "type": "object",
+        "description": "运费模板：首重/续重/体积重/区域价/最低收费，按 租户 + 承运商 + 区域 配置。",
+        "properties": {
+          "tenantId": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "templateName": {
+            "type": "string"
+          },
+          "carrierId": {
+            "type": "string"
+          },
+          "regionCode": {
+            "type": "string",
+            "description": "目的省份/区域编码；DEFAULT 表示承运商兜底模板"
+          },
+          "regionName": {
+            "type": "string"
+          },
+          "firstWeightKg": {
+            "type": "number",
+            "description": "首重重量（kg）"
+          },
+          "firstWeightFee": {
+            "type": "number",
+            "description": "首重费用"
+          },
+          "additionalUnitKg": {
+            "type": "number",
+            "description": "续重单位重量（kg），计费重按该单位向上进位"
+          },
+          "additionalUnitFee": {
+            "type": "number",
+            "description": "每个续重单位费用"
+          },
+          "volumeDivisor": {
+            "type": "number",
+            "description": "体积重除数，体积重 = 体积(cm³) / 该值"
+          },
+          "regionSurcharge": {
+            "type": "number",
+            "description": "区域附加费"
+          },
+          "minCharge": {
+            "type": "number",
+            "description": "最低收费；首重+续重+区域附加费合计低于该值时按该值收取"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "createTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createBy": {
+            "type": "string"
+          },
+          "updateTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updateBy": {
+            "type": "string"
+          },
+          "deleted": {
+            "type": "boolean"
+          },
+          "remark": {
+            "type": "string"
+          }
+        }
+      },
+      "TmsFreightReconciliation": {
+        "type": "object",
+        "description": "运费对账记录：差异 = 承运商账单金额 - 系统应收金额，正数为多收。",
+        "properties": {
+          "tenantId": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "batchNo": {
+            "type": "string",
+            "description": "对账批次；同批次同运单唯一，重复对账幂等"
+          },
+          "waybillId": {
+            "type": "string",
+            "description": "运单主键 ID"
+          },
+          "waybillNo": {
+            "type": "string"
+          },
+          "carrierId": {
+            "type": "string"
+          },
+          "regionCode": {
+            "type": "string"
+          },
+          "actualWeight": {
+            "type": "number"
+          },
+          "volume": {
+            "type": "number"
+          },
+          "chargeableWeight": {
+            "type": "number"
+          },
+          "expectedAmount": {
+            "type": "number",
+            "description": "系统按模板重算的应收金额"
+          },
+          "billedAmount": {
+            "type": "number",
+            "description": "承运商账单金额"
+          },
+          "diffAmount": {
+            "type": "number",
+            "description": "billedAmount - expectedAmount，正数为多收"
+          },
+          "diffType": {
+            "type": "string",
+            "enum": [
+              "MATCH",
+              "OVERCHARGE",
+              "UNDERCHARGE"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "OPEN",
+              "CONFIRMED"
+            ]
+          },
+          "createTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createBy": {
+            "type": "string"
+          },
+          "updateTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "remark": {
+            "type": "string"
+          }
+        }
+      },
+      "FreightQuote": {
+        "type": "object",
+        "description": "运费试算明细，逐项解释差异来源。",
+        "properties": {
+          "actualWeight": {
+            "type": "number",
+            "description": "实重（kg）"
+          },
+          "volumetricWeight": {
+            "type": "number",
+            "description": "体积重 = 体积(cm³) / volumeDivisor"
+          },
+          "chargeableWeight": {
+            "type": "number",
+            "description": "计费重 = max(实重, 体积重)"
+          },
+          "billedWeight": {
+            "type": "number",
+            "description": "按续重单位向上进位后的计费重"
+          },
+          "firstWeightFee": {
+            "type": "number",
+            "description": "首重费用"
+          },
+          "additionalFee": {
+            "type": "number",
+            "description": "续重费用"
+          },
+          "regionSurcharge": {
+            "type": "number",
+            "description": "区域附加费"
+          },
+          "minCharge": {
+            "type": "number",
+            "description": "模板最低收费。首重+续重+区域附加费合计低于该值时，totalAmount 取该值"
+          },
+          "minChargeApplied": {
+            "type": "boolean",
+            "description": "true 表示本次合计低于 minCharge，totalAmount 已按最低收费兜底"
+          },
+          "totalAmount": {
+            "type": "number",
+            "description": "最终应收金额（已含最低收费兜底，HALF_UP 保留 2 位小数）"
+          }
+        }
+      },
+      "FreightQuoteRequest": {
+        "type": "object",
+        "properties": {
+          "carrierId": {
+            "type": "string",
+            "description": "承运商主键 ID"
+          },
+          "regionCode": {
+            "type": "string",
+            "description": "目的区域编码；为空时按模板兜底规则解析"
+          },
+          "weight": {
+            "type": "number",
+            "description": "实重（kg）"
+          },
+          "volume": {
+            "type": "number",
+            "description": "体积（cm³）"
+          }
+        }
+      },
+      "FreightReconcileRequest": {
+        "type": "object",
+        "properties": {
+          "waybillId": {
+            "type": "string",
+            "description": "运单主键 ID（必填）"
+          },
+          "regionCode": {
+            "type": "string",
+            "description": "目的区域编码"
+          },
+          "billedAmount": {
+            "type": "number",
+            "description": "承运商账单金额（必填，不能为负）"
+          },
+          "batchNo": {
+            "type": "string",
+            "description": "对账批次号；为空时使用 DEFAULT"
+          },
+          "operator": {
+            "type": "string",
+            "description": "操作人"
+          }
+        }
+      },
+      "ApiResponseFreightQuote": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/FreightQuote"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ApiResponseTmsFreightReconciliation": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/TmsFreightReconciliation"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "PageTmsFreightReconciliation": {
+        "type": "object",
+        "properties": {
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TmsFreightReconciliation"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "current": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "pages": {
+            "type": "integer",
+            "format": "int64",
+            "deprecated": true
+          }
+        }
+      },
+      "ApiResponsePageTmsFreightReconciliation": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageTmsFreightReconciliation"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ApiResponseListTmsFreightTemplate": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TmsFreightTemplate"
+            }
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "TmsExceptionCase": {
+        "type": "object",
+        "description": "异常件工单：登记 -> 认领 -> 处理 -> 解决/关闭。",
+        "properties": {
+          "tenantId": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "waybillId": {
+            "type": "string"
+          },
+          "waybillNo": {
+            "type": "string"
+          },
+          "exceptionType": {
+            "type": "string",
+            "description": "DAMAGED / LOST / DELAYED 等"
+          },
+          "description": {
+            "type": "string"
+          },
+          "responsibleParty": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "description": "NEW / CLAIMED / PROCESSING / RESOLVED / CLOSED"
+          },
+          "claimedBy": {
+            "type": "string"
+          },
+          "claimedTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "resolution": {
+            "type": "string"
+          },
+          "resolvedTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createBy": {
+            "type": "string"
+          },
+          "createTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updateTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "remark": {
+            "type": "string"
+          }
+        }
+      },
+      "TmsClaimOrder": {
+        "type": "object",
+        "description": "理赔单：由异常件发起，按状态机流转。",
+        "properties": {
+          "tenantId": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "caseId": {
+            "type": "string"
+          },
+          "waybillNo": {
+            "type": "string"
+          },
+          "claimAmount": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "description": "DRAFT / SUBMITTED / APPROVED / REJECTED / PAID"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "evidenceUrl": {
+            "type": "string"
+          },
+          "submittedBy": {
+            "type": "string"
+          },
+          "submittedTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reviewedBy": {
+            "type": "string"
+          },
+          "reviewedTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "paidTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createBy": {
+            "type": "string"
+          },
+          "createTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updateTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "remark": {
+            "type": "string"
+          }
+        }
+      },
+      "TmsSlaAlert": {
+        "type": "object",
+        "description": "SLA 超时预警记录，按承诺送达时间与超时小时数分级。",
+        "properties": {
+          "tenantId": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "waybillId": {
+            "type": "string"
+          },
+          "waybillNo": {
+            "type": "string"
+          },
+          "carrierId": {
+            "type": "string"
+          },
+          "promisedTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "overdueHours": {
+            "type": "number"
+          },
+          "level": {
+            "type": "string",
+            "description": "WARN / SEVERE / CRITICAL"
+          },
+          "status": {
+            "type": "string",
+            "description": "OPEN / ACKED / CLOSED"
+          },
+          "ackBy": {
+            "type": "string"
+          },
+          "ackTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updateTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "remark": {
+            "type": "string"
+          }
+        }
+      },
+      "PageTmsExceptionCase": {
+        "type": "object",
+        "properties": {
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TmsExceptionCase"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "current": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "pages": {
+            "type": "integer",
+            "format": "int64",
+            "deprecated": true
+          }
+        }
+      },
+      "PageTmsClaimOrder": {
+        "type": "object",
+        "properties": {
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TmsClaimOrder"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "current": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "pages": {
+            "type": "integer",
+            "format": "int64",
+            "deprecated": true
+          }
+        }
+      },
+      "PageTmsSlaAlert": {
+        "type": "object",
+        "properties": {
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TmsSlaAlert"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "current": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "pages": {
+            "type": "integer",
+            "format": "int64",
+            "deprecated": true
+          }
+        }
+      },
+      "PageTmsFreightTemplate": {
+        "type": "object",
+        "properties": {
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TmsFreightTemplate"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "current": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "pages": {
+            "type": "integer",
+            "format": "int64",
+            "deprecated": true
+          }
+        }
+      },
+      "ApiResponseInteger": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ApiResponseTmsExceptionCase": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/TmsExceptionCase"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ApiResponsePageTmsExceptionCase": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageTmsExceptionCase"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ApiResponseTmsClaimOrder": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/TmsClaimOrder"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ApiResponsePageTmsClaimOrder": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageTmsClaimOrder"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ApiResponsePageTmsSlaAlert": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageTmsSlaAlert"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ApiResponseTmsFreightTemplate": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/TmsFreightTemplate"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ApiResponsePageTmsFreightTemplate": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageTmsFreightTemplate"
           },
           "timestamp": {
             "type": "integer",

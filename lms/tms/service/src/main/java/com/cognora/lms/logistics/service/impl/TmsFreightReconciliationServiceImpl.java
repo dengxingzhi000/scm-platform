@@ -40,7 +40,8 @@ public class TmsFreightReconciliationServiceImpl
     private final ITmsFreightTemplateService freightTemplateService;
 
     @Override
-    public Page<TmsFreightReconciliation> pageList(int page, int size, String batchNo, String diffType, String status) {
+    public Page<TmsFreightReconciliation> pageList(int page, int size, String batchNo, String diffType, String status,
+                                                   String waybillId) {
         LambdaQueryWrapper<TmsFreightReconciliation> wrapper = Wrappers.lambdaQuery();
         if (StringUtils.hasText(batchNo)) {
             wrapper.eq(TmsFreightReconciliation::getBatchNo, batchNo);
@@ -50,6 +51,9 @@ public class TmsFreightReconciliationServiceImpl
         }
         if (StringUtils.hasText(status)) {
             wrapper.eq(TmsFreightReconciliation::getStatus, status.trim().toUpperCase());
+        }
+        if (StringUtils.hasText(waybillId)) {
+            wrapper.eq(TmsFreightReconciliation::getWaybillId, waybillId.trim());
         }
         wrapper.orderByDesc(TmsFreightReconciliation::getCreateTime);
         return page(new Page<>(page, size), wrapper);
@@ -151,7 +155,10 @@ public class TmsFreightReconciliationServiceImpl
         patch.setUpdateTime(LocalDateTime.now());
         updateById(patch);
         existing.setStatus(TmsFreightReconciliation.STATUS_CONFIRMED);
-        log.info("运费差异单已确认: id={}, waybillNo={}, operator={}", id, existing.getWaybillNo(), operator);
+        log.info("运费差异单已确认: id={}, waybillNo={}, operator={}",
+                (id + "").replace("\r", "_").replace("\n", "_"),
+                (existing.getWaybillNo() + "").replace("\r", "_").replace("\n", "_"),
+                (operator + "").replace("\r", "_").replace("\n", "_"));
         return existing;
     }
 }

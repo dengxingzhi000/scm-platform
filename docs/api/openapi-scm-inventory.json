@@ -40,6 +40,10 @@
     {
       "name": "库存预警",
       "description": "提供库存告警查询、统计、处理与扫描接口。"
+    },
+    {
+      "name": "库存流水",
+      "description": "提供库存变动流水分页查询接口。"
     }
   ],
   "paths": {
@@ -2392,6 +2396,193 @@
           }
         }
       }
+    },
+    "/api/v1/inventory/reservations/query": {
+      "post": {
+        "tags": [
+          "库存预占"
+        ],
+        "summary": "分页查询预占",
+        "description": "按业务键、SKU、仓库、状态与创建时间范围分页查询预占记录。",
+        "operationId": "queryReservations",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvReservationQueryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePageInvReservationResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/inventory/reservations/{businessKey}": {
+      "get": {
+        "tags": [
+          "库存预占"
+        ],
+        "summary": "按业务键查询预占",
+        "description": "返回该业务键下唯一的预占记录及状态时间线。",
+        "operationId": "getReservationByBusinessKey",
+        "parameters": [
+          {
+            "name": "businessKey",
+            "in": "path",
+            "description": "业务键（订单号等）",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseInvReservationResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/inventory/logs/query": {
+      "post": {
+        "tags": [
+          "库存流水"
+        ],
+        "summary": "分页查询库存流水",
+        "description": "按 SKU、单据号、仓库、变更类型与时间范围分页查询，返回变更前后四元组。",
+        "operationId": "queryInventoryLogs",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvLogQueryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePageInvLogResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3392,6 +3583,343 @@
             "format": "int64"
           },
           "outOfStock": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "InvReservationQueryRequest": {
+        "type": "object",
+        "properties": {
+          "businessKey": {
+            "type": "string"
+          },
+          "skuId": {
+            "type": "string"
+          },
+          "warehouseId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "description": "RESERVED / CONFIRMED / RELEASED / EXPIRED"
+          },
+          "startTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32",
+            "maximum": 500,
+            "minimum": 1
+          }
+        }
+      },
+      "InvReservationResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tenantId": {
+            "type": "string"
+          },
+          "businessKey": {
+            "type": "string"
+          },
+          "skuId": {
+            "type": "string"
+          },
+          "warehouseId": {
+            "type": "string"
+          },
+          "inventoryId": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "status": {
+            "type": "string",
+            "description": "RESERVED / CONFIRMED / RELEASED / EXPIRED"
+          },
+          "statusName": {
+            "type": "string"
+          },
+          "documentType": {
+            "type": "string"
+          },
+          "documentNo": {
+            "type": "string"
+          },
+          "expireAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reservedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "confirmedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "releasedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updateTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PageInvReservationResponse": {
+        "type": "object",
+        "properties": {
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InvReservationResponse"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "current": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ApiResponsePageInvReservationResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageInvReservationResponse"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ApiResponseInvReservationResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/InvReservationResponse"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "InvLogQueryRequest": {
+        "type": "object",
+        "properties": {
+          "skuId": {
+            "type": "string"
+          },
+          "warehouseId": {
+            "type": "string"
+          },
+          "businessKey": {
+            "type": "string"
+          },
+          "businessType": {
+            "type": "string",
+            "description": "ADJUST/INBOUND/OUTBOUND/TRANSFER_OUT/TRANSFER_IN/RESERVE/CONFIRM/RELEASE/RELEASE_EXPIRED/TCC_TRY/TCC_CONFIRM/TCC_CANCEL/DUBBO_DEDUCT"
+          },
+          "operationType": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "maximum": 7
+          },
+          "startTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32",
+            "maximum": 500,
+            "minimum": 1
+          }
+        }
+      },
+      "InvLogResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tenantId": {
+            "type": "string"
+          },
+          "skuId": {
+            "type": "string"
+          },
+          "warehouseId": {
+            "type": "string"
+          },
+          "legacySkuId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "warehouseCode": {
+            "type": "string"
+          },
+          "operationType": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "businessType": {
+            "type": "string"
+          },
+          "changeQuantity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "beforeTotal": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "beforeAvailable": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "beforeLocked": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "beforeDamaged": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "afterTotal": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "afterAvailable": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "afterLocked": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "afterDamaged": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "businessKey": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "operatorId": {
+            "type": "string"
+          },
+          "operatorName": {
+            "type": "string"
+          },
+          "ledgerSource": {
+            "type": "string",
+            "description": "DB / REDIS"
+          },
+          "createTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PageInvLogResponse": {
+        "type": "object",
+        "properties": {
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InvLogResponse"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "current": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ApiResponsePageInvLogResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageInvLogResponse"
+          },
+          "timestamp": {
             "type": "integer",
             "format": "int64"
           }

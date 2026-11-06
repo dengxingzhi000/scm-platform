@@ -1,6 +1,11 @@
 package com.cognora.lms.logistics.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.MybatisConfiguration;
+import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import org.apache.ibatis.builder.MapperBuilderAssistant;
 import com.cognora.lms.logistics.domain.entity.TmsFreightReconciliation;
 import com.cognora.lms.logistics.domain.entity.TmsWaybill;
 import com.cognora.lms.logistics.domain.freight.FreightDiffClassifier;
@@ -24,6 +29,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -37,6 +43,12 @@ import static org.mockito.Mockito.when;
 class TmsFreightReconciliationTest {
 
     private static final UUID TENANT_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
+
+    static {
+        // 单元测试无 MyBatis 启动流程，手工初始化 Lambda 字段映射缓存用于断言 SQL 片段。
+        TableInfoHelper.initTableInfo(
+                new MapperBuilderAssistant(new MybatisConfiguration(), ""), TmsFreightReconciliation.class);
+    }
 
     private TmsFreightReconciliationMapper mapper;
     private ITmsWaybillService waybillService;
@@ -211,6 +223,19 @@ class TmsFreightReconciliationTest {
         verify(mapper, never()).updateById(any(TmsFreightReconciliation.class));
     }
 
+    @Test
+    void pageListShouldFilterByWaybillId() {
+        service.pageList(1, 10, null, null, null, " w-1 ");
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Wrapper<TmsFreightReconciliation>> captor = ArgumentCaptor.forClass(Wrapper.class);
+        verify(mapper).selectPage(any(Page.class), captor.capture());
+        LambdaQueryWrapper<TmsFreightReconciliation> wrapper =
+                (LambdaQueryWrapper<TmsFreightReconciliation>) captor.getValue();
+        assertTrue(wrapper.getSqlSegment().contains("waybill_id"));
+        assertTrue(wrapper.getParamNameValuePairs().containsValue("w-1"));
+    }
+
     private TmsFreightReconciliation reconciliation(String status) {
         TmsFreightReconciliation record = new TmsFreightReconciliation();
         record.setId("recon-1");
@@ -234,6 +259,6 @@ class TmsFreightReconciliationTest {
         BigDecimal amount = new BigDecimal(total);
         return new FreightQuote(new BigDecimal("10"), BigDecimal.ZERO, new BigDecimal("10"),
                 new BigDecimal("10"), new BigDecimal("8.00"), new BigDecimal("36.00"),
-                BigDecimal.ZERO, amount);
+                BigDecimal.ZERO, BigDecimal.ZERO, false, amount);
     }
 }

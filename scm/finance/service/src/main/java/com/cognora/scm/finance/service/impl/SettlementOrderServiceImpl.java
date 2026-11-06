@@ -10,6 +10,8 @@ import com.cognora.scm.finance.domain.entity.SettlementOrder;
 import com.cognora.scm.finance.domain.support.FinanceAmount;
 import com.cognora.scm.finance.mapper.SettlementOrderMapper;
 import com.cognora.scm.finance.service.ISettlementOrderService;
+import com.cognora.scm.finance.service.support.AccountingPeriodGuard;
+import com.cognora.scm.finance.service.support.FinanceTenantGuard;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -23,9 +25,12 @@ import java.time.LocalDateTime;
 public class SettlementOrderServiceImpl extends ServiceImpl<SettlementOrderMapper, SettlementOrder>
         implements ISettlementOrderService {
     private final StatusValidator statusValidator;
+    private final AccountingPeriodGuard accountingPeriodGuard;
 
-    public SettlementOrderServiceImpl(StatusValidator statusValidator) {
+    public SettlementOrderServiceImpl(StatusValidator statusValidator,
+                                      AccountingPeriodGuard accountingPeriodGuard) {
         this.statusValidator = statusValidator;
+        this.accountingPeriodGuard = accountingPeriodGuard;
     }
 
     @Override
@@ -33,13 +38,16 @@ public class SettlementOrderServiceImpl extends ServiceImpl<SettlementOrderMappe
     public SettlementOrder createSettlement(SettlementOrder order) {
         log.info("Create settlement order: partnerName={}, settlementType={}", (order.getPartnerName() + "").replace("\r", "_").replace("\n", "_"), (order.getSettlementType() + "").replace("\r", "_").replace("\n", "_"));
 
+        // 请求体里带其他租户的 tenantId 时直接 403，而不是静默改写成当前租户。
+        FinanceTenantGuard.verifyOwnership(order.getTenantId());
         order.setId(UUIDv7Util.generateString());
         order.setSettlementNo(generateSettlementNo());
         order.setStatus(0);
-        // 租户必须取自登录态，忽略请求体里的 tenantId，否则可以往别的租户写结算单。
         order.setTenantId(TenantContextHolder.getRequiredTenantId().toString());
         order.setCurrency(FinanceAmount.currency(order.getCurrency()));
         normalizeAmounts(order);
+        accountingPeriodGuard.assertWritable(order.getSettlementPeriod(), order.getStartDate(),
+                "结算单:" + order.getSettlementNo());
         order.setPaidAmount(new BigDecimal("0.00"));
         order.setDeleted(false);
         order.setCreateTime(LocalDateTime.now());
@@ -63,6 +71,9 @@ public class SettlementOrderServiceImpl extends ServiceImpl<SettlementOrderMappe
         if (order == null || Boolean.TRUE.equals(order.getDeleted())) {
             throw new IllegalArgumentException("缁撶畻鍗曚笉瀛樺湪: " + id);
         }
+        FinanceTenantGuard.verifyOwnership(order.getTenantId());
+        accountingPeriodGuard.assertWritable(order.getSettlementPeriod(), order.getStartDate(),
+                "结算单:" + order.getSettlementNo());
         statusValidator.validateTransition("SETTLEMENT", "DRAFT", "CONFIRMED");
 
         order.setStatus(1);
@@ -87,6 +98,9 @@ public class SettlementOrderServiceImpl extends ServiceImpl<SettlementOrderMappe
         if (order == null || Boolean.TRUE.equals(order.getDeleted())) {
             throw new IllegalArgumentException("缁撶畻鍗曚笉瀛樺湪: " + id);
         }
+        FinanceTenantGuard.verifyOwnership(order.getTenantId());
+        accountingPeriodGuard.assertWritable(order.getSettlementPeriod(), order.getStartDate(),
+                "结算单:" + order.getSettlementNo());
         BigDecimal paid = FinanceAmount.optionalOrZero(order.getPaidAmount(), "已付金额");
         BigDecimal payable = FinanceAmount.required(order.getActualAmount(), "应付金额");
         BigDecimal newPaidAmount = FinanceAmount.normalize(paid.add(payment), "累计已付金额");
@@ -124,6 +138,9 @@ public class SettlementOrderServiceImpl extends ServiceImpl<SettlementOrderMappe
         if (existing == null || Boolean.TRUE.equals(existing.getDeleted())) {
             throw new IllegalArgumentException("结算单不存在: " + id);
         }
+        FinanceTenantGuard.verifyOwnership(existing.getTenantId());
+        accountingPeriodGuard.assertWritable(existing.getSettlementPeriod(), existing.getStartDate(),
+                "结算单:" + existing.getSettlementNo());
 
         // 金额、状态、租户与逻辑删除标记由服务端维护，请求体一律不得改写。
         rejectIfChanged("状态", existing.getStatus(), order.getStatus());
@@ -169,6 +186,9 @@ public class SettlementOrderServiceImpl extends ServiceImpl<SettlementOrderMappe
     public void deleteSettlement(String id) {
         SettlementOrder order = getById(id);
         if (order != null) {
+            FinanceTenantGuard.verifyOwnership(order.getTenantId());
+            accountingPeriodGuard.assertWritable(order.getSettlementPeriod(), order.getStartDate(),
+                    "结算单:" + order.getSettlementNo());
             order.setDeleted(true);
             order.setUpdateTime(LocalDateTime.now());
             updateById(order);

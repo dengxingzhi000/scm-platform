@@ -12,6 +12,7 @@ import com.cognora.lms.logistics.mapper.TmsTrackingMapper;
 import com.cognora.lms.logistics.mapper.TmsWaybillMapper;
 import com.cognora.lms.logistics.service.ITmsTrackingService;
 import com.cognora.lms.logistics.support.TenantGuard;
+import com.cognora.platform.common.log.util.LogUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
@@ -89,7 +90,8 @@ public class TmsTrackingServiceImpl extends ServiceImpl<TmsTrackingMapper, TmsTr
         TmsTracking existing = findByEventId(eventId);
         if (existing != null) {
             log.info("Duplicate tracking callback ignored: waybillNo={}, eventId={}, trackingId={}",
-                    tracking.getWaybillNo(), eventId, existing.getId());
+                    LogUtils.sanitizeForLog(tracking.getWaybillNo()),
+                    LogUtils.sanitizeForLog(eventId), existing.getId());
             return existing;
         }
 
@@ -116,15 +118,20 @@ public class TmsTrackingServiceImpl extends ServiceImpl<TmsTrackingMapper, TmsTr
             existing = findByEventId(eventId);
             if (existing != null) {
                 log.info("Concurrent duplicate tracking callback merged: waybillNo={}, eventId={}, trackingId={}",
-                        tracking.getWaybillNo(), eventId, existing.getId());
+                        LogUtils.sanitizeForLog(tracking.getWaybillNo()),
+                        LogUtils.sanitizeForLog(eventId), existing.getId());
                 return existing;
             }
             throw duplicate;
         }
 
         applyWaybillStatus(waybill, tracking);
+        applyWaybillTrackingNo(waybill, tracking);
 
-        log.info("物流轨迹添加入库: id={}, waybillNo={}, eventId={}", tracking.getId(), tracking.getWaybillNo(), eventId);
+        log.info("物流轨迹添加入库: id={}, waybillNo={}, eventId={}",
+                (tracking.getId() + "").replace("\r", "_").replace("\n", "_"),
+                (tracking.getWaybillNo() + "").replace("\r", "_").replace("\n", "_"),
+                (eventId + "").replace("\r", "_").replace("\n", "_"));
         return tracking;
     }
 
@@ -174,6 +181,25 @@ public class TmsTrackingServiceImpl extends ServiceImpl<TmsTrackingMapper, TmsTr
             }
             log.info("Waybill status advanced by tracking: waybillNo={}, {} -> {}",
                     waybill.getWaybillNo(), current, target);
+        }
+    }
+
+    /**
+     * 承运商回传真实跟踪号时写入运单；首次回传后不再覆盖，避免后续不同格式的回传抖动。
+     */
+    private void applyWaybillTrackingNo(TmsWaybill waybill, TmsTracking tracking) {
+        if (!StringUtils.hasText(tracking.getTrackingNo()) || StringUtils.hasText(waybill.getTrackingNo())) {
+            return;
+        }
+        TmsWaybill patch = new TmsWaybill();
+        patch.setId(waybill.getId());
+        patch.setTrackingNo(tracking.getTrackingNo().trim());
+        patch.setUpdateTime(LocalDateTime.now());
+        if (waybillMapper.updateById(patch) > 0) {
+            waybill.setTrackingNo(patch.getTrackingNo());
+            log.info("Waybill tracking number recorded: waybillNo={}, trackingNo={}",
+                    (waybill.getWaybillNo() + "").replace("\r", "_").replace("\n", "_"),
+                    (patch.getTrackingNo() + "").replace("\r", "_").replace("\n", "_"));
         }
     }
 

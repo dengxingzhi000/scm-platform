@@ -50,7 +50,8 @@ class InvoiceServiceTest {
     void setUp() {
         MapperBuilderAssistant assistant = new MapperBuilderAssistant(new MybatisConfiguration(), "");
         TableInfoHelper.initTableInfo(assistant, Invoice.class);
-        invoiceService = new InvoiceServiceImpl();
+        invoiceService = new InvoiceServiceImpl(org.mockito.Mockito.mock(
+                com.cognora.scm.finance.service.support.AccountingPeriodGuard.class));
         // MyBatis-Plus ServiceImpl 的 baseMapper 位于父类 CrudRepository，
         // Mockito @InjectMocks 不会注入该字段，因此按仓库既有模式显式挂载。
         ReflectionTestUtils.setField(invoiceService, "baseMapper", invoiceMapper);

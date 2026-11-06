@@ -63,6 +63,11 @@ jobs:
       - name: Install internal BOM
         run: mvn install -B -DskipTests -f bom/pom.xml
 
+      # 双向静态校验 docs/api/openapi-scm-logistics.json 与 lms-tms controller
+      # 的 (HTTP method, path) 映射；输出新增/缺失条数，任一非 0 即失败。
+      - name: Validate OpenAPI snapshot against controller mappings
+        run: python3 scripts/ci/check_openapi_drift.py
+
       - name: Initialize databases
         if: github.event_name == 'push'
         env:
