@@ -20,5 +20,11 @@ public interface AccountingPeriodService {
 
     AccountingPeriod getById(String id);
 
+    /**
+     * 当前账期：返回当前自然月对应的账期记录（无论已结账还是未结账）。
+     * 当月尚未开账时返回 {@code null}，由调用方决定提示文案。
+     */
+    AccountingPeriod getCurrentPeriod();
+
     Page<AccountingPeriod> pageQuery(int page, int size, Integer status);
 }

@@ -49,6 +49,12 @@ public class AccountingPeriodController {
         return ApiResponse.success(accountingPeriodService.getById(id));
     }
 
+    @Operation(summary = "查询当前账期", description = "返回当前自然月对应的账期；当月尚未开账时 data 为空。")
+    @GetMapping("/current")
+    public ApiResponse<AccountingPeriod> current() {
+        return ApiResponse.success(accountingPeriodService.getCurrentPeriod());
+    }
+
     @Operation(summary = "分页查询账期", description = "按状态分页查询账期，状态为空时查询全部。")
     @GetMapping("/page")
     public ApiResponse<Page<AccountingPeriod>> page(
