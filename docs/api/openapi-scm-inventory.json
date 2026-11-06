@@ -889,7 +889,7 @@
             "required": false,
             "schema": {
               "type": "number",
-              "multipleOf": 1E-06,
+              "multipleOf": 0.000001,
               "minimum": 0
             }
           }
@@ -2532,6 +2532,68 @@
           }
         }
       }
+    },
+    "/api/v1/inventory/logs/query": {
+      "post": {
+        "tags": [
+          "库存流水"
+        ],
+        "summary": "分页查询库存流水",
+        "description": "按 SKU、单据号、仓库、变更类型与时间范围分页查询，返回变更前后四元组。",
+        "operationId": "queryInventoryLogs",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvLogQueryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePageInvLogResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3365,7 +3427,7 @@
           "unitPrice": {
             "type": "number",
             "description": "入库单价（移动加权平均成本），仅入库参与均价重算；出库忽略；为空时按当前均价入账。单价保留 6 位小数，金额按 2 位落库。",
-            "multipleOf": 1E-06,
+            "multipleOf": 0.000001,
             "minimum": 0
           }
         },
