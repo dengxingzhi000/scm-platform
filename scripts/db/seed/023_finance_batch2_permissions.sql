@@ -42,6 +42,8 @@ FROM (VALUES
      '/accounting-period/{id}', 'GET', 123, 1),
     ('finance:accounting-period:current', '账期-当前账期', 'menu:finance:settlement',
      '/accounting-period/current', 'GET', 124, 1),
+    ('finance:accounting-period:closed', '账期-已关账期', 'menu:finance:settlement',
+     '/accounting-period/closed', 'GET', 125, 1),
     ('finance:reconciliation-diff:create', '对账差异-登记', 'menu:finance:reconciliation',
      '/reconciliation-diff', 'POST', 120, 3),
     ('finance:reconciliation-diff:confirm', '对账差异-确认', 'menu:finance:reconciliation',

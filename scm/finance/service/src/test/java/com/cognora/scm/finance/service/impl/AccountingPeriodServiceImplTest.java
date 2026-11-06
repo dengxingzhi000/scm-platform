@@ -14,6 +14,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -124,6 +125,16 @@ class AccountingPeriodServiceImplTest {
         when(mapper.selectOne(any())).thenReturn(null);
 
         assertNull(service.getCurrentPeriod());
+    }
+
+    @Test
+    void listClosedPeriodsShouldReturnClosedRecords() {
+        when(mapper.selectList(any())).thenReturn(List.of(period(AccountingPeriodStatus.CLOSED)));
+
+        List<AccountingPeriod> result = service.listClosedPeriods();
+
+        assertEquals(1, result.size());
+        assertEquals(AccountingPeriodStatus.CLOSED.getCode(), result.get(0).getStatus());
     }
 
     private AccountingPeriod period(AccountingPeriodStatus status) {

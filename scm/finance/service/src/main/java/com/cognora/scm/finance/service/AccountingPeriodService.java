@@ -3,6 +3,8 @@ package com.cognora.scm.finance.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cognora.scm.finance.domain.entity.AccountingPeriod;
 
+import java.util.List;
+
 /**
  * 会计期间（账期）管理。
  */
@@ -25,6 +27,11 @@ public interface AccountingPeriodService {
      * 当月尚未开账时返回 {@code null}，由调用方决定提示文案。
      */
     AccountingPeriod getCurrentPeriod();
+
+    /**
+     * 已关账期列表：按账期编码倒序返回当前租户下所有已关账账期。
+     */
+    List<AccountingPeriod> listClosedPeriods();
 
     Page<AccountingPeriod> pageQuery(int page, int size, Integer status);
 }
