@@ -12,7 +12,9 @@ import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 /**
  * Redis 库存服务
@@ -57,6 +59,19 @@ public class RedisInventoryService {
    */
   private static final RedisScript<Long> ADD_STOCK_SCRIPT =
       RedisLuaScriptLoader.load("lua/inventory/add_stock.lua", Long.class);
+
+  /**
+   * Lua 脚本：批量原子扣减库存
+   *
+   * <p>先全量校验再统一扣减，任一商品不存在或不足时整批不生效，避免中途失败留半成品。
+   *
+   * <p>返回值：1 成功；-1 存在未同步的库存键；-(i+1) 第 i 项库存不足。
+   */
+  private static final RedisScript<Long> BATCH_DEDUCT_STOCK_SCRIPT =
+      RedisLuaScriptLoader.load("lua/inventory/batch_deduct_stock.lua", Long.class);
+
+  /** 扣减幂等键保留 24 小时 */
+  private static final long IDEMPOTENCY_TTL_SECONDS = 24 * 60 * 60;
 
   /**
    * 从数据库同步库存到Redis
@@ -159,6 +174,108 @@ public class RedisInventoryService {
         skuId, warehouseId, quantity);
 
     return true;
+  }
+
+  /**
+   * 批量扣减库存（原子操作）
+   *
+   * <p>单个 Lua 脚本内先校验全部条目，再统一扣减：任一商品库存不足时整批不扣，
+   * 不会出现“前几个扣成功、后一个失败”的半成品状态。
+   *
+   * @param items 待扣减条目
+   * @return true-整批扣减成功，false-存在库存不足或未同步
+   */
+  public boolean batchDeductStock(List<StockDeductItem> items) {
+    if (items == null || items.isEmpty()) {
+      throw new IllegalArgumentException("批量扣减条目不能为空");
+    }
+    for (StockDeductItem item : items) {
+      if (item == null || item.skuId() == null || item.skuId().trim().isEmpty()) {
+        throw new IllegalArgumentException("skuId 不能为空");
+      }
+      if (item.quantity() <= 0) {
+        throw new IllegalArgumentException("扣减数量必须大于0");
+      }
+    }
+
+    Long result = executeBatchDeduct(items);
+    if (result == null) {
+      log.error("❌批量扣减异常：Lua 脚本执行失败, itemCount={}", items.size());
+      return false;
+    }
+
+    if (result == -1L) {
+      log.warn("⚠️  批量扣减失败：存在未同步的库存键，先同步后重试, itemCount={}", items.size());
+      for (StockDeductItem item : items) {
+        syncInventoryToRedis(item.skuId(), item.warehouseId());
+      }
+      result = executeBatchDeduct(items);
+      if (result == null || result == -1L) {
+        log.error("❌批量扣减失败：同步后仍缺库存键, itemCount={}", items.size());
+        return false;
+      }
+    }
+
+    if (result < 0) {
+      int insufficientIndex = (int) (-result - 1);
+      log.warn("⚠️  批量扣减失败：第 {} 项库存不足, itemCount={}", insufficientIndex, items.size());
+      return false;
+    }
+
+    for (StockDeductItem item : items) {
+      redisTemplate.expire(buildStockKey(item.skuId(), item.warehouseId()),
+          Duration.ofSeconds(INVENTORY_CACHE_TTL));
+    }
+    log.debug("✅批量扣减成功: itemCount={}", items.size());
+    return true;
+  }
+
+  private Long executeBatchDeduct(List<StockDeductItem> items) {
+    List<String> keys = new ArrayList<>(items.size());
+    Object[] args = new Object[items.size()];
+    for (int i = 0; i < items.size(); i++) {
+      StockDeductItem item = items.get(i);
+      keys.add(buildStockKey(item.skuId(), item.warehouseId()));
+      args[i] = item.quantity();
+    }
+    return redisTemplate.execute(BATCH_DEDUCT_STOCK_SCRIPT, keys, args);
+  }
+
+  /**
+   * 申请扣减幂等键。
+   *
+   * <p>Redis 为扣减账本，DB 为持久化事实；本方法只保证同一 requestId 在 Redis 侧
+   * 不重复扣减，不做跨账本对账。
+   *
+   * @param requestId 业务请求号
+   * @return true-首次申请成功，可以执行扣减；false-重复请求，应直接返回
+   */
+  public boolean acquireDeductRequest(String requestId) {
+    String key = buildDeductRequestKey(requestId);
+    Boolean acquired = redisTemplate.opsForValue().setIfAbsent(
+        key, "PROCESSING", Duration.ofSeconds(IDEMPOTENCY_TTL_SECONDS));
+    return Boolean.TRUE.equals(acquired);
+  }
+
+  /**
+   * 释放扣减幂等键（扣减失败时调用，允许同一 requestId 重试）。
+   */
+  public void releaseDeductRequest(String requestId) {
+    redisTemplate.delete(buildDeductRequestKey(requestId));
+  }
+
+  private String buildDeductRequestKey(String requestId) {
+    return TenantCacheKeys.scoped("inventory:deduct:request", requestId);
+  }
+
+  /**
+   * 批量扣减条目。
+   *
+   * @param skuId       SKU ID
+   * @param warehouseId 仓库 ID
+   * @param quantity    扣减数量
+   */
+  public record StockDeductItem(String skuId, String warehouseId, int quantity) {
   }
 
   /**
