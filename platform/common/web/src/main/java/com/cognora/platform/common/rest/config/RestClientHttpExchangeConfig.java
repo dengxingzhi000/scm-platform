@@ -10,6 +10,7 @@ import com.cognora.platform.common.tenant.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NullMarked;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -49,10 +50,18 @@ public class RestClientHttpExchangeConfig {
      */
     private static final String SYSTEM_SERVICE = "http://platform-system";
     private static final String AUTH_SERVICE = "http://platform-auth";
-    private static final String AUDIT_SERVICE = "http://platform-audit";
 
     private final ClientHttpRequestFactory clientHttpRequestFactory;
     private final RestClientRequestSignatureInterceptor signatureInterceptor;
+
+    /**
+     * 审计服务的注册名。历史上该服务在部分环境注册为 {@code scm-audit}，而当前
+     * {@code spring.application.name} 是 {@code platform-audit}；部署侧未升级镜像时，
+     * 写死的地址会让审计上报全部失败（异常被吞）。改为可配置，默认保持当前注册名，
+     * 老环境通过 {@code COGNORA_AUDIT_SERVICE_ID=scm-audit} 即可恢复上报。
+     */
+    @Value("${cognora.audit.service-id:platform-audit}")
+    private String auditServiceId;
 
     /**
      * 鍒涘缓鍩虹 RestClient Bean
@@ -153,7 +162,7 @@ public class RestClientHttpExchangeConfig {
     @Bean
     @Lazy
     public SysAuditServiceClient sysAuditServiceClient(RestClient.Builder restClientBuilder) {
-        String baseUrl = AUDIT_SERVICE;
+        String baseUrl = auditServiceUrl();
         log.info("Creating SysAuditServiceClient with load-balanced baseUrl: {}", baseUrl);
 
         RestClient restClient = restClientBuilder.clone()
@@ -165,6 +174,10 @@ public class RestClientHttpExchangeConfig {
             .build();
 
         return factory.createClient(SysAuditServiceClient.class);
+    }
+
+    String auditServiceUrl() {
+        return "http://" + auditServiceId;
     }
 
 }

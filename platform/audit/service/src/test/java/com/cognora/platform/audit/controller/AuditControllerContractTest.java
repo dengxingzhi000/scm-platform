@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 
 import java.lang.reflect.Method;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -79,6 +80,18 @@ class AuditControllerContractTest {
         assertTrue(auditLogController.listByUserId("user-1").contains(log));
         assertTrue(auditLogController.listByModule("ORDER").contains(log));
         assertTrue(auditLogController.listByBusinessType("ORDER").contains(log));
+    }
+
+    @Test
+    void pageQueryShouldForwardTheTimeRangeToTheService() {
+        LocalDateTime start = LocalDateTime.of(2026, 10, 1, 0, 0);
+        LocalDateTime end = LocalDateTime.of(2026, 10, 31, 23, 59, 59);
+        when(auditLogService.pageQuery(1, 10, null, null, null, null, null, start, end))
+                .thenReturn(new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>());
+
+        auditLogController.pageQuery(1, 10, null, null, null, null, null, start, end);
+
+        verify(auditLogService).pageQuery(1, 10, null, null, null, null, null, start, end);
     }
 
     @Test
