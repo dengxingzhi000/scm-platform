@@ -8,6 +8,7 @@ import com.cognora.lms.logistics.domain.entity.TmsFreightTemplate;
 import com.cognora.lms.logistics.domain.freight.FreightQuote;
 import com.cognora.lms.logistics.service.ITmsFreightReconciliationService;
 import com.cognora.lms.logistics.service.ITmsFreightTemplateService;
+import com.cognora.lms.logistics.support.FreightPermissionGuard;
 import com.cognora.platform.common.log.annotation.AuditLog;
 import com.cognora.platform.common.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -39,6 +40,7 @@ public class TmsFreightController {
 
     private final ITmsFreightTemplateService templateService;
     private final ITmsFreightReconciliationService reconciliationService;
+    private final FreightPermissionGuard freightPermissionGuard;
 
     @Operation(summary = "分页查询运费模板")
     @GetMapping("/template/list")
@@ -93,6 +95,16 @@ public class TmsFreightController {
         return ApiResponse.success(reconciliationService.reconcile(
                 request.waybillId(), request.regionCode(), request.billedAmount(),
                 request.batchNo(), request.operator()));
+    }
+
+    @Operation(summary = "确认对账差异", description = "OPEN → CONFIRMED；需要权限码 lms:freight:reconciliation:confirm。")
+    @PostMapping("/reconciliation/{id}/confirm")
+    @AuditLog(operation = "确认运费对账差异", businessType = "LOGISTICS", riskLevel = 3)
+    public ApiResponse<TmsFreightReconciliation> confirmReconciliation(
+            @PathVariable String id,
+            @Parameter(description = "操作人") @RequestParam(required = false) String operator) {
+        freightPermissionGuard.requireReconciliationConfirmPermission();
+        return ApiResponse.success(reconciliationService.confirm(id, operator));
     }
 
     @Operation(summary = "分页查询对账差异")

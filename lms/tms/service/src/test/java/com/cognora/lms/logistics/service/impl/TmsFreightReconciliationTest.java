@@ -167,6 +167,59 @@ class TmsFreightReconciliationTest {
                 () -> service.reconcile("w1", "SH", new BigDecimal("-1"), "B202611", "tester"));
     }
 
+    @Test
+    void confirmOpenReconciliationShouldPatchStatusAndOperator() {
+        TmsFreightReconciliation existing = reconciliation(TmsFreightReconciliation.STATUS_OPEN);
+        when(mapper.selectById("recon-1")).thenReturn(existing);
+
+        TmsFreightReconciliation confirmed = service.confirm("recon-1", "operator-a");
+
+        ArgumentCaptor<TmsFreightReconciliation> captor =
+                ArgumentCaptor.forClass(TmsFreightReconciliation.class);
+        verify(mapper).updateById(captor.capture());
+        TmsFreightReconciliation patch = captor.getValue();
+        assertEquals(TmsFreightReconciliation.STATUS_CONFIRMED, patch.getStatus());
+        assertEquals("operator-a", patch.getRemark());
+        assertEquals(TmsFreightReconciliation.STATUS_CONFIRMED, confirmed.getStatus());
+    }
+
+    @Test
+    void confirmAlreadyConfirmedShouldBeIdempotent() {
+        TmsFreightReconciliation existing = reconciliation(TmsFreightReconciliation.STATUS_CONFIRMED);
+        when(mapper.selectById("recon-1")).thenReturn(existing);
+
+        TmsFreightReconciliation confirmed = service.confirm("recon-1", "operator-a");
+
+        assertSame(existing, confirmed);
+        verify(mapper, never()).updateById(any(TmsFreightReconciliation.class));
+    }
+
+    @Test
+    void confirmNonOpenReconciliationShouldBeRejected() {
+        TmsFreightReconciliation existing = reconciliation("SETTLED");
+        when(mapper.selectById("recon-1")).thenReturn(existing);
+
+        assertThrows(IllegalStateException.class, () -> service.confirm("recon-1", "operator-a"));
+        verify(mapper, never()).updateById(any(TmsFreightReconciliation.class));
+    }
+
+    @Test
+    void confirmOutsideTenantShouldReturn403() {
+        when(mapper.selectById("recon-1")).thenReturn(null);
+
+        assertThrows(AccessDeniedException.class, () -> service.confirm("recon-1", "operator-a"));
+        verify(mapper, never()).updateById(any(TmsFreightReconciliation.class));
+    }
+
+    private TmsFreightReconciliation reconciliation(String status) {
+        TmsFreightReconciliation record = new TmsFreightReconciliation();
+        record.setId("recon-1");
+        record.setBatchNo("B202611");
+        record.setWaybillNo("WB-9");
+        record.setStatus(status);
+        return record;
+    }
+
     private TmsWaybill waybill() {
         TmsWaybill waybill = new TmsWaybill();
         waybill.setId("w1");

@@ -19,4 +19,9 @@ public interface ITmsFreightReconciliationService extends IService<TmsFreightRec
      */
     TmsFreightReconciliation reconcile(String waybillId, String regionCode, BigDecimal billedAmount,
                                        String batchNo, String operator);
+
+    /**
+     * 差异单确认（OPEN → CONFIRMED）；重复确认按幂等返回。
+     */
+    TmsFreightReconciliation confirm(String id, String operator);
 }
