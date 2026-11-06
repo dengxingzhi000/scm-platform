@@ -81,7 +81,7 @@ and the frontend is on port 3000 with no cloud account and no paid dependency.
 
 - **JDK 21** — virtual threads are used on the hot paths
 - **Maven 3.8+**
-- **Node.js 20+** for the separate `cognora-aura-web` frontend repository
+- **Node.js 22+** for the separate `cognora-aura-web` frontend repository
 - **Docker & Docker Compose**
 
 Every component has a working local default. No external accounts, cloud
@@ -150,7 +150,7 @@ The frontend is a separate repository,
 ```bash
 git clone https://github.com/dengxingzhi000/cognora-aura-web.git
 cd cognora-aura-web
-npm install
+npm ci
 npm run dev
 ```
 
@@ -158,14 +158,17 @@ It is the `@cognora/aura-web` npm package and runs at **http://localhost:3000**
 with built-in zh-CN and en-US language support. This repository keeps only the
 backend contracts and gateway routes it consumes.
 
-| Route        | Page                       |
-| ------------ | -------------------------- |
-| `/login`     | Login & authentication     |
-| `/dashboard` | Analytics dashboard        |
-| `/product`   | Product catalog management |
-| `/order`     | Order lifecycle management |
-| `/inventory` | Inventory & stock alerts   |
-| `/system/*`  | System settings (RBAC)     |
+Routes are locale-prefixed — `/{locale}/login`, `/{locale}/dashboard`, … where
+`locale` is `zh-CN` or `en-US`.
+
+| Route              | Page                       |
+| ------------------ | -------------------------- |
+| `/{locale}/login`      | Login & authentication     |
+| `/{locale}/dashboard`  | Analytics dashboard        |
+| `/{locale}/product`    | Product catalog management |
+| `/{locale}/order`      | Order lifecycle management |
+| `/{locale}/inventory`  | Inventory & stock alerts   |
+| `/{locale}/system/*`   | System settings (RBAC)     |
 
 ### Access endpoints
 
@@ -210,7 +213,7 @@ setting anything. Override via your shell or a `.env` file — never commit one:
 | 🔐   | **Enterprise Security** | OAuth2 + JWT + WebAuthn passwordless auth, RBAC with fine-grained data scope control          |
 | 💰   | **Distributed Txn**     | Seata AT/TCC/Saga modes for cross-service data consistency                                    |
 | ⚡   | **High Performance**    | Redis Lua atomic stock deduction, read-write separation, partitioned tables                   |
-| 🔍   | **Full-Text Search**    | Elasticsearch-powered product search with real-time sync via Canal binlog                     |
+| 🔍   | **Full-Text Search**    | Elasticsearch-powered product search kept current by Debezium CDC (PostgreSQL WAL)           |
 | 🧠   | **Decision Engine**     | E-commerce decision matrix with intelligent pricing, inventory prediction, and A/B testing    |
 | 📊   | **Observability**       | Sentinel circuit breaking, SkyWalking tracing, Prometheus metrics, Grafana dashboards         |
 | 🏢   | **Multi-Tenant**        | Tenant isolation with dynamic data source routing and configurable feature flags              |
@@ -224,16 +227,16 @@ setting anything. Override via your shell or a `.env` file — never commit one:
 | -------------- | ------------------------------------------------------------------------------------------------ |
 | **Backend**    | Java 21 (Virtual Threads), Spring Boot 4.1.2, Spring Cloud 2025.1.4                              |
 | **Alibaba**    | Spring Cloud Alibaba 2025.1.0.0 (Nacos, Sentinel, Seata)                                         |
-| **Database**   | PostgreSQL, MyBatis-Plus 3.5.17, ShardingSphere 5.5.1                                            |
+| **Database**   | PostgreSQL, MyBatis-Plus 3.5.17                                                                   |
 | **Cache**      | Redis (distributed cache, Lua scripts for atomic operations)                                     |
-| **Search**     | Elasticsearch 8.11.4, Canal 1.1.7 (binlog sync)                                                  |
+| **Search**     | Elasticsearch 8.11.4, Debezium (PostgreSQL WAL CDC)                                              |
 | **Messaging**  | Kafka (event streaming), RabbitMQ (reliable queue)                                               |
 | **RPC**        | Apache Dubbo 3.3.6 (internal service calls)                                                      |
 | **Scheduling** | XXL-Job 3.5.0 (distributed task scheduling)                                                      |
 | **Monitoring** | Sentinel, SkyWalking 9.3.0, Micrometer + Prometheus                                              |
 | **Frontend**   | Next.js 16 (App Router), React 19, shadcn/ui, Ant Design 6, Zustand 5, TanStack Query 5, ECharts, next-intl |
 | **DevOps**     | Docker, Kubernetes, Helm, ArgoCD, GitHub Actions, SonarCloud, OWASP                              |
-| **Testing**    | JUnit 5, k6 load testing, Pact contract testing, Playwright E2E, PIT mutation                    |
+| **Testing**    | JUnit 5, k6 load testing, Playwright E2E                                                          |
 
 ## Architecture
 
@@ -288,7 +291,7 @@ names the constraint that actually shapes the design, not just the config.
 | Shipping and tracking     | Waybill creation, carrier integration, route optimization, delivery tracking                  | `logistics` 8205, `fulfillment` 8306                                                                |
 | Payments and settlement   | Payment intents, refunds, reconciliation, invoicing                                           | `payment` 8304, `finance` 8208                                                                      |
 | Approval and audit trails | Configurable approval chains, operation logs, sensitive-action tracking                       | `approval` 8209, `audit` 8210                                                                       |
-| Product search            | Elasticsearch full-text search kept current by binlog, not by application writes              | `search` 8307, Canal → Elasticsearch                                                                |
+| Product search            | Elasticsearch full-text search kept current by PostgreSQL WAL capture, not by application writes | `search` 8307, Debezium → Elasticsearch                                                              |
 | Analytics                 | ClickHouse OLAP with PostgreSQL metadata and Kafka ODS ingestion                              | `analytics` 8308 — ClickHouse 8123                                                                  |
 | Identity and access       | OAuth2 + JWT + WebAuthn passwordless, RBAC with row-level data scope                          | `auth` 8106, `system` 8081                                                                          |
 | Document lifecycle        | DOCX template rendering with an audit trail, byte storage proxied to the file service         | `document` 8213 → `file` 8214                                                                       |
@@ -301,9 +304,9 @@ names the constraint that actually shapes the design, not just the config.
 ## Modules
 
 > [!NOTE]
-> Ports in the **8201–8213** range form the supply-chain core; **8301–8308** is
-> the e-commerce layer. `platform-tenant` carries a per-database routing flag rather
-> than a public port. Business services follow an **api / service split** — `api/`
+> Ports in the **8201–8214** range form the supply-chain core; **8301–8308** is
+> the e-commerce layer. `platform-tenant` listens on **8212**; its per-database
+> routing flag is orthogonal to the HTTP port. Business services follow an **api / service split** — `api/`
 > holds the Dubbo RPC interfaces and DTOs, `service/` is the deployable Spring
 > Boot app. `platform-gateway`, `platform-auth`, `platform-system`, `lms-tms`
 > and everything under `platform/common` are flat, single modules.
@@ -327,7 +330,7 @@ names the constraint that actually shapes the design, not just the config.
 | `platform-approval`             | 8209 ⚠ | Approval workflows — configurable approval processes                                              |
 | `platform-audit`                | 8210   | Audit — operation logs, sensitive operation tracking                                              |
 | `platform-notify`               | 8211   | In-app notifications — templates, multi-channel delivery                                          |
-| `platform-tenant`               | —      | Multi-tenant — tenant lifecycle, packages, feature flags                                          |
+| `platform-tenant`               | 8212   | Multi-tenant — tenant lifecycle, packages, feature flags                                          |
 | `platform-document`             | 8213   | Document lifecycle — DOCX rendering + audit trail, proxies `platform-file` for byte transfer      |
 | `ecom-mall`                     | 8301   | Mall — e-commerce storefront, product display, cart                                               |
 | `ecom-member`                   | 8302   | Member management — profiles, addresses, points, loyalty programs                                 |
@@ -485,7 +488,13 @@ transition throws before a write is attempted.
 kubectl apply -f deploy/k8s/namespace.yml
 kubectl apply -f deploy/k8s/configmap.yml
 kubectl apply -f deploy/k8s/secrets.yml
+
+# Single-file manifests (Deployment + Service in one file)
 kubectl apply -f deploy/k8s/platform-*.yaml
+kubectl apply -f deploy/k8s/scm-*.yaml
+kubectl apply -f deploy/k8s/lms-*.yaml
+
+# Split manifests (Deployment and Service in separate files)
 kubectl apply -f deploy/k8s/*-deployment.yml
 kubectl apply -f deploy/k8s/*-service.yml
 
@@ -509,12 +518,19 @@ kubectl apply -f deploy/argocd/application.yaml
 | `platform-auth`      | 8106   | Plus canary deployment |
 | `platform-product`   | 8201   |                       |
 | `platform-inventory` | 8202   |                       |
+| `scm-order`          | 8203   |                       |
 | `scm-warehouse`      | 8204   |                       |
 | `lms-tms`            | 8205   |                       |
 | `scm-supplier`       | 8206   |                       |
 | `scm-purchase`       | 8207   |                       |
 | `scm-finance`        | 8208   |                       |
+| `platform-message`   | 8209 ⚠ |                       |
+| `platform-approval`  | 8209 ⚠ |                       |
+| `platform-audit`     | 8210   |                       |
+| `platform-notify`    | 8211   |                       |
+| `platform-tenant`    | 8212   |                       |
 | `platform-document`  | 8213   |                       |
+| `platform-file`      | 8214   |                       |
 
 ## Operations
 
@@ -526,7 +542,7 @@ kubectl apply -f deploy/argocd/application.yaml
 | **Redis Sentinel** | Cache HA                     | `deploy/redis/sentinel.conf`  |
 | **PostgreSQL HA**  | Database HA with Patroni     | `deploy/postgresql/ha/`       |
 | **Kafka**          | Event streaming              | Docker Compose                |
-| **Canal**          | Binlog sync to Elasticsearch | `docker-compose-debezium.yml` |
+| **Debezium**       | PostgreSQL WAL CDC into Elasticsearch | `docker-compose-debezium.yml` |
 
 ### Database management
 
@@ -654,11 +670,11 @@ locally first.
 </details>
 
 <details>
-<summary><strong>Do I need Elasticsearch, ClickHouse, or Canal running to start the core services?</strong></summary>
+<summary><strong>Do I need Elasticsearch, ClickHouse, or Debezium running to start the core services?</strong></summary>
 
 No. The core supply-chain services need PostgreSQL, Redis, and Nacos. Elasticsearch
-backs `ecom-search`, ClickHouse backs `ecom-analytics`, and Canal feeds binlog sync
-into Elasticsearch — those three are only required if you're running the modules
+backs `ecom-search`, ClickHouse backs `ecom-analytics`, and Debezium captures
+PostgreSQL WAL changes into Elasticsearch — those three are only required if you're running the modules
 that depend on them.
 
 </details>
@@ -721,7 +737,7 @@ Report vulnerabilities through [SECURITY.md](./SECURITY.md).
 
 ## Related projects
 
-- **[enterprise-agent](https://github.com/dengxingzhi000/enterprise-agent)** — Python AI operations agent built on this platform: a self-built agent runtime (Planner/Executor loop) for order-incident triage, reimbursement compliance review, and sales analysis, with tools/MCP, RAG, memory, policy/HITL, workflows, and eval/observability.
+- **[cognora-enterprise-agent](https://github.com/dengxingzhi000/cognora-enterprise-agent)** — Python AI operations agent built on this platform: a self-built agent runtime (Planner/Executor loop) for order-incident triage, reimbursement compliance review, and sales analysis, with tools/MCP, RAG, memory, policy/HITL, workflows, and eval/observability.
 
 ## Contributing
 
