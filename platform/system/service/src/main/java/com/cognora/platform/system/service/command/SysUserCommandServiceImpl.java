@@ -1,6 +1,7 @@
 package com.cognora.platform.system.service.command;
 
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.cognora.platform.common.dto.user.UpdateProfileRequest;
 import com.cognora.platform.common.dto.user.UserDTO;
 import com.cognora.platform.common.exception.BusinessException;
 import com.cognora.platform.common.response.ResultCode;
@@ -15,6 +16,7 @@ import com.cognora.platform.system.domain.entity.SysUser;
 import com.cognora.platform.system.domain.enums.UserStatus;
 import com.cognora.platform.system.event.DataSyncEventPublisher;
 import com.cognora.platform.system.mapper.SysUserMapper;
+import com.cognora.platform.system.service.query.ISysUserQueryService;
 import com.cognora.platform.system.service.query.RoleCrossDatabaseQueryService;
 import com.cognora.platform.system.service.query.UserCrossDatabaseQueryService;
 import lombok.RequiredArgsConstructor;
@@ -50,6 +52,7 @@ public class SysUserCommandServiceImpl implements ISysUserCommandService {
             "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%";
 
     private final SysUserMapper userMapper;
+    private final ISysUserQueryService sysUserQueryService;
     private final UserCrossDatabaseQueryService userQueryService;
     private final RoleCrossDatabaseQueryService roleQueryService;
     private final UserRoleCrossDatabaseCommandService userRoleCommandService;
@@ -155,6 +158,55 @@ public class SysUserCommandServiceImpl implements ISysUserCommandService {
 
         log.info("用户更新成功: username={}, operator={}", user.getUsername(),
                 SecurityUtils.getCurrentUsername());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public UserDTO updateOwnProfile(UpdateProfileRequest request) {
+        UUID userId = SecurityUtils.getCurrentUserUuid()
+                .orElseThrow(() -> new BusinessException(
+                        ResultCode.UNAUTHORIZED.getCode(), ResultCode.UNAUTHORIZED.getMessage()));
+
+        SysUser user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException(ResultCode.USER_NOT_FOUND.getCode(),
+                    ResultCode.USER_NOT_FOUND.getMessage());
+        }
+        TenantValidationUtil.validateDataOwnership(user.getTenantId());
+
+        // 只接受 DTO 里的五项白名单；request 中不存在的字段（用户名、密码、状态、部门、
+        // 租户等）根本没有 setter 入口，因此不会被批量赋值。
+        boolean changed = false;
+        if (request.getRealName() != null) {
+            user.setRealName(request.getRealName());
+            changed = true;
+        }
+        if (request.getAvatar() != null) {
+            user.setAvatar(request.getAvatar());
+            changed = true;
+        }
+        if (request.getPhone() != null) {
+            user.setPhone(request.getPhone());
+            changed = true;
+        }
+        if (request.getEmail() != null) {
+            user.setEmail(request.getEmail());
+            changed = true;
+        }
+        if (request.getTimezone() != null) {
+            user.setTimezone(request.getTimezone());
+            changed = true;
+        }
+
+        if (changed) {
+            userMapper.updateById(user);
+            cacheEvictor.evictUserProfile(user.getId(), user.getUsername());
+            dataSyncEventPublisher.publishUserUpdated(user);
+            log.info("个人资料更新成功: userId={}", userId);
+        }
+
+        // 与 GET /api/system/users/{id} 返回同一个 UserDTO 结构（含部门与角色）。
+        return sysUserQueryService.getUserById(userId);
     }
 
     @Override

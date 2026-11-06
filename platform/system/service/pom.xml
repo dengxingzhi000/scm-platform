@@ -81,7 +81,11 @@
         </dependency>
         <!-- database end -->
 
-        <!-- Flyway -->
+        <!-- Flyway：Spring Boot 4 把自动配置拆到 starter，只有 flyway-core 时迁移不会执行 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-flyway</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>

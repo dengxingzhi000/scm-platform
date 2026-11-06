@@ -31,6 +31,12 @@ public class ApiAccessControlProperties {
             "/api/auth/logout",
             "/oauth2/logout",
             "/api/auth/userinfo",
+            // 会话自助端点：目标用户只从访问令牌解析，控制器拒绝任何 userId 入参，
+            // 因此不需要角色权限码；强制登记反而会挡住普通用户管理自己的会话。
+            "/api/auth/sessions",
+            "/api/auth/sessions/**",
+            // 个人资料自助端点：userId 只从令牌取，字段白名单由 DTO 约束。
+            "/api/system/users/me",
             "/api/auth/webauthn/credentials/health",
             "/api/auth/login",
             "/api/auth/register",

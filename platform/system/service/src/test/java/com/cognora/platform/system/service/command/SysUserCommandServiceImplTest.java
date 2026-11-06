@@ -1,5 +1,6 @@
 package com.cognora.platform.system.service.command;
 
+import com.cognora.platform.common.dto.user.UpdateProfileRequest;
 import com.cognora.platform.common.dto.user.UserDTO;
 import com.cognora.platform.common.rest.client.SysAuthServiceClient;
 import com.cognora.platform.common.security.PermissionChecker;
@@ -10,6 +11,7 @@ import com.cognora.platform.system.cache.UserAuthorizationCacheEvictor;
 import com.cognora.platform.system.domain.entity.SysUser;
 import com.cognora.platform.system.event.DataSyncEventPublisher;
 import com.cognora.platform.system.mapper.SysUserMapper;
+import com.cognora.platform.system.service.query.ISysUserQueryService;
 import com.cognora.platform.system.service.query.RoleCrossDatabaseQueryService;
 import com.cognora.platform.system.service.query.UserCrossDatabaseQueryService;
 import org.junit.jupiter.api.AfterEach;
@@ -52,6 +54,7 @@ class SysUserCommandServiceImplTest {
             "permission", "permissionTree", "apiPermissions");
 
     @Mock private SysUserMapper userMapper;
+    @Mock private ISysUserQueryService sysUserQueryService;
     @Mock private UserCrossDatabaseQueryService userQueryService;
     @Mock private RoleCrossDatabaseQueryService roleQueryService;
     @Mock private UserRoleCrossDatabaseCommandService userRoleCommandService;
@@ -76,7 +79,7 @@ class SysUserCommandServiceImplTest {
                 .thenAnswer(invocation -> caches.get(invocation.getArgument(0)));
 
         UserAuthorizationCacheEvictor evictor = new UserAuthorizationCacheEvictor(cacheManager);
-        service = new SysUserCommandServiceImpl(userMapper, userQueryService, roleQueryService,
+        service = new SysUserCommandServiceImpl(userMapper, sysUserQueryService, userQueryService, roleQueryService,
                 userRoleCommandService, passwordEncoder, dataSyncEventPublisher, permissionChecker,
                 statusValidator, commandTemplate, authServiceClient, evictor);
     }
@@ -239,6 +242,46 @@ class SysUserCommandServiceImplTest {
         verify(cache("userDetails")).evict(tenantId + ":tester");
         verify(cache("userDeptId")).evict(userId);
         verify(cache("accessibleDeptIds")).clear();
+    }
+
+    @Test
+    void updateOwnProfileUsesTokenUserAndOnlyWhitelistedFields() {
+        UUID userId = UUID.randomUUID();
+        UUID tenantId = UUID.randomUUID();
+        TenantContextHolder.setTenantId(tenantId);
+        authenticate(userId, "tester");
+
+        SysUser user = new SysUser()
+                .setId(userId)
+                .setTenantId(tenantId)
+                .setUsername("tester")
+                .setPassword("hash")
+                .setRealName("旧昵称")
+                .setAvatar("old.png")
+                .setPhone("13800000000")
+                .setEmail("old@example.com")
+                .setTimezone("UTC");
+        when(userMapper.selectById(userId)).thenReturn(user);
+        when(sysUserQueryService.getUserById(userId)).thenReturn(new UserDTO());
+
+        UpdateProfileRequest request = new UpdateProfileRequest();
+        request.setRealName("新昵称");
+        request.setTimezone("Asia/Shanghai");
+
+        service.updateOwnProfile(request);
+
+        // 目标用户只来自 SecurityContext，请求体没有 userId/id 可供篡改。
+        verify(userMapper).selectById(userId);
+        assertEquals("新昵称", user.getRealName());
+        assertEquals("Asia/Shanghai", user.getTimezone());
+        // 白名单外的字段必须保持不变。
+        assertEquals("old.png", user.getAvatar());
+        assertEquals("13800000000", user.getPhone());
+        assertEquals("old@example.com", user.getEmail());
+        assertEquals("tester", user.getUsername());
+        assertEquals("hash", user.getPassword());
+        verify(userMapper).updateById(user);
+        verify(sysUserQueryService).getUserById(userId);
     }
 
     private void assertAuthorizationEvictions(UUID tenantId, UUID userId, String username) {
