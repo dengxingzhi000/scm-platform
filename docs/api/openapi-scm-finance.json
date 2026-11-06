@@ -4349,6 +4349,10 @@
           "settlementPeriod": {
             "type": "string"
           },
+          "currency": {
+            "type": "string",
+            "description": "ISO-4217 币种，默认 CNY"
+          },
           "startDate": {
             "type": "string",
             "format": "date"
@@ -4867,6 +4871,10 @@
           "taxRate": {
             "type": "number"
           },
+          "currency": {
+            "type": "string",
+            "description": "ISO-4217 币种，默认 CNY"
+          },
           "relatedOrders": {
             "type": "string"
           },
@@ -5065,6 +5073,10 @@
           },
           "taxRate": {
             "type": "number"
+          },
+          "currency": {
+            "type": "string",
+            "description": "ISO-4217 币种，默认 CNY"
           },
           "relatedOrders": {
             "type": "string"
