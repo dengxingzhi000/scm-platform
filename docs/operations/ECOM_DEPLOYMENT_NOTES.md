@@ -24,7 +24,7 @@ ecom 每个 JVM 实际 RSS 约 420–477MiB，启动参数统一为
 仓库本地已按 v2 结构分域：平台域 `platform/<name>/`、供应链域 `scm/<name>/`、
 电商域 `ecom/<name>/`、物流域 `lms/<name>/`。可部署模块的产物在
 `<domain>/<name>/service/target/<artifactId>-<version>.jar`，例如
-`ecom/member/service/target/ecom-member-service-2.0.0.jar`。
+`ecom/member/service/target/ecom-member-service-2.2.0.jar`。
 
 远程 compose 的 ecom `build.context` 是 **`./scm-member`、`./scm-promotion`** 等，
 不是仓库本地文件里的 `./ecom/member`。因此 jar 与 Dockerfile 要放到：
@@ -170,7 +170,7 @@ docker exec -i scm-postgres psql -U admin -d db_user \
 ```bash
 # 前置：本机构建 `ecom/search` 后，把 Dockerfile 与 jar 放到
 #   /opt/scm-platform/scm-search/Dockerfile
-#   /opt/scm-platform/scm-search/service/target/ecom-search-service-2.0.0.jar
+#   /opt/scm-platform/scm-search/service/target/ecom-search-service-2.2.0.jar
 cd /root/scm-deploy
 docker compose --project-directory /opt/scm-platform --env-file .env \
   -f docker-compose.yml -f docker-compose.remote.yml --profile ecommerce \

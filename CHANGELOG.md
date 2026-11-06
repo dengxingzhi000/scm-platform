@@ -5,10 +5,11 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.2.0] - 2026-11-06
 
-Reserved for `v2.2.0` — every merged commit after `v2.1.0` (`5732ab1b`) through
-`a2c584b2` (44 commits). The version number is deliberately not bumped yet.
+Covers every merged commit after `v2.1.0` (`5732ab1b`) through `b523612d`
+(44 commits). The `v2.2.0` tag is not created yet — tagging is the release step
+and is done separately.
 
 ### Added
 

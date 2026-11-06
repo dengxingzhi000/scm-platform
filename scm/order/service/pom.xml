@@ -8,7 +8,7 @@
     <parent>
         <groupId>com.cognora</groupId>
         <artifactId>scm-order</artifactId>
-        <version>2.0.0</version>
+        <version>2.2.0</version>
     </parent>
 
     <artifactId>scm-order-service</artifactId>
@@ -21,19 +21,19 @@
         <dependency>
             <groupId>com.cognora</groupId>
             <artifactId>scm-order-api</artifactId>
-            <version>2.0.0</version>
+            <version>2.2.0</version>
         </dependency>
         <dependency>
             <groupId>com.cognora</groupId>
             <artifactId>platform-inventory-api</artifactId>
-            <version>2.0.0</version>
+            <version>2.2.0</version>
         </dependency>
 
         <!-- Common Modules -->
         <dependency>
             <groupId>com.cognora</groupId>
             <artifactId>platform-common-web</artifactId>
-            <version>2.0.0</version>
+            <version>2.2.0</version>
         </dependency>
         <!-- OpenAPI documentation (Swagger UI) -->
         <dependency>
@@ -43,13 +43,13 @@
         <dependency>
             <groupId>com.cognora</groupId>
             <artifactId>platform-common-integration</artifactId>
-            <version>2.0.0</version>
+            <version>2.2.0</version>
         </dependency>
 
         <dependency>
             <groupId>com.cognora</groupId>
             <artifactId>platform-common-system-contract</artifactId>
-            <version>2.0.0</version>
+            <version>2.2.0</version>
         </dependency>
 
         <dependency>
@@ -134,7 +134,7 @@
                 <dependency>
                     <groupId>com.cognora</groupId>
                     <artifactId>platform-inventory-service</artifactId>
-                    <version>2.0.0</version>
+                    <version>2.2.0</version>
                     <scope>test</scope>
                 </dependency>
             </dependencies>
