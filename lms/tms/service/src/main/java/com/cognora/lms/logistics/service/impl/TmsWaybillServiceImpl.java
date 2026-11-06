@@ -4,12 +4,13 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
-import com.cognora.platform.common.status.StatusValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import com.cognora.lms.logistics.domain.IllegalStatusTransitionException;
+import com.cognora.lms.logistics.domain.WaybillStatus;
 import com.cognora.lms.logistics.domain.entity.TmsWaybill;
 import com.cognora.lms.logistics.mapper.TmsWaybillMapper;
 import com.cognora.lms.logistics.service.ITmsWaybillService;
@@ -24,8 +25,6 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class TmsWaybillServiceImpl extends ServiceImpl<TmsWaybillMapper, TmsWaybill> implements ITmsWaybillService {
-
-    private final StatusValidator statusValidator;
 
     @Override
     public Page<TmsWaybill> pageList(int page, int size, String waybillNo, Integer status, String carrierId) {
@@ -114,17 +113,34 @@ public class TmsWaybillServiceImpl extends ServiceImpl<TmsWaybillMapper, TmsWayb
             throw new AccessDeniedException("Waybill is not accessible in the current tenant");
         }
 
+        int current = waybill.getStatus() == null ? WaybillStatus.CREATED : waybill.getStatus();
+        WaybillStatus.assertTransitionAllowed(current, status);
+
+        if (current == status) {
+            // 幂等重放：同状态重复提交不改写数据，也不刷新签收时间。
+            log.info("Waybill status replay ignored: waybillNo={}, status={}", waybill.getWaybillNo(), status);
+            return true;
+        }
+
         waybill.setStatus(status);
         waybill.setUpdateBy(operator);
         waybill.setUpdateTime(LocalDateTime.now());
 
-        if (status == 4) {
-            waybill.setActualDelivery(LocalDateTime.now());
+        if (status == WaybillStatus.DELIVERED) {
+            // 签收时间只写一次，保证重复回调不会覆盖真实签收时刻。
+            LocalDateTime now = LocalDateTime.now();
+            if (waybill.getActualDelivery() == null) {
+                waybill.setActualDelivery(now);
+            }
+            if (waybill.getSignTime() == null) {
+                waybill.setSignTime(now);
+            }
         }
 
         boolean success = updateById(waybill);
         if (success) {
-            log.info("Waybill status updated successfully: waybillNo={}, status={}", waybill.getWaybillNo(), status);
+            log.info("Waybill status updated: waybillNo={}, from={}, to={}",
+                    waybill.getWaybillNo(), current, status);
         }
         return success;
     }
@@ -141,19 +157,14 @@ public class TmsWaybillServiceImpl extends ServiceImpl<TmsWaybillMapper, TmsWayb
             throw new AccessDeniedException("Waybill is not accessible in the current tenant");
         }
 
-        String implCancelFromStatus;
-        if (waybill.getStatus() == 0) {
-            implCancelFromStatus = "CREATED";
-        } else if (waybill.getStatus() == 1) {
-            implCancelFromStatus = "PENDING";
-        } else if (waybill.getStatus() == 2) {
-            implCancelFromStatus = "IN_TRANSIT";
-        } else {
-            implCancelFromStatus = "DELIVERED";
+        int current = waybill.getStatus() == null ? WaybillStatus.CREATED : waybill.getStatus();
+        if (!WaybillStatus.isCancellable(current)) {
+            // 已签收/已退回不可再取消；派送中需走退回流程，避免运单凭空消失。
+            throw new IllegalStatusTransitionException(
+                    "运单当前状态「" + WaybillStatus.label(current) + "」不允许取消，请走退回流程");
         }
-        statusValidator.validateTransition("LOGISTICS", implCancelFromStatus, "CANCELLED");
 
-        waybill.setStatus(6);
+        waybill.setStatus(WaybillStatus.RETURNED);
         waybill.setExceptionType("CANCEL");
         waybill.setExceptionReason(reason);
         waybill.setUpdateBy(operator);
@@ -170,8 +181,14 @@ public class TmsWaybillServiceImpl extends ServiceImpl<TmsWaybillMapper, TmsWayb
     public void deleteWaybill(String id) {
         log.info("Delete waybill: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         TenantGuard.requireTenant();
-        if (getById(id) == null) {
+        TmsWaybill existing = getById(id);
+        if (existing == null) {
             throw new AccessDeniedException("Waybill is not accessible in the current tenant");
+        }
+        if (WaybillStatus.isTerminal(existing.getStatus())) {
+            // 已签收/已退回运单承载签收凭证与对账依据，禁止逻辑删除。
+            throw new IllegalStatusTransitionException(
+                    "运单已处于终态「" + WaybillStatus.label(existing.getStatus()) + "」，不可删除");
         }
         TmsWaybill waybill = new TmsWaybill();
         waybill.setId(id);

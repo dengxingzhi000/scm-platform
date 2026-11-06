@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
+import com.cognora.lms.logistics.domain.WaybillStatus;
 import com.cognora.lms.logistics.domain.entity.TmsTracking;
 import com.cognora.lms.logistics.domain.entity.TmsWaybill;
 import com.cognora.lms.logistics.mapper.TmsTrackingMapper;
@@ -121,8 +122,59 @@ public class TmsTrackingServiceImpl extends ServiceImpl<TmsTrackingMapper, TmsTr
             throw duplicate;
         }
 
+        applyWaybillStatus(waybill, tracking);
+
         log.info("物流轨迹添加入库: id={}, waybillNo={}, eventId={}", tracking.getId(), tracking.getWaybillNo(), eventId);
         return tracking;
+    }
+
+    /**
+     * 轨迹驱动运单状态（批次 2）：只向前推进，允许承运商合并推送跳过中间态。
+     * 已签收/已退回为终态，不因后续重复或乱序事件回退；签收时间只在首次签收时写入。
+     */
+    private void applyWaybillStatus(TmsWaybill waybill, TmsTracking tracking) {
+        int target = WaybillStatus.fromTrackingEvent(tracking.getTrackStatus());
+        if (target < 0) {
+            return;
+        }
+        int current = waybill.getStatus() == null ? WaybillStatus.CREATED : waybill.getStatus();
+        if (current == target) {
+            return;
+        }
+        if (!WaybillStatus.isTrackingAdvanceAllowed(current, target)) {
+            // 乱序/回退事件不改变运单状态，保留轨迹原文供人工核查。
+            log.warn("Tracking event ignored due to inconsistent waybill state: waybillNo={}, current={}, target={}",
+                    waybill.getWaybillNo(), current, target);
+            return;
+        }
+
+        LocalDateTime signedAt = tracking.getTrackTime() != null ? tracking.getTrackTime() : LocalDateTime.now();
+        TmsWaybill patch = new TmsWaybill();
+        patch.setId(waybill.getId());
+        patch.setStatus(target);
+        patch.setUpdateTime(LocalDateTime.now());
+        if (target == WaybillStatus.DELIVERED) {
+            if (waybill.getSignTime() == null) {
+                patch.setSignTime(signedAt);
+            }
+            if (waybill.getActualDelivery() == null) {
+                patch.setActualDelivery(signedAt);
+            }
+        }
+
+        if (waybillMapper.updateById(patch) > 0) {
+            waybill.setStatus(target);
+            if (target == WaybillStatus.DELIVERED) {
+                if (waybill.getSignTime() == null) {
+                    waybill.setSignTime(patch.getSignTime());
+                }
+                if (waybill.getActualDelivery() == null) {
+                    waybill.setActualDelivery(patch.getActualDelivery());
+                }
+            }
+            log.info("Waybill status advanced by tracking: waybillNo={}, {} -> {}",
+                    waybill.getWaybillNo(), current, target);
+        }
     }
 
     private TmsTracking findByEventId(String eventId) {

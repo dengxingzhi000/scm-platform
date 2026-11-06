@@ -143,7 +143,7 @@ class LogisticsCrudServiceImplTest {
     @Test
     void waybillDeleteShouldKeepOriginalPatchShape() {
         TmsWaybillMapper mapper = mock(TmsWaybillMapper.class);
-        TmsWaybillServiceImpl service = new TmsWaybillServiceImpl(null);
+        TmsWaybillServiceImpl service = new TmsWaybillServiceImpl();
         attach(service, mapper);
         TenantContextHolder.setTenantId(TENANT_ID);
         TmsWaybill existing = new TmsWaybill();
@@ -163,7 +163,7 @@ class LogisticsCrudServiceImplTest {
     @Test
     void waybillDeleteShouldRejectWaybillOutsideTenant() {
         TmsWaybillMapper mapper = mock(TmsWaybillMapper.class);
-        TmsWaybillServiceImpl service = new TmsWaybillServiceImpl(null);
+        TmsWaybillServiceImpl service = new TmsWaybillServiceImpl();
         attach(service, mapper);
         TenantContextHolder.setTenantId(TENANT_ID);
         when(mapper.selectById("waybill-1")).thenReturn(null);
@@ -180,7 +180,7 @@ class LogisticsCrudServiceImplTest {
     @Test
     void waybillMutationShouldRejectMissingTenantContext() {
         TmsWaybillMapper mapper = mock(TmsWaybillMapper.class);
-        TmsWaybillServiceImpl service = new TmsWaybillServiceImpl(null);
+        TmsWaybillServiceImpl service = new TmsWaybillServiceImpl();
         attach(service, mapper);
         TenantContextHolder.clear();
 
@@ -194,7 +194,7 @@ class LogisticsCrudServiceImplTest {
     @Test
     void waybillCreateShouldSetStatusAndTimestamps() {
         TmsWaybillMapper mapper = mock(TmsWaybillMapper.class);
-        TmsWaybillServiceImpl service = new TmsWaybillServiceImpl(null);
+        TmsWaybillServiceImpl service = new TmsWaybillServiceImpl();
         attach(service, mapper);
         TenantContextHolder.setTenantId(TENANT_ID);
         // save() reports failure when the insert affects no row, and
