@@ -9,7 +9,9 @@ import com.cognora.platform.audit.service.ISysAuditLogService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.format.annotation.DateTimeFormat;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RequiredArgsConstructor
@@ -56,7 +58,8 @@ public class SysAuditLogController {
         return auditLogService.listByBusinessType(businessType);
     }
 
-    @Operation(summary = "分页查询审计日志", description = "按用户、操作类型、模块、业务类型和风险等级分页查询审计日志。")
+    @Operation(summary = "分页查询审计日志",
+            description = "按用户、操作类型、模块、业务类型、风险等级与创建时间范围分页查询审计日志；时间范围在数据库侧下推。")
     @GetMapping("/page")
     public Page<SysAuditLog> pageQuery(
             @RequestParam(defaultValue = "1") int page,
@@ -65,8 +68,13 @@ public class SysAuditLogController {
             @Parameter(description = "操作类型") @RequestParam(required = false) String operationType,
             @Parameter(description = "业务模块名称") @RequestParam(required = false) String module,
             @Parameter(description = "业务类型") @RequestParam(required = false) String businessType,
-            @Parameter(description = "风险等级") @RequestParam(required = false) Integer riskLevel) {
-        log.info("[API] 分页查询审计日志: page={}, size={}", page, size);
-        return auditLogService.pageQuery(page, size, userId, operationType, module, businessType, riskLevel);
+            @Parameter(description = "风险等级") @RequestParam(required = false) Integer riskLevel,
+            @Parameter(description = "创建时间起（ISO-8601，含）")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTime,
+            @Parameter(description = "创建时间止（ISO-8601，含）")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime) {
+        log.info("[API] 分页查询审计日志: page={}, size={}, startTime={}, endTime={}", page, size, startTime, endTime);
+        return auditLogService.pageQuery(page, size, userId, operationType, module, businessType, riskLevel,
+                startTime, endTime);
     }
 }

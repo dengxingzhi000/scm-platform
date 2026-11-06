@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Slf4j
@@ -52,7 +53,11 @@ public class SysAuditLogQueryService {
 
     @Slave
     public Page<SysAuditLog> pageQuery(int page, int size, String userId, String operationType,
-                                        String module, String businessType, Integer riskLevel) {
+                                        String module, String businessType, Integer riskLevel,
+                                        LocalDateTime startTime, LocalDateTime endTime) {
+        if (startTime != null && endTime != null && startTime.isAfter(endTime)) {
+            throw new IllegalArgumentException("startTime 不能晚于 endTime");
+        }
         log.debug("分页查询审计日志: page={}, size={}, userId={}, operationType={}, module={}, businessType={}, riskLevel={}",
                 page, size, userId, operationType, module, businessType, riskLevel);
 
@@ -72,6 +77,12 @@ public class SysAuditLogQueryService {
         }
         if (riskLevel != null) {
             wrapper.eq(SysAuditLog::getRiskLevel, riskLevel);
+        }
+        if (startTime != null) {
+            wrapper.ge(SysAuditLog::getCreateTime, startTime);
+        }
+        if (endTime != null) {
+            wrapper.le(SysAuditLog::getCreateTime, endTime);
         }
         wrapper.orderByDesc(SysAuditLog::getCreateTime);
 

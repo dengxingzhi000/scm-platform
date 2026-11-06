@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.IService;
 import com.cognora.platform.audit.domain.entity.SysAuditLog;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -29,5 +30,6 @@ public interface ISysAuditLogService extends IService<SysAuditLog> {
     List<SysAuditLog> listByBusinessType(String businessType);
 
     Page<SysAuditLog> pageQuery(int page, int size, String userId, String operationType,
-                                String module, String businessType, Integer riskLevel);
+                                String module, String businessType, Integer riskLevel,
+                                LocalDateTime startTime, LocalDateTime endTime);
 }

@@ -13,6 +13,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -73,6 +74,28 @@ class SysAuditLogServiceImplTest {
 
         verify(auditLogMapper).insert(any(SysAuditLog.class));
         verify(sensitiveCommandService, never()).createLog(any());
+    }
+
+    @Test
+    void pageQueryRejectsAnInvertedTimeRange() {
+        LocalDateTime start = LocalDateTime.of(2026, 10, 31, 23, 59, 59);
+        LocalDateTime end = LocalDateTime.of(2026, 10, 1, 0, 0);
+
+        assertThatThrownBy(() -> service.pageQuery(1, 10, null, null, null, null, null, start, end))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("startTime");
+        verify(auditLogMapper, never()).selectPage(any(), any());
+    }
+
+    @Test
+    void pageQueryPassesARecordWithAValidTimeRange() {
+        when(auditLogMapper.selectPage(any(), any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        LocalDateTime start = LocalDateTime.of(2026, 10, 1, 0, 0);
+        LocalDateTime end = LocalDateTime.of(2026, 10, 31, 23, 59, 59);
+
+        assertThat(service.pageQuery(1, 10, null, null, null, null, null, start, end)).isNotNull();
+        verify(auditLogMapper).selectPage(any(), any());
     }
 
     @Test

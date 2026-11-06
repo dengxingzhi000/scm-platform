@@ -81,7 +81,11 @@ public class SysAuditLogServiceImpl
 
     @Override
     public Page<SysAuditLog> pageQuery(int page, int size, String userId, String operationType,
-                                        String module, String businessType, Integer riskLevel) {
+                                        String module, String businessType, Integer riskLevel,
+                                        LocalDateTime startTime, LocalDateTime endTime) {
+        if (startTime != null && endTime != null && startTime.isAfter(endTime)) {
+            throw new IllegalArgumentException("startTime 不能晚于 endTime");
+        }
         log.debug("分页查询审计日志: page={}, size={}, userId={}, operationType={}, module={}, businessType={}, riskLevel={}",
                 (page + "").replace("\r", "_").replace("\n", "_"), (size + "").replace("\r", "_").replace("\n", "_"), (userId + "").replace("\r", "_").replace("\n", "_"), (operationType + "").replace("\r", "_").replace("\n", "_"), (module + "").replace("\r", "_").replace("\n", "_"), (businessType + "").replace("\r", "_").replace("\n", "_"), (riskLevel + "").replace("\r", "_").replace("\n", "_"));
 
@@ -101,6 +105,12 @@ public class SysAuditLogServiceImpl
         }
         if (riskLevel != null) {
             wrapper.eq(SysAuditLog::getRiskLevel, riskLevel);
+        }
+        if (startTime != null) {
+            wrapper.ge(SysAuditLog::getCreateTime, startTime);
+        }
+        if (endTime != null) {
+            wrapper.le(SysAuditLog::getCreateTime, endTime);
         }
         wrapper.orderByDesc(SysAuditLog::getCreateTime);
 
