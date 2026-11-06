@@ -17,6 +17,8 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -104,6 +106,24 @@ class AccountingPeriodServiceImplTest {
 
         assertThrows(AccessDeniedException.class, () -> service.closePeriod("ap-1", "user-1"));
         verify(mapper, never()).updateById(any(AccountingPeriod.class));
+    }
+
+    @Test
+    void getCurrentPeriodShouldReturnCurrentMonthRecord() {
+        AccountingPeriod current = period(AccountingPeriodStatus.OPEN);
+        when(mapper.selectOne(any())).thenReturn(current);
+
+        AccountingPeriod result = service.getCurrentPeriod();
+
+        assertNotNull(result);
+        assertEquals("2026-10", result.getPeriodCode());
+    }
+
+    @Test
+    void getCurrentPeriodShouldReturnNullWhenMonthNotOpened() {
+        when(mapper.selectOne(any())).thenReturn(null);
+
+        assertNull(service.getCurrentPeriod());
     }
 
     private AccountingPeriod period(AccountingPeriodStatus status) {
