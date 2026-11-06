@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.cognora.platform.common.tenant.TenantContextHolder;
 import com.cognora.platform.common.util.UUIDv7Util;
 import com.cognora.scm.finance.domain.dto.CreateInvoiceRequest;
+import com.cognora.scm.finance.domain.dto.TaxRateResolution;
 import com.cognora.scm.finance.domain.dto.UpdateInvoiceRequest;
 import com.cognora.scm.finance.domain.entity.Invoice;
 import com.cognora.scm.finance.domain.enums.InvoiceStatus;
@@ -14,6 +15,7 @@ import com.cognora.scm.finance.mapper.InvoiceMapper;
 import com.cognora.scm.finance.service.IInvoiceService;
 import com.cognora.scm.finance.service.support.AccountingPeriodGuard;
 import com.cognora.scm.finance.service.support.FinanceTenantGuard;
+import com.cognora.scm.finance.service.support.TaxRateResolver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -30,6 +32,8 @@ import java.time.LocalDateTime;
 public class InvoiceServiceImpl extends ServiceImpl<InvoiceMapper, Invoice> implements IInvoiceService {
 
     private final AccountingPeriodGuard accountingPeriodGuard;
+
+    private final TaxRateResolver taxRateResolver;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -50,11 +54,21 @@ public class InvoiceServiceImpl extends ServiceImpl<InvoiceMapper, Invoice> impl
         // 租户必须取自登录态，忽略请求体里的 tenantId。
         invoice.setTenantId(TenantContextHolder.getRequiredTenantId().toString());
         invoice.setCurrency(FinanceAmount.currency(request.getCurrency()));
-        applyAmounts(invoice, request.getAmount(), request.getTaxAmount(), request.getTaxRate());
+        LocalDate invoiceDate = LocalDate.now();
+        BigDecimal taxRate = request.getTaxRate();
+        if (taxRate == null) {
+            // 未显式给税率时按「区间内最新生效」规则解析，未命中回退租户/配置默认。
+            TaxRateResolution resolution = taxRateResolver.resolve(
+                    request.getTaxCategory(), request.getTaxRegion(), invoiceDate);
+            taxRate = resolution.getRate();
+            invoice.setTaxRateSource(resolution.getSource().name());
+            invoice.setTaxRateRuleId(resolution.getRuleId());
+        }
+        applyAmounts(invoice, request.getAmount(), request.getTaxAmount(), taxRate);
         invoice.setRelatedOrders(request.getRelatedOrders());
         invoice.setSettlementId(request.getSettlementId());
         invoice.setRemark(request.getRemark());
-        invoice.setInvoiceDate(LocalDate.now());
+        invoice.setInvoiceDate(invoiceDate);
         accountingPeriodGuard.assertWritable(invoice.getInvoiceDate(), "发票:" + invoice.getInvoiceNo());
         invoice.setStatus(InvoiceStatus.DRAFT.getCode());
         invoice.setDeleted(false);

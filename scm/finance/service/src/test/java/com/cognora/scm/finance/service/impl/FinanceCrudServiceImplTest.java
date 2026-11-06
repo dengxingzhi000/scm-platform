@@ -104,7 +104,9 @@ class FinanceCrudServiceImplTest {
     @Test
     void settlementOrderUpdateAndDeleteShouldKeepOrchestrationInService() {
         SettlementOrderMapper mapper = mock(SettlementOrderMapper.class);
-        SettlementOrderServiceImpl service = new SettlementOrderServiceImpl(null, mock(AccountingPeriodGuard.class));
+        SettlementOrderServiceImpl service = new SettlementOrderServiceImpl(
+                null, mock(AccountingPeriodGuard.class),
+                mock(com.cognora.scm.finance.service.support.TaxRateResolver.class));
         attach(service, mapper);
 
         SettlementOrder existingOrder = new SettlementOrder();

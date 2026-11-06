@@ -25,7 +25,8 @@ class FinanceAuditAnnotationTest {
             PlatformServiceFeeController.class,
             AccountingPeriodController.class,
             ReconciliationDiffController.class,
-            FundFlowController.class
+            FundFlowController.class,
+            TaxRateController.class
     };
 
     @Test

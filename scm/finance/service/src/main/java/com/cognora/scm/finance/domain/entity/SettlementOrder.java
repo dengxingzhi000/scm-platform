@@ -115,4 +115,27 @@ public class SettlementOrder implements Serializable {
     /** ISO-4217 币种，默认 CNY；本期只做校验与落库，不做汇率换算。 */
     private String currency;
 
+    /**
+     * 适用税率 0..1（四位小数）。创建时未显式传入则按税率规则解析后落库；
+     * 历史数据为空表示未采集。
+     */
+    @TableField("tax_rate")
+    private BigDecimal taxRate;
+
+    /** 税率规则匹配用的品类编码，非表字段，仅创建请求/响应使用。 */
+    @TableField(exist = false)
+    private String taxCategory;
+
+    /** 税率规则匹配用的地区编码，非表字段，仅创建请求/响应使用。 */
+    @TableField(exist = false)
+    private String taxRegion;
+
+    /** 税率来源 RULE/DEFAULT，非表字段，仅创建响应回显。 */
+    @TableField(exist = false)
+    private String taxRateSource;
+
+    /** 命中的税率规则 ID，非表字段，仅创建响应回显。 */
+    @TableField(exist = false)
+    private String taxRateRuleId;
+
 }

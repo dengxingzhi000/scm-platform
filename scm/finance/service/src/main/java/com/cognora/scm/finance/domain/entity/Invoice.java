@@ -115,4 +115,12 @@ public class Invoice {
     private String remark;
     /** ISO-4217 币种，默认 CNY；本期只做校验与落库，不做汇率换算。 */
     private String currency;
+
+    /** 税率来源 RULE/DEFAULT，非表字段，仅创建响应回显。 */
+    @TableField(exist = false)
+    private String taxRateSource;
+
+    /** 命中的税率规则 ID，非表字段，仅创建响应回显。 */
+    @TableField(exist = false)
+    private String taxRateRuleId;
 }

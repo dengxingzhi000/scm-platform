@@ -37,6 +37,12 @@ public class CreateInvoiceRequest {
 
     private BigDecimal taxRate;
 
+    /** 税率规则匹配用的品类编码；仅当 taxRate 为空时生效。 */
+    private String taxCategory;
+
+    /** 税率规则匹配用的地区编码；仅当 taxRate 为空时生效。 */
+    private String taxRegion;
+
     private String relatedOrders;
 
     private String settlementId;
