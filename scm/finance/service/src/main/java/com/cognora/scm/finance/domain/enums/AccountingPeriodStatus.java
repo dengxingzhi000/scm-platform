@@ -3,13 +3,20 @@ package com.cognora.scm.finance.domain.enums;
 /**
  * 会计期间（账期）状态。
  *
- * <p>本批次只实现「开账期 → 关账期」单向流转；重开账期涉及跨期调整分录与
- * 已结账报表重算，属于未定业务口径，暂不提供。</p>
+ * <p>合法流转（唯一合法回退路径是「已结账 → 已重开」）：</p>
+ * <pre>
+ * OPEN ──close──▶ CLOSED ──reopen──▶ REOPENED ──close──▶ CLOSED
+ * </pre>
+ *
+ * <p>重开只允许从 {@link #CLOSED} 发起，重开后该账期恢复可写；再次关账回到
+ * {@link #CLOSED}。其余流转（例如未结账直接重开、重开态重复重开）一律拒绝。
+ * 重开是账期唯一的合法回退路径，关账写入守卫只拦截 {@link #CLOSED}。</p>
  */
 public enum AccountingPeriodStatus {
 
     OPEN(0, "未结账"),
-    CLOSED(1, "已结账");
+    CLOSED(1, "已结账"),
+    REOPENED(2, "已重开");
 
     private final int code;
     private final String description;
@@ -28,10 +35,17 @@ public enum AccountingPeriodStatus {
     }
 
     /**
-     * 唯一合法流转：未结账 → 已结账。
+     * 唯一合法流转：未结账 → 已结账、已结账 → 已重开、已重开 → 已结账。
      */
     public boolean canTransitionTo(AccountingPeriodStatus target) {
-        return this == OPEN && target == CLOSED;
+        if (target == null) {
+            return false;
+        }
+        return switch (this) {
+            case OPEN -> target == CLOSED;
+            case CLOSED -> target == REOPENED;
+            case REOPENED -> target == CLOSED;
+        };
     }
 
     public static AccountingPeriodStatus fromCode(Integer code) {

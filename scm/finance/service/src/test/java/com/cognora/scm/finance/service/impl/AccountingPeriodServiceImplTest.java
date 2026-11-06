@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -135,6 +136,84 @@ class AccountingPeriodServiceImplTest {
 
         assertEquals(1, result.size());
         assertEquals(AccountingPeriodStatus.CLOSED.getCode(), result.get(0).getStatus());
+    }
+
+    @Test
+    void closePeriodShouldTransitionReopenedBackToClosed() {
+        AccountingPeriod period = period(AccountingPeriodStatus.REOPENED);
+        when(mapper.selectById("ap-1")).thenReturn(period);
+        when(mapper.updateById(any(AccountingPeriod.class))).thenReturn(1);
+
+        AccountingPeriod closed = service.closePeriod("ap-1", "user-1");
+
+        assertEquals(AccountingPeriodStatus.CLOSED.getCode(), closed.getStatus());
+        assertEquals("user-1", closed.getClosedBy());
+        assertTrue(closed.getClosedAt() != null);
+        verify(mapper).updateById(period);
+    }
+
+    @Test
+    void reopenPeriodShouldTransitionClosedToReopenedWithTrail() {
+        AccountingPeriod period = period(AccountingPeriodStatus.CLOSED);
+        when(mapper.selectById("ap-1")).thenReturn(period);
+        when(mapper.updateById(any(AccountingPeriod.class))).thenReturn(1);
+
+        AccountingPeriod reopened = service.reopenPeriod("ap-1", "  冲销漏记费用  ", "user-2");
+
+        assertEquals(AccountingPeriodStatus.REOPENED.getCode(), reopened.getStatus());
+        assertEquals("user-2", reopened.getReopenedBy());
+        assertEquals("冲销漏记费用", reopened.getReopenReason());
+        assertTrue(reopened.getReopenedAt() != null);
+        verify(mapper).updateById(period);
+    }
+
+    @Test
+    void reopenPeriodShouldRejectOpenPeriod() {
+        when(mapper.selectById("ap-1")).thenReturn(period(AccountingPeriodStatus.OPEN));
+
+        assertThrows(ServiceException.class, () -> service.reopenPeriod("ap-1", "reason", "user-2"));
+        verify(mapper, never()).updateById(any(AccountingPeriod.class));
+    }
+
+    @Test
+    void reopenPeriodShouldRejectAlreadyReopened() {
+        when(mapper.selectById("ap-1")).thenReturn(period(AccountingPeriodStatus.REOPENED));
+
+        assertThrows(ServiceException.class, () -> service.reopenPeriod("ap-1", "reason", "user-2"));
+        verify(mapper, never()).updateById(any(AccountingPeriod.class));
+    }
+
+    @Test
+    void reopenPeriodShouldRejectBlankReasonBeforeLoading() {
+        assertThrows(IllegalArgumentException.class, () -> service.reopenPeriod("ap-1", "   ", "user-2"));
+
+        verify(mapper, never()).selectById("ap-1");
+    }
+
+    @Test
+    void reopenPeriodShouldRejectBlankOperator() {
+        assertThrows(IllegalArgumentException.class, () -> service.reopenPeriod("ap-1", "reason", "  "));
+
+        verify(mapper, never()).selectById("ap-1");
+    }
+
+    @Test
+    void reopenPeriodShouldRejectUnknownPeriod() {
+        when(mapper.selectById("ap-1")).thenReturn(null);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.reopenPeriod("ap-1", "reason", "user-2"));
+    }
+
+    @Test
+    void reopenPeriodShouldRejectForeignTenant() {
+        AccountingPeriod period = period(AccountingPeriodStatus.CLOSED);
+        period.setTenantId("019a0aee-0000-7000-8000-000000000099");
+        when(mapper.selectById("ap-1")).thenReturn(period);
+
+        assertThrows(AccessDeniedException.class,
+                () -> service.reopenPeriod("ap-1", "reason", "user-2"));
+        verify(mapper, never()).updateById(any(AccountingPeriod.class));
     }
 
     private AccountingPeriod period(AccountingPeriodStatus status) {

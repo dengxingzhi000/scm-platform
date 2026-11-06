@@ -101,6 +101,41 @@ public class AccountingPeriodServiceImpl implements AccountingPeriodService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
+    public AccountingPeriod reopenPeriod(String id, String reason, String reopenedBy) {
+        if (!StringUtils.hasText(id)) {
+            throw new IllegalArgumentException("账期 ID 不能为空");
+        }
+        if (!StringUtils.hasText(reason)) {
+            throw new IllegalArgumentException("重开原因不能为空");
+        }
+        if (!StringUtils.hasText(reopenedBy)) {
+            throw new IllegalArgumentException("重开操作人不能为空");
+        }
+        AccountingPeriod period = accountingPeriodMapper.selectById(id);
+        if (period == null || Boolean.TRUE.equals(period.getDeleted())) {
+            throw new IllegalArgumentException("账期不存在: " + id);
+        }
+        FinanceTenantGuard.verifyOwnership(period.getTenantId());
+
+        AccountingPeriodStatus current = AccountingPeriodStatus.fromCode(period.getStatus());
+        if (!current.canTransitionTo(AccountingPeriodStatus.REOPENED)) {
+            throw new ServiceException(ResultCode.CONFLICT.getCode(), HttpStatus.CONFLICT,
+                    "非法账期流转: " + current + " -> REOPENED");
+        }
+
+        period.setStatus(AccountingPeriodStatus.REOPENED.getCode());
+        period.setReopenedBy(reopenedBy);
+        period.setReopenedAt(LocalDateTime.now());
+        period.setReopenReason(reason.trim());
+        period.setUpdateTime(LocalDateTime.now());
+        accountingPeriodMapper.updateById(period);
+        log.info("账期已重开: id={}, period={}, reopenedBy={}, reason={}",
+                id, period.getPeriodCode(), reopenedBy, reason);
+        return period;
+    }
+
+    @Override
     public AccountingPeriod getById(String id) {
         AccountingPeriod period = accountingPeriodMapper.selectById(id);
         if (period == null || Boolean.TRUE.equals(period.getDeleted())) {
