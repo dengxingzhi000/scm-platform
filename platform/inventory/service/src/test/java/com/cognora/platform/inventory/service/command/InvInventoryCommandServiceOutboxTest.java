@@ -6,6 +6,7 @@ import com.cognora.platform.inventory.domain.entity.Inventory;
 import com.cognora.platform.inventory.dto.InventoryAdjustRequest;
 import com.cognora.platform.inventory.event.InventoryAdjustedEvent;
 import com.cognora.platform.inventory.mapper.InvInventoryMapper;
+import com.cognora.platform.inventory.service.flow.InventoryFlowLogService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,6 +20,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -32,7 +34,8 @@ class InvInventoryCommandServiceOutboxTest {
 
     @BeforeEach
     void setUp() {
-        service = new InvInventoryCommandService(inventoryMapper, outboxService);
+        service = new InvInventoryCommandService(inventoryMapper, outboxService,
+                mock(InventoryFlowLogService.class));
     }
 
     @AfterEach

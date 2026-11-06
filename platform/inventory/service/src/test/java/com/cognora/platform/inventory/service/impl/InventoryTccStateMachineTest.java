@@ -4,6 +4,7 @@ import com.cognora.platform.common.tenant.TenantContextHolder;
 import com.cognora.platform.inventory.domain.entity.InvTccReservation;
 import com.cognora.platform.inventory.domain.entity.Inventory;
 import com.cognora.platform.inventory.mapper.InvInventoryMapper;
+import com.cognora.platform.inventory.service.flow.InventoryFlowLogService;
 import com.cognora.platform.inventory.mapper.InvTccReservationMapper;
 import io.seata.rm.tcc.api.BusinessActionContext;
 import org.junit.jupiter.api.AfterEach;
@@ -54,7 +55,8 @@ class InventoryTccStateMachineTest {
 
         inventoryMapper = mock(InvInventoryMapper.class);
         reservationMapper = mock(InvTccReservationMapper.class);
-        service = new InventoryTccServiceImpl(inventoryMapper, reservationMapper);
+        service = new InventoryTccServiceImpl(inventoryMapper, reservationMapper,
+                mock(InventoryFlowLogService.class));
 
         ledger = new Inventory();
         ledger.setId(INVENTORY_ID);

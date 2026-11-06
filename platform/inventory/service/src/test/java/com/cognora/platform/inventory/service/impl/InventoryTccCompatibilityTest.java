@@ -5,6 +5,7 @@ import com.cognora.platform.common.tenant.TenantParseException;
 import com.cognora.platform.inventory.domain.entity.InvTccReservation;
 import com.cognora.platform.inventory.domain.entity.Inventory;
 import com.cognora.platform.inventory.mapper.InvInventoryMapper;
+import com.cognora.platform.inventory.service.flow.InventoryFlowLogService;
 import com.cognora.platform.inventory.mapper.InvTccReservationMapper;
 import io.seata.rm.tcc.api.BusinessActionContext;
 import org.apache.ibatis.annotations.Update;
@@ -57,7 +58,8 @@ class InventoryTccCompatibilityTest {
     void setUp() {
         inventoryMapper = mock(InvInventoryMapper.class);
         reservationMapper = mock(InvTccReservationMapper.class);
-        service = new InventoryTccServiceImpl(inventoryMapper, reservationMapper);
+        service = new InventoryTccServiceImpl(inventoryMapper, reservationMapper,
+                mock(InventoryFlowLogService.class));
 
         ledger = new Inventory();
         ledger.setId(INVENTORY_ID);

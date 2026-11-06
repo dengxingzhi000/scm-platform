@@ -10,6 +10,8 @@ import com.cognora.platform.inventory.dto.InventoryResponse;
 import com.cognora.platform.inventory.dto.InventoryTransferRequest;
 import com.cognora.platform.inventory.event.InventoryAdjustedEvent;
 import com.cognora.platform.inventory.mapper.InvInventoryMapper;
+import com.cognora.platform.inventory.service.flow.FlowLogEntry;
+import com.cognora.platform.inventory.service.flow.InventoryFlowLogService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
@@ -24,10 +26,13 @@ import java.util.UUID;
 public class InvInventoryCommandService {
     private final InvInventoryMapper inventoryMapper;
     private final OutboxService outboxService;
+    private final InventoryFlowLogService flowLogService;
 
-    public InvInventoryCommandService(InvInventoryMapper inventoryMapper, OutboxService outboxService) {
+    public InvInventoryCommandService(InvInventoryMapper inventoryMapper, OutboxService outboxService,
+                                      InventoryFlowLogService flowLogService) {
         this.inventoryMapper = inventoryMapper;
         this.outboxService = outboxService;
+        this.flowLogService = flowLogService;
     }
 
     @Master(reason = "写操作必须走主库")
@@ -69,6 +74,8 @@ public class InvInventoryCommandService {
             // 条件更新已成功，读不到记录属于数据异常，不再用内存值推算（避免溢出与错报）
             throw new IllegalStateException("库存调整后未能读取台账记录: id=" + inventory.getId());
         }
+
+        recordAdjustmentFlow(tenantId, fresh, request, quantity);
 
         outboxService.save(
                 "INVENTORY_ADJUSTED",
@@ -127,7 +134,90 @@ public class InvInventoryCommandService {
         }
         Inventory inventory = initInventoryEntity(skuId, warehouseId, initialStock != null ? initialStock : 0);
         inventoryMapper.insert(inventory);
+        recordInitFlow(inventory, initialStock != null ? initialStock : 0);
         return convertToResponse(inventory);
+    }
+
+    private void recordAdjustmentFlow(UUID tenantId, Inventory fresh,
+                                      InventoryAdjustRequest request, int quantity) {
+        int total = nvl(fresh.getTotalStock());
+        int available = nvl(fresh.getAvailableStock());
+        int locked = nvl(fresh.getLockedStock());
+        int damaged = nvl(fresh.getDamagedStock());
+        Integer adjustType = request.getAdjustType() == null ? 0 : request.getAdjustType();
+        flowLogService.record(FlowLogEntry.builder()
+                .tenantId(tenantId.toString())
+                .skuId(fresh.getSkuId())
+                .warehouseId(fresh.getWarehouseId())
+                .operationType(adjustType)
+                .businessType(businessTypeOf(adjustType, quantity))
+                .changeQuantity(quantity)
+                .beforeTotal(total - quantity)
+                .beforeAvailable(available - quantity)
+                .beforeLocked(locked)
+                .beforeDamaged(damaged)
+                .afterTotal(total)
+                .afterAvailable(available)
+                .afterLocked(locked)
+                .afterDamaged(damaged)
+                .reason(request.getRemark())
+                .businessKey(request.getReferenceNo())
+                .referenceType(adjustType == 7 ? "TRANSFER" : "ADJUST")
+                .referenceId(fresh.getId())
+                .referenceNo(request.getReferenceNo())
+                .operatorId(request.getOperatorId())
+                .operatorName(request.getOperatorName())
+                .idempotencyKey(adjustmentIdempotencyKey(request, quantity))
+                .build());
+    }
+
+    private void recordInitFlow(Inventory inventory, int initialStock) {
+        String tenantId = TenantContextHolder.getRequiredTenantId().toString();
+        flowLogService.record(FlowLogEntry.builder()
+                .tenantId(tenantId)
+                .skuId(inventory.getSkuId())
+                .warehouseId(inventory.getWarehouseId())
+                .operationType(initialStock < 0 ? 2 : 1)
+                .businessType("INIT")
+                .changeQuantity(initialStock)
+                .beforeTotal(0)
+                .beforeAvailable(0)
+                .beforeLocked(0)
+                .beforeDamaged(0)
+                .afterTotal(initialStock)
+                .afterAvailable(initialStock)
+                .afterLocked(0)
+                .afterDamaged(0)
+                .reason("初始化库存")
+                .referenceType("INVENTORY")
+                .referenceId(inventory.getId())
+                .idempotencyKey("INIT:" + inventory.getSkuId() + ":" + inventory.getWarehouseId())
+                .build());
+    }
+
+    private static String adjustmentIdempotencyKey(InventoryAdjustRequest request, int quantity) {
+        if (request.getReferenceNo() == null || request.getReferenceNo().trim().isEmpty()) {
+            return null;
+        }
+        String direction = quantity < 0 ? "OUT" : "IN";
+        return "ADJUST:" + request.getReferenceNo() + ":" + request.getAdjustType() + ":" + direction;
+    }
+
+    private static String businessTypeOf(int adjustType, int quantity) {
+        switch (adjustType) {
+            case 1:
+                return "INBOUND";
+            case 2:
+                return "OUTBOUND";
+            case 7:
+                return quantity < 0 ? "TRANSFER_OUT" : "TRANSFER_IN";
+            default:
+                return "ADJUST";
+        }
+    }
+
+    private static int nvl(Integer value) {
+        return value == null ? 0 : value;
     }
 
     private Inventory initInventoryEntity(String skuId, String warehouseId, Integer initialStock) {
