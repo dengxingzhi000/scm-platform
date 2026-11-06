@@ -8,7 +8,7 @@ global:
   resolve_timeout: 5m
 
 route:
-  receiver: null
+  receiver: "null"
   # 同一 alertname + team 的告警合并成一组（同组去重）
   group_by: [alertname, team]
   group_wait: 30s
@@ -17,7 +17,7 @@ route:
 
 receivers:
   # 没有配置任何集成，通知到此丢弃
-  - name: null
+  - name: "null"
 
 inhibit_rules:
   # 同一 alertname + team 下，critical 抑制 warning
