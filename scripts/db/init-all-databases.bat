@@ -71,6 +71,7 @@ for %%s in (
     "db_system:microservices\030_sys_file_metadata.sql"
     "db_product:microservices\010_db_product.sql"
     "db_inventory:microservices\011_db_inventory.sql"
+    "db_inventory:microservices\021_inventory_tcc.sql"
     "db_order:microservices\012_db_order.sql"
     "db_warehouse:microservices\013_db_warehouse.sql"
     "db_logistics:microservices\014_db_logistics.sql"

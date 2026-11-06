@@ -36,12 +36,12 @@ CREATE TABLE IF NOT EXISTS inv_tcc_reservation (
     update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 索引
-CREATE INDEX idx_inv_tcc_tenant_id ON inv_tcc_reservation(tenant_id);
-CREATE INDEX idx_inv_tcc_business_key ON inv_tcc_reservation(business_key);
-CREATE INDEX idx_inv_tcc_xid ON inv_tcc_reservation(xid);
-CREATE INDEX idx_inv_tcc_status ON inv_tcc_reservation(status);
-CREATE INDEX idx_inv_tcc_try_time ON inv_tcc_reservation(try_time);
+-- 索引（IF NOT EXISTS，可重复执行）
+CREATE INDEX IF NOT EXISTS idx_inv_tcc_tenant_id ON inv_tcc_reservation(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_inv_tcc_business_key ON inv_tcc_reservation(business_key);
+CREATE INDEX IF NOT EXISTS idx_inv_tcc_xid ON inv_tcc_reservation(xid);
+CREATE INDEX IF NOT EXISTS idx_inv_tcc_status ON inv_tcc_reservation(status);
+CREATE INDEX IF NOT EXISTS idx_inv_tcc_try_time ON inv_tcc_reservation(try_time);
 
 -- 注释
 COMMENT ON TABLE inv_tcc_reservation IS '库存 TCC 预留记录表';
