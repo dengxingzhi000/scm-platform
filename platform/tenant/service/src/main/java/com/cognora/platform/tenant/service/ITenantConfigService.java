@@ -24,5 +24,6 @@ public interface ITenantConfigService extends IService<TenantConfig> {
 
     TenantConfig getConfigByTenantAndKey(String tenantId, String configKey);
 
-    Page<TenantConfig> pageQuery(int page, int size, String tenantId, String configCategory, String configKey);
+    Page<TenantConfig> pageQuery(int page, int size, String tenantId, String configCategory,
+                                 String configKey, String scope);
 }

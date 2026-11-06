@@ -129,6 +129,13 @@ management:
         enabled: true
 
 cognora:
+  tenant:
+    # tenant_config 需要表达平台级配置（tenant_id IS NULL），MyBatis 的租户拦截器
+    # 只能追加 tenant_id = '<uuid>' 谓词，无法表达 IS NULL。该表的租户隔离改由
+    # TenantConfigServiceImpl 显式过滤（scope=TENANT 强制当前租户，scope=PLATFORM
+    # 仅平台管理员可用）。
+    exclude-tables:
+      - tenant_config
   security:
     headers:
       content-type-options-enabled: true

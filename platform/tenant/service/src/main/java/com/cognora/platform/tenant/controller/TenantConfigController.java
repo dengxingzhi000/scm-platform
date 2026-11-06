@@ -56,15 +56,20 @@ public class TenantConfigController {
         return tenantConfigService.getConfigByTenantAndKey(tenantId, configKey);
     }
 
-    @Operation(summary = "分页查询租户配置", description = "按租户、配置分类和配置键分页查询租户配置列表。")
+    @Operation(summary = "分页查询租户配置",
+            description = "scope=TENANT（默认）时仅返回当前租户的配置；scope=PLATFORM 时仅返回平台级配置"
+                    + "（tenant_id 为空），且调用方必须是平台管理员，否则返回 403。")
     @GetMapping("/page")
     public Page<TenantConfig> pageQuery(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size,
-            @Parameter(description = "租户ID") @RequestParam(required = false) String tenantId,
+            @Parameter(description = "租户ID（scope=TENANT 时忽略，始终过滤当前租户）")
+            @RequestParam(required = false) String tenantId,
             @Parameter(description = "配置分类") @RequestParam(required = false) String configCategory,
-            @Parameter(description = "配置键") @RequestParam(required = false) String configKey) {
-        log.info("[API] 分页查询租户配置: page={}, size={}", page, size);
-        return tenantConfigService.pageQuery(page, size, tenantId, configCategory, configKey);
+            @Parameter(description = "配置键") @RequestParam(required = false) String configKey,
+            @Parameter(description = "范围：TENANT（默认）/ PLATFORM")
+            @RequestParam(required = false, defaultValue = "TENANT") String scope) {
+        log.info("[API] 分页查询租户配置: page={}, size={}, scope={}", page, size, scope);
+        return tenantConfigService.pageQuery(page, size, tenantId, configCategory, configKey, scope);
     }
 }
