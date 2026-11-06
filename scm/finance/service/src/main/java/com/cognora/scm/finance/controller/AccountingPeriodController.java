@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @RequiredArgsConstructor
 @Slf4j
 @RestController
@@ -53,6 +55,12 @@ public class AccountingPeriodController {
     @GetMapping("/current")
     public ApiResponse<AccountingPeriod> current() {
         return ApiResponse.success(accountingPeriodService.getCurrentPeriod());
+    }
+
+    @Operation(summary = "查询已关账期列表", description = "返回当前租户下所有已关账账期，按账期编码倒序。")
+    @GetMapping("/closed")
+    public ApiResponse<List<AccountingPeriod>> closed() {
+        return ApiResponse.success(accountingPeriodService.listClosedPeriods());
     }
 
     @Operation(summary = "分页查询账期", description = "按状态分页查询账期，状态为空时查询全部。")

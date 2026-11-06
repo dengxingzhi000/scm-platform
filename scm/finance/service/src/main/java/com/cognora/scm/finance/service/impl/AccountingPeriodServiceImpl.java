@@ -22,6 +22,7 @@ import org.springframework.util.StringUtils;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeParseException;
+import java.util.List;
 import java.util.regex.Pattern;
 
 @Slf4j
@@ -117,6 +118,15 @@ public class AccountingPeriodServiceImpl implements AccountingPeriodService {
                 .eq(AccountingPeriod::getPeriodCode, periodCode)
                 .eq(AccountingPeriod::getDeleted, false)
                 .last("LIMIT 1"));
+    }
+
+    @Override
+    public List<AccountingPeriod> listClosedPeriods() {
+        return accountingPeriodMapper.selectList(Wrappers.<AccountingPeriod>lambdaQuery()
+                .eq(AccountingPeriod::getTenantId, TenantContextHolder.getRequiredTenantId().toString())
+                .eq(AccountingPeriod::getDeleted, false)
+                .eq(AccountingPeriod::getStatus, AccountingPeriodStatus.CLOSED.getCode())
+                .orderByDesc(AccountingPeriod::getPeriodCode));
     }
 
     @Override
