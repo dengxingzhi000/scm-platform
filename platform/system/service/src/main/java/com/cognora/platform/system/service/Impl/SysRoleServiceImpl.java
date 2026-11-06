@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cognora.platform.common.constant.RoleConstants;
 import com.cognora.platform.common.exception.BusinessException;
+import com.cognora.platform.common.exception.ErrorCode;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.cognora.platform.common.dto.role.RoleDTO;
 import com.cognora.platform.common.response.ResultCode;
@@ -110,7 +111,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
     public RoleDTO getRoleById(UUID id) {
         SysRole role = getBaseMapper().selectById(id);
         if (role == null) {
-            throw new BusinessException("角色不存在");
+            throw new BusinessException(ErrorCode.NOT_FOUND, "角色不存在");
         }
 
         requireRoleOwnership(role);
@@ -138,7 +139,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
         UUID tenantId = resolveTenantIdForRole(roleDTO.getRoleType());
 
         if (getBaseMapper().existsByRoleCodeAndTenantId(roleDTO.getRoleCode(), tenantId)) {
-            throw new BusinessException("角色编码在当前租户下已存在");
+            throw new BusinessException(ErrorCode.CONFLICT, "角色编码在当前租户下已存在");
         }
 
         SysRole role = new SysRole();
@@ -173,7 +174,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
 
         SysRole existRole = getBaseMapper().selectById(roleDTO.getId());
         if (existRole == null) {
-            throw new BusinessException("角色不存在");
+            throw new BusinessException(ErrorCode.NOT_FOUND, "角色不存在");
         }
 
         requireNotSuperAdminRole(existRole);
@@ -215,7 +216,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
 
         SysRole role = getBaseMapper().selectById(id);
         if (role == null) {
-            throw new BusinessException("角色不存在");
+            throw new BusinessException(ErrorCode.NOT_FOUND, "角色不存在");
         }
 
         requireNotSuperAdminRole(role);
@@ -223,7 +224,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
 
         Integer userCount = userRoleMapper.countUsersByRoleId(id);
         if (userCount > 0) {
-            throw new BusinessException("该角色下还有 " + userCount + " 个用户，不能删除");
+            throw new BusinessException(ErrorCode.CONFLICT, "该角色下还有 " + userCount + " 个用户，不能删除");
         }
 
         rolePermissionMapper.deleteRolePermissions(id);
@@ -252,7 +253,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
 
         SysRole role = getBaseMapper().selectById(roleId);
         if (role == null) {
-            throw new BusinessException("角色不存在");
+            throw new BusinessException(ErrorCode.NOT_FOUND, "角色不存在");
         }
 
         requireRoleOwnership(role);
@@ -306,7 +307,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
 
     private void requireNotSuperAdminRole(SysRole role) {
         if (SUPER_ADMIN_ROLE_CODE.equals(role.getRoleCode())) {
-            throw new BusinessException("不能操作超级管理员角色");
+            throw new BusinessException(ErrorCode.FORBIDDEN, "不能操作超级管理员角色");
         }
     }
 

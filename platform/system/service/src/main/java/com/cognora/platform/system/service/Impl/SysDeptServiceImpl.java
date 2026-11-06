@@ -2,6 +2,7 @@ package com.cognora.platform.system.service.Impl;
 
 import com.cognora.platform.common.dto.dept.DeptDTO;
 import com.cognora.platform.common.exception.BusinessException;
+import com.cognora.platform.common.exception.ErrorCode;
 import com.cognora.platform.common.tenant.TenantValidationUtil;
 import com.cognora.platform.common.util.UUIDv7Util;
 import com.cognora.platform.common.web.util.SecurityUtils;
@@ -132,7 +133,7 @@ public class SysDeptServiceImpl extends ServiceImpl<SysDeptMapper, SysDept> impl
         // 3. 业务校验
         // 3.1 校验部门编码唯一性（租户内唯一
         if (deptMapper.existsByDeptCode(deptDTO.getDeptCode())) {
-            throw new BusinessException("部门编码已存在");
+            throw new BusinessException(ErrorCode.CONFLICT, "部门编码已存在");
         }
 
         // 3.2 校验父部门是否存在并属于当前租户
@@ -140,7 +141,7 @@ public class SysDeptServiceImpl extends ServiceImpl<SysDeptMapper, SysDept> impl
                 UUID.fromString("00000000-0000-0000-0000-000000000000"))) {
             SysDept parent = deptMapper.selectById(deptDTO.getParentId());
             if (parent == null) {
-                throw new BusinessException("父部门不存在");
+                throw new BusinessException(ErrorCode.NOT_FOUND, "父部门不存在");
             }
             // 验证父部门归
             TenantValidationUtil.validateDataOwnership(parent.getTenantId());
@@ -183,7 +184,7 @@ public class SysDeptServiceImpl extends ServiceImpl<SysDeptMapper, SysDept> impl
         // 3. 查询数据
         SysDept existDept = deptMapper.selectById(deptDTO.getId());
         if (existDept == null) {
-            throw new BusinessException("部门不存在");
+            throw new BusinessException(ErrorCode.NOT_FOUND, "部门不存在");
         }
 
         // 4. 验证数据归属（tenant_id
@@ -193,20 +194,20 @@ public class SysDeptServiceImpl extends ServiceImpl<SysDeptMapper, SysDept> impl
         // 5.1 不能将父部门设置为自己或自己的子部门
         if (deptDTO.getParentId() != null) {
             if (deptDTO.getParentId().equals(deptDTO.getId())) {
-                throw new BusinessException("父部门不能是自己");
+                throw new BusinessException(ErrorCode.PARAM_VALIDATION_ERROR, "父部门不能是自己");
             }
 
             // 检查是否是子部门
             List<UUID> children = deptMapper.selectDeptAndChildren(deptDTO.getId());
             if (children.contains(deptDTO.getParentId())) {
-                throw new BusinessException("父部门不能是自己的子部门");
+                throw new BusinessException(ErrorCode.PARAM_VALIDATION_ERROR, "父部门不能是自己的子部门");
             }
 
             // 5.2 验证新的父部门也属于当前租户
             if (!deptDTO.getParentId().equals(UUID.fromString("00000000-0000-0000-0000-000000000000"))) {
                 SysDept newParent = deptMapper.selectById(deptDTO.getParentId());
                 if (newParent == null) {
-                    throw new BusinessException("父部门不存在");
+                    throw new BusinessException(ErrorCode.NOT_FOUND, "父部门不存在");
                 }
                 TenantValidationUtil.validateDataOwnership(newParent.getTenantId());
             }
@@ -253,7 +254,7 @@ public class SysDeptServiceImpl extends ServiceImpl<SysDeptMapper, SysDept> impl
         // 3. 查询数据
         SysDept dept = deptMapper.selectById(id);
         if (dept == null) {
-            throw new BusinessException("部门不存在");
+            throw new BusinessException(ErrorCode.NOT_FOUND, "部门不存在");
         }
 
         // 4. 验证数据归属（tenant_id
@@ -262,13 +263,13 @@ public class SysDeptServiceImpl extends ServiceImpl<SysDeptMapper, SysDept> impl
         // 5. 业务校验
         // 5.1 检查是否有子部门
         if (hasChildren(id)) {
-            throw new BusinessException("该部门下还有子部门，不能删除");
+            throw new BusinessException(ErrorCode.CONFLICT, "该部门下还有子部门，不能删除");
         }
 
         // 5.2 检查是否有用户（跨库查db_user
         int userCount = countUsersByDeptId(id);
         if (userCount > 0) {
-            throw new BusinessException("该部门下还有 " + userCount + " 个用户，不能删除");
+            throw new BusinessException(ErrorCode.CONFLICT, "该部门下还有 " + userCount + " 个用户，不能删除");
         }
 
         // 6. 执行业务逻辑

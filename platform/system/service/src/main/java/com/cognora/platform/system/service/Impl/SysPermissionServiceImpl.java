@@ -3,6 +3,7 @@ package com.cognora.platform.system.service.Impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.cognora.platform.common.exception.BusinessException;
+import com.cognora.platform.common.exception.ErrorCode;
 import com.cognora.platform.common.response.ResultCode;
 import com.cognora.platform.common.security.PermissionChecker;
 import com.cognora.platform.common.tenant.TenantValidationUtil;
@@ -120,7 +121,7 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
     public PermissionDTO getPermissionById(UUID id) {
         SysPermission permission = getBaseMapper().selectById(id);
         if (permission == null) {
-            throw new BusinessException("权限不存在");
+            throw new BusinessException(ErrorCode.NOT_FOUND, "权限不存在");
         }
         return convertToDTO(permission);
     }
@@ -136,7 +137,7 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
         LambdaQueryWrapper<SysPermission> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(SysPermission::getPermissionCode, permissionDTO.getPermissionCode());
         if (getBaseMapper().selectCount(wrapper) > 0) {
-            throw new BusinessException("权限编码已存在");
+            throw new BusinessException(ErrorCode.CONFLICT, "权限编码已存在");
         }
 
         SysPermission permission = new SysPermission();
@@ -163,11 +164,11 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
 
         SysPermission existPermission = getBaseMapper().selectById(permissionDTO.getId());
         if (existPermission == null) {
-            throw new BusinessException("权限不存在");
+            throw new BusinessException(ErrorCode.NOT_FOUND, "权限不存在");
         }
 
         if (permissionDTO.getParentId() != null && permissionDTO.getParentId().equals(permissionDTO.getId())) {
-            throw new BusinessException("父节点不能是自己");
+            throw new BusinessException(ErrorCode.PARAM_VALIDATION_ERROR, "父节点不能是自己");
         }
 
         requirePermissionOwnership(existPermission);
@@ -195,7 +196,7 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
 
         SysPermission permission = getBaseMapper().selectById(id);
         if (permission == null) {
-            throw new BusinessException("权限不存在");
+            throw new BusinessException(ErrorCode.NOT_FOUND, "权限不存在");
         }
 
         requirePermissionOwnership(permission);
@@ -204,17 +205,17 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
         wrapper.eq(SysPermission::getParentId, id);
         Long childCount = getBaseMapper().selectCount(wrapper);
         if (childCount > 0) {
-            throw new BusinessException("该权限下还有子权限，不能删除");
+            throw new BusinessException(ErrorCode.CONFLICT, "该权限下还有子权限，不能删除");
         }
 
         Integer roleCount = rolePermissionMapper.countRolesByPermissionId(id);
         if (roleCount > 0) {
-            throw new BusinessException("该权限已被 " + roleCount + " 个角色使用，不能删除");
+            throw new BusinessException(ErrorCode.CONFLICT, "该权限已被 " + roleCount + " 个角色使用，不能删除");
         }
 
         Integer tempPermCount = tempPermissionMapper.countActiveByPermissionId(id);
         if (tempPermCount != null && tempPermCount > 0) {
-            throw new BusinessException("该权限正被 " + tempPermCount + " 个用户作为临时权限使用，不能删除");
+            throw new BusinessException(ErrorCode.CONFLICT, "该权限正被 " + tempPermCount + " 个用户作为临时权限使用，不能删除");
         }
 
         getBaseMapper().deleteById(id);
