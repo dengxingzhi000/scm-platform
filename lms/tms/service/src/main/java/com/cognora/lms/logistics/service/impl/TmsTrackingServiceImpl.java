@@ -12,6 +12,7 @@ import com.cognora.lms.logistics.mapper.TmsTrackingMapper;
 import com.cognora.lms.logistics.mapper.TmsWaybillMapper;
 import com.cognora.lms.logistics.service.ITmsTrackingService;
 import com.cognora.lms.logistics.support.TenantGuard;
+import com.cognora.platform.common.log.util.LogUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
@@ -89,7 +90,8 @@ public class TmsTrackingServiceImpl extends ServiceImpl<TmsTrackingMapper, TmsTr
         TmsTracking existing = findByEventId(eventId);
         if (existing != null) {
             log.info("Duplicate tracking callback ignored: waybillNo={}, eventId={}, trackingId={}",
-                    tracking.getWaybillNo(), eventId, existing.getId());
+                    LogUtils.sanitizeForLog(tracking.getWaybillNo()),
+                    LogUtils.sanitizeForLog(eventId), existing.getId());
             return existing;
         }
 
@@ -116,7 +118,8 @@ public class TmsTrackingServiceImpl extends ServiceImpl<TmsTrackingMapper, TmsTr
             existing = findByEventId(eventId);
             if (existing != null) {
                 log.info("Concurrent duplicate tracking callback merged: waybillNo={}, eventId={}, trackingId={}",
-                        tracking.getWaybillNo(), eventId, existing.getId());
+                        LogUtils.sanitizeForLog(tracking.getWaybillNo()),
+                        LogUtils.sanitizeForLog(eventId), existing.getId());
                 return existing;
             }
             throw duplicate;
@@ -124,7 +127,8 @@ public class TmsTrackingServiceImpl extends ServiceImpl<TmsTrackingMapper, TmsTr
 
         applyWaybillStatus(waybill, tracking);
 
-        log.info("物流轨迹添加入库: id={}, waybillNo={}, eventId={}", tracking.getId(), tracking.getWaybillNo(), eventId);
+        log.info("物流轨迹添加入库: id={}, waybillNo={}, eventId={}", tracking.getId(),
+                LogUtils.sanitizeForLog(tracking.getWaybillNo()), LogUtils.sanitizeForLog(eventId));
         return tracking;
     }
 
