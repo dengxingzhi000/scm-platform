@@ -27,9 +27,24 @@ public class InvTccReservation {
     private String businessKey;
 
     /**
-     * SKU ID
+     * SKU ID（旧数字 ID，兼容 scm-order，保留结转期双写）
      */
     private Long skuId;
+
+    /**
+     * SKU UUID，与 inv_inventory.sku_id 类型对齐
+     */
+    private String skuUuid;
+
+    /**
+     * 精确台账行：inv_inventory.id
+     */
+    private String inventoryId;
+
+    /**
+     * 仓库 ID，多仓场景下与 skuUuid 一起定位台账行
+     */
+    private String warehouseId;
 
     /**
      * 预留数量
