@@ -4242,348 +4242,1290 @@
     },
     "/api/v1/tms-exception/list": {
       "get": {
-        "tags": ["异常件与理赔"],
+        "tags": [
+          "异常件与理赔"
+        ],
         "summary": "分页查询异常件",
         "operationId": "pageCases",
         "parameters": [
-          {"name": "page", "in": "query", "required": false, "schema": {"type": "integer", "format": "int32", "default": 1}},
-          {"name": "size", "in": "query", "required": false, "schema": {"type": "integer", "format": "int32", "default": 10}},
-          {"name": "waybillNo", "in": "query", "required": false, "schema": {"type": "string"}},
-          {"name": "status", "in": "query", "description": "NEW / CLAIMED / PROCESSING / RESOLVED / CLOSED", "required": false, "schema": {"type": "string"}}
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          },
+          {
+            "name": "waybillNo",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "NEW / CLAIMED / PROCESSING / RESOLVED / CLOSED",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
-          "200": {"description": "OK", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponsePageTmsExceptionCase"}}}},
-          "400": {"description": "Bad Request", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "401": {"description": "Unauthorized", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "403": {"description": "Forbidden", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "500": {"description": "Internal Server Error", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}}
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePageTmsExceptionCase"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
         }
       }
     },
     "/api/v1/tms-exception": {
       "post": {
-        "tags": ["异常件与理赔"],
+        "tags": [
+          "异常件与理赔"
+        ],
         "summary": "登记异常件",
         "operationId": "createCase",
         "requestBody": {
           "required": true,
-          "content": {"application/json": {"schema": {
-            "type": "object",
-            "properties": {
-              "waybillId": {"type": "string", "description": "运单主键 ID"},
-              "exceptionType": {"type": "string", "description": "异常类型，如 DAMAGED / LOST / DELAYED"},
-              "description": {"type": "string"},
-              "operator": {"type": "string"}
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "waybillId": {
+                    "type": "string",
+                    "description": "运单主键 ID"
+                  },
+                  "exceptionType": {
+                    "type": "string",
+                    "description": "异常类型，如 DAMAGED / LOST / DELAYED"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "operator": {
+                    "type": "string"
+                  }
+                }
+              }
             }
-          }}}
+          }
         },
         "responses": {
-          "200": {"description": "OK", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseTmsExceptionCase"}}}},
-          "400": {"description": "Bad Request", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "401": {"description": "Unauthorized", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "403": {"description": "Forbidden", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "500": {"description": "Internal Server Error", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}}
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTmsExceptionCase"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
         }
       }
     },
     "/api/v1/tms-exception/{id}/claim": {
       "post": {
-        "tags": ["异常件与理赔"],
+        "tags": [
+          "异常件与理赔"
+        ],
         "summary": "认领异常件",
         "operationId": "claim",
         "parameters": [
-          {"name": "id", "in": "path", "required": true, "schema": {"type": "string"}}
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "requestBody": {
           "required": true,
-          "content": {"application/json": {"schema": {
-            "type": "object",
-            "properties": {
-              "responsibleParty": {"type": "string", "description": "责任方，如 CARRIER / WAREHOUSE / MERCHANT"},
-              "operator": {"type": "string"}
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "responsibleParty": {
+                    "type": "string",
+                    "description": "责任方，如 CARRIER / WAREHOUSE / MERCHANT"
+                  },
+                  "operator": {
+                    "type": "string"
+                  }
+                }
+              }
             }
-          }}}
+          }
         },
         "responses": {
-          "200": {"description": "OK", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseTmsExceptionCase"}}}},
-          "400": {"description": "Bad Request", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "401": {"description": "Unauthorized", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "403": {"description": "Forbidden", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "500": {"description": "Internal Server Error", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}}
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTmsExceptionCase"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
         }
       }
     },
     "/api/v1/tms-exception/{id}/transition": {
       "post": {
-        "tags": ["异常件与理赔"],
+        "tags": [
+          "异常件与理赔"
+        ],
         "summary": "异常件状态流转",
         "operationId": "transition",
         "parameters": [
-          {"name": "id", "in": "path", "required": true, "schema": {"type": "string"}}
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "requestBody": {
           "required": true,
-          "content": {"application/json": {"schema": {
-            "type": "object",
-            "properties": {
-              "targetStatus": {"type": "string", "description": "NEW / CLAIMED / PROCESSING / RESOLVED / CLOSED"},
-              "resolution": {"type": "string", "description": "处理结论，流转到 RESOLVED 时写入"},
-              "operator": {"type": "string"}
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "targetStatus": {
+                    "type": "string",
+                    "description": "NEW / CLAIMED / PROCESSING / RESOLVED / CLOSED"
+                  },
+                  "resolution": {
+                    "type": "string",
+                    "description": "处理结论，流转到 RESOLVED 时写入"
+                  },
+                  "operator": {
+                    "type": "string"
+                  }
+                }
+              }
             }
-          }}}
+          }
         },
         "responses": {
-          "200": {"description": "OK", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseTmsExceptionCase"}}}},
-          "400": {"description": "Bad Request", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "401": {"description": "Unauthorized", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "403": {"description": "Forbidden", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "500": {"description": "Internal Server Error", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}}
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTmsExceptionCase"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
         }
       }
     },
     "/api/v1/tms-exception/{id}/claims": {
       "post": {
-        "tags": ["异常件与理赔"],
+        "tags": [
+          "异常件与理赔"
+        ],
         "summary": "创建理赔单",
         "operationId": "createClaim",
         "parameters": [
-          {"name": "id", "in": "path", "description": "异常件主键 ID", "required": true, "schema": {"type": "string"}}
+          {
+            "name": "id",
+            "in": "path",
+            "description": "异常件主键 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "requestBody": {
           "required": true,
-          "content": {"application/json": {"schema": {
-            "type": "object",
-            "properties": {
-              "amount": {"type": "number", "description": "理赔金额，必须大于 0"},
-              "reason": {"type": "string"},
-              "evidenceUrl": {"type": "string"},
-              "operator": {"type": "string"}
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "amount": {
+                    "type": "number",
+                    "description": "理赔金额，必须大于 0"
+                  },
+                  "reason": {
+                    "type": "string"
+                  },
+                  "evidenceUrl": {
+                    "type": "string"
+                  },
+                  "operator": {
+                    "type": "string"
+                  }
+                }
+              }
             }
-          }}}
+          }
         },
         "responses": {
-          "200": {"description": "OK", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseTmsClaimOrder"}}}},
-          "400": {"description": "Bad Request", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "401": {"description": "Unauthorized", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "403": {"description": "Forbidden", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "500": {"description": "Internal Server Error", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}}
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTmsClaimOrder"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
         }
       }
     },
     "/api/v1/tms-exception/claims/list": {
       "get": {
-        "tags": ["异常件与理赔"],
+        "tags": [
+          "异常件与理赔"
+        ],
         "summary": "分页查询理赔单",
         "operationId": "pageClaims",
         "parameters": [
-          {"name": "page", "in": "query", "required": false, "schema": {"type": "integer", "format": "int32", "default": 1}},
-          {"name": "size", "in": "query", "required": false, "schema": {"type": "integer", "format": "int32", "default": 10}},
-          {"name": "waybillNo", "in": "query", "required": false, "schema": {"type": "string"}},
-          {"name": "status", "in": "query", "description": "DRAFT / SUBMITTED / APPROVED / REJECTED / PAID", "required": false, "schema": {"type": "string"}}
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          },
+          {
+            "name": "waybillNo",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "DRAFT / SUBMITTED / APPROVED / REJECTED / PAID",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
-          "200": {"description": "OK", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponsePageTmsClaimOrder"}}}},
-          "400": {"description": "Bad Request", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "401": {"description": "Unauthorized", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "403": {"description": "Forbidden", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "500": {"description": "Internal Server Error", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}}
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePageTmsClaimOrder"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
         }
       }
     },
     "/api/v1/tms-exception/claims/{id}/transition": {
       "post": {
-        "tags": ["异常件与理赔"],
+        "tags": [
+          "异常件与理赔"
+        ],
         "summary": "理赔单状态流转",
         "operationId": "transitionClaim",
         "parameters": [
-          {"name": "id", "in": "path", "required": true, "schema": {"type": "string"}}
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "requestBody": {
           "required": true,
-          "content": {"application/json": {"schema": {
-            "type": "object",
-            "properties": {
-              "targetStatus": {"type": "string", "description": "DRAFT / SUBMITTED / APPROVED / REJECTED / PAID"},
-              "operator": {"type": "string"},
-              "remark": {"type": "string"}
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "targetStatus": {
+                    "type": "string",
+                    "description": "DRAFT / SUBMITTED / APPROVED / REJECTED / PAID"
+                  },
+                  "operator": {
+                    "type": "string"
+                  },
+                  "remark": {
+                    "type": "string"
+                  }
+                }
+              }
             }
-          }}}
+          }
         },
         "responses": {
-          "200": {"description": "OK", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseTmsClaimOrder"}}}},
-          "400": {"description": "Bad Request", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "401": {"description": "Unauthorized", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "403": {"description": "Forbidden", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "500": {"description": "Internal Server Error", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}}
-        }
-      }
-    },
-    "/api/v1/tms-sla/list": {
-      "get": {
-        "tags": ["SLA 时效预警"],
-        "summary": "分页查询 SLA 预警",
-        "operationId": "pageAlerts",
-        "parameters": [
-          {"name": "page", "in": "query", "required": false, "schema": {"type": "integer", "format": "int32", "default": 1}},
-          {"name": "size", "in": "query", "required": false, "schema": {"type": "integer", "format": "int32", "default": 10}},
-          {"name": "waybillNo", "in": "query", "required": false, "schema": {"type": "string"}},
-          {"name": "status", "in": "query", "description": "OPEN / ACK / CLOSED", "required": false, "schema": {"type": "string"}},
-          {"name": "level", "in": "query", "description": "WARN / CRITICAL", "required": false, "schema": {"type": "string"}}
-        ],
-        "responses": {
-          "200": {"description": "OK", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponsePageTmsSlaAlert"}}}},
-          "400": {"description": "Bad Request", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "401": {"description": "Unauthorized", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "403": {"description": "Forbidden", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "500": {"description": "Internal Server Error", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}}
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTmsClaimOrder"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
         }
       }
     },
     "/api/v1/tms-sla/{id}/ack": {
       "post": {
-        "tags": ["SLA 时效预警"],
+        "tags": [
+          "SLA 时效预警"
+        ],
         "summary": "确认预警",
         "operationId": "acknowledge",
         "parameters": [
-          {"name": "id", "in": "path", "required": true, "schema": {"type": "string"}},
-          {"name": "operator", "in": "query", "required": false, "schema": {"type": "string"}}
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "operator",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
-          "200": {"description": "OK", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "400": {"description": "Bad Request", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "401": {"description": "Unauthorized", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "403": {"description": "Forbidden", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "500": {"description": "Internal Server Error", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}}
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
         }
       }
     },
     "/api/v1/tms-sla/scan": {
       "post": {
-        "tags": ["SLA 时效预警"],
+        "tags": [
+          "SLA 时效预警"
+        ],
         "summary": "手动触发超时扫描",
         "operationId": "scanOverdue",
         "responses": {
-          "200": {"description": "OK", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseInteger"}}}},
-          "400": {"description": "Bad Request", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "401": {"description": "Unauthorized", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "403": {"description": "Forbidden", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "500": {"description": "Internal Server Error", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}}
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseInteger"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
         }
       }
     },
     "/api/v1/tms-freight/template/list": {
       "get": {
-        "tags": ["Freight"],
+        "tags": [
+          "Freight"
+        ],
         "summary": "分页查询运费模板",
         "operationId": "pageTemplates",
         "parameters": [
-          {"name": "page", "in": "query", "required": false, "schema": {"type": "integer", "format": "int32", "default": 1}},
-          {"name": "size", "in": "query", "required": false, "schema": {"type": "integer", "format": "int32", "default": 10}},
-          {"name": "carrierId", "in": "query", "required": false, "schema": {"type": "string"}},
-          {"name": "regionCode", "in": "query", "required": false, "schema": {"type": "string"}}
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          },
+          {
+            "name": "carrierId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "regionCode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
-          "200": {"description": "OK", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponsePageTmsFreightTemplate"}}}},
-          "400": {"description": "Bad Request", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "401": {"description": "Unauthorized", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "403": {"description": "Forbidden", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "500": {"description": "Internal Server Error", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}}
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePageTmsFreightTemplate"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
         }
       }
     },
     "/api/v1/tms-freight/template": {
       "post": {
-        "tags": ["Freight"],
+        "tags": [
+          "Freight"
+        ],
         "summary": "创建运费模板",
         "operationId": "createTemplate",
         "requestBody": {
           "required": true,
-          "content": {"application/json": {"schema": {"$ref": "#/components/schemas/TmsFreightTemplate"}}}
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TmsFreightTemplate"
+              }
+            }
+          }
         },
         "responses": {
-          "200": {"description": "OK", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseTmsFreightTemplate"}}}},
-          "400": {"description": "Bad Request", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "401": {"description": "Unauthorized", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "403": {"description": "Forbidden", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "500": {"description": "Internal Server Error", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}}
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTmsFreightTemplate"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
         }
       }
     },
     "/api/v1/tms-freight/template/{id}": {
       "put": {
-        "tags": ["Freight"],
+        "tags": [
+          "Freight"
+        ],
         "summary": "更新运费模板",
         "operationId": "updateTemplate",
         "parameters": [
-          {"name": "id", "in": "path", "required": true, "schema": {"type": "string"}}
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "requestBody": {
           "required": true,
-          "content": {"application/json": {"schema": {"$ref": "#/components/schemas/TmsFreightTemplate"}}}
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TmsFreightTemplate"
+              }
+            }
+          }
         },
         "responses": {
-          "200": {"description": "OK", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseTmsFreightTemplate"}}}},
-          "400": {"description": "Bad Request", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "401": {"description": "Unauthorized", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "403": {"description": "Forbidden", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "500": {"description": "Internal Server Error", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}}
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTmsFreightTemplate"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
         }
       },
       "delete": {
-        "tags": ["Freight"],
+        "tags": [
+          "Freight"
+        ],
         "summary": "删除运费模板",
         "operationId": "deleteTemplate",
         "parameters": [
-          {"name": "id", "in": "path", "required": true, "schema": {"type": "string"}}
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
-          "200": {"description": "OK", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "400": {"description": "Bad Request", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "401": {"description": "Unauthorized", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "403": {"description": "Forbidden", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "500": {"description": "Internal Server Error", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}}
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
         }
       }
     },
     "/api/v1/tms-freight/reconciliation/{id}/confirm": {
       "post": {
-        "tags": ["Freight"],
+        "tags": [
+          "Freight"
+        ],
         "summary": "确认对账差异",
         "description": "OPEN → CONFIRMED；重复确认幂等。需要权限码 lms:freight:reconciliation:confirm。",
         "operationId": "confirmReconciliation",
         "parameters": [
-          {"name": "id", "in": "path", "required": true, "schema": {"type": "string"}},
-          {"name": "operator", "in": "query", "required": false, "schema": {"type": "string"}}
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "operator",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
-          "200": {"description": "OK", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseTmsFreightReconciliation"}}}},
-          "400": {"description": "Bad Request", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "401": {"description": "Unauthorized", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "403": {"description": "Forbidden", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "500": {"description": "Internal Server Error", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}}
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTmsFreightReconciliation"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
         }
       }
     },
     "/api/v1/tms-tracking/callback/{carrierCode}": {
       "post": {
-        "tags": ["Tracking"],
+        "tags": [
+          "Tracking"
+        ],
         "summary": "承运商轨迹回调",
         "description": "使用 HMAC-SHA256(timestamp + 换行 + nonce + 换行 + rawBody) 验签，时间窗默认 300 秒，nonce 一次性消费；验签失败 401 且不落库。",
         "operationId": "callback",
         "parameters": [
-          {"name": "carrierCode", "in": "path", "required": true, "schema": {"type": "string"}},
-          {"name": "X-Lms-Timestamp", "in": "header", "required": true, "schema": {"type": "string"}, "description": "Unix 秒"},
-          {"name": "X-Lms-Nonce", "in": "header", "required": true, "schema": {"type": "string"}},
-          {"name": "X-Lms-Signature", "in": "header", "required": true, "schema": {"type": "string"}, "description": "HMAC-SHA256 hex，可带 sha256= 前缀"}
+          {
+            "name": "carrierCode",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Lms-Timestamp",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Unix 秒"
+          },
+          {
+            "name": "X-Lms-Nonce",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Lms-Signature",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "HMAC-SHA256 hex，可带 sha256= 前缀"
+          }
         ],
         "requestBody": {
           "required": true,
-          "content": {"application/json": {"schema": {"$ref": "#/components/schemas/TmsTracking"}}}
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TmsTracking"
+              }
+            }
+          }
         },
         "responses": {
-          "200": {"description": "OK", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseTmsTracking"}}}},
-          "401": {"description": "验签失败/时间窗超限/nonce 重放", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}},
-          "500": {"description": "Internal Server Error", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/ApiResponseVoid"}}}}
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTmsTracking"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "验签失败/时间窗超限/nonce 重放",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
         }
       }
     }
