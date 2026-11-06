@@ -12,6 +12,9 @@ import com.cognora.scm.finance.domain.enums.InvoiceStatus;
 import com.cognora.scm.finance.domain.support.FinanceAmount;
 import com.cognora.scm.finance.mapper.InvoiceMapper;
 import com.cognora.scm.finance.service.IInvoiceService;
+import com.cognora.scm.finance.service.support.AccountingPeriodGuard;
+import com.cognora.scm.finance.service.support.FinanceTenantGuard;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,7 +26,10 @@ import java.time.LocalDateTime;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class InvoiceServiceImpl extends ServiceImpl<InvoiceMapper, Invoice> implements IInvoiceService {
+
+    private final AccountingPeriodGuard accountingPeriodGuard;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -48,6 +54,8 @@ public class InvoiceServiceImpl extends ServiceImpl<InvoiceMapper, Invoice> impl
         invoice.setRelatedOrders(request.getRelatedOrders());
         invoice.setSettlementId(request.getSettlementId());
         invoice.setRemark(request.getRemark());
+        invoice.setInvoiceDate(LocalDate.now());
+        accountingPeriodGuard.assertWritable(invoice.getInvoiceDate(), "发票:" + invoice.getInvoiceNo());
         invoice.setStatus(InvoiceStatus.DRAFT.getCode());
         invoice.setDeleted(false);
         invoice.setCreateTime(LocalDateTime.now());
@@ -67,6 +75,8 @@ public class InvoiceServiceImpl extends ServiceImpl<InvoiceMapper, Invoice> impl
         if (invoice == null || Boolean.TRUE.equals(invoice.getDeleted())) {
             throw new IllegalArgumentException("Invoice not found: " + id);
         }
+        FinanceTenantGuard.verifyOwnership(invoice.getTenantId());
+        assertPeriodOpen(invoice);
         // 已开具 / 已作废 / 已红冲的发票是会计凭证，不允许再改任何字段。
         if (invoice.getStatus() != InvoiceStatus.DRAFT.getCode()) {
             throw new IllegalStateException("Only draft invoices can be updated, current status: "
@@ -131,6 +141,8 @@ public class InvoiceServiceImpl extends ServiceImpl<InvoiceMapper, Invoice> impl
         if (invoice == null || Boolean.TRUE.equals(invoice.getDeleted())) {
             throw new IllegalArgumentException("Invoice not found: " + id);
         }
+        FinanceTenantGuard.verifyOwnership(invoice.getTenantId());
+        assertPeriodOpen(invoice);
 
         invoice.setDeleted(true);
         invoice.setUpdateTime(LocalDateTime.now());
@@ -158,6 +170,8 @@ public class InvoiceServiceImpl extends ServiceImpl<InvoiceMapper, Invoice> impl
         if (invoice == null || Boolean.TRUE.equals(invoice.getDeleted())) {
             throw new IllegalArgumentException("Invoice not found: " + id);
         }
+        FinanceTenantGuard.verifyOwnership(invoice.getTenantId());
+        assertPeriodOpen(invoice);
         if (invoice.getStatus() != InvoiceStatus.DRAFT.getCode()) {
             throw new IllegalStateException("Only draft invoices can be issued, current status: " + InvoiceStatus.fromCode(invoice.getStatus()).getDescription());
         }
@@ -181,6 +195,8 @@ public class InvoiceServiceImpl extends ServiceImpl<InvoiceMapper, Invoice> impl
         if (invoice == null || Boolean.TRUE.equals(invoice.getDeleted())) {
             throw new IllegalArgumentException("Invoice not found: " + id);
         }
+        FinanceTenantGuard.verifyOwnership(invoice.getTenantId());
+        assertPeriodOpen(invoice);
         if (invoice.getStatus() == InvoiceStatus.VOIDED.getCode()
                 || invoice.getStatus() == InvoiceStatus.RED_FLUSHED.getCode()) {
             throw new IllegalStateException("Invoice already voided or red-flushed, cannot void again");
@@ -203,6 +219,8 @@ public class InvoiceServiceImpl extends ServiceImpl<InvoiceMapper, Invoice> impl
         if (invoice == null || Boolean.TRUE.equals(invoice.getDeleted())) {
             throw new IllegalArgumentException("Invoice not found: " + id);
         }
+        FinanceTenantGuard.verifyOwnership(invoice.getTenantId());
+        assertPeriodOpen(invoice);
         if (invoice.getStatus() != InvoiceStatus.ISSUED.getCode()
                 && invoice.getStatus() != InvoiceStatus.MAILED.getCode()) {
             throw new IllegalStateException("Only issued or mailed invoices can be red-flushed, current status: " + InvoiceStatus.fromCode(invoice.getStatus()).getDescription());
@@ -214,6 +232,14 @@ public class InvoiceServiceImpl extends ServiceImpl<InvoiceMapper, Invoice> impl
         updateById(invoice);
         log.info("Invoice red-flushed: id={}", (id + "").replace("\r", "_").replace("\n", "_"));
         return invoice;
+    }
+
+    private void assertPeriodOpen(Invoice invoice) {
+        LocalDate businessDate = invoice.getInvoiceDate();
+        if (businessDate == null && invoice.getCreateTime() != null) {
+            businessDate = invoice.getCreateTime().toLocalDate();
+        }
+        accountingPeriodGuard.assertWritable(businessDate, "发票:" + invoice.getInvoiceNo());
     }
 
     /**

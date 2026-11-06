@@ -22,7 +22,10 @@ class FinanceAuditAnnotationTest {
             SettlementItemController.class,
             InvoiceController.class,
             ReconciliationRecordController.class,
-            PlatformServiceFeeController.class
+            PlatformServiceFeeController.class,
+            AccountingPeriodController.class,
+            ReconciliationDiffController.class,
+            FundFlowController.class
     };
 
     @Test
@@ -42,7 +45,7 @@ class FinanceAuditAnnotationTest {
                                 + " 是金额/凭证类写操作，riskLevel 至少为 3");
             }
         }
-        assertTrue(checked >= 24, "财务写接口数量异常，实际检查到 " + checked);
+        assertTrue(checked >= 30, "财务写接口数量异常，实际检查到 " + checked);
     }
 
     private boolean isWriteEndpoint(Method method) {

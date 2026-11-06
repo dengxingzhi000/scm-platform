@@ -6,7 +6,10 @@ import com.cognora.scm.finance.domain.entity.ReconciliationRecord;
 import com.cognora.scm.finance.domain.support.FinanceAmount;
 import com.cognora.scm.finance.mapper.ReconciliationRecordMapper;
 import com.cognora.scm.finance.service.IReconciliationRecordService;
+import com.cognora.scm.finance.service.support.AccountingPeriodGuard;
+import com.cognora.scm.finance.service.support.FinanceTenantGuard;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,14 +19,18 @@ import java.time.LocalDateTime;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class ReconciliationRecordServiceImpl extends ServiceImpl<ReconciliationRecordMapper, ReconciliationRecord>
         implements IReconciliationRecordService {
+
+    private final AccountingPeriodGuard accountingPeriodGuard;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ReconciliationRecord createReconciliation(ReconciliationRecord record) {
         log.info("创建对账记录: partyName={}, period={}", (record.getPartyName() + "").replace("\r", "_").replace("\n", "_"), (record.getReconciliationPeriod() + "").replace("\r", "_").replace("\n", "_"));
 
+        FinanceTenantGuard.verifyOwnership(record.getTenantId());
         record.setId(UUIDv7Util.generateString());
         record.setReconciliationNo(generateReconciliationNo());
         record.setStatus(0);
@@ -35,6 +42,8 @@ public class ReconciliationRecordServiceImpl extends ServiceImpl<ReconciliationR
         record.setUpdateTime(LocalDateTime.now());
 
         normalizeAmounts(record);
+        accountingPeriodGuard.assertWritable(record.getReconciliationPeriod(), record.getStartDate(),
+                "对账记录:" + record.getReconciliationNo());
 
         boolean success = save(record);
         if (!success) {
@@ -53,6 +62,9 @@ public class ReconciliationRecordServiceImpl extends ServiceImpl<ReconciliationR
         if (record == null || Boolean.TRUE.equals(record.getDeleted())) {
             throw new IllegalArgumentException("Reconciliation record not found: " + id);
         }
+        FinanceTenantGuard.verifyOwnership(record.getTenantId());
+        accountingPeriodGuard.assertWritable(record.getReconciliationPeriod(), record.getStartDate(),
+                "对账记录:" + record.getReconciliationNo());
         if (record.getStatus() != 0) {
             throw new IllegalStateException("Only pending records can be reconciled, current status: " + record.getStatus());
         }
@@ -82,6 +94,9 @@ public class ReconciliationRecordServiceImpl extends ServiceImpl<ReconciliationR
         if (record == null || Boolean.TRUE.equals(record.getDeleted())) {
             throw new IllegalArgumentException("Reconciliation record not found: " + id);
         }
+        FinanceTenantGuard.verifyOwnership(record.getTenantId());
+        accountingPeriodGuard.assertWritable(record.getReconciliationPeriod(), record.getStartDate(),
+                "对账记录:" + record.getReconciliationNo());
         if (record.getStatus() != 1 && record.getStatus() != 3) {
             throw new IllegalStateException("Only reconciled or diff records can be confirmed, current status: " + record.getStatus());
         }
@@ -106,6 +121,9 @@ public class ReconciliationRecordServiceImpl extends ServiceImpl<ReconciliationR
         if (record == null || Boolean.TRUE.equals(record.getDeleted())) {
             throw new IllegalArgumentException("Reconciliation record not found: " + id);
         }
+        FinanceTenantGuard.verifyOwnership(record.getTenantId());
+        accountingPeriodGuard.assertWritable(record.getReconciliationPeriod(), record.getStartDate(),
+                "对账记录:" + record.getReconciliationNo());
         record.setDiffReason(diffReason);
         record.setUpdateTime(LocalDateTime.now());
 
@@ -122,6 +140,9 @@ public class ReconciliationRecordServiceImpl extends ServiceImpl<ReconciliationR
         if (existing == null || Boolean.TRUE.equals(existing.getDeleted())) {
             throw new IllegalArgumentException("Reconciliation record not found: " + id);
         }
+        FinanceTenantGuard.verifyOwnership(existing.getTenantId());
+        accountingPeriodGuard.assertWritable(existing.getReconciliationPeriod(), existing.getStartDate(),
+                "对账记录:" + existing.getReconciliationNo());
         // 已对账后双方金额是核对结果，不允许通过更新接口改写。
         if (existing.getStatus() != 0 && hasAmountChanges(existing, record)) {
             throw new IllegalStateException("对账已执行，金额与差异不允许修改: " + id);
@@ -147,6 +168,9 @@ public class ReconciliationRecordServiceImpl extends ServiceImpl<ReconciliationR
     public void deleteReconciliation(String id) {
         ReconciliationRecord record = getById(id);
         if (record != null) {
+            FinanceTenantGuard.verifyOwnership(record.getTenantId());
+            accountingPeriodGuard.assertWritable(record.getReconciliationPeriod(), record.getStartDate(),
+                    "对账记录:" + record.getReconciliationNo());
             record.setDeleted(true);
             record.setUpdateTime(LocalDateTime.now());
             updateById(record);
