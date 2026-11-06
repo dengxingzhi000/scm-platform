@@ -198,7 +198,8 @@ public class TmsTrackingServiceImpl extends ServiceImpl<TmsTrackingMapper, TmsTr
         if (waybillMapper.updateById(patch) > 0) {
             waybill.setTrackingNo(patch.getTrackingNo());
             log.info("Waybill tracking number recorded: waybillNo={}, trackingNo={}",
-                    waybill.getWaybillNo(), patch.getTrackingNo());
+                    (waybill.getWaybillNo() + "").replace("\r", "_").replace("\n", "_"),
+                    (patch.getTrackingNo() + "").replace("\r", "_").replace("\n", "_"));
         }
     }
 
