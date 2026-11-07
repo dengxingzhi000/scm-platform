@@ -6,12 +6,14 @@ import com.cognora.platform.common.web.domain.SecurityUser;
 import com.cognora.platform.system.service.ISysPermissionService;
 import com.cognora.platform.system.service.command.ISysUserCommandService;
 import com.cognora.platform.system.service.query.ISysUserQueryService;
+import com.cognora.platform.system.service.support.TwoFactorPersistenceService;
 import com.cognora.platform.system.api.UserDubboService;
 import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -29,6 +31,7 @@ public class UserDubboServiceImpl implements UserDubboService {
     private final ISysUserQueryService sysUserQueryService;
     private final ISysUserCommandService sysUserCommandService;
     private final ISysPermissionService sysPermissionService;
+    private final TwoFactorPersistenceService twoFactorPersistenceService;
 
     @Override
     public SecurityUser getUserByUsername(String username) {
@@ -69,6 +72,26 @@ public class UserDubboServiceImpl implements UserDubboService {
     @Override
     public Set<String> findPermissionsByUserId(UUID userId) {
         return sysPermissionService.getUserPermissions(userId);
+    }
+
+    @Override
+    public void enableTwoFactor(UUID userId, String secret) {
+        twoFactorPersistenceService.enableTwoFactor(userId, secret);
+    }
+
+    @Override
+    public void disableTwoFactor(UUID userId) {
+        twoFactorPersistenceService.disableTwoFactor(userId);
+    }
+
+    @Override
+    public void replaceRecoveryCodes(UUID userId, List<String> codeHashes) {
+        twoFactorPersistenceService.replaceRecoveryCodes(userId, codeHashes);
+    }
+
+    @Override
+    public boolean consumeRecoveryCode(UUID userId, String codeHash) {
+        return twoFactorPersistenceService.consumeRecoveryCode(userId, codeHash);
     }
 }
 

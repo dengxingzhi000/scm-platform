@@ -17,15 +17,21 @@ spring:
         group: DEFAULT_GROUP
         file-extension: yml
 
+  # dynamic-datasource 是平台公共依赖：没有 primary 时 MyBatis 会报
+  # "Property 'sqlSessionFactory' or 'sqlSessionTemplate' are required"。
   datasource:
-    driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/db_user?stringtype=unspecified
-    username: ${DB_USERNAME:admin}
-    password: ${DB_PASSWORD:changeme}
-    hikari:
-      maximum-pool-size: 20
-      minimum-idle: 5
-      connection-timeout: 30000
+    dynamic:
+      primary: master
+      datasource:
+        master:
+          driver-class-name: org.postgresql.Driver
+          url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/db_user?stringtype=unspecified
+          username: ${DB_USERNAME:admin}
+          password: ${DB_PASSWORD:changeme}
+          hikari:
+            maximum-pool-size: 20
+            minimum-idle: 5
+            connection-timeout: 30000
 
   flyway:
     enabled: true
@@ -44,6 +50,14 @@ spring:
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
       database: 0
+
+dubbo:
+  application:
+    # 只注册接口级实例：Dubbo 3 默认还会以应用名注册一个 Nacos 实例，
+    # 与 Spring Cloud 的 HTTP 注册（8302）同名，网关负载均衡会挑到 Dubbo 端口。
+    register-mode: interface
+  registry:
+    address: nacos://${NACOS_SERVER:localhost:8848}
 
 mybatis-plus:
   configuration:

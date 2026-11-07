@@ -33,13 +33,40 @@ public interface SysUserMapper extends BaseMapper<SysUser> {
     SysUser findByUsername(@Param("username") String username);
 
     /**
-     * 妫€鏌ョ敤鎴峰悕鏄惁瀛樺湪
+     * 检查租户内用户名是否存在（软删除记录不占用用户名）。
      */
     @Select("""
             SELECT COUNT(*) > 0 FROM sys_user
-            WHERE username = #{username} AND NOT deleted
+            WHERE tenant_id = #{tenantId}
+              AND username = #{username}
+              AND NOT deleted
             """)
-    boolean existsByUsername(@Param("username") String username);
+    boolean existsByUsername(@Param("tenantId") UUID tenantId,
+                             @Param("username") String username);
+
+    /** 租户内手机号唯一性预检；修改用户时排除自身。 */
+    @Select("""
+            SELECT COUNT(*) > 0 FROM sys_user
+            WHERE tenant_id = #{tenantId}
+              AND phone = #{phone}
+              AND NOT deleted
+              AND (CAST(#{excludeId} AS uuid) IS NULL OR id <> CAST(#{excludeId} AS uuid))
+            """)
+    boolean existsByPhone(@Param("tenantId") UUID tenantId,
+                          @Param("phone") String phone,
+                          @Param("excludeId") UUID excludeId);
+
+    /** 租户内邮箱唯一性预检；修改用户时排除自身。 */
+    @Select("""
+            SELECT COUNT(*) > 0 FROM sys_user
+            WHERE tenant_id = #{tenantId}
+              AND email = #{email}
+              AND NOT deleted
+              AND (CAST(#{excludeId} AS uuid) IS NULL OR id <> CAST(#{excludeId} AS uuid))
+            """)
+    boolean existsByEmail(@Param("tenantId") UUID tenantId,
+                          @Param("email") String email,
+                          @Param("excludeId") UUID excludeId);
 
     /**
      * 鏇存柊鏈€鍚庣櫥褰曚俊锟?

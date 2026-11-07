@@ -85,6 +85,17 @@ public class SysUser implements Serializable {
     @TableField("locked_until")
     private LocalDateTime lockedUntil;
 
+    /** 锁定原因，供审计与用户详情展示。 */
+    @TableField("lock_reason")
+    private String lockReason;
+
+    /** 最近一次账号状态变更时间/操作人。 */
+    @TableField("status_changed_at")
+    private LocalDateTime statusChangedAt;
+
+    @TableField("status_changed_by")
+    private UUID statusChangedBy;
+
     @TableField("password_expire_time")
     private LocalDateTime passwordExpireTime;
 
@@ -124,4 +135,9 @@ public class SysUser implements Serializable {
 
     @TableField("remark")
     private String remark;
+
+    /** 乐观锁版本号；MyBatis-Plus OptimisticLockerInnerInterceptor 已全局注册。 */
+    @Version
+    @TableField("version")
+    private Integer version;
 }

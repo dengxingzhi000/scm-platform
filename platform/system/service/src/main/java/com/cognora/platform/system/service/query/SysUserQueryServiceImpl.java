@@ -5,7 +5,10 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cognora.platform.common.data.rw.annotation.Slave;
 import com.cognora.platform.common.dto.permission.PermissionDTO;
 import com.cognora.platform.common.dto.user.UserDTO;
+import com.cognora.platform.common.dto.user.UserDetailDTO;
 import com.cognora.platform.common.dto.user.UserInfo;
+import com.cognora.platform.common.dto.user.UserQueryRequest;
+import com.cognora.platform.common.dto.user.UserSummaryDTO;
 import com.cognora.platform.common.exception.BusinessException;
 import com.cognora.platform.common.response.ResultCode;
 import com.cognora.platform.common.security.PermissionChecker;
@@ -16,12 +19,14 @@ import com.cognora.platform.system.domain.entity.SysDept;
 import com.cognora.platform.system.domain.entity.SysUser;
 import com.cognora.platform.system.mapper.SysDeptMapper;
 import com.cognora.platform.system.mapper.SysUserMapper;
+import com.cognora.platform.system.mapper.SysUserRoleMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -47,6 +52,7 @@ public class SysUserQueryServiceImpl implements ISysUserQueryService {
 
     private final SysUserMapper userMapper;
     private final SysDeptMapper deptMapper;
+    private final SysUserRoleMapper userRoleMapper;
     private final UserCrossDatabaseQueryService userQueryService;
     private final DeptCrossDatabaseQueryService deptQueryService;
     private final PermissionCrossDatabaseQueryService permissionQueryService;
@@ -56,16 +62,36 @@ public class SysUserQueryServiceImpl implements ISysUserQueryService {
     @Slave
     // 不要加 @Transactional：listUsers 会跨 db_user（用户）与 db_permission（数据权限），
     // 事务提前绑定主库连接后 @DS("permission") 无法切换，会报 relation "sys_role" does not exist。
-    public Page<UserDTO> listUsers(Integer pageNum, Integer pageSize,
-                                   String username, Integer status) {
+    public Page<UserSummaryDTO> listUsers(UserQueryRequest request) {
         UUID tenantId = TenantValidationUtil.getRequiredTenantId();
         UUID operatorId = SecurityUtils.getCurrentUserUuid().orElse(null);
         String dataScope = permissionChecker.getUserDataScope(operatorId);
 
+        int pageNum = request.getPage() != null && request.getPage() > 0 ? request.getPage() : 1;
+        int pageSize = request.getSize() != null ? Math.min(request.getSize(), 100) : 10;
         Page<SysUser> page = new Page<>(pageNum, pageSize);
+
         LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<>();
-        wrapper.like(username != null && !username.isEmpty(), SysUser::getUsername, username)
-                .eq(status != null, SysUser::getStatus, status);
+        wrapper.like(request.getUsername() != null && !request.getUsername().isEmpty(),
+                        SysUser::getUsername, request.getUsername())
+                .like(request.getRealName() != null && !request.getRealName().isEmpty(),
+                        SysUser::getRealName, request.getRealName())
+                .like(request.getPhone() != null && !request.getPhone().isEmpty(),
+                        SysUser::getPhone, request.getPhone())
+                .like(request.getEmail() != null && !request.getEmail().isEmpty(),
+                        SysUser::getEmail, request.getEmail())
+                .eq(request.getDeptId() != null, SysUser::getDeptId, request.getDeptId())
+                .eq(request.getStatus() != null, SysUser::getStatus, request.getStatus())
+                .ge(request.getCreateTimeFrom() != null, SysUser::getCreateTime, request.getCreateTimeFrom())
+                .le(request.getCreateTimeTo() != null, SysUser::getCreateTime, request.getCreateTimeTo());
+
+        if (request.getRoleId() != null) {
+            List<UUID> roleUserIds = userRoleMapper.findUserIdsByRoleId(request.getRoleId());
+            if (roleUserIds == null || roleUserIds.isEmpty()) {
+                return new Page<>(pageNum, pageSize, 0);
+            }
+            wrapper.in(SysUser::getId, roleUserIds);
+        }
 
         if (!"ALL".equals(dataScope)) {
             List<UUID> accessibleDeptIds =
@@ -79,20 +105,20 @@ public class SysUserQueryServiceImpl implements ISysUserQueryService {
             }
         }
 
-        wrapper.orderByDesc(SysUser::getCreateTime);
+        applySort(wrapper, request.getSortBy(), request.getSortOrder());
 
         Page<SysUser> userPage = userMapper.selectPage(page, wrapper);
 
-        Page<UserDTO> dtoPage = new Page<>(pageNum, pageSize, userPage.getTotal());
-        List<UserDTO> dtos = userPage.getRecords().stream()
-                .map(this::convertToDTO)
+        Page<UserSummaryDTO> dtoPage = new Page<>(pageNum, pageSize, userPage.getTotal());
+        List<UserSummaryDTO> dtos = userPage.getRecords().stream()
+                .map(this::convertToSummary)
                 .collect(Collectors.toList());
         Map<UUID, String> deptNames = loadDeptNames(dtos);
         dtos.forEach(dto -> dto.setDeptName(deptNames.get(dto.getDeptId())));
 
         Map<UUID, List<Map<String, Object>>> roleRows = userQueryService.findUserRolesWithNamesByUserIds(
-                dtos.stream().map(UserDTO::getId).toList());
-        for (UserDTO dto : dtos) {
+                dtos.stream().map(UserSummaryDTO::getId).toList());
+        for (UserSummaryDTO dto : dtos) {
             List<Map<String, Object>> roles = roleRows.get(dto.getId());
             if (roles != null && !roles.isEmpty()) {
                 dto.setRoleIds(roles.stream()
@@ -170,6 +196,18 @@ public class SysUserQueryServiceImpl implements ISysUserQueryService {
 
     @Override
     @Slave
+    public UserDetailDTO getUserDetail(UUID id) {
+        // 这里直接复用 getUserById 的聚合结果；自调用不会命中 Spring Cache，
+        // 但详情接口前面已经由 UserReadAccessGuard 做过数据范围校验。
+        UserDTO dto = getUserById(id);
+        UserDetailDTO detail = new UserDetailDTO();
+        BeanUtils.copyProperties(dto, detail);
+        detail.setPermissions(new ArrayList<>(userQueryService.findPermissionCodesByUserId(id)));
+        return detail;
+    }
+
+    @Override
+    @Slave
     @Cacheable(value = "userInfo", keyGenerator = KEY_GEN)
     public UserInfo getUserInfo(UUID userId) {
         SysUser user = userMapper.selectById(userId);
@@ -231,9 +269,9 @@ public class SysUserQueryServiceImpl implements ISysUserQueryService {
     }
 
     /** 批量补齐部门名称，避免用户列表出现大量 N+1 跨库查询。 */
-    private Map<UUID, String> loadDeptNames(List<UserDTO> users) {
+    private Map<UUID, String> loadDeptNames(List<UserSummaryDTO> users) {
         List<UUID> deptIds = users.stream()
-                .map(UserDTO::getDeptId)
+                .map(UserSummaryDTO::getDeptId)
                 .filter(Objects::nonNull)
                 .distinct()
                 .toList();
@@ -267,5 +305,27 @@ public class SysUserQueryServiceImpl implements ISysUserQueryService {
         // 密码哈希绝不能出现在用户列表/详情响应里。
         dto.setPassword(null);
         return dto;
+    }
+
+    private UserSummaryDTO convertToSummary(SysUser user) {
+        UserSummaryDTO dto = new UserSummaryDTO();
+        BeanUtils.copyProperties(user, dto);
+        return dto;
+    }
+
+    /**
+     * 排序字段只接受白名单值；非法值在 DTO 校验阶段已拒绝，这里保留默认排序兜底。
+     */
+    private void applySort(LambdaQueryWrapper<SysUser> wrapper, String sortBy, String sortOrder) {
+        boolean asc = "asc".equalsIgnoreCase(sortOrder);
+        String field = sortBy == null || sortBy.isEmpty() ? "createTime" : sortBy;
+        switch (field) {
+            case "username" -> wrapper.orderBy(true, asc, SysUser::getUsername);
+            case "realName" -> wrapper.orderBy(true, asc, SysUser::getRealName);
+            case "status" -> wrapper.orderBy(true, asc, SysUser::getStatus);
+            case "lastLoginTime" -> wrapper.orderBy(true, asc, SysUser::getLastLoginTime);
+            case "createTime" -> wrapper.orderBy(true, asc, SysUser::getCreateTime);
+            default -> wrapper.orderByDesc(SysUser::getCreateTime);
+        }
     }
 }

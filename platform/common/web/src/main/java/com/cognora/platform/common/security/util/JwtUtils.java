@@ -389,6 +389,22 @@ public class JwtUtils {
     }
 
     /**
+     * 撤销某个用户指定设备的访问令牌。返回是否实际撤销（设备不存在返回 false）。
+     */
+    public boolean revokeDeviceToken(UUID userId, String deviceId, String reason) {
+        if (userId == null || deviceId == null || deviceId.isBlank()) {
+            return false;
+        }
+        Object token = stringRedisTemplate.<String, String>opsForHash()
+                .get(USER_TOKENS_HASH + userId, deviceId);
+        if (token == null) {
+            return false;
+        }
+        revokeToken(token.toString(), reason);
+        return true;
+    }
+
+    /**
      * 撤销某个用户除当前 deviceId 以外的全部访问令牌。
      *
      * <p>{@code currentDeviceId} 必须来自当前访问令牌的 {@code deviceId} 声明，

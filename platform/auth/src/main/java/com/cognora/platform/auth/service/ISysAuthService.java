@@ -82,4 +82,16 @@ public interface ISysAuthService {
      * @return 实际撤销的会话数量
      */
     int logoutOtherSessions(String accessToken);
+
+    /**
+     * 管理员查看指定用户的全部有效会话。租户与数据范围校验由调用方 scm-system 完成。
+     */
+    List<UserSessionDTO> listUserSessions(UUID userId);
+
+    /**
+     * 管理员撤销指定用户的单个设备会话。
+     *
+     * @return 实际撤销数量（0 或 1）
+     */
+    int revokeUserSession(UUID userId, String deviceId, String reason);
 }

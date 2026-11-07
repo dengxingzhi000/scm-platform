@@ -2,7 +2,10 @@ package com.cognora.platform.system.service.query;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cognora.platform.common.dto.user.UserDTO;
+import com.cognora.platform.common.dto.user.UserDetailDTO;
 import com.cognora.platform.common.dto.user.UserInfo;
+import com.cognora.platform.common.dto.user.UserQueryRequest;
+import com.cognora.platform.common.dto.user.UserSummaryDTO;
 import com.cognora.platform.common.web.domain.SecurityUser;
 
 import java.util.List;
@@ -17,11 +20,13 @@ import java.util.UUID;
  */
 public interface ISysUserQueryService {
 
-    Page<UserDTO> listUsers(Integer pageNum, Integer pageSize, String username, Integer status);
+    Page<UserSummaryDTO> listUsers(UserQueryRequest request);
 
     SecurityUser getUserByUsername(String username);
 
     UserDTO getUserById(UUID id);
+
+    UserDetailDTO getUserDetail(UUID id);
 
     UserInfo getUserInfo(UUID userId);
 

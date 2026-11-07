@@ -2,12 +2,18 @@ package com.cognora.platform.system.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cognora.platform.common.dto.user.ChangePasswordRequest;
-import com.cognora.platform.common.dto.user.UserDTO;
+import com.cognora.platform.common.dto.user.UpdateUserRequest;
+import com.cognora.platform.common.dto.user.UserDetailDTO;
+import com.cognora.platform.common.dto.user.UserQueryRequest;
+import com.cognora.platform.common.dto.user.UserSummaryDTO;
 import com.cognora.platform.common.domain.PageResult;
 import com.cognora.platform.common.response.ApiResponse;
+import com.cognora.platform.common.security.PermissionChecker;
+import com.cognora.platform.system.service.command.BatchUserCommandService;
 import com.cognora.platform.system.service.command.ISysUserCommandService;
 import com.cognora.platform.system.service.command.IUserRoleCommandService;
 import com.cognora.platform.system.service.query.ISysUserQueryService;
+import com.cognora.platform.system.service.support.UserReadAccessGuard;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -18,7 +24,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -34,6 +40,15 @@ class SysUserControllerTest {
     @Mock
     private IUserRoleCommandService userRoleCommandService;
 
+    @Mock
+    private BatchUserCommandService batchUserCommandService;
+
+    @Mock
+    private UserReadAccessGuard userReadAccessGuard;
+
+    @Mock
+    private PermissionChecker permissionChecker;
+
     @InjectMocks
     private SysUserController controller;
 
@@ -48,15 +63,20 @@ class SysUserControllerTest {
     }
 
     @Test
-    void updateDelegatesIdBindingToCommandService() {
+    void updateDelegatesToCommandServiceAndReturnsDetail() {
         UUID userId = UUID.randomUUID();
-        UserDTO userDTO = new UserDTO();
+        UpdateUserRequest request = new UpdateUserRequest();
+        request.setVersion(0);
 
-        ApiResponse<Void> response = controller.update(userId, userDTO);
+        when(userQueryService.getUserDetail(userId)).thenReturn(new UserDetailDTO());
+        when(permissionChecker.hasPermission(org.mockito.ArgumentMatchers.any(), anyString()))
+                .thenReturn(true);
+
+        ApiResponse<UserDetailDTO> response = controller.update(userId, request);
 
         assertEquals(200, response.code());
-        assertNull(userDTO.getId());
-        verify(userCommandService).updateUser(userId, userDTO);
+        verify(userCommandService).updateUser(userId, request);
+        verify(userQueryService).getUserDetail(userId);
     }
 
     @Test
@@ -83,13 +103,14 @@ class SysUserControllerTest {
 
     @Test
     void listWrapsPageResult() {
-        UserDTO user = new UserDTO();
+        UserSummaryDTO user = new UserSummaryDTO();
         user.setUsername("tester");
-        Page<UserDTO> page = new Page<>(1, 10, 25);
+        Page<UserSummaryDTO> page = new Page<>(1, 10, 25);
         page.setRecords(List.of(user));
-        when(userQueryService.listUsers(1, 10, null, null)).thenReturn(page);
+        UserQueryRequest request = new UserQueryRequest();
+        when(userQueryService.listUsers(request)).thenReturn(page);
 
-        ApiResponse<PageResult<UserDTO>> response = controller.list(1, 10, null, null);
+        ApiResponse<PageResult<UserSummaryDTO>> response = controller.list(request);
 
         assertEquals(200, response.code());
         assertEquals(25L, response.data().getTotal());
