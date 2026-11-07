@@ -47,6 +47,7 @@ db_permission:023_finance_batch2_permissions.sql
 db_permission:023_inventory_permissions.sql
 db_permission:024_finance_tax_rate_permissions.sql
 db_permission:025_finance_period_close_permissions.sql
+db_permission:026_finance_bad_debt_permissions.sql
 db_org:003_org_dept.sql
 db_user:004_admin_user.sql
 db_product:010_product.sql
