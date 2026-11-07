@@ -1,5 +1,6 @@
 package com.cognora.platform.common.security.util;
 
+import com.cognora.platform.common.exception.UnauthorizedException;
 import com.cognora.platform.common.security.audience.TokenAudience;
 import com.cognora.platform.common.security.properties.JwtProperties;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,6 +19,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.lenient;
 
 /**
@@ -89,5 +91,22 @@ class JwtUtilsAudienceTest {
                 Set.of(), "device-3", "10.0.0.2", List.of("pwd"), tenantId, "default");
 
         assertThat(jwtUtils.getAudienceFromToken(token)).isNull();
+    }
+
+    @Test
+    @DisplayName("兼容窗口关闭后旧 refresh token 统一 401，强制重新登录")
+    void legacyRefreshTokenIsRejected() {
+        String legacyRefreshToken = jwtUtils.generateRefreshToken(
+                userId, "legacy", "device-4", tenantId, "default");
+
+        assertThatThrownBy(() -> jwtUtils.refreshToken(
+                legacyRefreshToken, Set.of("ROLE_USER"), Set.of(), "device-4", "10.0.0.3"))
+                .isInstanceOf(UnauthorizedException.class)
+                .hasMessageContaining("invalid_token_audience_missing");
+
+        assertThatThrownBy(() -> jwtUtils.refreshTokenWithRotation(
+                legacyRefreshToken, Set.of("ROLE_USER"), Set.of(), "device-4", "10.0.0.3"))
+                .isInstanceOf(UnauthorizedException.class)
+                .hasMessageContaining("invalid_token_audience_missing");
     }
 }

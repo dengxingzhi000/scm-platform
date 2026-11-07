@@ -555,7 +555,8 @@ public class OrderStateMachineConfig {
 1. **签发端先行**：`platform-auth` 立即支持 `clientId` 入参，缺省为管理台 client（保证现有前端不改代码也拿到 `cognora-admin` 受众）；刷新令牌轮换时继承原受众。
 2. **校验端宽容旧令牌**：网关与业务服务对**缺少 `aud` 的旧令牌**默认放行并打点（`legacy-token-policy: ALLOW` / `allow-legacy-token: true`）。带 `aud` 的新令牌立即按受众校验，不等待窗口结束。
 3. **收紧时间点**：所有客户端都换成新登录流程后，至少等待一个刷新令牌周期（默认 7 天）再切换为 `DENY`；切换动作单独发版，不与本次改动合并。
-4. **回滚**：两项均为配置开关（网关 `security.audience.enabled`、服务端 `security.audience.enabled`），回滚只需关闭开关，无需回退代码。
+4. **执行记录（2026-11-07）**：已按上述流程单独发版收紧——网关默认 `legacy-token-policy: DENY`，`platform-system`/`ecom-mall` 设 `allow-legacy-token: false`，`JwtUtils` 对无 `aud` 的 refresh token 返回 401 `invalid_token_audience_missing`。存量会话需重新登录；临时回滚只需把网关设为 `GATEWAY_LEGACY_TOKEN_POLICY=ALLOW`。
+5. **回滚**：两项均为配置开关（网关 `security.audience.enabled`、服务端 `security.audience.enabled`），回滚只需关闭开关，无需回退代码。
 
 ### 新增入口的判断标准
 

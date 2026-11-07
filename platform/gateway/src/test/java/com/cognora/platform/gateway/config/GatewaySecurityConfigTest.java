@@ -99,7 +99,8 @@ class GatewaySecurityConfigTest {
         Object stored = session.getAttribute(SESSION_CONTEXT);
         Instant now = Instant.now();
         Jwt jwt = Jwt.withTokenValue(TOKEN).header("alg", "HS512").subject("bearer-user")
-                .claim("roles", List.of("ADMIN")).issuedAt(now).expiresAt(now.plusSeconds(60)).build();
+                .claim("roles", List.of("ADMIN")).claim("aud", "cognora-admin")
+                .issuedAt(now).expiresAt(now.plusSeconds(60)).build();
         when(decoder.decode(TOKEN)).thenReturn(Mono.just(jwt));
         MockServerWebExchange exchange = MockServerWebExchange.builder(MockServerHttpRequest.post(API)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + TOKEN))

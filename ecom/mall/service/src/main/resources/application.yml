@@ -71,4 +71,4 @@ security:
     enabled: true
     allowed:
       - cognora-mall
-    allow-legacy-token: true
+    allow-legacy-token: false

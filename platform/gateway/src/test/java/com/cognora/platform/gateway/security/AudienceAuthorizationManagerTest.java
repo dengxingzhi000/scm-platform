@@ -58,8 +58,16 @@ class AudienceAuthorizationManagerTest {
     }
 
     @Test
-    @DisplayName("兼容窗口内旧令牌（无 aud）放行")
-    void legacyTokenIsAllowedDuringTransition() {
+    @DisplayName("默认拒绝无 aud 的旧令牌（兼容窗口已关闭）")
+    void legacyTokenIsDeniedByDefault() {
+        assertThat(decide("/platform-system/api/system/users", null)).isFalse();
+    }
+
+    @Test
+    @DisplayName("显式配置 ALLOW 时旧令牌放行（仅用于临时回滚）")
+    void legacyTokenIsAllowedWhenExplicitlyConfigured() {
+        properties.setLegacyTokenPolicy(AudiencePolicyProperties.LegacyTokenPolicy.ALLOW);
+
         assertThat(decide("/platform-system/api/system/users", null)).isTrue();
     }
 

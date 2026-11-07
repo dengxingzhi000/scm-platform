@@ -24,8 +24,8 @@ public class AudiencePolicyProperties {
     /** 是否开启网关受众校验。 */
     private boolean enabled = true;
 
-    /** 升级前签发、没有 {@code aud} 声明的旧令牌如何处理。 */
-    private LegacyTokenPolicy legacyTokenPolicy = LegacyTokenPolicy.ALLOW;
+    /** 升级前签发、没有 {@code aud} 声明的旧令牌如何处理；默认拒绝（兼容窗口已关闭）。 */
+    private LegacyTokenPolicy legacyTokenPolicy = LegacyTokenPolicy.DENY;
 
     /** 商城令牌允许访问的路径（白名单）。 */
     private List<String> mallAllowedPaths = new ArrayList<>(List.of(

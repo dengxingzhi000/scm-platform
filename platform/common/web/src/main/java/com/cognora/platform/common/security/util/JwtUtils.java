@@ -241,6 +241,10 @@ public class JwtUtils {
         }
         String tenantCode = getTenantCodeFromToken(refreshToken);
         String audience = getAudienceFromToken(refreshToken);
+        if (audience == null || audience.isBlank()) {
+            // 兼容窗口已关闭：旧 refresh token 没有受众声明，统一 401，强制重新登录
+            throw new UnauthorizedException("invalid_token_audience_missing");
+        }
         String lockKey = REFRESH_LOCK_PREFIX + userId;
 
         try {
@@ -834,6 +838,10 @@ public class JwtUtils {
         }
         String tenantCode = getTenantCodeFromToken(oldRefreshToken);
         String audience = getAudienceFromToken(oldRefreshToken);
+        if (audience == null || audience.isBlank()) {
+            // 兼容窗口已关闭：旧 refresh token 没有受众声明，统一 401，强制重新登录
+            throw new UnauthorizedException("invalid_token_audience_missing");
+        }
         String lockKey = REFRESH_LOCK_PREFIX + userId;
 
         try {
