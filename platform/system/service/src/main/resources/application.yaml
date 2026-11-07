@@ -367,7 +367,7 @@ security:
     enabled: true
     allowed:
       - cognora-admin
-    allow-legacy-token: true
+    allow-legacy-token: false
 
 datasync:
   enabled: true
