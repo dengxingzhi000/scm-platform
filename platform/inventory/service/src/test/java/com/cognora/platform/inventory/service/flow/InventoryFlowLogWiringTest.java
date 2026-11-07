@@ -14,6 +14,8 @@ import com.cognora.platform.inventory.mapper.InvInventoryMapper;
 import com.cognora.platform.inventory.mapper.InvReservationRecordMapper;
 import com.cognora.platform.inventory.mapper.InvTccReservationMapper;
 import com.cognora.platform.inventory.service.RedisInventoryService;
+import com.cognora.platform.inventory.service.batch.FefoAllocationPlan;
+import com.cognora.platform.inventory.service.batch.FefoAllocationService;
 import com.cognora.platform.inventory.service.command.InvInventoryCommandService;
 import com.cognora.platform.inventory.service.cost.InventoryCostLogService;
 import com.cognora.platform.inventory.service.cost.MovingAverageCostService;
@@ -65,11 +67,15 @@ class InventoryFlowLogWiringTest {
   private static final String OPERATOR_ID = "44444444-4444-4444-4444-444444444444";
 
   private InventoryFlowLogService flowLog;
+  private FefoAllocationService fefo;
 
   @BeforeEach
   void setUp() {
     TenantContextHolder.setTenantId(UUID.fromString(TENANT));
     flowLog = mock(InventoryFlowLogService.class);
+    fefo = mock(FefoAllocationService.class);
+    when(fefo.allocate(anyString(), anyString(), anyString(), anyInt()))
+        .thenReturn(FefoAllocationPlan.notBatchManaged(0));
   }
 
   @AfterEach
@@ -84,7 +90,7 @@ class InventoryFlowLogWiringTest {
     OutboxService outbox = mock(OutboxService.class);
     InvInventoryCommandService service =
         new InvInventoryCommandService(mapper, outbox, flowLog,
-            mock(MovingAverageCostService.class), mock(InventoryCostLogService.class));
+            mock(MovingAverageCostService.class), mock(InventoryCostLogService.class), fefo);
 
     Inventory existed = ledger(10, 10, 0, 0);
     Inventory fresh = ledger(15, 15, 0, 0);
@@ -113,7 +119,7 @@ class InventoryFlowLogWiringTest {
     flowLog = mock(InventoryFlowLogService.class);
     InvInventoryCommandService failing =
         new InvInventoryCommandService(mapper, outbox, flowLog,
-            mock(MovingAverageCostService.class), mock(InventoryCostLogService.class));
+            mock(MovingAverageCostService.class), mock(InventoryCostLogService.class), fefo);
     assertThrows(IllegalArgumentException.class, () -> failing.adjustInventory(adjustRequest(-20, 2)));
     verify(flowLog, never()).record(any(FlowLogEntry.class));
   }
@@ -124,7 +130,7 @@ class InventoryFlowLogWiringTest {
     InvInventoryMapper mapper = mock(InvInventoryMapper.class);
     InvInventoryCommandService service =
         new InvInventoryCommandService(mapper, mock(OutboxService.class), flowLog,
-            mock(MovingAverageCostService.class), mock(InventoryCostLogService.class));
+            mock(MovingAverageCostService.class), mock(InventoryCostLogService.class), fefo);
 
     Inventory from = ledger(10, 10, 0, 0);
     Inventory to = ledger(0, 2, 0, 0);

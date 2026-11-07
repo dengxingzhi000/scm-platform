@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
@@ -32,6 +33,12 @@ public class InvCostLog {
   private Long legacySkuId;
 
   private String warehouseCode;
+
+  /** 批次号；按批次出库时写入，整批移动/历史行为空 */
+  private String batchNo;
+
+  /** 批次效期；按批次出库时写入，整批移动/历史行为空 */
+  private LocalDate expiryDate;
 
   /** IN-入库（重算均价）；OUT-出库（按当时均价，不改均价） */
   private String direction;
