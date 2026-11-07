@@ -12,6 +12,8 @@ import com.cognora.platform.inventory.mapper.InvCostLogMapper;
 import com.cognora.platform.inventory.mapper.InvInventoryMapper;
 import com.cognora.platform.inventory.mapper.InvReservationRecordMapper;
 import com.cognora.platform.inventory.service.RedisInventoryService;
+import com.cognora.platform.inventory.service.batch.FefoAllocationPlan;
+import com.cognora.platform.inventory.service.batch.FefoAllocationService;
 import com.cognora.platform.inventory.service.command.InvInventoryCommandService;
 import com.cognora.platform.inventory.service.dubbo.InventoryDubboServiceImpl;
 import com.cognora.platform.inventory.service.flow.InventoryFlowLogService;
@@ -53,12 +55,16 @@ class InventoryCostWiringTest {
   private static final String RECORD_ID = "44444444-4444-4444-4444-444444444444";
 
   private InvCostLogMapper costLogMapper;
+  private FefoAllocationService fefo;
 
   @BeforeEach
   void setUp() {
     TenantContextHolder.setTenantId(UUID.fromString(TENANT));
     costLogMapper = mock(InvCostLogMapper.class);
     when(costLogMapper.insertLog(any(InvCostLog.class))).thenReturn(1);
+    fefo = mock(FefoAllocationService.class);
+    when(fefo.allocate(anyString(), anyString(), anyString(), anyInt()))
+        .thenReturn(FefoAllocationPlan.notBatchManaged(0));
   }
 
   @AfterEach
@@ -76,7 +82,7 @@ class InventoryCostWiringTest {
 
     InvInventoryCommandService service = new InvInventoryCommandService(mapper,
         mock(OutboxService.class), flowLog, mock(MovingAverageCostService.class),
-        new InventoryCostLogService(costLogMapper));
+        new InventoryCostLogService(costLogMapper), fefo);
 
     InventoryAdjustRequest request = adjustRequest(-5);
     assertThrows(IllegalArgumentException.class, () -> service.adjustInventory(request));
@@ -112,7 +118,7 @@ class InventoryCostWiringTest {
 
     InvInventoryCommandService service = new InvInventoryCommandService(mapper,
         mock(OutboxService.class), flowLog, costService,
-        new InventoryCostLogService(costLogMapper));
+        new InventoryCostLogService(costLogMapper), fefo);
 
     assertTrue(service.transferInventory(transferRequest()));
 

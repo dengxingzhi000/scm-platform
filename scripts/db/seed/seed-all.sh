@@ -46,6 +46,8 @@ db_permission:022_system_config_permission.sql
 db_permission:023_finance_batch2_permissions.sql
 db_permission:023_inventory_permissions.sql
 db_permission:024_finance_tax_rate_permissions.sql
+db_permission:025_finance_period_close_permissions.sql
+db_permission:026_finance_bad_debt_permissions.sql
 db_permission:029_user_management_permissions.sql
 db_permission:030_user_batch_permissions.sql
 db_permission:031_user_lifecycle_permissions.sql

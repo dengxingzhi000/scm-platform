@@ -26,7 +26,8 @@ class FinanceAuditAnnotationTest {
             AccountingPeriodController.class,
             ReconciliationDiffController.class,
             FundFlowController.class,
-            TaxRateController.class
+            TaxRateController.class,
+            BadDebtWriteOffController.class
     };
 
     @Test

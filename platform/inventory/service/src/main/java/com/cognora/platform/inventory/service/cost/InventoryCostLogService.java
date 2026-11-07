@@ -70,6 +70,8 @@ public class InventoryCostLogService {
     }
     log.setLegacySkuId(context.getLegacySkuId());
     log.setWarehouseCode(context.getWarehouseCode());
+    log.setBatchNo(context.getBatchNo());
+    log.setExpiryDate(context.getExpiryDate());
     log.setDirection(movement.getDirection());
     log.setQuantity(movement.getQuantity());
     log.setUnitPrice(MovingAverageCostCalculator.priceForStorage(movement.getUnitPrice()));

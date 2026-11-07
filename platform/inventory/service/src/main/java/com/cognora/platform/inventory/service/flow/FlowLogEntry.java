@@ -3,6 +3,8 @@ package com.cognora.platform.inventory.service.flow;
 import lombok.Builder;
 import lombok.Data;
 
+import java.time.LocalDate;
+
 /**
  * 一条库存流水的入参。
  *
@@ -13,7 +15,7 @@ import lombok.Data;
  * @since 2026-11-06
  */
 @Data
-@Builder
+@Builder(toBuilder = true)
 public class FlowLogEntry {
 
   private String tenantId;
@@ -25,6 +27,12 @@ public class FlowLogEntry {
   private Long legacySkuId;
 
   private String warehouseCode;
+
+  /** 批次号；按批次出库时写入 */
+  private String batchNo;
+
+  /** 批次效期；按批次出库时写入 */
+  private LocalDate expiryDate;
 
   /** 1-入库 2-出库 3-预占 4-释放 5-确认 6-调整 7-调拨 */
   private Integer operationType;

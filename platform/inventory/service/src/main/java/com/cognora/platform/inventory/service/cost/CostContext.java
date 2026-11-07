@@ -3,6 +3,8 @@ package com.cognora.platform.inventory.service.cost;
 import lombok.Builder;
 import lombok.Data;
 
+import java.time.LocalDate;
+
 /**
  * 一条成本流水的业务上下文。
  *
@@ -13,7 +15,7 @@ import lombok.Data;
  * @since 2026-11-06
  */
 @Data
-@Builder
+@Builder(toBuilder = true)
 public class CostContext {
 
   private String businessType;
@@ -27,6 +29,12 @@ public class CostContext {
   private String referenceId;
 
   private String referenceNo;
+
+  /** 批次号；按批次出库时写入。 */
+  private String batchNo;
+
+  /** 批次效期；按批次出库时写入。 */
+  private LocalDate expiryDate;
 
   /** 调拨对侧流水键，例如 TRANSFER_IN:TR-1 / TRANSFER_OUT:TR-1。 */
   private String counterpartKey;

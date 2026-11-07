@@ -21,6 +21,7 @@ public interface InvCostLogMapper extends BaseMapper<InvCostLog> {
 
   @Insert("INSERT INTO inv_cost_log ("
           + "id, tenant_id, inventory_id, sku_id, warehouse_id, legacy_sku_id, warehouse_code, "
+          + "batch_no, expiry_date, "
           + "direction, quantity, unit_price, amount, "
           + "before_average_cost, after_average_cost, before_balance_qty, after_balance_qty, "
           + "business_type, business_key, request_id, reference_type, reference_id, reference_no, "
@@ -30,6 +31,7 @@ public interface InvCostLogMapper extends BaseMapper<InvCostLog> {
           + "CAST(#{log.id} AS UUID), CAST(#{log.tenantId} AS UUID), "
           + "CAST(#{log.inventoryId} AS UUID), CAST(#{log.skuId} AS UUID), "
           + "CAST(#{log.warehouseId} AS UUID), #{log.legacySkuId}, #{log.warehouseCode}, "
+          + "#{log.batchNo}, #{log.expiryDate}, "
           + "#{log.direction}, #{log.quantity}, #{log.unitPrice}, #{log.amount}, "
           + "#{log.beforeAverageCost}, #{log.afterAverageCost}, "
           + "#{log.beforeBalanceQty}, #{log.afterBalanceQty}, "

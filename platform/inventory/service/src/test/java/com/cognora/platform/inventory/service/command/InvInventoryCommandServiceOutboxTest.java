@@ -6,6 +6,7 @@ import com.cognora.platform.inventory.domain.entity.Inventory;
 import com.cognora.platform.inventory.dto.InventoryAdjustRequest;
 import com.cognora.platform.inventory.event.InventoryAdjustedEvent;
 import com.cognora.platform.inventory.mapper.InvInventoryMapper;
+import com.cognora.platform.inventory.service.batch.FefoAllocationService;
 import com.cognora.platform.inventory.service.cost.InventoryCostLogService;
 import com.cognora.platform.inventory.service.cost.MovingAverageCostService;
 import com.cognora.platform.inventory.service.flow.InventoryFlowLogService;
@@ -38,7 +39,7 @@ class InvInventoryCommandServiceOutboxTest {
     void setUp() {
         service = new InvInventoryCommandService(inventoryMapper, outboxService,
                 mock(InventoryFlowLogService.class), mock(MovingAverageCostService.class),
-                mock(InventoryCostLogService.class));
+                mock(InventoryCostLogService.class), mock(FefoAllocationService.class));
     }
 
     @AfterEach

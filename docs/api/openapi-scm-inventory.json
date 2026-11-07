@@ -1375,6 +1375,78 @@
         }
       }
     },
+    "/api/v1/inventory/batches/fefo-preview": {
+      "post": {
+        "tags": [
+          "Inventory"
+        ],
+        "summary": "FEFO 预览分配",
+        "description": "按批次效期优先（先到期先出）计算本次出库会扣减哪些批次及各自数量；只读，不扣减库存。",
+        "operationId": "previewFefoAllocation",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FefoPreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseFefoPreviewResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/inventory": {
       "get": {
         "tags": [
@@ -3437,6 +3509,116 @@
           "skuId",
           "warehouseId"
         ]
+      },
+      "FefoPreviewRequest": {
+        "type": "object",
+        "properties": {
+          "skuId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "warehouseId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "quantity",
+          "skuId",
+          "warehouseId"
+        ]
+      },
+      "FefoBatchAllocation": {
+        "type": "object",
+        "properties": {
+          "batchId": {
+            "type": "string"
+          },
+          "batchNo": {
+            "type": "string"
+          },
+          "expiryDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "availableBefore": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "availableAfter": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "FefoPreviewResponse": {
+        "type": "object",
+        "properties": {
+          "skuId": {
+            "type": "string"
+          },
+          "warehouseId": {
+            "type": "string"
+          },
+          "requested": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "batchManaged": {
+            "type": "boolean"
+          },
+          "expiredSkipped": {
+            "type": "boolean"
+          },
+          "sufficient": {
+            "type": "boolean"
+          },
+          "allocated": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "shortfall": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "allocations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FefoBatchAllocation"
+            }
+          }
+        }
+      },
+      "ApiResponseFefoPreviewResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/FefoPreviewResponse"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
       },
       "ApiResponseInventoryStatsResponse": {
         "type": "object",

@@ -3,8 +3,10 @@ package com.cognora.scm.finance.controller;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cognora.platform.common.log.annotation.AuditLog;
 import com.cognora.platform.common.response.ApiResponse;
+import com.cognora.scm.finance.domain.dto.CloseInclusionSummary;
 import com.cognora.scm.finance.domain.entity.AccountingPeriod;
 import com.cognora.scm.finance.service.AccountingPeriodService;
+import com.cognora.scm.finance.service.query.PeriodCloseInclusionQueryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -27,6 +29,8 @@ import java.util.List;
 public class AccountingPeriodController {
 
     private final AccountingPeriodService accountingPeriodService;
+
+    private final PeriodCloseInclusionQueryService periodCloseInclusionQueryService;
 
     @Operation(summary = "开启账期", description = "按 YYYY-MM 开启账期，起止日期由月份自动推导。")
     @PostMapping
@@ -73,6 +77,15 @@ public class AccountingPeriodController {
     @GetMapping("/closed")
     public ApiResponse<List<AccountingPeriod>> closed() {
         return ApiResponse.success(accountingPeriodService.listClosedPeriods());
+    }
+
+    @Operation(summary = "结账纳入单据预览",
+            description = "按结账口径（业务日期 / 含未开票已发货 / 排除已驳回）汇总本期纳入的结算明细与发票；"
+                    + "各类别金额分开列示，不跨类别求和。")
+    @GetMapping("/{id}/close-inclusion")
+    public ApiResponse<CloseInclusionSummary> closeInclusion(
+            @Parameter(description = "账期 ID") @PathVariable String id) {
+        return ApiResponse.success(periodCloseInclusionQueryService.preview(id));
     }
 
     @Operation(summary = "分页查询账期", description = "按状态分页查询账期，状态为空时查询全部。")

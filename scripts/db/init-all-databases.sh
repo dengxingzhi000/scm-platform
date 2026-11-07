@@ -119,6 +119,8 @@ SCM_SCRIPTS=(
     "microservices/021_inventory_tcc.sql:db_inventory"
     # REST 预占持久化表（幂等：CREATE TABLE/INDEX IF NOT EXISTS）
     "migrations/009_inventory_reservation_record.sql:db_inventory"
+    # 批次效期（FEFO）：inv_batch 最小结构 + inv_log/inv_cost_log 批次维度列
+    "migrations/013_inventory_batch_fefo.sql:db_inventory"
     "microservices/012_db_order.sql:db_order"
     "microservices/013_db_warehouse.sql:db_warehouse"
     "microservices/014_db_logistics.sql:db_logistics"
