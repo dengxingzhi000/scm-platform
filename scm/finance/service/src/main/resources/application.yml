@@ -116,11 +116,21 @@ management:
       prometheus:
         enabled: true
 
-# 财务口径配置。业务方按需调整，规则见 docs/guides/FINANCE_TAX_RATE_RULES.md。
+# 财务口径配置。业务方按需调整，规则见 docs/guides/FINANCE_TAX_RATE_RULES.md
+# 与 docs/guides/FINANCE_PERIOD_CLOSE_RULES.md。
 finance:
   tax:
     # 租户未配置默认税率时的兜底值（0..1 小数），默认 13%。
     default-rate: ${FINANCE_TAX_DEFAULT_RATE:0.13}
+  close:
+    # 归属期日期口径：BUSINESS_DATE（默认，按业务日期）| CREATE_TIME
+    date-basis: ${FINANCE_CLOSE_DATE_BASIS:BUSINESS_DATE}
+    # 是否把「已发货未开票」明细纳入本期
+    include-shipped-unbilled: ${FINANCE_CLOSE_INCLUDE_SHIPPED_UNBILLED:true}
+    # 是否排除已驳回/作废发票（状态 3）；红冲（状态 4）始终排除
+    exclude-rejected: ${FINANCE_CLOSE_EXCLUDE_REJECTED:true}
+    # 视为「已发货」的结算明细单据类型（逗号分隔）
+    shipped-unbilled-document-types: ${FINANCE_CLOSE_SHIPPED_UNBILLED_DOCUMENT_TYPES:SHIPMENT,OUTBOUND,SALE_OUTBOUND}
 
 cognora:
   security:
