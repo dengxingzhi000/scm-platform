@@ -48,6 +48,8 @@ public class JwtUtils {
     public static final String CLAIM_TENANT_ID = "tenantId";
     /** Token 绑定的租户编码，用于展示与排障，安全判定以 tenantId 为准。 */
     public static final String CLAIM_TENANT_CODE = "tenantCode";
+    /** 令牌受众（JWT 标准 aud 声明），区分管理台与商城前台。 */
+    public static final String CLAIM_AUDIENCE = "aud";
 
     /**
      * Token 与请求头租户的核对结果。
@@ -96,6 +98,19 @@ public class JwtUtils {
     public String generateAccessToken(UUID userId, String username, Set<String> roles, Set<String> permissions,
                                       String deviceId, String ipAddress, List<String> amr,
                                       UUID tenantId, String tenantCode) {
+        return generateAccessToken(userId, username, roles, permissions, deviceId, ipAddress, amr,
+                tenantId, tenantCode, null);
+    }
+
+    /**
+     * 生成访问令牌，并写入受众声明。
+     *
+     * @param audience 令牌受众（{@code cognora-admin} / {@code cognora-mall}）；
+     *                 为空表示未绑定受众，仅供升级前的兼容调用。
+     */
+    public String generateAccessToken(UUID userId, String username, Set<String> roles, Set<String> permissions,
+                                      String deviceId, String ipAddress, List<String> amr,
+                                      UUID tenantId, String tenantCode, String audience) {
         if (tenantId == null) {
             throw new UnauthorizedException("invalid_token_tenant_missing");
         }
@@ -104,7 +119,7 @@ public class JwtUtils {
         String tokenType = "access";
 
         Map<String, Object> claims = buildClaims(userId, username, roles, permissions, tokenType, deviceId, ipAddress,
-                jti, tenantId, tenantCode
+                jti, tenantId, tenantCode, audience
         );
 
         if (amr != null && !amr.isEmpty()) {
@@ -124,6 +139,14 @@ public class JwtUtils {
      */
     public String generateRefreshToken(UUID userId, String username, String deviceId,
                                        UUID tenantId, String tenantCode) {
+        return generateRefreshToken(userId, username, deviceId, tenantId, tenantCode, null);
+    }
+
+    /**
+     * 生成刷新令牌，并携带受众，保证轮换后的新访问令牌仍属于同一入口。
+     */
+    public String generateRefreshToken(UUID userId, String username, String deviceId,
+                                       UUID tenantId, String tenantCode, String audience) {
         if (tenantId == null) {
             throw new UnauthorizedException("invalid_token_tenant_missing");
         }
@@ -138,6 +161,9 @@ public class JwtUtils {
         claims.put(CLAIM_TENANT_ID, tenantId.toString());
         if (tenantCode != null && !tenantCode.isBlank()) {
             claims.put(CLAIM_TENANT_CODE, tenantCode);
+        }
+        if (audience != null && !audience.isBlank()) {
+            claims.put(CLAIM_AUDIENCE, audience);
         }
 
         return createToken(claims, userId.toString(), jwtProperties.getRefreshExpiration());
@@ -214,6 +240,7 @@ public class JwtUtils {
             throw new UnauthorizedException("invalid_token_tenant_missing");
         }
         String tenantCode = getTenantCodeFromToken(refreshToken);
+        String audience = getAudienceFromToken(refreshToken);
         String lockKey = REFRESH_LOCK_PREFIX + userId;
 
         try {
@@ -231,7 +258,7 @@ public class JwtUtils {
 
             // 鐢熸垚鏂扮殑璁块棶浠ょ墝
             return generateAccessToken(userId, username, roles, permissions, deviceId, ipAddress, null,
-                    tenantId, tenantCode);
+                    tenantId, tenantCode, audience);
         } finally {
             redisTemplate.delete(lockKey);
         }
@@ -499,6 +526,30 @@ public class JwtUtils {
     }
 
     /**
+     * 读取令牌受众（{@code aud}）。旧 Token（无该声明）返回 {@code null}；
+     * 标准允许 {@code aud} 为字符串或字符串数组，这里取第一个值。
+     */
+    public String getAudienceFromToken(String token) {
+        Claims claims = parseToken(token);
+        if (claims == null) {
+            return null;
+        }
+        return extractAudience(claims.get(CLAIM_AUDIENCE));
+    }
+
+    private static String extractAudience(Object audience) {
+        if (audience instanceof Collection<?> values) {
+            for (Object value : values) {
+                if (value != null && !value.toString().isBlank()) {
+                    return value.toString();
+                }
+            }
+            return null;
+        }
+        return audience == null || audience.toString().isBlank() ? null : audience.toString();
+    }
+
+    /**
      * 核对 Token 租户声明与请求头租户。
      *
      * <p>旧 Token（无 tenantId 声明）返回 {@link TenantBinding#CLAIM_MISSING}，调用方必须 401，
@@ -607,7 +658,7 @@ public class JwtUtils {
 
     private Map<String, Object> buildClaims(UUID userId, String username, Set<String> roles, Set<String> permissions,
                                             String tokenType, String deviceId, String ipAddress, String jti,
-                                            UUID tenantId, String tenantCode) {
+                                            UUID tenantId, String tenantCode, String audience) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", userId);
         claims.put("username", username);
@@ -620,6 +671,9 @@ public class JwtUtils {
         claims.put(CLAIM_TENANT_ID, tenantId.toString());
         if (tenantCode != null && !tenantCode.isBlank()) {
             claims.put(CLAIM_TENANT_CODE, tenantCode);
+        }
+        if (audience != null && !audience.isBlank()) {
+            claims.put(CLAIM_AUDIENCE, audience);
         }
 
         return claims;
@@ -779,6 +833,7 @@ public class JwtUtils {
             throw new UnauthorizedException("invalid_token_tenant_missing");
         }
         String tenantCode = getTenantCodeFromToken(oldRefreshToken);
+        String audience = getAudienceFromToken(oldRefreshToken);
         String lockKey = REFRESH_LOCK_PREFIX + userId;
 
         try {
@@ -798,8 +853,8 @@ public class JwtUtils {
 
             // 鐢熸垚鏂扮殑璁块棶浠ょ墝鍜屽埛鏂颁护锟?
             String newAccessToken = generateAccessToken(userId, username, roles, permissions, deviceId, ipAddress,
-                    null, tenantId, tenantCode);
-            String newRefreshToken = generateRefreshToken(userId, username, deviceId, tenantId, tenantCode);
+                    null, tenantId, tenantCode, audience);
+            String newRefreshToken = generateRefreshToken(userId, username, deviceId, tenantId, tenantCode, audience);
 
             return new TokenPair(newAccessToken, newRefreshToken);
         } finally {

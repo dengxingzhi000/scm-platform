@@ -362,6 +362,12 @@ app:
 security:
   permission-checker:
     enabled: true
+  # 后台管理服务只接受管理台令牌；商城令牌在网关已被拦截，这里是防直连的第二道校验。
+  audience:
+    enabled: true
+    allowed:
+      - cognora-admin
+    allow-legacy-token: true
 
 datasync:
   enabled: true

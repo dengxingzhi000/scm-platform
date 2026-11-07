@@ -1,5 +1,6 @@
 package com.cognora.platform.gateway.config;
 
+import com.cognora.platform.gateway.security.AudienceAuthorizationManager;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -39,7 +40,8 @@ public class GatewaySecurityConfig {
 
     @Bean
     public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http, ReactiveJwtDecoder jwtDecoder,
-                                                            CorsConfigurationSource corsConfigurationSource) {
+                                                            CorsConfigurationSource corsConfigurationSource,
+                                                            AudienceAuthorizationManager audienceAuthorizationManager) {
         http
                 .securityContextRepository(NoOpServerSecurityContextRepository.getInstance())
                 .logout(ServerHttpSecurity.LogoutSpec::disable)
@@ -65,7 +67,8 @@ public class GatewaySecurityConfig {
                                 "/lms-tms/api/v1/tms-tracking/callback/**"
                         ).permitAll()
                         .pathMatchers("/actuator/health", "/actuator/info").permitAll()
-                        .anyExchange().authenticated()
+                        // authenticated() 已包含在受众管理器内；这里额外按 aud 判定后台/商城路径。
+                        .anyExchange().access(audienceAuthorizationManager)
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt
