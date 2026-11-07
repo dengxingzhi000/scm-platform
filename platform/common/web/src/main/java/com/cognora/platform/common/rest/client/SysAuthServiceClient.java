@@ -1,15 +1,19 @@
 package com.cognora.platform.common.rest.client;
 
 import com.alibaba.csp.sentinel.annotation.SentinelResource;
+import com.cognora.platform.common.dto.user.UserSessionDTO;
 import com.cognora.platform.common.response.ApiResponse;
 import org.jspecify.annotations.NullMarked;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.service.annotation.DeleteExchange;
+import org.springframework.web.service.annotation.GetExchange;
 import org.springframework.web.service.annotation.HttpExchange;
 import org.springframework.web.service.annotation.PostExchange;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -52,6 +56,18 @@ public interface SysAuthServiceClient {
     )
     ApiResponse<Void> forceLogout(
         @PathVariable UUID userId,
+        @RequestParam("reason") String reason
+    );
+
+    /** 管理员查询指定用户会话（服务间签名调用）。 */
+    @GetExchange("/admin/users/{userId}/sessions")
+    ApiResponse<List<UserSessionDTO>> listUserSessions(@PathVariable UUID userId);
+
+    /** 管理员撤销指定用户的单个设备会话（服务间签名调用）。 */
+    @DeleteExchange("/admin/users/{userId}/sessions/{deviceId}")
+    ApiResponse<Integer> revokeUserSession(
+        @PathVariable UUID userId,
+        @PathVariable String deviceId,
         @RequestParam("reason") String reason
     );
 

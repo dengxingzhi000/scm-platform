@@ -165,8 +165,8 @@ services:
     volumes:
       - ./deploy/redis/redis.conf:/usr/local/etc/redis/redis.conf
       - redis-master:/data
-    ports:
-      - "6379:6379"
+    # 不映射宿主机 6379：部署机上 6379 被另一个项目的独立 redis 容器占用，
+    # 业务服务只通过 scm-network 内的别名 redis 访问平台 Redis。
     networks:
       - scm-network
     healthcheck:
@@ -774,11 +774,14 @@ services:
     environment:
       <<: *core-service-env
       SPRING_APPLICATION_NAME: platform-gateway
+      # 网关的 ApiSignatureFilter 用这个密钥校验调用方签名；缺省为空会让所有签名请求 401
+      API_SECRET_WEB_APP: ${API_SECRET_WEB_APP}
       # classpath 上 application.yaml / .yml 同时存在时端口会被盖成 8080，OS 环境变量优先级最高
       SERVER_PORT: 8761
       # 网关不做 URL→权限 的二次校验（它自己的 ApiSignatureFilter 负责入口校验），
-      # 而 PermissionAccessAutoConfiguration 强依赖 SysPermissionServiceClient，网关里没有这个 Bean。
-      SPRING_AUTOCONFIGURE_EXCLUDE: com.cognora.platform.common.access.PermissionAccessAutoConfiguration
+      # 而 PermissionAccessAutoConfiguration 强依赖 SysPermissionServiceClient，网关里没有这个 Bean；
+      # 环境变量会覆盖 application.yaml 的 spring.autoconfigure.exclude，所以 DataSource 必须一起列上。
+      SPRING_AUTOCONFIGURE_EXCLUDE: "org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,com.cognora.platform.common.log.config.AuditLogAutoConfiguration,com.cognora.platform.common.access.PermissionAccessAutoConfiguration"
     ports:
       - "8761:8761"
 

@@ -127,6 +127,9 @@ public class SecurityConfig {
                                 "/api/auth/register",
                                 "/api/auth/refresh",
                                 "/api/auth/logout",
+                                // Signed service-to-service audit write channel. Only scm-audit
+                                // exposes this route; AuditWriteRequestGuard enforces the HMAC.
+                                "/sys-audit-log",
                                 "/api/public/**",
                                 // Error dispatches carry no authentication (the JWT filter skips
                                 // ERROR dispatch), so denying /error rewrites every 5xx as a 401.

@@ -14,6 +14,7 @@ import com.cognora.platform.common.dto.user.UserInfo;
 import com.cognora.platform.common.dto.user.UserSessionDTO;
 import com.cognora.platform.common.exception.UnauthorizedException;
 import com.cognora.platform.auth.service.ISysAuthService;
+import com.cognora.platform.common.security.util.RecoveryCodeUtils;
 import com.cognora.platform.common.security.util.TotpUtils;
 import com.cognora.platform.common.redis.script.LuaScriptRegistry;
 import com.cognora.platform.common.tenant.TenantContextHolder;
@@ -247,7 +248,8 @@ public class SysAuthServiceImpl implements ISysAuthService {
 
         boolean valid = totpUtils.verifyCode(secret, code);
         if (!valid) {
-            return false;
+            // TOTP 不匹配时允许一次恢复码校验；恢复码由 db_user 侧原子消费，单次有效。
+            return userDubboService.consumeRecoveryCode(userId, RecoveryCodeUtils.sha256Hex(code));
         }
 
         String replayKey = "mfa:totp:used:" + userId + ":" + code;
@@ -320,6 +322,27 @@ public class SysAuthServiceImpl implements ISysAuthService {
                         .current(currentDeviceId != null && currentDeviceId.equals(session.getDeviceId()))
                         .build())
                 .toList();
+    }
+
+    @Override
+    public List<UserSessionDTO> listUserSessions(UUID userId) {
+        return jwtUtils.listActiveSessions(userId).stream()
+                .map(session -> UserSessionDTO.builder()
+                        .sessionId(session.getDeviceId())
+                        .ip(session.getIpAddress())
+                        .lastActiveAt(session.getIssuedAt())
+                        .current(false)
+                        .build())
+                .toList();
+    }
+
+    @Override
+    public int revokeUserSession(UUID userId, String deviceId, String reason) {
+        boolean revoked = jwtUtils.revokeDeviceToken(userId, deviceId, reason);
+        if (revoked) {
+            auditLogService.recordLogout(userId, "Admin revoked session: " + reason);
+        }
+        return revoked ? 1 : 0;
     }
 
     @Override

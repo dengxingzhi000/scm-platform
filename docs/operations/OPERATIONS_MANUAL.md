@@ -100,6 +100,17 @@ docker-compose logs -f [service-name]
 docker-compose restart [service-name]
 ```
 
+**平台 Redis 不映射宿主机 6379。** `docker-compose.yml` 里 `redis` 服务只加入
+`scm-network`（别名 `redis`），不声明 `6379:6379` 端口映射，业务服务通过容器网络
+访问 `redis:6379`。
+
+原因：部署机上宿主机 `6379` 已被**另一个项目**的独立 `redis` 容器
+（`redis:bullseye`，不属于本平台、无 compose 标签）长期占用。若给平台 Redis 加上
+`6379:6379`，启动会直接失败并报
+`Bind for 0.0.0.0:6379 failed: port is already allocated`；而停掉那个外部容器会
+影响其他项目，不允许。因此宿主机侧不要再加回 6379 映射，也不要用它做本地排查入口，
+需要连平台 Redis 时在容器内或用 `docker exec` 访问。
+
 ---
 
 ## 3. 启动与关闭流程

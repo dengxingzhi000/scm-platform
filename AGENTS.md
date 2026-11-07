@@ -73,17 +73,18 @@ docker-compose up -d                                             # infra
 set PGPASSWORD=admin123 && cd scripts\db && init-all-databases.bat
 ```
 
-The `.bat` leaves `tenant_id` off five business databases — see
+The `.bat` leaves `tenant_id` off six business databases — see
 [Database](#database) below before using it.
 
 Start order matters: **infra → Gateway (8761) → Auth (8106) → System (8081) →
 business services.** A service started before Nacos is healthy cannot register;
-one started before `scm-system` cannot resolve permission lookups over Dubbo.
+one started before `platform-system` cannot resolve permission lookups over Dubbo.
 
 ## Deployment
 
 The stack is deployed with `docker-compose.yml` on a **remote VM**, not on the
-dev box:
+dev box. The password already reads as a pointer to the password manager — keep
+it that way.
 
 | | |
 |---|---|
@@ -103,8 +104,8 @@ Two things to know before deploying:
   brings up Nacos, PostgreSQL, Redis (+sentinel), Kafka, RabbitMQ,
   Elasticsearch, Seata, XXL-Job, Sentinel, Prometheus/Grafana, SkyWalking,
   PgBouncer, schema-registry and ClickHouse. The `ecommerce` profile adds
-  `scm-member`, `scm-promotion`, `scm-payment`, `scm-order-center`,
-  `scm-mall`, `scm-fulfillment`, `scm-search` and `scm-analytics`. The core
+  `ecom-member`, `ecom-promotion`, `ecom-payment`, `ecom-order-center`,
+  `ecom-mall`, `ecom-fulfillment`, `ecom-search` and `ecom-analytics`. The core
   services (gateway, auth, system, product, inventory, order, …) are **not** in
   the compose file — they run as JVM processes.
 - **Secrets come from the environment, never from the image.** `docker-compose.yml`
@@ -116,10 +117,6 @@ Two things to know before deploying:
   env vars. The core services read their own Spring placeholders
   (`${DB_PASSWORD:...}`, `${API_SECRET_WEB_APP:}`, `${IDENTITY_SIGNATURE_SECRET:}`,
   …) — `.env.example` lists the full set. Never commit that `.env`.
-
-> `AGENTS.md` is tracked by git, so the credential above is readable by anyone
-> with repo access. If that is not acceptable, replace it with a pointer to a
-> password manager entry or an SSH key.
 
 ## Ports
 
@@ -146,13 +143,16 @@ Read from each module's `application.yml`.
 Real collisions in the checked-in config — override `server.port` before running
 both halves of a pair:
 
-- `scm-message` ↔ `scm-approval` — both 8209
+- `platform-message` ↔ `platform-approval` — both 8209
 - Grafana ↔ `cognora-aura-web` dev server — both 3000 (`docker-compose.yml` maps `3000:3000`)
-- `schema-registry` ↔ `scm-system` — both 8081
+- `schema-registry` ↔ `platform-system` — both 8081
 
 Infra: Nacos 8848 (+9848/9849), Redis 6379, PostgreSQL 5432, PgBouncer 6432,
 Kafka 9092/9093, RabbitMQ 5672/15672, Elasticsearch 9200, ClickHouse 8123,
 Seata 8091, XXL-Job 8088, Sentinel 8858, Prometheus 9090, SkyWalking UI 8090.
+Redis is deliberately **not** exposed on the host in `docker-compose.yml` —
+port 6379 on the deploy VM belongs to another project's container; business
+services reach the platform Redis over the `scm-network` alias.
 
 ## Module layout
 
@@ -170,6 +170,12 @@ Seata 8091, XXL-Job 8088, Sentinel 8858, Prometheus 9090, SkyWalking UI 8090.
 - **前端** — 已拆分到独立仓库
   [`cognora-aura-web`](https://github.com/dengxingzhi000/cognora-aura-web)，
   不再位于本仓库或父 POM 中。
+- **Not part of this build** — a directory trap for search tools:
+  `enterprise-agent/` is a separate nested git repo
+  (`cognora-enterprise-agent`, a Python/FastAPI project, untracked by this
+  repo's git index). The stale `.wt-sys-master/` worktree copy of this repo
+  was removed; if a duplicate tree reappears there, it is a fresh worktree
+  checkout and should be excluded when grepping/globbing.
 
 Package roots are `com.cognora.platform.*`, `com.cognora.scm.*`,
 `com.cognora.ecom.*` and `com.cognora.lms.*` (e.g.
@@ -219,7 +225,7 @@ New YAML must keep using `cognora.*`.
      existing `db_audit` must have Track A applied, or every audit read fails
      with `column "tenant_id" does not exist`.
    - A service only enforces this after it is rebuilt against the current
-     `platform/common/core`; verified live on `scm-order` and `scm-audit`.
+     `platform/common/core`; verified live on `scm-order` and `platform-audit`.
 4. `AsyncTenantAutoConfiguration` publishes a `tenantAwareTaskExecutor` bean
    that propagates the tenant context into `@Async` threads. Any other executor
    loses it — wrap work in `TenantContextHolder.executeInTenantContext(...)`.
@@ -235,11 +241,15 @@ no service overrides them.
 
 - `@AuditLog` (platform/common/web) is intercepted by the shared `SysAuditLogAspect`,
   registered by `AuditLogAutoConfiguration` — not by component scanning, so it
-  also applies to services that only scan their own package (scm-auth). Every
-  service except scm-audit delivers through `SysAuditServiceClient`
-  (`POST /sys-audit-log`, Nacos name `scm-audit`); the RestClient interceptor
+  also applies to services that only scan their own package (platform-auth).
+  Every service except platform-audit delivers through `SysAuditServiceClient`
+  (`POST /sys-audit-log`): the Nacos service id defaults to `platform-audit`
+  and can be overridden with `COGNORA_AUDIT_SERVICE_ID` — set it to
+  `scm-audit` only to talk to an older deployment still registered under that
+  name (wrong id ⇒ every report fails and the delivery-failed metric climbs).
+  The RestClient interceptor
   forwards `X-Tenant-Id` and the caller's JWT, so the row lands in the caller's
-  tenant. scm-audit persists directly.
+  tenant. platform-audit persists directly.
 - **The audit log is append-only and has no HTTP delete route.** `POST
   /sys-audit-log` is the service-to-service write channel and is guarded by
   `AuditWriteRequestGuard` (platform-audit): it verifies the shared HMAC signature
@@ -268,13 +278,16 @@ no service overrides them.
   which the validator rejects on purpose.
 - **Delivery is best-effort.** `RemoteSysAuditLogService` logs and swallows any
   failure, and the aspect swallows the sink's exceptions in `finally`. A
-  committed high-risk operation can therefore have no audit row when scm-audit is
+  committed high-risk operation can therefore have no audit row when platform-audit is
   unreachable, and login/logout audits have no (or a revoked) token to forward.
   Fail-closed pre-writing or routing through the outbox is an open decision, not
-  existing behaviour.
+  existing behaviour. One refinement: a **connection-level** failure is retried
+  exactly once after ~150 ms, reusing the same record `nonce` (idempotent via
+  the unique `request_nonce` index, `migrations/audit_004`); timeouts are not
+  retried.
 - **Watch the two audit metrics.** `security_audit_delivery_failed_total` on
   each caller counts swallowed delivery failures, and
-  `security_audit_write_rejected_total` on scm-audit counts rejected writes
+  `security_audit_write_rejected_total` on platform-audit counts rejected writes
   (logged at ERROR with the caller id and remote address). A non-zero value on
   either means auditing has stopped on that path.
 - Records with `riskLevel >= 3` (password reset, role/permission grant, delete,
@@ -294,12 +307,16 @@ no service overrides them.
 ### Datasource routing (`@DS`)
 
 `@DS("user"|"org"|"permission"|"approval"|"audit"|"notify")` (baomidou
-dynamic-datasource) routes to the matching `db_*` database. Only `scm-system`
+dynamic-datasource) routes to the matching `db_*` database. Only `platform-system`
 uses it, and it is the only service with a live `spring.datasource.dynamic`
 block (`primary: user`, `strict: true` — an unknown `@DS` value throws).
-`scm-gateway` declares `spring.datasource.dynamic.enabled: false` to switch the
-starter off. Every other service has a single plain `spring.datasource.url`
-pointing at its own `db_<service>`.
+`platform-gateway` declares `spring.datasource.dynamic.enabled: false` to switch the
+starter off. Every other service has a single plain `spring.datasource.url` —
+but the e-commerce layer **shares** databases instead of owning one:
+`ecom-member`→`db_user`, `ecom-payment`→`db_finance`,
+`ecom-mall` and `ecom-order-center`→`db_order`, `ecom-fulfillment`→`db_warehouse`
+(there is no `db_member`/`db_payment`/`db_mall`), so seeding or altering one of
+those DBs touches several services.
 
 ### Read-write separation
 
@@ -307,7 +324,7 @@ pointing at its own `db_<service>`.
 (`com.cognora.platform.common.data.rw.annotation`); `platform/common/data-rw-stub` is a
 no-op variant for editions without replicas. Query services → `@Slave`, command
 services → `@Master`. **The whole auto-configuration is gated on
-`spring.datasource.rw.enabled=true`.** `scm-product` is the only service that
+`spring.datasource.rw.enabled=true`.** `platform-product` is the only service that
 sets it, together with `spring.datasource.dynamic.enabled=false`; every other
 service keeps the inert single-datasource behaviour. Routing semantics, fallback
 and observability are documented in `docs/guides/READ_WRITE_SEPARATION_GUIDE.md`
@@ -316,7 +333,7 @@ and observability are documented in `docs/guides/READ_WRITE_SEPARATION_GUIDE.md`
 ### CQRS
 
 Cross-database work belongs in `service/query/` and `service/command/`. The
-`*CrossDatabaseQueryService` classes exist only in `scm-system`
+`*CrossDatabaseQueryService` classes exist only in `platform-system`
 (`User`/`Role`/`Dept`/`PermissionCrossDatabaseQueryService`). There are no
 cross-database joins anywhere in the codebase.
 
@@ -349,14 +366,16 @@ COMPLETED`; `CANCELLED` only from `PENDING_PAYMENT`/`PAID`; `REFUNDING` from
 `PAID`..`DELIVERED`; `COMPLETED`/`CANCELLED`/`REFUNDED` are terminal.
 
 For other entity types the generic path is `StatusValidator` in
-`platform/common/web`, delegating to `StatusMachineDubboService` in `scm-system`.
+`platform/common/web`, delegating to `StatusMachineDubboService` in `platform-system`.
 
 ### Partitioned tables (PostgreSQL)
 
 UNIQUE constraints must include the partition key:
 `ord_order(order_no, create_time)`, `inv_reservation(reservation_no, reserved_at)`,
 `sup_purchase_order(purchase_no, create_time)`. Cross-partition uniqueness is
-enforced in the application via Redis.
+enforced in the application via Redis. `inv_log` (db_inventory, monthly) is
+partitioned too — `create-partitions.sh` provisions `ord_order`,
+`inv_reservation`, `inv_log` and `sup_purchase_order`.
 
 ### Idempotency
 
@@ -396,12 +415,12 @@ chain bypass advice entirely — answer through
   only defines `KAFKA_SERVERS`.
 - `scripts/rename-packages.ps1` is the one-off script used for the
   `com.frog` → `com.cognora` package move; there is no live rename workflow.
-- Optional subsystems in `scm-common` are off unless a service opts in, because
+- Optional subsystems in `platform/common` are off unless a service opts in, because
   each used to break every context when loaded unconditionally:
   `security.uaa.enabled` (OAuth2 authorization server + `CustomUserDetailsService`,
-  set in `scm-auth` only), `security.mtls.enabled` (needs `certificates/*.p12`),
+  set in `platform-auth` only), `security.mtls.enabled` (needs `certificates/*.p12`),
   `security.oauth2.pkce.enabled`, `security.permission-checker.enabled`
-  (set in `scm-system`), `tenant.quota-checker.enabled`,
+  (set in `platform-system`), `tenant.quota-checker.enabled`,
   `cognora.cache.two-level.enabled` and `datasync.enabled` (default off since its
   `KafkaTemplate<String,String>` injection can never resolve).
 - **There is exactly one way to mark a payment paid, and it is verified.**
@@ -435,8 +454,8 @@ reads `PG_HOST`/`PG_PORT`/`PG_ADMIN_USER` (default `postgres`) plus
 `PG_ADMIN_PASSWORD`, which has **no default** — the script fails fast without
 it. CI passes `PG_ADMIN_USER=admin` / `PG_ADMIN_PASSWORD=admin123`.
 
-The `.bat` creates 17 databases (including `db_tenant`, `db_promotion` and
-`db_analytics`); the `.sh` creates 16 — it omits `db_tenant`. Neither creates
+The `.bat` creates 18 databases (including `db_tenant`, `db_promotion` and
+`db_analytics`); the `.sh` creates 17 — it omits `db_tenant`. Neither creates
 `db_document` — that needs a manual `CREATE DATABASE` plus its Flyway
 migrations.
 
@@ -483,12 +502,23 @@ notification feed.
   older services (order, product, inventory, …). The numbering has gaps and
   duplicates (`022` and `028` each appear twice) and the init scripts list the
   files explicitly, so do not assume lexical order.
-- **Per-service Flyway** at `scm-<name>/service/src/main/resources/db/migration/`
+- `scripts/db/migrations/` (plural — a different directory) is the shared
+  incremental track for services **without** per-service Flyway: patches are
+  named `<service>_NNN_<topic>.sql` (`finance_001..003`, `lms_001..004`,
+  `audit_003/004`, `tenant_003`, plus numbered `00x` platform patches applied
+  to `db_permission` etc.). The init scripts wire in only the inventory
+  entries (`009`, `013`); the service-prefixed ones are applied by `psql`
+  using the command in each file's header, and CI applies `007`+`008`
+  inline for the role-scope validations. Treat "did I apply it?" as manual.
+- **Per-service Flyway** at `<domain>/<name>/service/src/main/resources/db/migration/`
   (`V1__*.sql`). Flyway is enabled with `validate-on-migrate: true` and
-  `out-of-order: false` — put new schema changes here, not in `scripts/db/`.
+  `out-of-order: false` — put new per-service schema changes here, not in
+  `scripts/db/`.
   Present for analytics, document, file, fulfillment, mall, member, message,
-  order-center, payment, promotion and supplier; the older services have empty
-  dirs. `scm-analytics` also has `resources/clickhouse/V1__*.sql`.
+  notify, order-center, payment, product, promotion, supplier, system, tenant
+  and warehouse (16 services); `platform/audit`, `platform/inventory` and
+  `scm/finance` own only empty dirs. `ecom-analytics` also has
+  `resources/clickhouse/V1__*.sql`.
 - **Spring Boot 4 split Flyway auto-configuration into `spring-boot-flyway`.**
   A module that declares only `flyway-core` has no auto-configuration and will
   silently never run its migrations (the schema exists but
@@ -652,13 +682,15 @@ npm run test:e2e     # Playwright
   ship in-file mock arrays; their feature services map backend DTOs in
   `src/features/<domain>/lib/mappers.ts`. Tenant, approval and audit pages use
   the backend DTOs directly.
-- **Backend gaps the new screens work around:** scm-document and scm-file only
-  publish create/get-by-id (no list or page endpoints), so there is no document
-  or file list page; scm-finance has no reconciliation list endpoint, so
-  `/finance/reconciliation` is an ID-based workbench fed by the create
-  response. scm-message publishes no OpenAPI document at all.
+- **Backend gaps:** the one still open is platform-message, which publishes no
+  OpenAPI document at all. The older gaps are closed: document/file gained the
+  `/page` endpoints (see below) and scm-finance gained
+  `GET /reconciliation-record/page` (keyword/period/status/hasDiff) plus the
+  reconcile → confirm → mark-diff → reject transitions and
+  `/accounting-period/page|current|closed|open|close` — don't treat
+  `/finance/reconciliation` as ID-only any more.
 - `scm-purchase` gained `/api/v1/pur-order/{page,{id},{id}/items}`; the header
-  is a read-only projection of `pur_order`. `scm-notify` gained
+  is a read-only projection of `pur_order`. `platform-notify` gained
   `sys_user_notification` (Flyway `V1__sys_user_notification.sql`) and
   `/sys-user-notification/{page,unread-count,{id}/read,read-all}` for the
   message center. `scm-finance` `/invoice/page` now accepts an optional
@@ -686,16 +718,18 @@ npm run test:e2e     # Playwright
   `ApiResponse` is `@JsonInclude(NON_NULL)`; the inventory reservation
   controller returns bare literals, not an envelope.
 - scm-order exposes no fuzzy search (only exact `orderNo`/`userId`), never
-  embeds line items, and has no `customerPhone`. scm-inventory does have alert
-  and snapshot APIs: `/api/v1/inventory/alerts/{query,stats,{id}/resolve,scan}`
-  and `/api/v1/inventory/snapshots/{query,trend,generate}` back the warnings
-  screen and the daily snapshot job; it still has no movement-history API.
-- scm-document and scm-file gained the list endpoints their pages need:
+  embeds line items, and has no `customerPhone`. platform-inventory serves alert,
+  snapshot, movement-log and reservation-query APIs:
+  `/api/v1/inventory/alerts/{query,stats,{id}/resolve,scan}`,
+  `/api/v1/inventory/snapshots/{query,trend,generate}`,
+  `POST /api/v1/inventory/logs/query` and
+  `/api/v1/inventory/reservations/{query,{businessKey}}`.
+- platform-document and platform-file gained the list endpoints their pages need:
   `/api/v1/templates/page`, `/api/v1/documents/page`,
   `/api/v1/document-files/page` and `/api/v1/files/page`.
-- Business APIs are fail-closed without `scm-system`: `ApiAccessControlFilter`
+- Business APIs are fail-closed without `platform-system`: `ApiAccessControlFilter`
   asks `PermissionService.findPermissionsByUrl`, whose HTTP client throws
-  `AccessDeniedException` when the lookup fails. Start `scm-system` (or send a
+  `AccessDeniedException` when the lookup fails. Start `platform-system` (or send a
   token whose permissions resolve) before expecting a 200.
 - Playwright (`playwright.config.ts`) auto-starts `npm run dev` on :3000 and
   runs Chromium, Firefox and WebKit.
@@ -725,7 +759,7 @@ npm run test:e2e     # Playwright
   the classpath of every service, and MyBatis fails with
   "Property 'sqlSessionFactory' or 'sqlSessionTemplate' are required" when the
   primary datasource is missing.
-- Two `scm-common` idioms caused most of those failures and should not be
+- Two `platform/common` idioms caused most of those failures and should not be
   reintroduced: `@ConditionalOnMissingBean` on a `@Component`/`@Service`
   self-excludes (the condition sees the bean being registered) — put the
   fallback in an `@AutoConfiguration` listed in
@@ -739,16 +773,20 @@ npm run test:e2e     # Playwright
 ## Kubernetes
 
 `deploy/k8s/` holds overlapping manifest styles — **the same service often has
-both**, so a `scm-*-deployment.yml` glob does not cover everything:
+both**, so one glob does not cover everything. File prefixes follow the Spring
+service names (`platform-*.yaml` for the platform modules, `scm-*.yaml` for
+order/warehouse/finance/supplier/purchase, `lms-tms*` for logistics):
 
-- Single-file `scm-<name>.yaml` (Deployment + Service in one file) for 17
-  services: approval, audit, auth, file, finance, gateway, inventory,
-  logistics, message, notify, order, product, purchase, supplier, system,
-  tenant, warehouse.
-- Split `scm-<name>-deployment.yml` + `scm-<name>-service.yml` for 11:
-  auth, document, finance, gateway, inventory, logistics, product, purchase,
-  supplier, system, warehouse — plus a `scm-auth-canary` pair and
-  `scm-auth-hpa.yml`.
+- Single-file `<svc>.yaml` (Deployment + Service in one file) for 17 services:
+  platform approval, audit, auth, file, gateway, inventory, message, notify,
+  product, system, tenant — scm finance, order, purchase, supplier, warehouse —
+  and lms-tms.
+- Split `<svc>-deployment.yml` + `<svc>-service.yml` for 11: platform auth
+  (plus a `platform-auth-canary` pair and `platform-auth-hpa.yml`), document,
+  gateway, inventory, product, system — scm finance, purchase, supplier,
+  warehouse — and lms-tms (which also has the single-file style).
+- Shared: `_helpers.tpl`, `configmap.yml`, `namespace.yml`, `secrets.yml`,
+  `multi-az-topology-spread.yaml`.
 
 No manifests exist for the e-commerce layer (member, promotion, payment,
 order-center, fulfillment, search, analytics). Helm charts live in
@@ -769,9 +807,22 @@ order-center, fulfillment, search, analytics). Helm charts live in
   (`db_user`, `db_org`, `db_permission`, `db_product`, `db_inventory`,
   `db_order`, `db_warehouse`, `db_logistics`, `db_supplier`, `db_purchase`,
   `db_finance`, `db_audit`, `db_notify`, `db_approval`). The SQL file expects
-  43 tables to carry `tenant_id` (including `sys_audit_log` and
+  46 tables to carry `tenant_id` (including `sys_audit_log` and
   `sys_sensitive_operation_log`); `db_document` and `db_analytics` are **not**
   in the CI loop even though the SQL lists `doc_*` tables.
+- **The build job also validates the OpenAPI snapshots — on PRs, not just
+  pushes**: `python3 scripts/ci/check_openapi_drift.py` ("Validate OpenAPI
+  snapshot against controller mappings") fails when the `(HTTP method, path)`
+  request mappings of the `lms-tms` or `platform-inventory` controllers no
+  longer line up with `docs/api/openapi-scm-logistics.json` /
+  `openapi-scm-inventory.json`. Touch those controllers ⇒ update the snapshot
+  in the same PR. Other services pin contract fragments in unit tests instead
+  (e.g. `FinanceOpenApiCurrencyContractTest`, `AuditControllerContractTest`).
+- **Second tenant-scope validation (push only)**: `migrations/007` +
+  `008` are applied to `db_permission` and
+  `scripts/db/ci_validate_tenant_admin_scope.sql` asserts `ROLE_TENANT_ADMIN`
+  holds no `tenant:*` permission and no `menu:tenant%` console shortcut is
+  granted to non-platform roles.
 - Docker images are built for 15 services only (not member/promotion/payment/
   search/mall/…); deploy jobs roll only auth, gateway and system images (dev
   from `develop`, prod from `master`).
@@ -793,7 +844,9 @@ check, `continue-on-error`), and `docker-build` → `deploy-dev`/`deploy-prod`.
   `JsonDeserializer` / `JsonSerde` — removed in Spring Kafka 4.0; use
   `JacksonJsonSerializer` / `JacksonJsonDeserializer` (`platform/common/integration`).
 - Do not add schema changes to `scripts/db/microservices/` for a service that
-  has Flyway migrations — use `db/migration/V<n>__*.sql`.
+  has Flyway migrations — use `db/migration/V<n>__*.sql`; for services without
+  a Flyway dir (finance, audit, lms-tms) use
+  `scripts/db/migrations/<svc>_NNN_<topic>.sql`.
 - Do not rename `com.cognora.*` packages or the `cognora.*` config prefixes
   without a repo-wide sweep.
 - Do not try to "repair" the mojibake in Chinese comments/strings — 247 files

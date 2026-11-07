@@ -35,8 +35,11 @@ public class ApiAccessControlProperties {
             // 因此不需要角色权限码；强制登记反而会挡住普通用户管理自己的会话。
             "/api/auth/sessions",
             "/api/auth/sessions/**",
-            // 个人资料自助端点：userId 只从令牌取，字段白名单由 DTO 约束。
+            // 个人资料与密码自助端点：userId 只从令牌取，字段白名单由 DTO 约束。
             "/api/system/users/me",
+            "/api/system/users/change-password",
+            // 2FA 自助端点：目标用户只从访问令牌解析。
+            "/api/auth/2fa/**",
             "/api/auth/webauthn/credentials/health",
             "/api/auth/login",
             "/api/auth/register",
@@ -96,7 +99,15 @@ public class ApiAccessControlProperties {
             "/api/v1/inventory/reservation/**",
             "/sys-notification-audit/**",
             "/api/v1/payments",
-            "/api/v1/refunds"
+            "/api/v1/refunds",
+            // 认证服务回写最后登录信息：只允许带服务间 HMAC 签名的调用。
+            "/api/system/users/*/update-login",
+            // 认证服务管理员会话端点：只允许 scm-system 通过服务间签名调用。
+            "/api/auth/admin/users/**",
+            // 业务服务的 ApiAccessControlFilter 逐请求查询 URL 权限；调用方（common/web 的
+            // RestClient）已统一带服务间 HMAC 签名。该端点属于纯内部通道，不登记权限目录，
+            // 否则默认拒绝策略会把它挡掉，导致所有业务接口 fail-closed 返回 503。
+            "/api/system/permissions/find-by-url"
     ));
 
     /**

@@ -162,6 +162,23 @@ public class SysAuthController {
         }
     }
 
+    @Operation(summary = "管理员查询用户会话", description = "仅供 scm-system 通过服务间签名调用，列出指定用户的有效会话。")
+    @GetMapping("/admin/users/{userId}/sessions")
+    public ApiResponse<List<UserSessionDTO>> listUserSessions(
+            @Parameter(description = "用户 ID") @PathVariable UUID userId) {
+        return ApiResponse.success(authService.listUserSessions(userId));
+    }
+
+    @Operation(summary = "管理员撤销用户会话", description = "仅供 scm-system 通过服务间签名调用，撤销指定用户的单个设备会话。")
+    @DeleteMapping("/admin/users/{userId}/sessions/{deviceId}")
+    @AuditLog(operation = "撤销用户会话", businessType = "USER", riskLevel = 3)
+    public ApiResponse<Integer> revokeUserSession(
+            @Parameter(description = "用户 ID") @PathVariable UUID userId,
+            @Parameter(description = "设备 ID") @PathVariable String deviceId,
+            @Parameter(description = "撤销原因") @RequestParam(required = false) String reason) {
+        return ApiResponse.success(authService.revokeUserSession(userId, deviceId, reason));
+    }
+
     @Operation(summary = "强制下线用户", description = "管理员强制指定用户下线并记录下线原因。")
     @PostMapping("/force-logout/{userId}")
     @PreAuthorize("hasAuthority('system:user:edit')")
