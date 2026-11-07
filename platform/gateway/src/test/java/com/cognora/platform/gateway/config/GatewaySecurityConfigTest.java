@@ -1,6 +1,8 @@
 package com.cognora.platform.gateway.config;
 
 import com.cognora.platform.gateway.properties.GatewayCorsProperties;
+import com.cognora.platform.gateway.security.AudienceAuthorizationManager;
+import com.cognora.platform.gateway.security.AudiencePolicyProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -54,7 +56,8 @@ class GatewaySecurityConfigTest {
         CorsConfigurationSource corsConfigurationSource =
                 new GatewayCorsConfig().corsConfigurationSource(new GatewayCorsProperties());
         securityChain = new GatewaySecurityConfig()
-                .springSecurityFilterChain(ServerHttpSecurity.http(), decoder, corsConfigurationSource);
+                .springSecurityFilterChain(ServerHttpSecurity.http(), decoder, corsConfigurationSource,
+                        new AudienceAuthorizationManager(new AudiencePolicyProperties()));
         proxy = new WebFilterChainProxy(securityChain);
         principal = new AtomicReference<>();
     }

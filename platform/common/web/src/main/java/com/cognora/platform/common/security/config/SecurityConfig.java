@@ -1,6 +1,7 @@
 package com.cognora.platform.common.security.config;
 
 import com.cognora.platform.common.security.filter.JwtAuthenticationFilter;
+import com.cognora.platform.common.security.audience.TokenAudienceFilter;
 import com.cognora.platform.common.security.filter.SqlInjectionFilter;
 import com.cognora.platform.common.security.handler.JwtAccessDeniedHandler;
 import com.cognora.platform.common.security.handler.JwtAuthenticationEntryPoint;
@@ -49,6 +50,8 @@ public class SecurityConfig {
     private final SqlInjectionFilter sqlInjectionFilter;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
+    @Autowired(required = false)
+    private TokenAudienceFilter tokenAudienceFilter;
     @Autowired(required = false)
     private StepUpFilter stepUpFilter;
     private final SecurityHeadersProperties securityHeadersProperties;
@@ -141,6 +144,10 @@ public class SecurityConfig {
 
         if (stepUpFilter != null) {
             http.addFilterAfter(stepUpFilter, JwtAuthenticationFilter.class);
+        }
+        if (tokenAudienceFilter != null) {
+            http.addFilterAfter(tokenAudienceFilter,
+                    stepUpFilter != null ? StepUpFilter.class : JwtAuthenticationFilter.class);
         }
 
         return http.build();
