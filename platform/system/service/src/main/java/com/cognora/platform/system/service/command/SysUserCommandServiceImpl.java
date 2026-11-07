@@ -1,9 +1,14 @@
 package com.cognora.platform.system.service.command;
 
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.cognora.platform.common.dto.user.CreateUserRequest;
+import com.cognora.platform.common.dto.user.ResetPasswordResponse;
 import com.cognora.platform.common.dto.user.UpdateProfileRequest;
+import com.cognora.platform.common.dto.user.UpdateUserRequest;
 import com.cognora.platform.common.dto.user.UserDTO;
+import com.cognora.platform.common.dto.user.UserSessionDTO;
 import com.cognora.platform.common.exception.BusinessException;
+import com.cognora.platform.common.response.ApiResponse;
 import com.cognora.platform.common.response.ResultCode;
 import com.cognora.platform.common.rest.client.SysAuthServiceClient;
 import com.cognora.platform.common.security.PermissionChecker;
@@ -19,10 +24,12 @@ import com.cognora.platform.system.mapper.SysUserMapper;
 import com.cognora.platform.system.service.query.ISysUserQueryService;
 import com.cognora.platform.system.service.query.RoleCrossDatabaseQueryService;
 import com.cognora.platform.system.service.query.UserCrossDatabaseQueryService;
+import com.cognora.platform.system.service.support.PasswordPolicyService;
+import com.cognora.platform.system.service.support.UserReadAccessGuard;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -63,6 +70,8 @@ public class SysUserCommandServiceImpl implements ISysUserCommandService {
     private final UserCommandTemplate commandTemplate;
     private final SysAuthServiceClient authServiceClient;
     private final UserAuthorizationCacheEvictor cacheEvictor;
+    private final PasswordPolicyService passwordPolicyService;
+    private final UserReadAccessGuard userReadAccessGuard;
 
     @Value("${app.security.admin-user-id:019a0aee-3b74-7bfc-b34f-48b5428d4875}")
     private String adminUserId;
@@ -74,34 +83,63 @@ public class SysUserCommandServiceImpl implements ISysUserCommandService {
     // 跨 db_user（用户）与 db_permission（用户角色）：必须用 @DSTransactional，
     // 普通 @Transactional 会锁定主库连接，导致 @DS("permission") 路由失效。
     @DSTransactional
-    public void addUser(UserDTO userDTO) {
+    public void addUser(CreateUserRequest request) {
         UUID tenantId = TenantValidationUtil.getRequiredTenantId();
         UUID operatorId = SecurityUtils.getCurrentUserUuid().orElse(null);
         permissionChecker.requirePermission(operatorId, "user:add");
-        validateRoleAssignment(operatorId, userDTO.getRoleIds());
+        validateRoleAssignment(operatorId, request.getRoleIds());
 
-        if (userMapper.existsByUsername(userDTO.getUsername())) {
+        if (userMapper.existsByUsername(tenantId, request.getUsername())) {
             throw new BusinessException(ResultCode.USER_EXIST.getCode(),
                     ResultCode.USER_EXIST.getMessage());
         }
+        if (request.getPhone() != null && !request.getPhone().isEmpty()
+                && userMapper.existsByPhone(tenantId, request.getPhone(), null)) {
+            throw new BusinessException(ResultCode.CONFLICT.getCode(), "手机号已被使用");
+        }
+        if (request.getEmail() != null && !request.getEmail().isEmpty()
+                && userMapper.existsByEmail(tenantId, request.getEmail(), null)) {
+            throw new BusinessException(ResultCode.CONFLICT.getCode(), "邮箱已被使用");
+        }
 
-        String encoded = (userDTO.getPassword() != null && !userDTO.getPassword().isEmpty())
-                ? passwordEncoder.encode(userDTO.getPassword())
-                : passwordEncoder.encode(defaultPassword);
+        boolean explicitPassword = request.getPassword() != null && !request.getPassword().isEmpty();
+        if (explicitPassword) {
+            passwordPolicyService.validate(request.getPassword());
+        }
+        String rawPassword = explicitPassword ? request.getPassword() : defaultPassword;
+        String encoded = passwordEncoder.encode(rawPassword);
 
         SysUser user = new SysUser();
-        BeanUtils.copyProperties(userDTO, user);
-        user.setPassword(encoded);
         user.setId(UUIDv7Util.generate());
         user.setTenantId(tenantId);
-        user.setPasswordExpireTime(LocalDateTime.now().plusDays(90));
+        user.setUsername(request.getUsername());
+        user.setPassword(encoded);
+        user.setRealName(request.getRealName());
+        user.setIdCard(emptyToNull(request.getIdCard()));
+        user.setEmail(emptyToNull(request.getEmail()));
+        user.setPhone(emptyToNull(request.getPhone()));
+        user.setAvatar(request.getAvatar());
+        user.setTimezone(request.getTimezone());
+        user.setStatus(UserStatus.ACTIVE.getCode());
+        user.setDeptId(request.getDeptId());
+        user.setUserLevel(request.getUserLevel());
+        user.setAccountType(request.getAccountType());
+        user.setRemark(request.getRemark());
+        user.setPasswordExpireTime(LocalDateTime.now().plusDays(passwordPolicyService.getExpireDays()));
         user.setForceChangePassword(true);
+        user.setLoginAttempts(0);
 
-        userMapper.insert(user);
+        try {
+            userMapper.insert(user);
+        } catch (DuplicateKeyException ex) {
+            throw new BusinessException(ResultCode.CONFLICT.getCode(), "用户名、手机号或邮箱已存在");
+        }
 
-        if (userDTO.getRoleIds() != null && !userDTO.getRoleIds().isEmpty()) {
+        passwordPolicyService.record(user.getId(), encoded, "INITIAL");
+
+        if (request.getRoleIds() != null && !request.getRoleIds().isEmpty()) {
             int inserted = userRoleCommandService.batchInsertUserRoles(
-                    user.getId(), userDTO.getRoleIds(), operatorId);
+                    user.getId(), request.getRoleIds(), operatorId);
             log.debug("创建用户时分配角色: user={}, roleCount={}", user.getUsername(), inserted);
         }
 
@@ -117,39 +155,92 @@ public class SysUserCommandServiceImpl implements ISysUserCommandService {
 
     @Override
     @DSTransactional
-    public void updateUser(UUID id, UserDTO userDTO) {
-        userDTO.setId(id);
-        SysUser user = commandTemplate.execute("UPDATE", "user:update", userDTO.getId(),
+    public void updateUser(UUID id, UpdateUserRequest request) {
+        UUID tenantId = TenantValidationUtil.getRequiredTenantId();
+        SysUser user = commandTemplate.execute("UPDATE", "user:update", id,
                 (loaded, op) -> {
-                    validateRoleAssignment(op, userDTO.getRoleIds());
+                    int currentVersion = loaded.getVersion() != null ? loaded.getVersion() : 0;
+                    if (request.getVersion() != null && request.getVersion() != currentVersion) {
+                        throw new BusinessException(ResultCode.CONFLICT.getCode(),
+                                "用户数据已被其他操作修改，请刷新后重试");
+                    }
+                    String phone = emptyToNull(request.getPhone());
+                    if (phone != null && !phone.equals(loaded.getPhone())
+                            && userMapper.existsByPhone(tenantId, phone, loaded.getId())) {
+                        throw new BusinessException(ResultCode.CONFLICT.getCode(), "手机号已被使用");
+                    }
+                    String email = emptyToNull(request.getEmail());
+                    if (email != null && !email.equals(loaded.getEmail())
+                            && userMapper.existsByEmail(tenantId, email, loaded.getId())) {
+                        throw new BusinessException(ResultCode.CONFLICT.getCode(), "邮箱已被使用");
+                    }
 
                     SysUser update = new SysUser();
-                    BeanUtils.copyProperties(userDTO, update);
-                    update.setPassword(null);
-                    userMapper.updateById(update);
-
-                    if (userDTO.getRoleIds() != null) {
-                        int deleted = userRoleCommandService.deleteUserRoles(loaded.getId());
-                        log.debug("更新用户时清除旧角色: user={}, deletedCount={}",
-                                loaded.getUsername(), deleted);
-                        if (!userDTO.getRoleIds().isEmpty()) {
-                            int inserted = userRoleCommandService.batchInsertUserRoles(
-                                    loaded.getId(), userDTO.getRoleIds(), op);
-                            log.debug("更新用户时重新分配角色: user={}, newRoleCount={}",
-                                    loaded.getUsername(), inserted);
+                    update.setId(loaded.getId());
+                    update.setVersion(loaded.getVersion());
+                    boolean changed = false;
+                    if (request.getRealName() != null) {
+                        if (request.getRealName().isBlank()) {
+                            throw new BusinessException(ResultCode.VALIDATION_FAILED.getCode(),
+                                    "真实姓名不能为空");
                         }
+                        update.setRealName(request.getRealName());
+                        changed = true;
+                    }
+                    if (request.getIdCard() != null && !request.getIdCard().isEmpty()) {
+                        update.setIdCard(request.getIdCard());
+                        changed = true;
+                    }
+                    if (email != null) {
+                        update.setEmail(email);
+                        changed = true;
+                    }
+                    if (phone != null) {
+                        update.setPhone(phone);
+                        changed = true;
+                    }
+                    if (request.getAvatar() != null) {
+                        update.setAvatar(request.getAvatar());
+                        changed = true;
+                    }
+                    if (request.getTimezone() != null) {
+                        update.setTimezone(request.getTimezone());
+                        changed = true;
+                    }
+                    if (request.getDeptId() != null) {
+                        update.setDeptId(request.getDeptId());
+                        changed = true;
+                    }
+                    if (request.getUserLevel() != null) {
+                        update.setUserLevel(request.getUserLevel());
+                        changed = true;
+                    }
+                    if (request.getAccountType() != null) {
+                        update.setAccountType(request.getAccountType());
+                        changed = true;
+                    }
+                    if (request.getRemark() != null) {
+                        update.setRemark(request.getRemark());
+                        changed = true;
+                    }
+
+                    if (!changed) {
+                        return;
+                    }
+                    int updatedRows;
+                    try {
+                        updatedRows = userMapper.updateById(update);
+                    } catch (DuplicateKeyException ex) {
+                        throw new BusinessException(ResultCode.CONFLICT.getCode(), "手机号或邮箱已存在");
+                    }
+                    if (updatedRows == 0) {
+                        throw new BusinessException(ResultCode.CONFLICT.getCode(),
+                                "用户数据已被其他操作修改，请刷新后重试");
                     }
                 });
 
-        // 始终清理资料与授权缓存：evictUserAuthorization 已包含 evictUserProfile 的
-        // user / userInfo / userDetails。不按 userDTO.getRoleIds() 的用户可控条件分支，
-        // 避免安全相关缓存被条件跳过，也不重复失效同一个 tenant 键。
         cacheEvictor.evictUserAuthorization(user.getId(), user.getUsername());
-        if (userDTO.getUsername() != null && !userDTO.getUsername().equals(user.getUsername())) {
-            // 用户名被修改时，新 username 可能也存在缓存项（getUserByUsername 会缓存 null），一并失效。
-            cacheEvictor.evictUserDetails(userDTO.getUsername());
-        }
-        if (userDTO.getDeptId() != null && !userDTO.getDeptId().equals(user.getDeptId())) {
+        if (request.getDeptId() != null && !request.getDeptId().equals(user.getDeptId())) {
             cacheEvictor.evictUserDeptId(user.getId());
         }
 
@@ -240,24 +331,42 @@ public class SysUserCommandServiceImpl implements ISysUserCommandService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public String resetPassword(UUID id) {
-        SysUser user = userMapper.selectById(id);
-        if (user == null) {
-            throw new BusinessException(ResultCode.USER_NOT_FOUND.getCode(),
-                    ResultCode.USER_NOT_FOUND.getMessage());
-        }
-        TenantValidationUtil.validateDataOwnership(user.getTenantId());
+    public ResetPasswordResponse resetPassword(UUID id) {
+        SysUser user = userReadAccessGuard.requireReadable(id);
+
+        UUID operatorId = SecurityUtils.getCurrentUserUuid().orElse(null);
+        boolean reveal = passwordPolicyService.isRevealResetPassword()
+                && permissionChecker.hasPermission(operatorId, "system:user:reset:reveal");
 
         String newPassword = generateRandomPassword();
-        user.setPassword(passwordEncoder.encode(newPassword));
-        user.setForceChangePassword(true);
-        userMapper.updateById(user);
+        passwordPolicyService.validate(newPassword);
+        String encoded = passwordEncoder.encode(newPassword);
+        LocalDateTime expireAt = LocalDateTime.now()
+                .plusDays(passwordPolicyService.getExpireDays());
 
+        user.setPassword(encoded);
+        user.setForceChangePassword(true);
+        user.setLastPasswordChangeTime(LocalDateTime.now());
+        user.setPasswordExpireTime(expireAt);
+        int updatedRows = userMapper.updateById(user);
+        if (updatedRows == 0) {
+            throw new BusinessException(ResultCode.CONFLICT.getCode(),
+                    "用户数据已被其他操作修改，请刷新后重试");
+        }
+
+        passwordPolicyService.record(user.getId(), encoded, "RESET");
         cacheEvictor.evictUserCredentials(user.getId(), user.getUsername());
+
+        // 重置密码后强制下线，避免旧会话继续持有已失效的凭据。
+        authServiceClient.forceLogout(id, "Password reset by administrator");
 
         log.info("Password reset for user: {}, by: {}",
                 user.getUsername(), SecurityUtils.getCurrentUsername());
-        return newPassword;
+        return ResetPasswordResponse.builder()
+                .temporaryPassword(reveal ? newPassword : null)
+                .mustChangePassword(true)
+                .expiresAt(expireAt)
+                .build();
     }
 
     @Override
@@ -282,13 +391,23 @@ public class SysUserCommandServiceImpl implements ISysUserCommandService {
                     ResultCode.USER_PASSWORD_SAME_AS_OLD.getCode(),
                     ResultCode.USER_PASSWORD_SAME_AS_OLD.getMessage());
         }
+        passwordPolicyService.validate(newPassword);
+        passwordPolicyService.validateNotReused(userId, newPassword);
 
-        user.setPassword(passwordEncoder.encode(newPassword));
+        LocalDateTime expireAt = LocalDateTime.now()
+                .plusDays(passwordPolicyService.getExpireDays());
+        String encoded = passwordEncoder.encode(newPassword);
+        user.setPassword(encoded);
         user.setForceChangePassword(false);
         user.setLastPasswordChangeTime(LocalDateTime.now());
-        user.setPasswordExpireTime(LocalDateTime.now().plusDays(90));
-        userMapper.updateById(user);
+        user.setPasswordExpireTime(expireAt);
+        int updatedRows = userMapper.updateById(user);
+        if (updatedRows == 0) {
+            throw new BusinessException(ResultCode.CONFLICT.getCode(),
+                    "用户数据已被其他操作修改，请重试");
+        }
 
+        passwordPolicyService.record(user.getId(), encoded, "CHANGE");
         cacheEvictor.evictUserCredentials(user.getId(), user.getUsername());
 
         log.info("Password changed for user: {}", user.getUsername());
@@ -332,35 +451,89 @@ public class SysUserCommandServiceImpl implements ISysUserCommandService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void lockUser(UUID id, Boolean lock) {
-        SysUser user = userMapper.selectById(id);
-        if (user == null) {
-            throw new BusinessException(ResultCode.USER_NOT_FOUND.getCode(),
-                    ResultCode.USER_NOT_FOUND.getMessage());
-        }
+    public void enableUser(UUID id) {
+        changeLifecycleStatus(id, UserStatus.ACTIVE, null, null, true, "ENABLE");
+    }
 
-        UserStatus fromStatus = UserStatus.fromCode(user.getStatus());
-        if (lock) {
-            statusValidator.validateTransition("USER",
-                    fromStatus != null ? fromStatus.name() : String.valueOf(user.getStatus()),
-                    "LOCKED");
-            user.setStatus(UserStatus.LOCKED.getCode());
-            user.setLockedUntil(LocalDateTime.now().plusHours(24));
-        } else {
-            statusValidator.validateTransition("USER",
-                    fromStatus != null ? fromStatus.name() : String.valueOf(user.getStatus()),
-                    "ACTIVE");
-            user.setStatus(UserStatus.ACTIVE.getCode());
-            user.setLockedUntil(null);
-            user.setLoginAttempts(0);
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void disableUser(UUID id, String reason) {
+        changeLifecycleStatus(id, UserStatus.INACTIVE, reason, null, false, "DISABLE");
+        authServiceClient.forceLogout(id, reason != null && !reason.isBlank()
+                ? reason : "Account disabled by administrator");
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void lockUser(UUID id, String reason, Integer durationMinutes) {
+        int minutes = durationMinutes != null && durationMinutes > 0 ? durationMinutes : 1440;
+        changeLifecycleStatus(id, UserStatus.LOCKED, reason,
+                LocalDateTime.now().plusMinutes(minutes), false, "LOCK");
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void unlockUser(UUID id) {
+        changeLifecycleStatus(id, UserStatus.ACTIVE, null, null, true, "UNLOCK");
+    }
+
+    @Override
+    public List<UserSessionDTO> listUserSessions(UUID id) {
+        userReadAccessGuard.requireReadable(id);
+        ApiResponse<List<UserSessionDTO>> response = authServiceClient.listUserSessions(id);
+        if (response == null || response.code() != 200 || response.data() == null) {
+            throw new BusinessException(ResultCode.SERVICE_UNAVAILABLE.getCode(),
+                    "认证服务不可用，无法查询会话");
         }
-        userMapper.updateById(user);
+        return response.data();
+    }
+
+    @Override
+    public int revokeUserSession(UUID id, String sessionId, String reason) {
+        userReadAccessGuard.requireReadable(id);
+        ApiResponse<Integer> response = authServiceClient.revokeUserSession(id, sessionId,
+                reason != null && !reason.isBlank() ? reason : "Session revoked by administrator");
+        if (response == null || response.code() != 200 || response.data() == null) {
+            throw new BusinessException(ResultCode.SERVICE_UNAVAILABLE.getCode(),
+                    "认证服务不可用，无法撤销会话");
+        }
+        return response.data();
+    }
+
+    /**
+     * 账号生命周期状态变更。使用 UpdateWrapper 显式清空锁定字段，
+     * 避免 MyBatis-Plus 默认 NOT_NULL 策略把 null 字段跳过。
+     */
+    private void changeLifecycleStatus(UUID id, UserStatus target, String reason,
+                                       LocalDateTime lockedUntil, boolean clearAttempts,
+                                       String operation) {
+        SysUser user = commandTemplate.execute(operation, "user:update", id, (loaded, op) -> {
+            UserStatus from = UserStatus.fromCode(loaded.getStatus());
+            statusValidator.validateTransition("USER", from.name(), target.name());
+
+            LambdaUpdateWrapper<SysUser> update = new LambdaUpdateWrapper<>();
+            update.eq(SysUser::getId, loaded.getId())
+                    .set(SysUser::getStatus, target.getCode())
+                    .set(SysUser::getLockReason, reason)
+                    .set(SysUser::getLockedUntil, lockedUntil)
+                    .set(SysUser::getStatusChangedAt, LocalDateTime.now())
+                    .set(SysUser::getStatusChangedBy, op)
+                    .setSql("version = version + 1");
+            if (clearAttempts) {
+                update.set(SysUser::getLoginAttempts, 0);
+            }
+            if (loaded.getVersion() != null) {
+                update.eq(SysUser::getVersion, loaded.getVersion());
+            }
+            if (userMapper.update(null, update) == 0) {
+                throw new BusinessException(ResultCode.CONFLICT.getCode(),
+                        "用户数据已被其他操作修改，请刷新后重试");
+            }
+        });
 
         cacheEvictor.evictUserCredentials(user.getId(), user.getUsername());
-
-        log.info("User {} {}, by: {}",
-                user.getUsername(), lock ? "locked" : "unlocked",
-                SecurityUtils.getCurrentUsername());
+        log.info("User lifecycle changed: username={}, target={}, by={}",
+                user.getUsername(), target, SecurityUtils.getCurrentUsername());
     }
 
     @Override
@@ -396,6 +569,10 @@ public class SysUserCommandServiceImpl implements ISysUserCommandService {
             permissionChecker.requireRoleAssignmentPermission(operatorId, operatorMaxRoleLevel, roleLevel);
             TenantValidationUtil.validateRoleAccess(roleQueryService.getRoleTenantId(roleId));
         }
+    }
+
+    private String emptyToNull(String value) {
+        return value == null || value.isEmpty() ? null : value;
     }
 
     private String generateRandomPassword() {

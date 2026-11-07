@@ -46,6 +46,10 @@ db_permission:022_system_config_permission.sql
 db_permission:023_finance_batch2_permissions.sql
 db_permission:023_inventory_permissions.sql
 db_permission:024_finance_tax_rate_permissions.sql
+db_permission:025_user_management_permissions.sql
+db_permission:026_user_batch_permissions.sql
+db_permission:027_user_lifecycle_permissions.sql
+db_permission:028_user_import_export_permissions.sql
 db_org:003_org_dept.sql
 db_user:004_admin_user.sql
 db_product:010_product.sql

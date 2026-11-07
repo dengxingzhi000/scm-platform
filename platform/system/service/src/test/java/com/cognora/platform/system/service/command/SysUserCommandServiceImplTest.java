@@ -1,6 +1,9 @@
 package com.cognora.platform.system.service.command;
 
+import com.baomidou.mybatisplus.core.MybatisConfiguration;
+import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.cognora.platform.common.dto.user.UpdateProfileRequest;
+import com.cognora.platform.common.dto.user.UpdateUserRequest;
 import com.cognora.platform.common.dto.user.UserDTO;
 import com.cognora.platform.common.rest.client.SysAuthServiceClient;
 import com.cognora.platform.common.security.PermissionChecker;
@@ -14,12 +17,15 @@ import com.cognora.platform.system.mapper.SysUserMapper;
 import com.cognora.platform.system.service.query.ISysUserQueryService;
 import com.cognora.platform.system.service.query.RoleCrossDatabaseQueryService;
 import com.cognora.platform.system.service.query.UserCrossDatabaseQueryService;
+import com.cognora.platform.system.service.support.PasswordPolicyService;
+import com.cognora.platform.system.service.support.UserReadAccessGuard;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
+import org.apache.ibatis.builder.MapperBuilderAssistant;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
@@ -65,12 +71,16 @@ class SysUserCommandServiceImplTest {
     @Mock private UserCommandTemplate commandTemplate;
     @Mock private SysAuthServiceClient authServiceClient;
     @Mock private CacheManager cacheManager;
+    @Mock private PasswordPolicyService passwordPolicyService;
+    @Mock private UserReadAccessGuard userReadAccessGuard;
 
     private final Map<String, Cache> caches = new HashMap<>();
     private SysUserCommandServiceImpl service;
 
     @BeforeEach
     void setUp() {
+        // LambdaUpdateWrapper 需要 MyBatis-Plus 的实体元数据缓存；纯 Mockito 单测没有 Spring 上下文。
+        TableInfoHelper.initTableInfo(new MapperBuilderAssistant(new MybatisConfiguration(), ""), SysUser.class);
         caches.clear();
         for (String name : CACHE_NAMES) {
             caches.put(name, mock(Cache.class));
@@ -81,7 +91,8 @@ class SysUserCommandServiceImplTest {
         UserAuthorizationCacheEvictor evictor = new UserAuthorizationCacheEvictor(cacheManager);
         service = new SysUserCommandServiceImpl(userMapper, sysUserQueryService, userQueryService, roleQueryService,
                 userRoleCommandService, passwordEncoder, dataSyncEventPublisher, permissionChecker,
-                statusValidator, commandTemplate, authServiceClient, evictor);
+                statusValidator, commandTemplate, authServiceClient, evictor, passwordPolicyService,
+                userReadAccessGuard);
     }
 
     @AfterEach
@@ -100,15 +111,60 @@ class SysUserCommandServiceImplTest {
     }
 
     @Test
-    void updateUserBindsPathVariableIdToDto() {
+    void disableUserForcesLogoutAfterStatusChange() {
+        UUID tenantId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
-        UserDTO userDTO = new UserDTO();
+        TenantContextHolder.setTenantId(tenantId);
+
+        SysUser loaded = new SysUser().setId(userId).setUsername("tester")
+                .setTenantId(tenantId).setStatus(1).setVersion(0);
+        when(commandTemplate.execute(anyString(), anyString(), eq(userId), any()))
+                .thenAnswer(invocation -> {
+                    java.util.function.BiConsumer<SysUser, UUID> body = invocation.getArgument(3);
+                    body.accept(loaded, null);
+                    return loaded;
+                });
+        when(userMapper.update(any(), any())).thenReturn(1);
+
+        service.disableUser(userId, "policy");
+
+        verify(authServiceClient).forceLogout(eq(userId), eq("policy"));
+        verify(userMapper).update(any(), any());
+    }
+
+    @Test
+    void unlockUserResetsStatusAndAttempts() {
+        UUID tenantId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        TenantContextHolder.setTenantId(tenantId);
+
+        SysUser loaded = new SysUser().setId(userId).setUsername("tester")
+                .setTenantId(tenantId).setStatus(2).setVersion(0).setLoginAttempts(5);
+        when(commandTemplate.execute(anyString(), anyString(), eq(userId), any()))
+                .thenAnswer(invocation -> {
+                    java.util.function.BiConsumer<SysUser, UUID> body = invocation.getArgument(3);
+                    body.accept(loaded, null);
+                    return loaded;
+                });
+        when(userMapper.update(any(), any())).thenReturn(1);
+
+        service.unlockUser(userId);
+
+        verify(userMapper).update(any(), any());
+    }
+
+    @Test
+    void updateUserDoesNotAcceptIdentityFieldsFromRequest() {
+        UUID userId = UUID.randomUUID();
+        TenantContextHolder.setTenantId(UUID.randomUUID());
+        UpdateUserRequest request = new UpdateUserRequest();
+        request.setVersion(0);
         when(commandTemplate.execute(eq("UPDATE"), eq("user:update"), eq(userId), any()))
-                .thenReturn(new SysUser());
+                .thenReturn(new SysUser().setId(userId).setUsername("tester").setVersion(0));
 
-        service.updateUser(userId, userDTO);
+        service.updateUser(userId, request);
 
-        assertEquals(userId, userDTO.getId());
+        // 目标 id 由路径变量决定；UpdateUserRequest 不包含 id/username/password/status。
         verify(commandTemplate).execute(eq("UPDATE"), eq("user:update"), eq(userId), any());
     }
 
@@ -153,7 +209,7 @@ class SysUserCommandServiceImplTest {
                 .thenReturn(loaded);
         when(userMapper.selectById(userId)).thenReturn(loaded);
 
-        service.updateUser(userId, new UserDTO());
+        service.updateUser(userId, new UpdateUserRequest());
 
         verify(cache("user")).evict(tenantId + ":" + userId);
         verify(cache("userInfo")).evict(tenantId + ":" + userId);
@@ -171,7 +227,7 @@ class SysUserCommandServiceImplTest {
         user.setUsername("tester");
         user.setTenantId(tenantId);
 
-        when(userMapper.selectById(userId)).thenReturn(user);
+        when(userReadAccessGuard.requireReadable(userId)).thenReturn(user);
         when(passwordEncoder.encode(anyString())).thenReturn("encoded-new");
         when(userMapper.updateById(any(SysUser.class))).thenReturn(1);
 
@@ -228,14 +284,15 @@ class SysUserCommandServiceImplTest {
         loaded.setUsername("tester");
         loaded.setDeptId(oldDeptId);
 
-        UserDTO userDTO = new UserDTO();
-        userDTO.setDeptId(newDeptId);
+        UpdateUserRequest request = new UpdateUserRequest();
+        request.setVersion(0);
+        request.setDeptId(newDeptId);
 
         when(commandTemplate.execute(eq("UPDATE"), eq("user:update"), eq(userId), any()))
                 .thenReturn(loaded);
         when(userMapper.selectById(userId)).thenReturn(loaded);
 
-        service.updateUser(userId, userDTO);
+        service.updateUser(userId, request);
 
         verify(cache("user")).evict(tenantId + ":" + userId);
         verify(cache("userInfo")).evict(tenantId + ":" + userId);

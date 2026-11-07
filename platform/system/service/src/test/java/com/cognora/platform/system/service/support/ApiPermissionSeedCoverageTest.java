@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * 用 seed 里的权限定义做参数化回归：019 的 350 条 {var} 模板必须全部能命中，
+ * 用 seed 里的权限定义做参数化回归：019 的模板 + 002/024 的用户管理模板必须全部能命中，
  * 字面量路径（019 段 1 + 002）必须仍然精确命中。
  *
  * <p>数据集直接从仓库里的 SQL 读取，避免测试副本与 seed 漂移。</p>
@@ -35,7 +35,8 @@ class ApiPermissionSeedCoverageTest {
         List<Row> rows = seedRows();
         List<Row> templated = rows.stream().filter(row -> isTemplate(row.apiPath)).toList();
 
-        assertEquals(350, templated.size(), "seed 019 段 2 的模板端点数变了，先确认 seed 再改断言");
+        assertEquals(354, templated.size(),
+                "002 中用户管理 edit/delete/reset/grant 已登记真实模板路径（原 350 + 4），改动 seed 后需同步更新断言");
 
         List<SysPermission> candidates = toCandidates(rows);
         for (Row row : templated) {

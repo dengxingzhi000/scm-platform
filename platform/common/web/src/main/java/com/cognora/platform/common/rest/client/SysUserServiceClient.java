@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.service.annotation.GetExchange;
 import org.springframework.web.service.annotation.HttpExchange;
+import org.springframework.web.service.annotation.PostExchange;
 
 import java.util.Set;
 import java.util.UUID;
@@ -48,7 +49,7 @@ public interface SysUserServiceClient {
      * @param ipAddress IP 鍦板潃
      * @return 鍝嶅簲缁撴灉
      */
-    @GetExchange("/{userId}/update-login")
+    @PostExchange("/{userId}/update-login")
     @SentinelResource(
         value = "user-service:updateLastLogin",
         fallback = "updateLastLoginFallback"

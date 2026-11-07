@@ -5,6 +5,7 @@ import com.cognora.platform.common.dto.user.UserInfo;
 import com.cognora.platform.common.web.domain.SecurityUser;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -83,5 +84,17 @@ public interface UserDubboService {
      * @return set of permission codes
      */
     Set<String> findPermissionsByUserId(UUID userId);
+
+    /** 启用 TOTP 二次验证并保存秘钥。 */
+    void enableTwoFactor(UUID userId, String secret);
+
+    /** 关闭 TOTP 二次验证并清除秘钥与恢复码。 */
+    void disableTwoFactor(UUID userId);
+
+    /** 用新的恢复码哈希替换用户全部旧恢复码。 */
+    void replaceRecoveryCodes(UUID userId, List<String> codeHashes);
+
+    /** 消费一个恢复码；成功返回 true。 */
+    boolean consumeRecoveryCode(UUID userId, String codeHash);
 }
 

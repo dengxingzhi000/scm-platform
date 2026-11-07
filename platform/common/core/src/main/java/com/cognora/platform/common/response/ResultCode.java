@@ -40,6 +40,8 @@ public enum ResultCode {
     USER_CANNOT_DELETE_SELF(1008, HttpStatus.BAD_REQUEST, "Cannot Delete Self"),
     USER_PASSWORD_INCORRECT_OLD(1010, HttpStatus.BAD_REQUEST, "Old Password Incorrect"),
     USER_PASSWORD_SAME_AS_OLD(1011, HttpStatus.BAD_REQUEST, "New Password Must Differ From Old"),
+    USER_PASSWORD_POLICY_VIOLATION(1012, HttpStatus.BAD_REQUEST, "Password Does Not Meet Policy"),
+    USER_PASSWORD_IN_HISTORY(1013, HttpStatus.CONFLICT, "Password Was Used Recently"),
     USER_NEED_LOGIN(1009, HttpStatus.UNAUTHORIZED, "Login Required"),
 
 

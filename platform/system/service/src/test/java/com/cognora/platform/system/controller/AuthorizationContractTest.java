@@ -2,7 +2,7 @@ package com.cognora.platform.system.controller;
 
 import com.cognora.platform.common.dto.config.SysConfigItemDTO;
 import com.cognora.platform.common.dto.user.UpdateProfileRequest;
-import com.cognora.platform.common.dto.user.UserDTO;
+import com.cognora.platform.common.dto.user.UpdateUserRequest;
 import org.aopalliance.intercept.MethodInvocation;
 import org.junit.jupiter.api.Test;
 import org.springframework.expression.Expression;
@@ -36,7 +36,7 @@ class AuthorizationContractTest {
 
     @Test
     void normalUserCannotCallUpdateUserEndpoint() throws Exception {
-        Method method = SysUserController.class.getMethod("update", UUID.class, UserDTO.class);
+        Method method = SysUserController.class.getMethod("update", UUID.class, UpdateUserRequest.class);
         String expression = preAuthorizeOf(method);
 
         assertEquals("hasAuthority('system:user:edit')", expression);
