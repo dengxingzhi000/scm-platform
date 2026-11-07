@@ -1,10 +1,14 @@
 package com.cognora.platform.system.service.support;
 
+import com.baomidou.mybatisplus.core.MybatisConfiguration;
+import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.cognora.platform.system.cache.UserAuthorizationCacheEvictor;
 import com.cognora.platform.system.domain.entity.SysUser;
 import com.cognora.platform.system.domain.entity.SysUserRecoveryCode;
 import com.cognora.platform.system.mapper.SysUserMapper;
 import com.cognora.platform.system.mapper.SysUserRecoveryCodeMapper;
+import org.apache.ibatis.builder.MapperBuilderAssistant;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -24,6 +28,17 @@ class TwoFactorPersistenceServiceTest {
     private SysUserRecoveryCodeMapper recoveryCodeMapper;
     private UserAuthorizationCacheEvictor cacheEvictor;
     private TwoFactorPersistenceService service;
+
+    /**
+     * `LambdaUpdateWrapper` resolves `SysUser::getId` to a column name through MyBatis-Plus's
+     * {@code TableInfo}, which a plain Mockito test never builds — without this the suite fails
+     * with "can not find lambda cache for this entity" whenever it runs before any test that
+     * happens to bootstrap a MyBatis context.
+     */
+    @BeforeAll
+    static void initTableInfo() {
+        TableInfoHelper.initTableInfo(new MapperBuilderAssistant(new MybatisConfiguration(), ""), SysUser.class);
+    }
 
     @BeforeEach
     void setUp() {
