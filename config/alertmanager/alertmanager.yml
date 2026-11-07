@@ -1,0 +1,52 @@
+# Alertmanager 配置：webhook 模式
+#
+# 由 docker-compose 的 alertmanager 服务在 ALERTMANAGER_WEBHOOK_URL 非空时使用
+# （--config.expand-env 会把 ${ALERTMANAGER_WEBHOOK_URL} 展开为环境变量值）。
+# 未配置该变量时使用同目录的 alertmanager-null.yml，不对外发送任何通知。
+#
+# 说明见 docs/operations/ALERTING.md。
+
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: webhook
+  # 同一 alertname + team 的告警合并成一条通知（同组去重）
+  group_by: [alertname, team]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    # critical 单独一组、更早发出、更频繁重复
+    - matchers:
+        - 'severity="critical"'
+      receiver: webhook
+      group_wait: 10s
+      repeat_interval: 1h
+    - matchers:
+        - 'severity="warning"'
+      receiver: webhook
+      group_wait: 30s
+      repeat_interval: 4h
+
+receivers:
+  - name: webhook
+    webhook_configs:
+      - url: '${ALERTMANAGER_WEBHOOK_URL}'
+        send_resolved: true
+        max_alerts: 0
+
+inhibit_rules:
+  # 同一 alertname + team 下，critical 抑制 warning
+  - source_matchers:
+      - 'severity="critical"'
+    target_matchers:
+      - 'severity="warning"'
+    equal: [alertname, team]
+  # 审计链路的 High 与基础规则用的是不同 alertname，
+  # 这里按 team 抑制，避免 critical 与 warning 同时刷两条
+  - source_matchers:
+      - alertname=~"AuditDeliveryFailedHigh|AuditWriteRejectedHigh"
+    target_matchers:
+      - alertname=~"AuditDeliveryFailed|AuditWriteRejected"
+    equal: [team]

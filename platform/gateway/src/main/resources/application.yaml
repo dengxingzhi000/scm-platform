@@ -268,10 +268,47 @@ security:
       # Remove default values to enforce secure configuration
       web-app: ${API_SECRET_WEB_APP:}
       internal-service: ${API_SECRET_INTERNAL_SERVICE:}
+  # ── 单网关 + 双前端入口：令牌受众策略（ADR-007）───────────────
+  # 管理台令牌可访问后台接口，但不能访问商城专属入口；商城令牌只放行下面
+  # 白名单中的前台接口。兼容窗口已关闭：旧令牌（无 aud）一律拒绝，存量会话
+  # 需重新登录。若需临时回滚，设 GATEWAY_LEGACY_TOKEN_POLICY=ALLOW。
+  audience:
+    enabled: ${GATEWAY_AUDIENCE_ENABLED:true}
+    legacy-token-policy: ${GATEWAY_LEGACY_TOKEN_POLICY:DENY}
+    admin-denied-paths:
+      - /ecom-mall/**
+      - /scm-mall/**
+    mall-allowed-paths:
+      - /platform-auth/api/auth/**
+      - /platform-auth/api/public/**
+      - /platform-auth/oauth2/**
+      - /auth/api/auth/**
+      - /auth/api/public/**
+      - /auth/oauth2/**
+      - /ecom-mall/**
+      - /ecom-member/**
+      - /ecom-promotion/**
+      - /ecom-payment/**
+      - /ecom-search/**
+      - /ecom-order-center/**
+      - /ecom-fulfillment/**
+      - /scm-mall/**
+      - /scm-member/**
+      - /scm-promotion/**
+      - /scm-payment/**
+      - /scm-search/**
+      - /scm-order-center/**
+      - /scm-fulfillment/**
+      - /platform-file/**
+      - /scm-file/**
+      - /platform-notify/**
+      - /scm-notify/**
+      - /actuator/health
+      - /actuator/info
+
   ip-access:
     enabled: true
     whitelist-only: false
-    cache-max-size: 20000
     cache-ttl: 1m
     block-message: Request blocked by gateway policy
     forwarded-headers:

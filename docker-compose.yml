@@ -393,7 +393,7 @@ services:
       - scm-network
 
   # ============================================================
-  # 监控 - Prometheus + Grafana
+  # 监控 - Prometheus + Alertmanager + Grafana
   # ============================================================
   prometheus:
     image: prom/prometheus:v3.15.1
@@ -408,6 +408,33 @@ services:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
       - '--web.enable-lifecycle'
+    networks:
+      - scm-network
+
+  # 告警路由/去重/抑制。通知通道默认关闭（null receiver），
+  # 设置 ALERTMANAGER_WEBHOOK_URL 后 entrypoint 切换到 webhook 配置。
+  alertmanager:
+    image: prom/alertmanager:v0.28.0
+    container_name: scm-alertmanager
+    ports:
+      - "9093:9093"
+    environment:
+      ALERTMANAGER_WEBHOOK_URL: ${ALERTMANAGER_WEBHOOK_URL:-}
+    volumes:
+      - ./config/alertmanager:/etc/alertmanager:ro
+      - alertmanager_data:/alertmanager
+    # 空 webhook 地址会让 url 校验失败并导致容器起不来，
+    # 所以由入口脚本按环境变量挑选配置文件（见 docs/operations/ALERTING.md）。
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        if [ -n "$$ALERTMANAGER_WEBHOOK_URL" ]; then
+          exec /bin/alertmanager --config.file=/etc/alertmanager/alertmanager.yml \
+            --config.expand-env --storage.path=/alertmanager
+        fi
+        exec /bin/alertmanager --config.file=/etc/alertmanager/alertmanager-null.yml \
+          --storage.path=/alertmanager
     networks:
       - scm-network
 
@@ -1060,6 +1087,7 @@ volumes:
 
   # 监控
   prometheus_data:
+  alertmanager_data:
   grafana_data:
 
   # Redis Sentinel

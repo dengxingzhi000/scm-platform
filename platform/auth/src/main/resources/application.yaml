@@ -108,3 +108,15 @@ webauthn:
 security:
   uaa:
     enabled: true
+
+# 两个前端入口的登录客户端注册表；受众由服务端固定，客户端无法自行选择。
+auth:
+  clients:
+    default-client-id: ${AUTH_DEFAULT_CLIENT_ID:cognora-aura-web}
+    registry:
+      - client-id: cognora-aura-web
+        audience: cognora-admin
+        description: 管理台
+      - client-id: cognora-aura-mall
+        audience: cognora-mall
+        description: 商城前台

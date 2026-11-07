@@ -1,5 +1,6 @@
 package com.cognora.platform.common.uaa.config;
 
+import com.cognora.platform.common.security.audience.TokenAudience;
 import com.cognora.platform.common.util.UUIDv7Util;
 import com.cognora.platform.common.web.domain.SecurityUser;
 import com.nimbusds.jose.jwk.JWKSet;
@@ -80,6 +81,13 @@ public class AuthorizationServerConfig {
     private String keyAlias;
     @Value("${security.oauth2.authorizationserver.jwk.key-password:}")
     private String keyPassword;
+
+    /** 管理台前端回调地址（公开客户端 + PKCE）。 */
+    @Value("${security.oauth2.clients.cognora-aura-web.redirect-uri:http://localhost:3000/api/auth/callback}")
+    private String adminConsoleRedirectUri;
+    /** 商城前台回调地址（公开客户端 + PKCE）。 */
+    @Value("${security.oauth2.clients.cognora-aura-mall.redirect-uri:http://localhost:3100/api/auth/callback}")
+    private String mallStorefrontRedirectUri;
 
     /**
      * OAuth2鎺堟潈鏈嶅姟鍣ㄥ畨鍏ㄨ繃婊ら摼
@@ -186,7 +194,40 @@ public class AuthorizationServerConfig {
                         .build())
                 .build();
 
-        return new InMemoryRegisteredClientRepository(webClient, mobileClient, serviceClient);
+        // 管理台前端：浏览器公开客户端，强制 PKCE，令牌受众 cognora-admin
+        RegisteredClient adminConsoleClient = frontendRegisteredClient(
+                "cognora-aura-web", adminConsoleRedirectUri);
+        // 商城前台：浏览器公开客户端，强制 PKCE，令牌受众 cognora-mall
+        RegisteredClient mallStorefrontClient = frontendRegisteredClient(
+                "cognora-aura-mall", mallStorefrontRedirectUri);
+
+        return new InMemoryRegisteredClientRepository(
+                webClient, mobileClient, serviceClient, adminConsoleClient, mallStorefrontClient);
+    }
+
+    /**
+     * 平台两个前端入口共用的公开客户端配置。浏览器无法保存 client secret，因此使用
+     * {@link ClientAuthenticationMethod#NONE} 并强制 PKCE；受众由 {@link #jwtCustomizer()} 按 clientId 写入。
+     */
+    private RegisteredClient frontendRegisteredClient(String clientId, String redirectUri) {
+        return RegisteredClient.withId(UUIDv7Util.generateString())
+                .clientId(clientId)
+                .clientAuthenticationMethod(ClientAuthenticationMethod.NONE)
+                .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+                .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
+                .redirectUri(redirectUri)
+                .scope(OidcScopes.OPENID)
+                .scope(OidcScopes.PROFILE)
+                .tokenSettings(TokenSettings.builder()
+                        .accessTokenTimeToLive(Duration.ofHours(2))
+                        .refreshTokenTimeToLive(Duration.ofDays(7))
+                        .reuseRefreshTokens(false)
+                        .build())
+                .clientSettings(ClientSettings.builder()
+                        .requireAuthorizationConsent(false)
+                        .requireProofKey(true)
+                        .build())
+                .build();
     }
 
     /** Boot 4 no longer auto-configures these, so the authorization server keeps them in memory. */
@@ -262,6 +303,15 @@ public class AuthorizationServerConfig {
                 return;
             }
 
+            // audience 由 clientId 决定，不依赖请求参数，避免客户端自行选择受众。
+            String audience = resolveAudience(context.getRegisteredClient());
+            if (audience != null) {
+                context.getClaims().claims(claims -> {
+                    claims.put("aud", audience);
+                    claims.put("clientId", context.getRegisteredClient().getClientId());
+                });
+            }
+
             AuthorizationGrantType grantType = context.getAuthorizationGrantType();
             boolean userGrant = AuthorizationGrantType.AUTHORIZATION_CODE.equals(grantType)
                     || AuthorizationGrantType.REFRESH_TOKEN.equals(grantType)
@@ -278,8 +328,25 @@ public class AuthorizationServerConfig {
                     claims.put("deptId", String.valueOf(user.getDeptId()));
                     claims.put("roles", user.getRoles());
                     claims.put("permissions", user.getPermissions());
+                    if (user.getTenantId() != null) {
+                        claims.put("tenantId", user.getTenantId().toString());
+                    }
+                    if (user.getTenantCode() != null && !user.getTenantCode().isBlank()) {
+                        claims.put("tenantCode", user.getTenantCode());
+                    }
                 });
             }
+        };
+    }
+
+    private static String resolveAudience(RegisteredClient client) {
+        if (client == null) {
+            return null;
+        }
+        return switch (client.getClientId()) {
+            case "cognora-aura-web" -> TokenAudience.ADMIN;
+            case "cognora-aura-mall" -> TokenAudience.MALL;
+            default -> null;
         };
     }
 

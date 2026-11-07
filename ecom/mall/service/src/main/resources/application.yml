@@ -64,3 +64,11 @@ logging:
   level:
     root: INFO
     com.cognora.ecom.mall: DEBUG
+
+# 商城前台服务只接受商城令牌；管理台令牌在网关已被拦截，这里是防直连的第二道校验。
+security:
+  audience:
+    enabled: true
+    allowed:
+      - cognora-mall
+    allow-legacy-token: false

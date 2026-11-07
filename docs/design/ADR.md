@@ -485,6 +485,100 @@ public class OrderStateMachineConfig {
 
 ---
 
+## ADR-007: 单网关 + 两个前端入口 + 一套统一身份
+
+**状态**: ✅ 已采纳
+**决策日期**: 2026-11-06
+**决策人**: 架构组
+**影响范围**: `platform-gateway`、`platform-auth`、`platform/common/security`、全部业务服务、管理台前端 `cognora-aura-web`、商城前台
+
+### 背景 (Context)
+
+平台现有 27 个后端服务，全部经由一个 `platform-gateway` 暴露；`platform-auth` 用 HS512 共享密钥签发 JWT，令牌里已带 `tenantId`、`tenantCode` 与 `ROLE_*` 角色矩阵。前端目前只有管理台 `cognora-aura-web`，商城前台（会员、商品浏览、下单、支付）正在规划。
+
+如果不先把入口与身份固定下来，每新增一条业务线（SCM、ecom、LMS）都会自然长出“自己的网关 + 自己的登录 + 自己的角色体系”，最终无法回答三个问题：一个用户到底是谁、这个令牌能调哪些接口、出问题时该在哪一层拦住。
+
+### 决策 (Decision)
+
+**1. 单网关是唯一外部入口。**
+所有前端、App、第三方回调都只访问 `platform-gateway`。内部服务之间走 Dubbo / 内部 HTTP，不对外暴露端口。网关负责 JWT 校验、路径级 audience 校验、HMAC 调用签名、CORS、限流、IP 策略，并把已验证的身份以签名头向下游传播。
+
+**2. 两个前端入口按“受众”划分，而不是按业务域。**
+- **管理台（Admin Console）**：公司内部员工使用，覆盖 SCM、财务、供应商、仓库、平台管理、审计等后台能力。
+- **商城前台（Storefront）**：外部客户/会员使用，覆盖商品浏览、购物车、下单、支付、会员中心。
+
+只有这两个入口。SCM、ecom、LMS 是后端的**服务分组**，不各自拥有独立入口。新增页面默认归入现有两个入口之一；只有当受众、部署边界、合规要求都不同时，才允许新增入口（判断标准见下）。
+
+**3. 身份统一到 `platform-auth`，但两个入口使用不同 OAuth2 client 与不同 audience。**
+- `platform-auth` 是唯一签发令牌的地方，继续在令牌中写入 `tenantId`、`tenantCode`、`roles`、`permissions`。
+- 两个入口注册为不同 client：`cognora-aura-web`（管理台）与 `cognora-aura-mall`（商城前台）。
+- 令牌新增标准声明 `aud`：
+  - 管理台令牌 `aud = cognora-admin`
+  - 商城令牌 `aud = cognora-mall`
+- 网关按 `aud` + 请求路径判定：商城令牌不能访问 `/platform-system/**`、`/platform-tenant/**`、`/platform-audit/**`、`/scm-*/**`、`/lms-*/**` 等后台接口；管理台令牌也不能访问商城专属接口（`/ecom-mall/**`）。业务服务可再按 `security.audience.allowed` 做一层本地校验，避免绕过网关直连。
+
+### 理由 (Rationale)
+
+**为什么不给 SCM / ecom / lms 各开一个入口？**
+
+| 方案 | 优点 | 缺点 | 是否采纳 |
+|-----|------|------|---------|
+| 单网关 | 一套鉴权、一套审计、一套限流；CORS 与证书只维护一份；故障域清晰 | 网关成为关键路径，需要容量与高可用投入 | ✅ |
+| 每业务域一个网关 | 域内自治，故障隔离 | N 套鉴权/审计/限流重复实现；令牌与身份口径容易分叉；跨域调用要穿多个网关，排障成本高 | ❌ |
+| 前后端 BFF 网关 | 前端可裁剪接口 | 只是多一层聚合，仍需统一身份；当前阶段收益不足以抵消维护成本 | ❌（后续可作网关后的聚合层） |
+
+判断依据是**受众**与**信任边界**，不是团队组织或业务域。业务域再多，只要使用者仍是同一批内部员工，就应该共享同一个入口与同一套后台令牌。多网关只在“受众不同、合规隔离要求不同、需要独立发布节奏”时才值得付出重复建设的代价。
+
+**为什么统一身份但不共用同一受众？**
+
+- 统一身份解决“一个人是谁、属于哪个租户、有什么角色”，这是所有业务域的共同前提；分叉的登录体系会直接破坏租户隔离与审计完整性。
+- 但管理台与商城前台的**信任等级不同**：管理台令牌能改价、退款、授权、看全量数据；商城令牌只应触碰自己的会员数据与前台接口。若两者 audience 相同，一次 XSS 或令牌泄漏就能把商城会话升级成后台操作。
+- 受众分离还能让“误配路由”变成显式的 403，而不是静默放行：商城令牌打到 `/platform-system/**` 会在网关被拒绝并留下审计/指标。
+
+**为什么用 `aud` 而不是新增自定义 claim？**
+`aud` 是 JWT 标准声明，Spring Security 的 `Jwt`、网关的 `JwtAuthenticationToken`、第三方排查工具都能直接识别，不需要额外的解析约定；同时保留扩展为多受众（数组）的能力。
+
+### 后果 (Consequences)
+
+**正面影响**:
+- ✅ 入口、鉴权、审计只有一个实现点，新增业务线不需要再建网关或登录体系。
+- ✅ 商城令牌无法触达后台接口，最小权限从“角色配置”前移到“令牌受众”。
+- ✅ 令牌受众可在网关与业务服务两层校验，绕过网关的直连也会被拦。
+
+**负面影响 / 成本**:
+- ⚠️ `platform-auth` 需要同时维护两个 client 与受众映射；新增入口必须同步登记，否则登录会被拒绝。
+- ⚠️ 网关多了一条路径策略，需要随服务分组变化维护 allow/deny 列表。
+- ⚠️ 已签发的旧令牌没有 `aud`，需要一个有截止时间的兼容窗口。
+
+### 兼容与过渡 (Migration)
+
+1. **签发端先行**：`platform-auth` 立即支持 `clientId` 入参，缺省为管理台 client（保证现有前端不改代码也拿到 `cognora-admin` 受众）；刷新令牌轮换时继承原受众。
+2. **校验端宽容旧令牌**：网关与业务服务对**缺少 `aud` 的旧令牌**默认放行并打点（`legacy-token-policy: ALLOW` / `allow-legacy-token: true`）。带 `aud` 的新令牌立即按受众校验，不等待窗口结束。
+3. **收紧时间点**：所有客户端都换成新登录流程后，至少等待一个刷新令牌周期（默认 7 天）再切换为 `DENY`；切换动作单独发版，不与本次改动合并。
+4. **执行记录（2026-11-07）**：已按上述流程单独发版收紧——网关默认 `legacy-token-policy: DENY`，`platform-system`/`ecom-mall` 设 `allow-legacy-token: false`，`JwtUtils` 对无 `aud` 的 refresh token 返回 401 `invalid_token_audience_missing`。存量会话需重新登录；临时回滚只需把网关设为 `GATEWAY_LEGACY_TOKEN_POLICY=ALLOW`。
+5. **回滚**：两项均为配置开关（网关 `security.audience.enabled`、服务端 `security.audience.enabled`），回滚只需关闭开关，无需回退代码。
+
+### 新增入口的判断标准
+
+新增第三个前端入口，必须同时满足以下条件，缺一不可：
+
+1. **受众不同**：使用者不是同一批内部员工，也不是同一批外部会员（例如面向供应商或承运商的自助门户）。
+2. **信任边界不同**：需要独立的令牌受众、独立的最小权限集合，且不能复用现有两个受众中的任何一个。
+3. **部署/发布边界不同**：需要独立域名、独立发布节奏或独立合规要求（如对外网开放、需单独等保备案）。
+4. **身份仍复用 `platform-auth`**：新增入口只允许新增 client 与 audience，禁止新建登录服务或新的令牌格式。
+5. **网关侧有明确的路径 allow/deny 规则**，并在本 ADR 追加一条记录说明范围。
+
+只满足“页面风格不同”“团队不同”“业务域不同”的，一律归入现有两个入口。
+
+### 参考资料
+
+- RFC 7519 §4.1.3 `aud`（Audience）声明
+- `docs/design/ARCHITECTURE.md`
+- `platform/gateway/src/main/java/com/cognora/platform/gateway/config/GatewaySecurityConfig.java`
+- `platform/common/web/src/main/java/com/cognora/platform/common/security/util/JwtUtils.java`
+
+---
+
 ## ADR 变更流程
 
 1. **提出变更**: 任何团队成员可以提出 ADR 变更请求
